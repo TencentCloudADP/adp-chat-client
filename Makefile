@@ -28,3 +28,9 @@ requirements:
 
 run:
 	source server/.venv/bin/activate; cd server; sanic main
+
+# ----------------- db -----------------
+
+db:
+	ssh -p $(port) $(login)@$(host) "docker run --name pgsql-dev -d -e POSTGRES_PASSWORD=123456 -p 15432:5432 postgres"
+	ssh -p $(port) $(login)@$(host) "docker ps"

@@ -3,7 +3,7 @@ import sanic
 from sanic.exceptions import SanicException
 from sanic import Sanic, Blueprint, response, text
 import time
-import json
+from sanic import json
 from termcolor import colored
 import traceback
 from inspect import getmembers
@@ -11,8 +11,79 @@ from inspect import getmembers
 # from router import cron, deployment, experiment, feature_engineering, feature_extraction, filemanager, model, project, role, sys, table, task, user, warehouse
 # from task import config
 
-app = Sanic("agentic")
+import ujson
+import functools
+from datetime import datetime, date
+def datetime_to_json_formatting(o):
+    if isinstance(o, (date, datetime)):
+        return o.strftime('%Y-%m-%d %H:%M:%S')
+
+custom_dumps = functools.partial(ujson.dumps, default=datetime_to_json_formatting)
+
+
+app = Sanic("agentic", dumps=custom_dumps)
 app.config.RESPONSE_TIMEOUT = 600
+
+
+
+
+
+from contextvars import ContextVar
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import select
+
+db_config = 'postgres:123456@tiaml.woa.com:15432/test'
+db_engine = create_async_engine(f"postgresql+asyncpg://{db_config}", echo=True)
+
+_sessionmaker = sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
+
+_base_model_session_ctx = ContextVar("session")
+
+@app.middleware("request")
+async def inject_session(request):
+    request.ctx.session = _sessionmaker()
+    request.ctx.session_ctx_token = _base_model_session_ctx.set(request.ctx.session)
+
+@app.middleware("response")
+async def close_session(request, response):
+    if hasattr(request.ctx, "session_ctx_token"):
+        _base_model_session_ctx.reset(request.ctx.session_ctx_token)
+        await request.ctx.session.close()
+
+from model import Account
+
+@app.get("/init")
+async def init(request):
+    session = request.ctx.session
+    async with db_engine.begin() as conn:
+        # TODO:
+        # 1.CREATE db
+        # 2.CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+        ret = await conn.run_sync(Account.metadata.create_all)
+    return json(ret)
+
+@app.get("/user")
+async def create_user(request):
+    session = request.ctx.session
+    async with session.begin():
+        user = Account(name="foo", email="bar")
+        session.add_all([user])
+    return json(user.to_dict())
+
+@app.get("/user/<pk:str>")
+async def get_user(request, pk):
+    session = request.ctx.session
+    async with session.begin():
+        stmt = select(Account).where(Account.id == pk)
+        result = await session.execute(stmt)
+        user = result.scalar()
+
+    if not user:
+        return json({})
+    return json(user.to_dict())
+
+
 
 
 def format_exception(exception):
