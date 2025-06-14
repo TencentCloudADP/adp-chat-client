@@ -1,0 +1,11 @@
+
+node_modules
+__pycache__
+.ipynb_checkpoints
+.DS_Store
+.venv
+.vscode
+dist
+Makefile.local
+docker.config
+research
