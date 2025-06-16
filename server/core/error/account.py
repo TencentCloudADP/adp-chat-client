@@ -1,8 +1,8 @@
 from core.error import BaseError
 
 
-class AccountNotFoundError(BaseError):
+class AccountAuthenticationError(BaseError):
     pass
 
-class AccountPasswordError(BaseError):
+class AccountUnauthorized(BaseError):
     pass

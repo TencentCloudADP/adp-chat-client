@@ -1,24 +1,28 @@
-from app_factory import TAgenticApp
 from contextvars import ContextVar
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
 
+from util.database import create_db_engine
+from app_factory import TAgenticApp
 app = TAgenticApp.get_app()
 
-db_config = f'{app.config.PGSQL_USER}:{app.config.PGSQL_PASSWORD}@{app.config.PGSQL_HOST}:{app.config.PGSQL_PORT}/{app.config.PGSQL_DB}'
-db_engine = create_async_engine(f"postgresql+asyncpg://{db_config}", echo=True)
-
-_sessionmaker = sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
-
-_base_model_session_ctx = ContextVar("session")
+_base_model_db_ctx = ContextVar("db")
 
 @app.middleware("request")
 async def inject_session(request):
-    request.ctx.session = _sessionmaker()
-    request.ctx.session_ctx_token = _base_model_session_ctx.set(request.ctx.session)
+    request.ctx.db = app.config['sessionmaker']()
+    request.ctx.db_ctx_token = _base_model_db_ctx.set(request.ctx.db)
 
 @app.middleware("response")
 async def close_session(request, response):
-    if hasattr(request.ctx, "session_ctx_token"):
-        _base_model_session_ctx.reset(request.ctx.session_ctx_token)
-        await request.ctx.session.close()
+    if hasattr(request.ctx, "db_ctx_token"):
+        _base_model_db_ctx.reset(request.ctx.db_ctx_token)
+        await request.ctx.db.close()
+
+@app.listener('before_server_start')
+async def connect_db(app, loop):
+    db_engine, _sessionmaker = create_db_engine(app)
+    app.config['db'] = db_engine
+    app.config['sessionmaker'] = _sessionmaker
+
+@app.listener('before_server_stop')
+async def disconnect_db(app, loop):
+    await app.config['db'].dispose()

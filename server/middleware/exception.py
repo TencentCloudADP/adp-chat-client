@@ -13,7 +13,7 @@ def format_exception(exception):
     status_code = 500
     if hasattr(exception, 'status_code'):
         status_code = exception.status_code
-    return {'ret': 'failed', 'detail': {'message': str(exception)}}, status_code
+    return {'ret': 'failed', 'detail': {'message': str(exception), 'exception': exception.__class__.__name__}}, status_code
 
 # 全局异常捕获，按固定格式输出给客户端
 @app.exception(Exception)

@@ -12,16 +12,15 @@ from app_factory import TAgenticApp
 app = TAgenticApp.get_app()
 
 
-class LoginApi(HTTPMethodView):
+class CreateAccountApi(HTTPMethodView):
     async def post(self, request: Request):
         parser = reqparse.RequestParser()
         parser.add_argument("email", type=str, required=True, location="json")
         parser.add_argument("password", type=str, required=True, location="json")
         args = parser.parse_args(request)
 
-        account = await CoreAccount.authenticate(request.ctx.db, args["email"], args["password"])
-        token = await CoreAccount.login(request.ctx.db, account, get_remote_ip(request))
+        account = await CoreAccount.create_account(request.ctx.db, args["email"], args["password"])
 
-        return json({"token": token})
+        return json(account)
 
-app.add_route(LoginApi.as_view(), "/login")
+app.add_route(CreateAccountApi.as_view(), "/account/create")

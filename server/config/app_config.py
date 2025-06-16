@@ -20,6 +20,18 @@ class TAgenticConfig(
         default="INFO",
     )
 
+    SECRET_KEY: str = Field(
+        description="Secret key for secure session cookie signing."
+            "Make sure you are changing this key for your deployment with a strong key."
+            "Generate a strong key using `openssl rand -base64 64`.",
+        default="",
+    )
+
+    ACCESS_TOKEN_EXPIRE_HOURS: PositiveInt = Field(
+        description="Expiration time for access tokens in hours",
+        default=24,
+    )
+
     model_config = SettingsConfigDict(
         # read from dotenv format config file
         env_file=".env",

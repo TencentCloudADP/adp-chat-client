@@ -27,12 +27,15 @@ requirements:
 	source server/.venv/bin/activate; cd server; pip freeze > requirements.txt
 
 run:
-	source server/.venv/bin/activate; cd server; sanic main
+	source server/.venv/bin/activate; cd server; sanic main:create_app --factory
 
 test_server:
 	source server/.venv/bin/activate; cd server; pytest test/unit_test -W ignore::DeprecationWarning
 
 # ----------------- db -----------------
+
+init_db:
+	source server/.venv/bin/activate; cd server; sanic main:create_migrations_app --factory
 
 db:
 	ssh -p $(port) $(login)@$(host) "docker rm -f pgsql-dev"

@@ -6,21 +6,21 @@
   - [x] exception handler
   - [x] model mechanism
   - [x] controller router mechanism
-  - [] database injection mechanism
-  - [] database initialization mechanism
-  - [] deployment
+  - [x] database injection mechanism
+  - [x] database initialization mechanism
+  - [ ] deployment
   - [x] unit Testing
-  - [] performance testing
+  - [ ] performance testing
   - [x] readme: architecure
-  - [] readme: how to run
+  - [ ] readme: how to run
 
 - login and authentication
-  - [] session token(jwt)
-  - [] user management
-  - [] OAuth2
-  - [] frontend implementation
+  - [x] session token(jwt)
+  - [ ] user management
+  - [ ] OAuth2
+  - [ ] frontend implementation
 
-- chat system
-  - [] protocol design
-  - [] protocol implementation
-  - [] frontend implementation
+- chat subsystem
+  - [ ] protocol design
+  - [ ] protocol implementation
+  - [ ] frontend implementation

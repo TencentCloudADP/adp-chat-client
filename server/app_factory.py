@@ -30,6 +30,15 @@ def create_app() -> TAgenticApp:
     logging.info(f"Finished create_app ({(end_time - start_time) * 1000:.2f} ms)")
     return app
 
+def create_migrations_app() -> TAgenticApp:
+    """
+    create a sanic app for db migrations
+    """
+    app = create_app_with_configs()
+    from middleware import database
+    from core.migration import Migration
+    return app
+
 def initialize_middleware(app: TAgenticApp):
     """
     auto load all blueprints and middleware from server/router and server/middleware

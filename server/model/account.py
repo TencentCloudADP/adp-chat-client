@@ -44,7 +44,7 @@ class Account(Base):
 
     id: Mapped[str] = mapped_column(UUID(), server_default=text("uuid_generate_v4()"), primary_key=True)
     name = Column(String(255), nullable=False)
-    email = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=False, unique=True)
     password = Column(String(255), nullable=True)
     password_salt = Column(String(255), nullable=True)
     timezone = Column(String(255))
