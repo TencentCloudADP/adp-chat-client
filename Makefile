@@ -29,8 +29,12 @@ requirements:
 run:
 	source server/.venv/bin/activate; cd server; sanic main
 
+test_server:
+	source server/.venv/bin/activate; cd server; pytest test/unit_test -W ignore::DeprecationWarning
+
 # ----------------- db -----------------
 
 db:
-	ssh -p $(port) $(login)@$(host) "docker run --name pgsql-dev -d -e POSTGRES_PASSWORD=123456 -p 15432:5432 postgres"
+	ssh -p $(port) $(login)@$(host) "docker rm -f pgsql-dev"
+	ssh -p $(port) $(login)@$(host) "docker run --name pgsql-dev -d -e POSTGRES_PASSWORD=123456 -p 127.0.0.1:5432:5432 -v /data/postgres:/var/lib/postgresql/data postgres"
 	ssh -p $(port) $(login)@$(host) "docker ps"
