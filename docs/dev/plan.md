@@ -11,6 +11,8 @@
   - [] deployment
   - [x] unit Testing
   - [] performance testing
+  - [x] readme: architecure
+  - [] readme: how to run
 
 - login and authentication
   - [] session token(jwt)
