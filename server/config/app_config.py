@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, Settings
 
 from .redis_config import RedisConfig
 from .pgsql_config import PGSqlConfig
+from .tcadp_config import TCADPConfig
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 class TAgenticConfig(
     RedisConfig,
     PGSqlConfig,
+    TCADPConfig,
 ):
     LOG_LEVEL: str = Field(
         description="Log level of the server, can be one of: CRITICAL, FATAL, ERROR, WARN, WARNING, INFO, DEBUG",
