@@ -39,5 +39,5 @@ init_db:
 
 db:
 	ssh -p $(port) $(login)@$(host) "docker rm -f pgsql-dev"
-	ssh -p $(port) $(login)@$(host) "docker run --name pgsql-dev -d -e POSTGRES_PASSWORD=123456 -p 127.0.0.1:5432:5432 -v /data/postgres:/var/lib/postgresql/data postgres"
+	ssh -p $(port) $(login)@$(host) "docker run --name pgsql-dev -d -e POSTGRES_PASSWORD=ye823hd8euhwf -p 127.0.0.1:5432:5432 -v /data/postgres:/var/lib/postgresql/data postgres"
 	ssh -p $(port) $(login)@$(host) "docker ps"

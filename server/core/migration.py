@@ -3,8 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 from asyncpg.exceptions import InvalidCatalogNameError
 from core.error.account import (
-    AccountNotFoundError,
-    AccountPasswordError,
+    AccountAuthenticationError,
     AccountUnauthorized,
 )
 from model.account import Account

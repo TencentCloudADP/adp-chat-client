@@ -4,7 +4,7 @@ from typing import Optional, cast
 
 from sqlalchemy import func, INTEGER, Column, ForeignKey, String, DateTime, text
 from sqlalchemy.orm import Mapped, mapped_column, reconstructor, DeclarativeBase
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import UUID
 from sqlalchemy.orm import DeclarativeBase
 class Base(DeclarativeBase):
     def to_dict(self):

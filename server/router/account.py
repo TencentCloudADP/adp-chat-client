@@ -21,6 +21,9 @@ class CreateAccountApi(HTTPMethodView):
 
         account = await CoreAccount.create_account(request.ctx.db, args["email"], args["password"])
 
-        return json(account)
+        account.password = None
+        account.password_salt = None
+
+        return json(account.to_dict())
 
 app.add_route(CreateAccountApi.as_view(), "/account/create")

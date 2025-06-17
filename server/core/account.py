@@ -69,6 +69,11 @@ class CoreAccount:
 
         db.add(account)
         await db.commit()
+
+        account = await CoreAccount.find(db, email=email)
+        account.password = None
+        account.password_salt = None
+
         return account
 
     @staticmethod

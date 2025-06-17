@@ -9,7 +9,7 @@
   - [x] database injection mechanism
   - [x] database initialization mechanism
   - [ ] deployment
-  - [x] unit Testing
+  - [x] unit testing
   - [ ] performance testing
   - [x] readme: architecure
   - [ ] readme: how to run
