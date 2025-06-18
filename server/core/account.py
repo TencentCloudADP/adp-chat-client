@@ -70,7 +70,6 @@ class CoreAccount:
         db.add(account)
         await db.commit()
 
-        account = await CoreAccount.find(db, email=email)
         account.password = None
         account.password_salt = None
 
@@ -91,7 +90,7 @@ class CoreAccount:
         exp = int(exp_dt.timestamp())
 
         payload = {
-            "user_id": str(account.id),
+            "account_id": str(account.id),
             "token_source": "login_token",
             "exp": exp,
         }

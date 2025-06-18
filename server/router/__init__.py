@@ -12,9 +12,8 @@ def login_required(view):
             raise AccountUnauthorized()
 
         auth_token = auth.split(' ')[-1]
-        print(f'auth_token: {auth_token}')
         token = SessionToken.check(auth_token)
-        print(f'auth_token: {token}')
+        request.ctx.account_id = token['account_id']
 
         return await view(*args, **kwargs)
 

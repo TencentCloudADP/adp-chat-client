@@ -7,6 +7,7 @@ from core.error.account import (
     AccountUnauthorized,
 )
 from model.account import Account
+from model.chat import ChatMessage, ChatConversation
 from middleware.database import create_db_engine
 
 from app_factory import TAgenticApp
@@ -30,11 +31,13 @@ class Migration:
 
     @staticmethod
     async def init(db: AsyncSession, app: TAgenticApp):
-        # await Migration.init_db(app)
+        await Migration.init_db(app)
 
         steps = [
             'CREATE EXTENSION IF NOT EXISTS "uuid-ossp";',
             Account.metadata.create_all,
+            ChatMessage.metadata.create_all,
+            ChatConversation.metadata.create_all,
         ]
 
         conn = await db.connection()

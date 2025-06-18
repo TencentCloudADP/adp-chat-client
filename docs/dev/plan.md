@@ -23,4 +23,11 @@
 - chat subsystem
   - [ ] protocol design
   - [ ] protocol implementation
+  - [x] TCADP SSE protocol forwarding
   - [ ] frontend implementation
+
+- chat-conversation subsystem
+  - [x] server: model
+  - [x] server: controller
+  - [x] server: core
+  - [ ] frontend
