@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
-import Chat from './components/Chat.vue'
+import Chat from './components/ChatWithConversationList.vue'
 import Login from './components/Login.vue'
 
 const isAuthenticated = computed(() => {
