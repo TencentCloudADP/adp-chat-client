@@ -1,12 +1,36 @@
 <script setup lang="ts">
+import { UserOutlined } from '@ant-design/icons-vue'
+import { Flex } from 'ant-design-vue'
+import { Bubble, Sender, type BubbleListProps } from 'ant-design-x-vue'
 import { ref, reactive, computed } from 'vue'
 import {api, chunkSplitter} from '@/util/api'
 import type { AxiosRequestConfig } from 'axios'
+import type { ChatMessage } from '@/model/message'
+
+const roles: BubbleListProps['roles'] = {
+  agent: {
+    placement: 'start',
+    avatar: { icon: UserOutlined, style: { background: '#fde3cf' } },
+    typing: { step: 5, interval: 20 },
+    style: {
+      maxWidth: '600px',
+    },
+  },
+  user: {
+    placement: 'end',
+    avatar: { icon: UserOutlined, style: { background: '#87d068' } },
+  },
+}
 
 const query = ref("")
-const messages = reactive([] as string[])
+const senderLoading = ref(false)
+const messages = reactive([] as {'messageId':null, 'delta':string}[])
+const setContent = (v: string) => {
+  query.value = v
+}
 
 const handleSend = async () => {
+  senderLoading.value = true
   const post_body = {
     query: query.value
   }
@@ -15,58 +39,63 @@ const handleSend = async () => {
     adapter: 'fetch',
     timeout: 1000 * 600,
   } as AxiosRequestConfig
-  const res = await api.post('/chat/message', post_body, options)
+  try {
+    const res = await api.post('/chat/message', post_body, options)
 
-  for await (const line of chunkSplitter(res.data)) {
-    let msg_body = line.substring(line.indexOf(':')+1).trim()
-    let msg = JSON.parse(msg_body)
-    if (msg['type'] == 'TEXT_MESSAGE_CONTENT') {
-      messages.push(msg['delta'])
+    let last_messages = {'messageId': null, 'delta': ''}
+    for await (const line of chunkSplitter(res.data)) {
+      let msg_body = line.substring(line.indexOf(':')+1).trim()
+      let msg = JSON.parse(msg_body)
+      if (msg['type'] == 'TEXT_MESSAGE_CONTENT') {
+        if (last_messages['messageId'] != msg['messageId']) {
+          last_messages = msg
+          messages.push(last_messages)
+        } else {
+          last_messages['delta'] += msg['delta']
+        }
+      } else if (msg['type'] == 'CUSTOM' && msg['name'] == 'thought') {
+        if (last_messages['messageId'] != msg['value']['messageId']) {
+          last_messages = msg['value']
+          messages.push(last_messages)
+        } else {
+          last_messages['delta'] += msg['value']['delta']
+        }
+      }
+      console.log(msg)
     }
-    else if (msg['type'] == 'CUSTOM' && msg['name'] == 'thought') {
-      messages.push(msg['value']['delta'])
-    }
-    console.log(msg)
+  } catch (e) {
+    console.log(e)
   }
   console.log('done')
+  senderLoading.value = false
 }
 
 </script>
 
 <template>
-  <div class="chat">
-    <h1>Chat</h1>
-    {{messages}}
-    <form @submit.prevent="handleSend">
-      <div>
-        <label for="query">query:</label>
-        <input id="query" v-model="query" type="text" required />
-        <button type="submit">send</button>
-      </div>
-    </form>
-  </div>
+  <Flex
+    vertical
+    :style="{ 'height': '100%' }"
+    gap="middle"
+  >
+    <Bubble.List
+      :roles="roles"
+      :style="{ 'flex-grow': 1 }"
+      :items="messages.map((message) => ({
+        key: message['messageId'] || '',
+        loading: false,
+        role: 'user',
+        content: message['delta'],
+      }))"
+    />
+    <Sender
+      :loading="senderLoading"
+      :value="query"
+      :on-change="setContent"
+      :on-submit="() => {
+        handleSend()
+        setContent('')
+      }"
+    />
+  </Flex>
 </template>
-
-<style scoped>
-.chat {
-  max-width: 400px;
-  margin: 0 auto;
-  padding: 20px;
-}
-label {
-  display: block;
-  margin-bottom: 5px;
-}
-input {
-  width: 100%;
-  padding: 8px;
-  margin-bottom: 10px;
-}
-button {
-  padding: 10px 15px;
-  background-color: #42b983;
-  color: white;
-  border: none;
-  cursor: pointer;
-}
-</style>
