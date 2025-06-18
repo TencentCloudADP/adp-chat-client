@@ -2,33 +2,59 @@
 import { theme } from 'ant-design-vue';
 import { Conversations } from 'ant-design-x-vue';
 import type { ConversationsProps } from 'ant-design-x-vue';
-import { computed } from 'vue';
-import HelloWorld from './Chat.vue'
+import { computed, ref, reactive, onMounted } from 'vue';
+import Chat from './Chat.vue'
+import {api, chunkSplitter} from '@/util/api'
+import type { AxiosRequestConfig } from 'axios'
+import { dateFormat } from '@/util/dateFormat'
 
 defineOptions({ name: 'AXConversationsBasic' });
 
-const items: ConversationsProps['items'] = Array.from({ length: 4 }).map((_, index) => ({
-  key: `item${index + 1}`,
-  label: `Conversation Item ${index + 1}`,
-  disabled: index === 3,
-}));
+const conversations = ref([] as {'id':null, 'title':string, 'last_active_at':string}[])
+const activeConversationId = ref(undefined as string|undefined)
+
+const handleUpdate = async () => {
+  const options = {
+  } as AxiosRequestConfig
+  try {
+    const res = await api.get('/chat/conversations', options)
+    conversations.value = res.data
+    // console.log(res)
+  } catch (e) {
+    console.log(e)
+  }
+}
+
+onMounted(async () => {
+  await handleUpdate()
+})
 
 const { token } = theme.useToken();
 
 // Customize the style of the container
 const style = computed(() => ({
   width: '256px',
+  height: '100%',
+  overflow: 'scroll',
   background: token.value.colorBgContainer,
   borderRadius: token.value.borderRadius,
 }));
+
+const updateActiveKey = (v: string) => {
+  activeConversationId.value = v
+}
 
 </script>
 
 <template>
   <a-layout-sider width="256" style="background: #fff">
     <Conversations
-        :items="items"
-        default-active-key="item1"
+        :items="conversations.map((conversation) => ({
+          key: conversation['id'] || '',
+          label: `${conversation['title']} ${conversation['last_active_at'].substring(5, 16)}`,
+          disabled: false,
+        }))"
+        :on-active-change="(v) => updateActiveKey(v)"
         :style="style"
     />
   </a-layout-sider>
@@ -36,7 +62,9 @@ const style = computed(() => ({
     <a-layout-content
       :style="{ background: '#fff', padding: '24px', margin: 0, minHeight: '280px' }"
     >
-      <HelloWorld />
+      <Chat
+        :conversationId="activeConversationId"
+      />
     </a-layout-content>
   </a-layout>
 </template>

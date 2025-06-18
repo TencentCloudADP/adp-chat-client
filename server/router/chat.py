@@ -11,6 +11,7 @@ from router import login_required
 from model import Account
 from core.chat import CoreChat
 from core.conversation import CoreConversation
+from core.chat import CoreMessage
 from app_factory import TAgenticApp
 app = TAgenticApp.get_app()
 
@@ -28,6 +29,15 @@ class ChatMessageApi(HTTPMethodView):
                 await response.write(data)
         return ResponseStream(streaming_fn, content_type='text/event-stream; charset=utf-8')
 
+class ChatMessageListApi(HTTPMethodView):
+    @login_required
+    async def get(self, request: Request):
+        parser = reqparse.RequestParser()
+        parser.add_argument("conversation_id", type=str, required=True, location="args")
+        args = parser.parse_args(request)
+        messages = await CoreMessage.list(request.ctx.db, args['conversation_id'])
+        return json([message.to_dict() for message in messages])
+
 class ChatConversationListApi(HTTPMethodView):
     @login_required
     async def get(self, request: Request):
@@ -36,6 +46,6 @@ class ChatConversationListApi(HTTPMethodView):
         conversations = await CoreConversation.list(request.ctx.db, request.ctx.account_id)
         return json([conversation.to_dict() for conversation in conversations])
 
-
 app.add_route(ChatMessageApi.as_view(), "/chat/message")
-app.add_route(ChatConversationListApi.as_view(), "/chat/conversation")
+app.add_route(ChatMessageListApi.as_view(), "/chat/messages")
+app.add_route(ChatConversationListApi.as_view(), "/chat/conversations")

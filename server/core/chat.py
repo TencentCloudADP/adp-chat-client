@@ -4,7 +4,7 @@ import logging
 from pydantic import BaseModel
 from typing import Any, Optional, cast
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, desc
 import asyncio
 import aiohttp
 import json
@@ -146,7 +146,7 @@ class CoreMessage:
     async def list(db: AsyncSession, conversation_id: str) -> list[ChatMessage]:
         conversations = (await db.execute(select(ChatMessage).where(
             ChatMessage.conversation_id==conversation_id
-        ))).scalars()
+        ).order_by(ChatMessage.created_at))).scalars()
         return conversations
 
     @staticmethod
