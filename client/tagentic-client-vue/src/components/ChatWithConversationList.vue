@@ -3,7 +3,7 @@ import { theme } from 'ant-design-vue';
 import { Conversations } from 'ant-design-x-vue';
 import type { ConversationsProps } from 'ant-design-x-vue';
 import { computed } from 'vue';
-import HelloWorld from './HelloWorld.vue'
+import HelloWorld from './Chat.vue'
 
 defineOptions({ name: 'AXConversationsBasic' });
 
