@@ -1,41 +1,72 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, reactive, computed } from 'vue'
+import {api, chunkSplitter} from '@/util/api'
+import type { AxiosRequestConfig } from 'axios'
 
-defineProps<{ msg: string }>()
+const query = ref("")
+const messages = reactive([] as string[])
 
-const count = ref(0)
+const handleSend = async () => {
+  const post_body = {
+    query: query.value
+  }
+  const options = {
+    responseType: 'stream',
+    adapter: 'fetch',
+    timeout: 1000 * 600,
+  } as AxiosRequestConfig
+  const res = await api.post('/chat/message', post_body, options)
+
+  for await (const line of chunkSplitter(res.data)) {
+    let msg_body = line.substring(line.indexOf(':')+1).trim()
+    let msg = JSON.parse(msg_body)
+    if (msg['type'] == 'TEXT_MESSAGE_CONTENT') {
+      messages.push(msg['delta'])
+    }
+    else if (msg['type'] == 'CUSTOM' && msg['name'] == 'thought') {
+      messages.push(msg['value']['delta'])
+    }
+    console.log(msg)
+  }
+  console.log('done')
+}
+
 </script>
 
 <template>
-  <h1>{{ msg }}</h1>
-
-  <div class="card">
-    <button type="button" @click="count++">count is {{ count }}</button>
-    <p>
-      Edit
-      <code>components/HelloWorld.vue</code> to test HMR
-    </p>
+  <div class="chat">
+    <h1>Chat</h1>
+    {{messages}}
+    <form @submit.prevent="handleSend">
+      <div>
+        <label for="query">query:</label>
+        <input id="query" v-model="query" type="text" required />
+        <button type="submit">send</button>
+      </div>
+    </form>
   </div>
-
-  <p>
-    Check out
-    <a href="https://vuejs.org/guide/quick-start.html#local" target="_blank"
-      >create-vue</a
-    >, the official Vue + Vite starter
-  </p>
-  <p>
-    Learn more about IDE Support for Vue in the
-    <a
-      href="https://vuejs.org/guide/scaling-up/tooling.html#ide-support"
-      target="_blank"
-      >Vue Docs Scaling up Guide</a
-    >.
-  </p>
-  <p class="read-the-docs">Click on the Vite and Vue logos to learn more</p>
 </template>
 
 <style scoped>
-.read-the-docs {
-  color: #888;
+.chat {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+label {
+  display: block;
+  margin-bottom: 5px;
+}
+input {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+}
+button {
+  padding: 10px 15px;
+  background-color: #42b983;
+  color: white;
+  border: none;
+  cursor: pointer;
 }
 </style>

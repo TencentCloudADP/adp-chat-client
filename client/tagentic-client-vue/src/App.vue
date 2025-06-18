@@ -1,17 +1,19 @@
 <script setup lang="ts">
+import { ref, reactive, computed } from 'vue'
 import HelloWorld from './components/HelloWorld.vue'
+import Login from './components/Login.vue';
+
+const isAuthenticated = computed(() => {
+  return !!localStorage.getItem('access_token');
+})
+
 </script>
 
 <template>
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
+  <div id="app">
+    <Login v-if="!isAuthenticated" />
+    <HelloWorld v-else />
   </div>
-  <HelloWorld msg="Vite + Vue" />
 </template>
 
 <style scoped>
