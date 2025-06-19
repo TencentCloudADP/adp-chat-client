@@ -10,7 +10,7 @@ async def test_error_asgi_client(app, auth_token):
     }
 
     # check conversation list
-    request, response = await app.asgi_client.get("/chat/conversation", headers=headers)
+    request, response = await app.asgi_client.get("/chat/conversations", headers=headers)
     assert request.method.lower() == "get"
     assert response.status == 200
     resp_dict = json.loads(response.body.decode())
@@ -27,7 +27,7 @@ async def test_error_asgi_client(app, auth_token):
     assert response.status == 200
 
     # check conversation list
-    request, response = await app.asgi_client.get("/chat/conversation", headers=headers)
+    request, response = await app.asgi_client.get("/chat/conversations", headers=headers)
     assert request.method.lower() == "get"
     assert response.status == 200
     resp_dict = json.loads(response.body.decode())

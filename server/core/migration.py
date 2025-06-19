@@ -1,7 +1,7 @@
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
-from asyncpg.exceptions import InvalidCatalogNameError
+from asyncpg.exceptions import InvalidCatalogNameError, DuplicateDatabaseError
 from core.error.account import (
     AccountAuthenticationError,
     AccountUnauthorized,
@@ -15,17 +15,21 @@ app = TAgenticApp.get_app()
 
 class Migration:
     @staticmethod
-    async def init_db(app: TAgenticApp):
+    async def init_db(app: TAgenticApp):   
         _, sessionmaker = create_db_engine(app, override_db='')
         db = sessionmaker()
         conn = await db.connection()
 
         steps = [
             'commit', # https://stackoverflow.com/questions/6506578/how-to-create-a-new-database-using-sqlalchemy
-            f"SELECT 'CREATE DATABASE {app.config.PGSQL_DB}' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '{app.config.PGSQL_DB}');",
+            f"CREATE DATABASE {app.config.PGSQL_DB};",
+            # f"SELECT 'CREATE DATABASE {app.config.PGSQL_DB}' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '{app.config.PGSQL_DB}');",
         ]
         for query in steps:
-            await conn.run_sync(lambda connection: connection.execute(text(query)))
+            try:
+                await conn.run_sync(lambda connection: connection.execute(text(query)))
+            except DuplicateDatabaseError as e:
+                pass
         await conn.commit()
         await conn.close()
 

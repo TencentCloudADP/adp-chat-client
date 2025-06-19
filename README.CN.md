@@ -1,3 +1,28 @@
+# 部署
+
+## docker
+
+1. 复制.env.example文件到deploy文件夹
+``` bash
+cp server/.env.example deploy/.env
+```
+
+2. 修改deploy/.env文件
+
+TCADP_APP_KEY: TCADP平台获取的appkey
+
+3. 启动容器
+``` bash
+make deploy
+```
+
+4. 初始化（临时措施）
+``` bash
+docker exec -it tagentic-server bash
+sanic main:create_migrations_app --factory --port 8888
+pytest test/unit_test -W ignore::DeprecationWarning
+```
+
 # 开发指南
 
 ## 后端

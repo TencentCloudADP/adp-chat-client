@@ -1,3 +1,28 @@
+# Deployment
+
+## Docker
+
+1. Copy the .env.example file to the deploy folder
+``` bash
+cp server/.env.example deploy/.env
+```
+
+2. Modify the deploy/.env file
+
+TCADP_APP_KEY: App key obtained from the TCADP platform
+
+3. Start the container
+``` bash
+make deploy
+```
+
+4. Initialization (temporary)
+``` bash
+docker exec -it tagentic-server bash
+sanic main:create_migrations_app --factory --port 8888
+pytest test/unit_test -W ignore::DeprecationWarning
+```
+
 # Development Guide
 
 ## Backend
