@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import api from '@/util/api'
-
-const emit = defineEmits<{
-  change: []
-}>()
+import useEventsBus from '@/util/eventBus'
+const {emit} = useEventsBus()
 
 const email = ref("")
 const password = ref("")
@@ -16,7 +14,7 @@ const handleLogin = async () => {
     })
     if (res.data.token) {
       localStorage.setItem('access_token', res.data.token)
-      emit('change')
+      emit("login-state-changed", res.data.token)
     }
 }
 

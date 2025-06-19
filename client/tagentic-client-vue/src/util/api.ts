@@ -1,4 +1,6 @@
 import axios from 'axios'
+import useEventsBus from '@/util/eventBus'
+const {emit} = useEventsBus()
 
 const axiosInstance = axios.create({
   baseURL: '/',
@@ -23,6 +25,16 @@ axiosInstance.interceptors.response.use(response => {
   return response
 }, error => {
   // 全局处理错误
+  console.log('[error]', error)
+
+  try {
+    if (error.response.data.detail.exception == 'AccountUnauthorized') {
+      localStorage.removeItem('access_token')
+      emit("login-state-changed", null)
+    }
+  } catch (e) {
+    console.log('[error.response]', e)
+  }
   return Promise.reject(error)
 })
 

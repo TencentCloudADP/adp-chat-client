@@ -1,15 +1,23 @@
 <script setup lang="ts">
-import { ref, reactive, computed, handleError } from 'vue'
+import { ref, reactive, computed, watch, handleError } from 'vue'
 import Chat from './components/ChatWithConversationList.vue'
 import Login from './components/Login.vue'
+import useEventsBus from '@/util/eventBus'
+const { emit, bus } = useEventsBus()
 
-const event = ref(false)
+const access_token = ref(localStorage.getItem('access_token') as null|string)
 
 const isAuthenticated = computed(() => {
-  return (!!localStorage.getItem('access_token')) ||  event.value
+  return !!(access_token.value)
 })
-const handleLogin = () => {
-  event.value = true
+
+watch(()=>bus.value.get('login-state-changed'), (_access_token) => {
+  access_token.value = _access_token
+})
+
+const handleLogout = () => {
+  localStorage.removeItem('access_token')
+  emit("login-state-changed", null)
 }
 
 </script>
@@ -18,9 +26,10 @@ const handleLogin = () => {
   <a-layout id="root-layout">
     <a-layout-header class="header">
       <div class="logo" />
+      <a-button id="logout" @click="handleLogout" v-if="isAuthenticated">退出</a-button>
     </a-layout-header>
     <a-layout>
-      <Login v-if="!isAuthenticated" @change="handleLogin" />
+      <Login v-if="!isAuthenticated" />
       <Chat v-else />
     </a-layout>
   </a-layout>
@@ -32,5 +41,9 @@ const handleLogin = () => {
 }
 #root-layout {
   height: 100%;
+}
+#logout {
+  float: right;
+  margin: 15px;
 }
 </style>
