@@ -17,8 +17,6 @@ init_client:
 client:
 	cd client/tagentic-client-vue && npm run build
 
-# ----------------- server -----------------
-
 init_server:
 	cd server; python3 -m venv server/.venv
 	source server/.venv/bin/activate; cd server; pip install -r requirements.txt
@@ -48,6 +46,10 @@ db:
 pack:
 	docker build -t tagentic-server -f docker/Dockerfile .
 
+push_image:
+	docker tag tagentic-server mirrors.tencent.com/ti-machine-learning/tagentic-system-client:0.0.1
+	docker push mirrors.tencent.com/ti-machine-learning/tagentic-system-client:0.0.1
+
 # ----------------- deploy -----------------
 
 stop_deploy:
@@ -58,4 +60,4 @@ stop_deploy:
 deploy: stop_deploy
 	docker network create tagentic-network
 	cd deploy; docker run --name tagentic-db -d -e POSTGRES_PASSWORD=ye823hd8euhwf -v ./volume/db:/var/lib/postgresql/data --network tagentic-network postgres
-	cd deploy; docker run --name tagentic-server -d -p 8100:8000 -v ./.env:/app/.env --network tagentic-network tagentic-server
+	cd deploy; docker run --name tagentic-server -d -p 8000:8000 -v ./.env:/app/.env --network tagentic-network mirrors.tencent.com/ti-machine-learning/tagentic-system-client:0.0.1
