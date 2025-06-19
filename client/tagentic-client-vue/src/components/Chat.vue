@@ -22,6 +22,10 @@ const roles: BubbleListProps['roles'] = {
   },
 }
 
+const emit = defineEmits<{
+  new_conversation: [conversation_id: string]
+}>()
+
 const { conversationId = null } = defineProps<{
   conversationId?: string,
 }>()
@@ -35,6 +39,10 @@ const setQuery = (v: string) => {
 }
 
 const handleUpdate = async () => {
+  if (!conversationId) {
+    messages.value = []
+    return
+  }
   const options = {
     params: {
       conversation_id: conversationId,
@@ -84,6 +92,9 @@ const handleSend = async () => {
         } else {
           last_messages['content'] += msg['value']['delta']
         }
+      } else if (msg['type'] == 'CUSTOM' && msg['name'] == 'new_conversation') {
+          let converdation_id = msg['value']['converdation_id']
+          emit('new_conversation', converdation_id)
       }
       console.log(msg)
     }

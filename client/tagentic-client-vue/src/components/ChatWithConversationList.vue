@@ -25,6 +25,15 @@ const handleUpdate = async () => {
   }
 }
 
+const handleCreateConversation = async () => {
+  activeConversationId.value = undefined
+}
+
+const handleOnNewConversation = async (converdation_id: string) => {
+  await handleUpdate()
+  activeConversationId.value = converdation_id
+}
+
 onMounted(async () => {
   await handleUpdate()
 })
@@ -47,13 +56,15 @@ const updateActiveKey = (v: string) => {
 </script>
 
 <template>
-  <a-layout-sider width="256" style="background: #fff">
+  <a-layout-sider width="256" style="background: #fff; padding-top: 10px;">
+    <a-button @click="handleCreateConversation" style="width: calc(100% - 20px); margin: 0 10px;">新会话</a-button>
     <Conversations
         :items="conversations.map((conversation) => ({
           key: conversation['id'] || '',
           label: `${conversation['title']} ${conversation['last_active_at'].substring(5, 16)}`,
           disabled: false,
         }))"
+        :active-key="activeConversationId"
         :on-active-change="(v) => updateActiveKey(v)"
         :style="style"
     />
@@ -64,6 +75,7 @@ const updateActiveKey = (v: string) => {
     >
       <Chat
         :conversationId="activeConversationId"
+        @new_conversation="handleOnNewConversation"
       />
     </a-layout-content>
   </a-layout>

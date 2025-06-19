@@ -30,8 +30,18 @@ class TCADPEventType(str, Enum):
 
 
 class CoreChat:
+    def message_new_conversation_id(conversation_id: str):
+        event = CustomEvent(
+            type=EventType.CUSTOM,
+            name='new_conversation',
+            value={
+                "conversation_id": conversation_id,
+            }
+        )
+        return event
+
     @staticmethod
-    async def forward_request(account_id: str, query: str, conversation_id: str, new_text_message_cb: callable):
+    async def forward_request(account_id: str, query: str, conversation_id: str, is_new_conversation: bool, new_text_message_cb: callable):
         url = tagentic_config.TCADP_API_URL
         bot_app_key = tagentic_config.TCADP_APP_KEY
         session_id = conversation_id
@@ -55,6 +65,9 @@ class CoreChat:
 
                 # Initialize the encoder
                 encoder = EventEncoder()
+
+                if is_new_conversation:
+                    yield encoder.encode(CoreChat.message_new_conversation_id(conversation_id))
 
                 # 逐行读取事件流
                 last_event_type = None
@@ -135,10 +148,13 @@ class CoreChat:
         async def new_text_message(message_id: str, from_role: str, content: str):
             message = await CoreMessage.create(db, conversation_id, from_role, content)
             logging.info(f"forward_request: {message_id}, {content}, {message.id}")
+        is_new_conversation = False
         if conversation_id is None:
-            conversation = await CoreConversation.create(db, account_id)
+            title = query[:10]
+            is_new_conversation = True
+            conversation = await CoreConversation.create(db, account_id, title=title)
             conversation_id = str(conversation.id)
-        async for message in CoreChat.forward_request(account_id, query, conversation_id, new_text_message):
+        async for message in CoreChat.forward_request(account_id, query, conversation_id, is_new_conversation, new_text_message):
             yield message
 
 class CoreMessage:
