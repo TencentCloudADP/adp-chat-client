@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { UserOutlined } from '@ant-design/icons-vue'
 import { Flex } from 'ant-design-vue'
-import { Bubble, Sender, type BubbleListProps } from 'ant-design-x-vue'
+import { Bubble, Sender, type BubbleListProps, type BubbleProps } from 'ant-design-x-vue'
+import { Typography } from 'ant-design-vue'
 import { ref, reactive, watch, computed, h } from 'vue'
 import {api, chunkSplitter} from '@/util/api'
 import type { AxiosRequestConfig } from 'axios'
 import type { ChatMessage } from '@/model/message'
+import markdownit from 'markdown-it'
 
 const roles: BubbleListProps['roles'] = {
   agent: {
@@ -21,6 +23,12 @@ const roles: BubbleListProps['roles'] = {
     avatar: { icon: h(UserOutlined), style: { background: '#87d068' } },
   },
 }
+
+const md = markdownit({ html: true, breaks: true });
+const renderMarkdown: BubbleProps['messageRender'] = (content) =>
+  h(Typography, null, {
+    default: () => h('div', { innerHTML: md.render(content) }),
+  })
 
 const emit = defineEmits<{
   new_conversation: [conversation_id: string]
@@ -82,7 +90,9 @@ const handleSend = async () => {
           last_messages['content'] = msg['delta']
           messages.value.push(last_messages)
         } else {
-          last_messages['content'] += msg['delta']
+          // last_messages['content'] += msg['delta']
+          const lastIndex = messages.value.length - 1
+          messages.value[lastIndex]['content'] += msg['delta']
         }
       } else if (msg['type'] == 'CUSTOM' && msg['name'] == 'thought') {
         if (last_messages['messageId'] != msg['value']['messageId']) {
@@ -90,7 +100,9 @@ const handleSend = async () => {
           last_messages['content'] = msg['value']['delta']
           messages.value.push(last_messages)
         } else {
-          last_messages['content'] += msg['value']['delta']
+          // last_messages['content'] += msg['value']['delta']
+          const lastIndex = messages.value.length - 1
+          messages.value[lastIndex]['content'] += msg['value']['delta']
         }
       } else if (msg['type'] == 'CUSTOM' && msg['name'] == 'new_conversation') {
           let converdation_id = msg['value']['converdation_id']
@@ -121,6 +133,7 @@ const handleSend = async () => {
         loading: false,
         role: 'user',
         content: message['content'],
+        messageRender: renderMarkdown,
       }))"
     />
     <Sender
