@@ -1,9 +1,16 @@
 .PHONY: client server docs deploy
 
-host  := 9.135.142.234
+# host  := 9.135.142.234
+# path  := /opt/agent
+# login := root
+# port  := 36000
+# host_remote  := 124.223.11.40
+# login_remote := ubuntu
+# port_remote  := 22
+host  := 124.223.11.40
 path  := /opt/agent
-login := root
-port  := 36000
+login := ubuntu
+port  := 22
 
 up:
 	rsync -avrL -e 'ssh -p $(port)' --exclude="research" --exclude="node_modules" --exclude=".venv" --exclude=".git" --exclude=".next" --exclude="__pycache__" --exclude=".ipynb_checkpoints" --exclude=".DS_Store" ./server ./client ./deploy ./docker Makefile $(login)@$(host):$(path)
@@ -44,11 +51,20 @@ db:
 # ----------------- pack -----------------
 
 pack:
-	docker build -t tagentic-server -f docker/Dockerfile .
+	docker build -t tagentic-system-client -f docker/Dockerfile .
 
 push_image:
-	docker tag tagentic-server mirrors.tencent.com/ti-machine-learning/tagentic-system-client:0.0.1
+	docker tag tagentic-system-client mirrors.tencent.com/ti-machine-learning/tagentic-system-client:0.0.1
 	docker push mirrors.tencent.com/ti-machine-learning/tagentic-system-client:0.0.1
+
+dump_image:
+	docker save -o /tmp/tagentic-system-client.tar tagentic-system-client
+
+send_image:
+	scp -3 scp://$(login)@$(host):$(port)//tmp/tagentic-system-client.tar scp://$(login_remote)@$(host_remote):$(port_remote)//tmp/tagentic-system-client.tar
+
+load_image:
+	docker load -i /tmp/tagentic-system-client.tar
 
 # ----------------- deploy -----------------
 
@@ -60,4 +76,7 @@ stop_deploy:
 deploy: stop_deploy
 	docker network create tagentic-network
 	cd deploy; docker run --name tagentic-db -d -e POSTGRES_PASSWORD=ye823hd8euhwf -v ./volume/db:/var/lib/postgresql/data --network tagentic-network postgres
-	cd deploy; docker run --name tagentic-server -d -p 8000:8000 -v ./.env:/app/.env --network tagentic-network mirrors.tencent.com/ti-machine-learning/tagentic-system-client:0.0.1
+	cd deploy; docker run --name tagentic-server -d -p 80:8000 -v ./.env:/app/.env --network tagentic-network tagentic-system-client
+
+init_env:
+	sudo bash deploy/init_env.sh
