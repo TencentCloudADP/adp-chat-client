@@ -7,6 +7,8 @@ from sqlalchemy import select
 import logging
 import asyncio
 
+from config import tagentic_config
+from util.tca import tc_request
 from router import login_required
 from model import Account
 from core.chat import CoreChat
@@ -46,6 +48,25 @@ class ChatConversationListApi(HTTPMethodView):
         conversations = await CoreConversation.list(request.ctx.db, request.ctx.account_id)
         return json([conversation.to_dict() for conversation in conversations])
 
+class TCADPChatMessageListApi(HTTPMethodView):
+    @login_required
+    async def get(self, request: Request):
+        parser = reqparse.RequestParser()
+        parser.add_argument("conversation_id", type=str, required=True, location="args")
+        args = parser.parse_args(request)
+
+        action = "GetMsgRecord"
+        payload = {
+            "Type": 5,
+            "Count": 1000,
+            "SessionId": args['conversation_id'],
+            "BotAppKey": tagentic_config.TCADP_APP_KEY,
+   
+        }
+        resp = await tc_request(action, payload)
+        return json(resp)
+
 app.add_route(ChatMessageApi.as_view(), "/chat/message")
-app.add_route(ChatMessageListApi.as_view(), "/chat/messages")
+# app.add_route(ChatMessageListApi.as_view(), "/chat/messages")
+app.add_route(TCADPChatMessageListApi.as_view(), "/chat/messages")
 app.add_route(ChatConversationListApi.as_view(), "/chat/conversations")

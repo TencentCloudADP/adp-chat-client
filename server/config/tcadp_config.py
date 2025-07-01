@@ -12,6 +12,15 @@ class TCADPConfig(BaseSettings):
     """
     Configuration settings for TCADP
     """
+    TC_SECRET_ID: str = Field(
+        description="Tencent secret id, you can obtain it from https://console.cloud.tencent.com/cam/capi",
+        default="",
+    )
+
+    TC_SECRET_KEY: str = Field(
+        description="Tencent secret key, you can obtain it from https://console.cloud.tencent.com/cam/capi",
+        default="",
+    )
 
     TCADP_APP_KEY: str = Field(
         description="TCADP bot app key, you can obtain it from https://lke.cloud.tencent.com/",

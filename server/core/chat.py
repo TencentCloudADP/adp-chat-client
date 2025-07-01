@@ -9,9 +9,6 @@ import asyncio
 import aiohttp
 import json
 
-from ag_ui.core import EventType, TextMessageContentEvent, CustomEvent
-from ag_ui.encoder import EventEncoder
-
 from config import tagentic_config
 from core.conversation import CoreConversation
 from model.chat import ChatMessage
@@ -31,13 +28,13 @@ class TCADPEventType(str, Enum):
 
 class CoreChat:
     def message_new_conversation_id(conversation_id: str):
-        event = CustomEvent(
-            type=EventType.CUSTOM,
-            name='new_conversation',
-            value={
+        event = {
+            "type": "custom",
+            "name": "new_conversation",
+            "value": {
                 "conversation_id": conversation_id,
-            }
-        )
+            },
+        }
         return event
 
     @staticmethod
@@ -63,11 +60,8 @@ class CoreChat:
                 if resp.status != 200:
                     raise(Exception())
 
-                # Initialize the encoder
-                encoder = EventEncoder()
-
                 if is_new_conversation:
-                    yield encoder.encode(CoreChat.message_new_conversation_id(conversation_id))
+                    yield ('data:'+json.dumps(CoreChat.message_new_conversation_id(conversation_id))+'\n\n').encode()
 
                 # 逐行读取事件流
                 last_event_type = None
@@ -83,65 +77,9 @@ class CoreChat:
                         continue
                     line_type, data = line.split(':', 1)
                     if line_type == 'data':
-                        # yield raw_line
-                        try:
-                            data = json.loads(data)
-                            data_type = data['type']
-                            message_id = data['payload']['record_id']
-                            from_role = ''
-                            if data_type == TCADPEventType.REPLY:
-                                if data['payload']['is_from_self']:
-                                    from_role = 'user'
-                                else:
-                                    from_role = data['payload']['from_name']
-                            event = None
-                            if data_type == TCADPEventType.REPLY:
-                                event = TextMessageContentEvent(
-                                    type=EventType.TEXT_MESSAGE_CONTENT,
-                                    message_id=message_id,
-                                    delta=data['payload']['content']
-                                )
-                            elif data_type == TCADPEventType.THOUGHT:
-                                # print(data)
-                                procedure = data['payload']['procedures'][-1]
-                                event = CustomEvent(
-                                    type=EventType.CUSTOM,
-                                    name='thought',
-                                    value={
-                                        "message_id": message_id,
-                                        "target_agent_name": procedure['target_agent_name'],
-                                        "title": procedure['title'],
-                                        "delta": procedure['debugging']['content'] if 'content' in procedure['debugging'] else ''
-                                    }
-                                )
-                            if event is not None:
-                                if last_event_type != event.type or (last_event_type == EventType.TEXT_MESSAGE_CONTENT and last_message_id != message_id):
-                                    if last_event_type == EventType.TEXT_MESSAGE_CONTENT:
-                                        await new_text_message_cb(last_message_id, last_from_role, last_message_test)
-                                    last_event_type = event.type
-                                    last_message_test = ''
-                                    last_message_id = message_id
-                                    last_from_role = from_role
-                                if last_event_type == EventType.TEXT_MESSAGE_CONTENT:
-                                    last_message_test += event.delta
-                                yield encoder.encode(event)
-                        except Exception as e:
-                            logging.error(e, data)
-                    # print(f"Received: {line.strip()}")
-                
-                if last_event_type == EventType.TEXT_MESSAGE_CONTENT:
-                    await new_text_message_cb(last_message_id, last_from_role, last_message_test)
-
-        # # Initialize the encoder
-        # encoder = EventEncoder()
-        # for i in range(10):
-        #     await asyncio.sleep(0.1)
-        #     event = TextMessageContentEvent(
-        #         type=EventType.TEXT_MESSAGE_CONTENT,
-        #         message_id="msg_123",
-        #         delta=f"Hello, world! {input} {i}"
-        #     )
-        #     yield encoder.encode(event)
+                        yield raw_line + '\n'.encode()
+                # if last_event_type == EventType.TEXT_MESSAGE_CONTENT:
+                #     await new_text_message_cb(last_message_id, last_from_role, last_message_test)
 
     @staticmethod
     async def messages(db: AsyncSession, account_id: str, query: str, conversation_id: str):

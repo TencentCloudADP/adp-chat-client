@@ -1,22 +1,31 @@
 <script setup lang="ts">
 import { UserOutlined } from '@ant-design/icons-vue'
 import { Flex } from 'ant-design-vue'
-import { Bubble, Sender, type BubbleListProps, type BubbleProps } from 'ant-design-x-vue'
+import { Bubble, Sender, ThoughtChain, type BubbleListProps, type BubbleProps } from 'ant-design-x-vue'
 import { Typography } from 'ant-design-vue'
 import { ref, reactive, watch, computed, h } from 'vue'
 import {api, chunkSplitter} from '@/util/api'
 import type { AxiosRequestConfig } from 'axios'
-import type { ChatMessage } from '@/model/message'
 import markdownit from 'markdown-it'
+import type { Message, ReplyMessage } from '@/model/message'
+import type { Record } from '@/model/record'
+import { messageToRecord, mergeRecord } from '@/model/record'
+
 
 const roles: BubbleListProps['roles'] = {
   agent: {
     placement: 'start',
     avatar: { icon: h(UserOutlined), style: { background: '#fde3cf' } },
-    typing: { step: 5, interval: 20 },
     style: {
-      maxWidth: '600px',
+      // maxWidth: '600px',
     },
+  },
+  thought: {
+    placement: 'start',
+    avatar: { icon: h(UserOutlined), style: { visibility: 'hidden' } },
+    variant: 'borderless',
+    messageRender: (items) =>
+      h(ThoughtChain, { collapsible: true, items: items as any }),
   },
   user: {
     placement: 'end',
@@ -40,8 +49,8 @@ const { conversationId = null } = defineProps<{
 
 const query = ref("")
 const senderLoading = ref(false)
-// const messages = reactive([] as {'messageId':null, 'delta':string}[])
-const messages = ref([] as {'messageId':null, 'content':string}[])
+// const messages = ref([] as {'messageId':null, 'content':string}[])
+const messages = ref([] as Record[])
 const setQuery = (v: string) => {
   query.value = v
 }
@@ -58,8 +67,8 @@ const handleUpdate = async () => {
   } as AxiosRequestConfig
   try {
     const res = await api.get('/chat/messages', options)
-    messages.value = res.data
-    console.log(res)
+    // console.log(res)
+    messages.value = res.data.Response.Records
   } catch (e) {
     console.log(e)
   }
@@ -83,32 +92,25 @@ const handleSend = async () => {
     let last_messages = {'messageId': null, 'delta': '', 'content': ''}
     for await (const line of chunkSplitter(res.data)) {
       let msg_body = line.substring(line.indexOf(':')+1).trim()
-      let msg = JSON.parse(msg_body)
-      if (msg['type'] == 'TEXT_MESSAGE_CONTENT') {
-        if (last_messages['messageId'] != msg['messageId']) {
-          last_messages = msg
-          last_messages['content'] = msg['delta']
-          messages.value.push(last_messages)
-        } else {
-          // last_messages['content'] += msg['delta']
-          const lastIndex = messages.value.length - 1
-          messages.value[lastIndex]['content'] += msg['delta']
-        }
-      } else if (msg['type'] == 'CUSTOM' && msg['name'] == 'thought') {
-        if (last_messages['messageId'] != msg['value']['messageId']) {
-          last_messages = msg['value']
-          last_messages['content'] = msg['value']['delta']
-          messages.value.push(last_messages)
-        } else {
-          // last_messages['content'] += msg['value']['delta']
-          const lastIndex = messages.value.length - 1
-          messages.value[lastIndex]['content'] += msg['value']['delta']
-        }
-      } else if (msg['type'] == 'CUSTOM' && msg['name'] == 'new_conversation') {
-          let converdation_id = msg['value']['converdation_id']
+      let msg_map = JSON.parse(msg_body)
+      if (msg_map['type'] == 'custom' && msg_map['name'] == 'new_conversation') {
+          let converdation_id = msg_map['value']['conversation_id']
           emit('new_conversation', converdation_id)
+      } else {
+        let msg: Message = msg_map
+        let record = messageToRecord(msg)
+        if (record == null) {
+          continue
+        }
+
+        const lastIndex = messages.value.length - 1
+        if (lastIndex >= 0 && messages.value[lastIndex].RecordId == record.RecordId) {
+          mergeRecord(messages.value[lastIndex], msg)
+        } else {
+          messages.value.push(record)
+        }
       }
-      console.log(msg)
+      // console.log(msg_map)
     }
   } catch (e) {
     console.log(e)
@@ -127,14 +129,31 @@ const handleSend = async () => {
   >
     <Bubble.List
       :roles="roles"
+      :autoScroll="true"
       :style="{ 'flex-grow': 1 }"
-      :items="messages.map((message) => ({
-        key: message['messageId'] || '',
-        loading: false,
-        role: 'user',
-        content: message['content'],
-        messageRender: renderMarkdown,
-      }))"
+      :items="messages.flatMap((record) => {
+        let items:any[] = []
+        if (record.AgentThought?.Procedures?.length||0 > 0) {
+          items.push({
+            key: record['RecordId'] || '',
+            loading: false,
+            role: 'thought',
+            content: record.AgentThought?.Procedures?.map(proc => ({
+              title: proc.Title||'已思考',
+              description: proc.TargetAgentName,
+              content: renderMarkdown(proc.Debugging?.Content || ''),
+            })),
+          })
+        }
+        items.push({
+          key: record['RecordId'] || '',
+          loading: false,
+          role: record['IsLlmGenerated'] ? 'agent' : 'user',
+          content: record['Content'],
+          messageRender: renderMarkdown,
+        })
+        return items
+      })"
     />
     <Sender
       :loading="senderLoading"
