@@ -25,7 +25,7 @@ const roles: BubbleListProps['roles'] = {
     avatar: { icon: h(UserOutlined), style: { visibility: 'hidden' } },
     variant: 'borderless',
     messageRender: (items) =>
-      h(ThoughtChain, { collapsible: true, items: items as any }),
+      h(ThoughtChain, { collapsible: { expandedKeys: expandedKeys.value, onExpand }, items: items as any }),
   },
   user: {
     placement: 'end',
@@ -49,11 +49,35 @@ const { conversationId = null } = defineProps<{
 
 const query = ref("")
 const senderLoading = ref(false)
-// const messages = ref([] as {'messageId':null, 'content':string}[])
 const messages = ref([] as Record[])
 const setQuery = (v: string) => {
   query.value = v
 }
+// thought-chain
+const expandedKeysUser = reactive([] as string[])
+const onExpand = (keys: string[]) => {
+  expandedKeysUser.splice(0, expandedKeysUser.length, ...keys)
+}
+// 展开的思维链：用户点击展开 或者 “思考中”
+// expanded thought-chain: user click to expand or "Thinking"
+const expandedKeys = computed(():string[] => {
+  let ids = messages.value.flatMap((record):string[] => {
+    let items:string[] = []
+    if (record.AgentThought?.Procedures?.length||0 > 0) {
+      // TODO: filter by some key instead of '思考中'
+      const arr = record.AgentThought?.Procedures?.map((proc, index) => (
+        proc.Title == '思考中' ? (record['RecordId'] || '') + '-' + index : undefined
+      ))
+      // remove undefined
+      const filtered = arr?.filter((item): item is string => item !== undefined) || []
+      if (filtered?.length||0 > 0) {
+        items = [...items, ...filtered]
+      }
+    }
+    return items
+  })
+  return [...expandedKeysUser, ...ids]
+})
 
 const handleUpdate = async () => {
   if (!conversationId) {
@@ -138,7 +162,8 @@ const handleSend = async () => {
             key: record['RecordId'] || '',
             loading: false,
             role: 'thought',
-            content: record.AgentThought?.Procedures?.map(proc => ({
+            content: record.AgentThought?.Procedures?.map((proc, index) => ({
+              key: (record['RecordId'] || '') + '-' + index,
               title: proc.Title||'已思考',
               description: proc.TargetAgentName,
               content: renderMarkdown(proc.Debugging?.Content || ''),
