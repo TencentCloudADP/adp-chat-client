@@ -139,27 +139,48 @@ export interface RootObject {
 
 import type { Message } from '@/model/message'
 
-export function mergeRecord(record: Record, delta: Message) {
-  if (delta.type === "reply") {
-    record.Content = (record.Content||'') + delta.payload.content
-  } else if (delta.type === "thought") {
+export function mergeRecord(record: Record, delta: Record, msg: Message) {
+  if (msg.type === "reply") {
+    record.Content = (record.Content||'') + delta.Content
+  } else if (msg.type === "thought") {
     // 处理 ThoughtMessage 合并
     let length = record.AgentThought?.Procedures?.length || 0
     if (length > 0 && record.AgentThought?.Procedures?.[length-1].Debugging) {
-      if (length == delta.payload.procedures.length) {
-        record.AgentThought!.Procedures![length-1].Title = delta.payload.procedures[length-1].title
+      if (length == delta.AgentThought?.Procedures?.length) {
+        record.AgentThought!.Procedures![length-1].Title = delta.AgentThought!.Procedures![length-1].Title
+        record.AgentThought!.Procedures![length-1].Status = delta.AgentThought!.Procedures![length-1].Status
         // 如果procedures长度相同，则说明最后一个过程在增量输出（协议设计不好，应该有明确字段说明），合并最后一条
-        if (delta.payload.procedures[length-1].debugging.content) {
-          record.AgentThought!.Procedures![length-1].Debugging!.Content = (record.AgentThought?.Procedures?.[length-1].Debugging?.Content||'') + delta.payload.procedures[length-1].debugging.content
+        if (delta.AgentThought?.Procedures![length-1].Debugging!.Content) {
+          record.AgentThought!.Procedures![length-1].Debugging!.Content = (record.AgentThought?.Procedures?.[length-1].Debugging?.Content||'') + delta.AgentThought?.Procedures![length-1].Debugging!.Content
         }
       } else {
         // 如果procedures长度不同，则说明有一个新的过程
-        let deltaRecord = messageToRecord(delta)
-        let newLength = deltaRecord?.AgentThought?.Procedures?.length || 0
+        let newLength = delta?.AgentThought?.Procedures?.length || 0
         if (newLength > 0) {
-          record.AgentThought!.Procedures!.push(deltaRecord?.AgentThought?.Procedures?.[newLength-1]!)
+          record.AgentThought!.Procedures!.push(delta?.AgentThought?.Procedures?.[newLength-1]!)
         }
       }
+    } else {
+      record.AgentThought = delta.AgentThought
+    }
+  } else if (msg.type === "token_stat") {
+    // 处理 TokenStatMessage 合并
+    let length = record.TokenStat?.Procedures?.length || 0
+    if (length > 0 && record.TokenStat?.Procedures?.[length-1].Debugging) {
+      if (length == record.TokenStat?.Procedures?.length) {
+        record.TokenStat!.Procedures![length-1].Title = delta.TokenStat!.Procedures![length-1].Title
+        record.TokenStat!.Procedures![length-1].Status = delta.TokenStat!.Procedures![length-1].Status
+        record.TokenStat!.Procedures![length-1].Debugging = delta.TokenStat!.Procedures![length-1].Debugging
+        // 如果procedures长度相同
+      } else {
+        // 如果procedures长度不同，则说明有一个新的过程
+        let newLength = delta?.TokenStat?.Procedures?.length || 0
+        if (newLength > 0) {
+          record.TokenStat!.Procedures!.push(delta?.TokenStat?.Procedures?.[newLength-1]!)
+        }
+      }
+    } else {
+      record.TokenStat = delta.TokenStat
     }
   }
 }
@@ -221,6 +242,64 @@ export function messageToRecord(message: Message): Record | null {
       SessionId: message.payload.session_id,
       Timestamp: new Date().toISOString(), // ThoughtMessage 没有 timestamp，使用当前时间
       Type: 1 // 假设 1 表示回复类型
+    };
+  } else if (message.type === "token_stat") {
+    return {
+      TokenStat: {
+        Elapsed: message.payload.elapsed,
+        FreeCount: message.payload.free_count,
+        OrderCount: message.payload.order_count,
+        Procedures: message.payload.procedures?.map(proc => ({
+          Count: proc.count,
+          Debugging: {
+            Content: proc.debugging?.content,
+            Knowledge: [
+                // TODO: message协议缺失这部分内容
+            ],
+            WorkFlow: {
+                WorkflowName: proc.debugging?.work_flow?.workflow_name,
+                RunNodes: proc.debugging?.work_flow?.run_nodes?.map(node => ({
+                    CostMilliSeconds: node.cost_milli_seconds,
+                    Input: node.input,
+                    IsCurrent: node.is_current,
+                    NodeId: node.node_id,
+                    NodeName: node.node_name,
+                    NodeType: node.node_type,
+                    Output: node.output,
+                    Status: node.status,
+                    StatisticInfos: node.statistic_infos?.map(info => ({
+                        FirstTokenCost: info.first_token_cost,
+                        InputTokens: info.input_tokens,
+                        ModelName: info.model_name,
+                        OutputTokens: info.output_tokens,
+                        TotalCost: info.total_cost,
+                        TotalTokens: info.total_tokens
+                    })),
+                    TaskOutput: node.task_output
+                })),
+            }
+          },
+          InputCount: proc.input_count,
+          Name: proc.name,
+          OutputCount: proc.output_count,
+          ResourceStatus: proc.resource_status,
+          Status: proc.status,
+          Title: proc.title
+        })),
+        RecordId: message.payload.record_id,
+        RequestId: message.payload.request_id,
+        SessionId: message.payload.session_id,
+        StatusSummary: message.payload.status_summary,
+        StatusSummaryTitle: message.payload.status_summary_title,
+        TokenCount: message.payload.token_count,
+        TraceId: message.payload.trace_id,
+        UsedCount: message.payload.used_count
+      },
+      IsLlmGenerated: true,
+      RecordId: message.payload.record_id,
+      SessionId: message.payload.session_id,
+      Timestamp: new Date().toISOString(),
+      Type: 1
     };
   }
   return null

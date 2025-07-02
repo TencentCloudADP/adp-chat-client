@@ -36,11 +36,41 @@ export interface ReplyMessage extends MessageBase {
     };
 }
 
+interface Debugging {
+    content?: string;
+    agent?: Record<string, unknown>;
+    task_flow?: Record<string, unknown>;
+    work_flow?: {
+        option_card_index?: Record<string, unknown>;
+        run_nodes?: Array<{
+            cost_milli_seconds?: number;
+            input?: string;
+            is_current?: boolean;
+            node_id?: string;
+            node_name?: string;
+            node_type?: number;
+            output?: string;
+            status?: number;
+            statistic_infos?: Array<{
+                first_token_cost?: number;
+                input_tokens?: number;
+                model_name?: string;
+                output_tokens?: number;
+                total_cost?: number;
+                total_tokens?: number;
+            }>;
+            task_output?: string;
+        }>;
+        workflow_id?: string;
+        workflow_name?: string;
+        workflow_release_time?: number;
+        workflow_run_id?: string;
+    };
+}
+
 interface Procedure {
     agent_icon: string;
-    debugging: {
-        content: string;
-    };
+    debugging: Debugging;
     elapsed: number;
     icon: string;
     index: number;
@@ -71,4 +101,31 @@ export interface ThoughtMessage extends MessageBase {
     };
 }
 
-export type Message = ReplyMessage | ThoughtMessage;
+export interface TokenStatMessage extends MessageBase {
+    type: "token_stat";
+    payload: {
+        elapsed: number;
+        free_count: number;
+        order_count: number;
+        procedures: Array<{
+            count?: number;
+            debugging?: Debugging;
+            input_count?: number;
+            name?: string;
+            output_count?: number;
+            resource_status?: number;
+            status?: string;
+            title?: string;
+        }>;
+        record_id: string;
+        request_id: string;
+        session_id: string;
+        status_summary: string;
+        status_summary_title: string;
+        token_count: number;
+        trace_id: string;
+        used_count: number;
+    };
+}
+
+export type Message = ReplyMessage | ThoughtMessage | TokenStatMessage;

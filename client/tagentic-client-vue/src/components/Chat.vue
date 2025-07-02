@@ -47,6 +47,7 @@ const { conversationId = null } = defineProps<{
   conversationId?: string,
 }>()
 
+const skip_update_once = ref(false)
 const query = ref("")
 const senderLoading = ref(false)
 const messages = ref([] as Record[])
@@ -62,24 +63,25 @@ const onExpand = (keys: string[]) => {
 // expanded thought-chain: user click to expand or "Thinking"
 const expandedKeys = computed(():string[] => {
   let ids = messages.value.flatMap((record):string[] => {
-    let items:string[] = []
-    if (record.AgentThought?.Procedures?.length||0 > 0) {
-      // TODO: filter by some key instead of '思考中'
-      const arr = record.AgentThought?.Procedures?.map((proc, index) => (
-        proc.Title == '思考中' ? (record['RecordId'] || '') + '-' + index : undefined
-      ))
-      // remove undefined
-      const filtered = arr?.filter((item): item is string => item !== undefined) || []
-      if (filtered?.length||0 > 0) {
-        items = [...items, ...filtered]
-      }
-    }
-    return items
+    let arr:any[] = []
+    arr = arr.concat(record.AgentThought?.Procedures?.map((proc, index) => (
+      proc.Status == 'processing' ? (record['RecordId'] || '') + '-thought-' + index : undefined
+    )))
+    arr = arr.concat(record.TokenStat?.Procedures?.map((proc, index) => (
+      proc.Status == 'processing' ? (record['RecordId'] || '') + '-stat-' + index : undefined
+    )))
+    // remove undefined
+    const filtered = arr?.filter((item): item is string => item !== undefined) || []
+    return filtered
   })
   return [...expandedKeysUser, ...ids]
 })
 
 const handleUpdate = async () => {
+  if (skip_update_once.value) {
+    skip_update_once.value = false
+    return
+  }
   if (!conversationId) {
     messages.value = []
     return
@@ -113,12 +115,12 @@ const handleSend = async () => {
   try {
     const res = await api.post('/chat/message', post_body, options)
 
-    let last_messages = {'messageId': null, 'delta': '', 'content': ''}
     for await (const line of chunkSplitter(res.data)) {
       let msg_body = line.substring(line.indexOf(':')+1).trim()
       let msg_map = JSON.parse(msg_body)
       if (msg_map['type'] == 'custom' && msg_map['name'] == 'new_conversation') {
           let converdation_id = msg_map['value']['conversation_id']
+          skip_update_once.value = true
           emit('new_conversation', converdation_id)
       } else {
         let msg: Message = msg_map
@@ -129,7 +131,7 @@ const handleSend = async () => {
 
         const lastIndex = messages.value.length - 1
         if (lastIndex >= 0 && messages.value[lastIndex].RecordId == record.RecordId) {
-          mergeRecord(messages.value[lastIndex], msg)
+          mergeRecord(messages.value[lastIndex], record, msg)
         } else {
           messages.value.push(record)
         }
@@ -157,17 +159,39 @@ const handleSend = async () => {
       :style="{ 'flex-grow': 1 }"
       :items="messages.flatMap((record) => {
         let items:any[] = []
+        let procedures:any[] = []
+        if (record.TokenStat?.Procedures?.length||0 > 0) {
+          procedures = [...procedures, ...record.TokenStat?.Procedures?.map((proc, index) => {
+            const Knowledge = proc.Debugging?.Knowledge
+            const RunNodes = proc.Debugging?.WorkFlow?.RunNodes
+            let content = proc.Debugging?.WorkFlow?.WorkflowName
+            if (Knowledge?.length||0 > 0) {
+              content += ' 查询知识库：' + Knowledge?.length
+            }
+            else if (RunNodes?.length||0 > 0) {
+              content += ' 工作流：' + RunNodes?.length
+            }
+            return {
+              key: (record['RecordId'] || '') + '-stat-' + index,
+              title: proc.Title||'已思考',
+              description: '',
+              content: content,
+            }})!]
+        }
         if (record.AgentThought?.Procedures?.length||0 > 0) {
+          procedures = [...procedures, ...record.AgentThought?.Procedures?.map((proc, index) => ({
+              key: (record['RecordId'] || '') + '-thought-' + index,
+              title: proc.Title||'已思考',
+              description: proc.TargetAgentName,
+              content: renderMarkdown(proc.Debugging?.Content || ''),
+            }))!]
+        }
+        if (procedures.length||0 > 0) {
           items.push({
             key: record['RecordId'] || '',
             loading: false,
             role: 'thought',
-            content: record.AgentThought?.Procedures?.map((proc, index) => ({
-              key: (record['RecordId'] || '') + '-' + index,
-              title: proc.Title||'已思考',
-              description: proc.TargetAgentName,
-              content: renderMarkdown(proc.Debugging?.Content || ''),
-            })),
+            content: procedures,
           })
         }
         items.push({
