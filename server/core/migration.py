@@ -2,6 +2,7 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 from asyncpg.exceptions import InvalidCatalogNameError, DuplicateDatabaseError
+from sqlalchemy.exc import ProgrammingError
 from core.error.account import (
     AccountAuthenticationError,
     AccountUnauthorized,
@@ -28,7 +29,7 @@ class Migration:
         for query in steps:
             try:
                 await conn.run_sync(lambda connection: connection.execute(text(query)))
-            except DuplicateDatabaseError as e:
+            except ProgrammingError as e:
                 pass
         await conn.commit()
         await conn.close()

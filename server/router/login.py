@@ -8,6 +8,7 @@ import logging
 from util.helper import get_remote_ip
 from model import Account
 from core.account import CoreAccount
+from config import tagentic_config
 from app_factory import TAgenticApp
 app = TAgenticApp.get_app()
 
@@ -22,6 +23,13 @@ class LoginApi(HTTPMethodView):
         account = await CoreAccount.authenticate(request.ctx.db, args["email"], args["password"])
         token = await CoreAccount.login(request.ctx.db, account, get_remote_ip(request))
 
-        return json({"token": token})
+        response = json({"token": token})
+        response.add_cookie(
+            "token",
+            token,
+            max_age=tagentic_config.ACCESS_TOKEN_EXPIRE_HOURS * 3600,
+        )
+        return response
+
 
 app.add_route(LoginApi.as_view(), "/login")

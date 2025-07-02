@@ -13,13 +13,36 @@ from core.error.account import (
     AccountUnauthorized,
 )
 from core.session import SessionToken
-from model.account import Account
+from model.account import Account, AccountThirdParty
 from util.password import hash, compare
 
 class CoreAccount:
     @staticmethod
-    async def find(db: AsyncSession, email: Optional[str]) -> Account:
-        account = (await db.execute(select(Account).where(Account.email==email).limit(1))).scalar()
+    async def find(db: AsyncSession, email: Optional[str] = None, provider: Optional[str] = None, open_id: Optional[str] = None) -> Account:
+        account_third_party = (await db.execute(
+            select(AccountThirdParty)
+                .where(AccountThirdParty.provider == provider, AccountThirdParty.open_id == open_id)
+                .limit(1)
+            )
+        ).scalar()
+        account = None
+
+        if account_third_party:
+            account = (await db.execute(
+                select(Account)
+                    .where(Account.id==account_third_party.account_id)
+                    .limit(1)
+                )
+            ).scalar()
+            return account
+
+        if email is not None:
+            account = (await db.execute(
+                select(Account)
+                    .where(Account.email==email)
+                    .limit(1)
+                )
+            ).scalar()
         return account
 
     @staticmethod
@@ -44,17 +67,38 @@ class CoreAccount:
         await db.commit()
 
         return access_token
+    
+    @staticmethod
+    async def register(
+        db: AsyncSession,
+        name: Optional[str] = None,
+        email: Optional[str] = None,
+        password: Optional[str] = None,
+        provider: Optional[str] = None,
+        open_id: Optional[str] = None,
+        token: Optional[str] = None,
+    ) -> str:
+        account = await CoreAccount.create_account(db, name, email, password)
+        if provider is not None and open_id is not None:
+            await CoreAccount.link_or_update_account(db, provider, open_id, token, account)
+
+        await db.commit()
+
+        return account
 
     @staticmethod
     async def create_account(
         db: AsyncSession,
-        email: str,
+        name: Optional[str] = None,
+        email: Optional[str] = None,
         password: Optional[str] = None,
     ) -> Account:
         """create account"""
         account = Account()
         account.email = email
-        account.name = email.split("@")[0]
+        if name is None:
+            name = email.split("@")[0]
+        account.name = name
 
         if password:
             # generate salt
@@ -97,4 +141,32 @@ class CoreAccount:
 
         token: str = SessionToken.create(payload)
         return token
+
+    @staticmethod
+    async def link_or_update_account(
+        db: AsyncSession,
+        provider: str,
+        open_id: str,
+        token: str,
+        account: Account
+    ) -> None:
+        """link account with oauth provider"""
+
+        account_third_party = (await db.execute(
+            select(AccountThirdParty)
+                .where(AccountThirdParty.provider == provider, AccountThirdParty.open_id == open_id)
+                .limit(1)
+            )
+        ).scalar()
+
+        if account_third_party is None:
+            account_third_party = AccountThirdParty(
+                account_id=account.id, provider=provider, open_id=open_id, token=token
+            )
+            db.add(account_third_party)
+        
+        account_third_party.token = token
+        account.updated_at = datetime.now(UTC).replace(tzinfo=None)
+
+        await db.commit()
 

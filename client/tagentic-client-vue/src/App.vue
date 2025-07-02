@@ -4,8 +4,9 @@ import Chat from './components/ChatWithConversationList.vue'
 import Login from './components/Login.vue'
 import useEventsBus from '@/util/eventBus'
 const { emit, bus } = useEventsBus()
+import Cookies from 'js-cookie'
 
-const access_token = ref(localStorage.getItem('access_token') as null|string)
+const access_token = ref(Cookies.get('token') as null|string)
 
 const isAuthenticated = computed(() => {
   return !!(access_token.value)
@@ -16,7 +17,7 @@ watch(()=>bus.value.get('login-state-changed'), (_access_token) => {
 })
 
 const handleLogout = () => {
-  localStorage.removeItem('access_token')
+  Cookies.remove('token')
   emit("login-state-changed", null)
 }
 

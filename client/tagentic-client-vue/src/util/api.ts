@@ -1,6 +1,7 @@
 import axios from 'axios'
 import useEventsBus from '@/util/eventBus'
 const {emit} = useEventsBus()
+import Cookies from 'js-cookie'
 
 const axiosInstance = axios.create({
   baseURL: '/',
@@ -11,8 +12,8 @@ const axiosInstance = axios.create({
 // 请求拦截器
 axiosInstance.interceptors.request.use(config => {
   // 在请求发送前可以做一些处理
-  if (localStorage.getItem('access_token')) {
-    config.headers.Authorization = 'Bearer ' + localStorage.getItem('access_token')
+  if (Cookies.get('token')) {
+    config.headers.Authorization = 'Bearer ' + Cookies.get('token')
   }
   return config
 }, error => {
@@ -29,7 +30,7 @@ axiosInstance.interceptors.response.use(response => {
 
   try {
     if (error.response.data.detail.exception == 'AccountUnauthorized') {
-      localStorage.removeItem('access_token')
+      Cookies.remove('token')
       emit("login-state-changed", null)
     }
   } catch (e) {

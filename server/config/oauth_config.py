@@ -1,0 +1,24 @@
+import logging
+from typing import Any
+
+from pydantic import Field, NonNegativeInt, PositiveFloat, PositiveInt
+from pydantic.fields import FieldInfo
+from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
+
+
+class OAuthConfig(BaseSettings):
+    """
+    Configuration settings for OAuth
+    """
+    OAUTH_GITHUB_CLIENT_ID: str = Field(
+        description="OAuth with github, client id, you can obtain it from https://github.com/settings/applications/new",
+        default="",
+    )
+
+    OAUTH_GITHUB_SECRET: str = Field(
+        description="OAuth with github, secret, you can obtain it from https://github.com/settings/applications/new",
+        default="",
+    )
+

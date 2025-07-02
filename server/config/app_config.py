@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, Settings
 from .redis_config import RedisConfig
 from .pgsql_config import PGSqlConfig
 from .tcadp_config import TCADPConfig
+from .oauth_config import OAuthConfig
 
 logger = logging.getLogger(__name__)
 
@@ -16,10 +17,16 @@ class TAgenticConfig(
     RedisConfig,
     PGSqlConfig,
     TCADPConfig,
+    OAuthConfig,
 ):
     LOG_LEVEL: str = Field(
         description="Log level of the server, can be one of: CRITICAL, FATAL, ERROR, WARN, WARNING, INFO, DEBUG",
         default="INFO",
+    )
+
+    SERVICE_API_URL: str = Field(
+        description="URL of the service API, used for OAuth callback, resource path, etc.",
+        default="",
     )
 
     SECRET_KEY: str = Field(

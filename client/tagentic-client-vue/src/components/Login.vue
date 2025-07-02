@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import api from '@/util/api'
 import useEventsBus from '@/util/eventBus'
 const {emit} = useEventsBus()
@@ -7,16 +7,27 @@ const {emit} = useEventsBus()
 const email = ref("")
 const password = ref("")
 
+const oauthProviders = ref([])
+const handleLoadProvider = async () => {
+    const res = await api.get('/oauth/providers', {})
+    if (res.data.providers) {
+        oauthProviders.value = res.data.providers
+    }
+}
+
 const handleLogin = async () => {
     const res = await api.post('/login', {
         email: email.value,
         password: password.value
     })
     if (res.data.token) {
-      localStorage.setItem('access_token', res.data.token)
-      emit("login-state-changed", res.data.token)
+        emit("login-state-changed", res.data.token)
     }
 }
+
+onMounted(async () => {
+    await handleLoadProvider()
+})
 
 </script>
 
@@ -33,6 +44,9 @@ const handleLogin = async () => {
         <input id="password" v-model="password" type="password" required />
       </div>
       <button type="submit">Login</button>
+      <div>
+        <a v-for="provider in oauthProviders" :href="provider['url']">{{provider['name']}}</a>
+      </div>
     </form>
   </div>
 </template>
