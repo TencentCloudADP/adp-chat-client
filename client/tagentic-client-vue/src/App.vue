@@ -25,13 +25,9 @@ const handleLogout = () => {
 
 <template>
   <a-layout id="root-layout">
-    <a-layout-header class="header">
-      <div class="logo" />
-      <a-button id="logout" @click="handleLogout" v-if="isAuthenticated">退出</a-button>
-    </a-layout-header>
     <a-layout>
       <Login v-if="!isAuthenticated" />
-      <Chat v-else />
+      <Chat v-else @logout="handleLogout" />
     </a-layout>
   </a-layout>
 </template>
@@ -42,9 +38,6 @@ const handleLogout = () => {
 }
 #root-layout {
   height: 100%;
-}
-#logout {
-  float: right;
-  margin: 15px;
+  overflow: hidden;
 }
 </style>

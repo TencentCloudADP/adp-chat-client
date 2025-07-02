@@ -2,16 +2,26 @@
 import { theme } from 'ant-design-vue';
 import { Conversations } from 'ant-design-x-vue';
 import type { ConversationsProps } from 'ant-design-x-vue';
-import { computed, ref, reactive, onMounted } from 'vue';
+import { computed, ref, reactive, onBeforeMount, onMounted } from 'vue';
 import Chat from './Chat.vue'
 import {api, chunkSplitter} from '@/util/api'
 import type { AxiosRequestConfig } from 'axios'
 import { dateFormat } from '@/util/dateFormat'
+import {
+  MenuUnfoldOutlined,
+  MenuFoldOutlined,
+  PlusSquareOutlined,
+} from '@ant-design/icons-vue'
 
 defineOptions({ name: 'AXConversationsBasic' });
 
+const collapsed = ref(false)
 const conversations = ref([] as {'id':null, 'title':string, 'last_active_at':string}[])
 const activeConversationId = ref(undefined as string|undefined)
+
+const emit = defineEmits<{
+  logout: []
+}>()
 
 const handleUpdate = async () => {
   const options = {
@@ -34,6 +44,11 @@ const handleOnNewConversation = async (converdation_id: string) => {
   activeConversationId.value = converdation_id
 }
 
+onBeforeMount(() => {
+  if (window.innerWidth < 512) {
+    collapsed.value = true
+  }
+})
 onMounted(async () => {
   await handleUpdate()
 })
@@ -45,9 +60,9 @@ const updateActiveKey = (v: string) => {
 </script>
 
 <template>
-  <a-layout-sider id="conversion-panel" width="256">
+  <a-layout-sider id="conversion-panel" width="256" collapsedWidth="0" v-model:collapsed="collapsed" :trigger="null" collapsible>
     <Flex vertical id="conversion-panel-flex">
-      <a-button @click="handleCreateConversation" style="width: calc(100% - 20px); margin: 0 10px;">新会话</a-button>
+      <a-button @click="handleCreateConversation" id="conversation-new">新会话</a-button>
       <Conversations
           :items="conversations.map((conversation) => ({
             key: conversation['id'] || '',
@@ -58,12 +73,20 @@ const updateActiveKey = (v: string) => {
           :on-active-change="(v) => updateActiveKey(v)"
           id="conversion-list"
       />
+      <a-button id="logout" @click="emit('logout')">退出</a-button>
     </Flex>
   </a-layout-sider>
-  <a-layout style="padding: 10px">
-    <a-layout-content
-      id="conversion-chat-panel"
-    >
+  <a-layout id="chat-panel">
+    <a-layout-header id="chat-header">
+      <menu-unfold-outlined
+        v-if="collapsed"
+        class="chat-header-btn"
+        @click="() => (collapsed = !collapsed)"
+      />
+      <menu-fold-outlined v-else class="chat-header-btn" @click="() => (collapsed = !collapsed)" />
+      <plus-square-outlined class="chat-header-btn chat-header-btn-right" @click="handleCreateConversation" />
+    </a-layout-header>
+    <a-layout-content id="chat">
       <Chat
         :conversationId="activeConversationId"
         @new_conversation="handleOnNewConversation"
@@ -74,13 +97,18 @@ const updateActiveKey = (v: string) => {
 
 <style scoped>
 #conversion-panel {
-  background: #fff;
-  padding-top: 10px;
+  background: #f5f5f5;
 }
 #conversion-panel-flex {
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
+  background: #fff;
+  margin-right: 10px;
+}
+#conversation-new {
+  margin: 15px;
 }
 #conversion-list {
   width: 256px;
@@ -88,26 +116,40 @@ const updateActiveKey = (v: string) => {
   margin: 0;
   overflow: scroll;
 }
-#conversion-chat-panel {
+#logout {
+  margin: 15px;
+}
+#chat-panel {
+  min-width: 256px;
+}
+#chat {
   background: #fff;
-  padding: 24px;
+  padding: 0 24px 24px 24px;
   margin: 0;
-  min-height: 280px;
-}
-#components-layout-demo-top-side-2 .logo {
-  float: left;
-  width: 120px;
-  height: 31px;
-  margin: 16px 24px 16px 0;
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.ant-row-rtl #components-layout-demo-top-side-2 .logo {
-  float: right;
-  margin: 16px 0 16px 24px;
+  min-height: 150px;
 }
 
 .site-layout-background {
   background: #fff;
 }
+
+#chat-header {
+  background: #fff;
+  padding: 0;
+}
+
+.chat-header-btn {
+  font-size: 18px;
+  line-height: 64px;
+  padding: 0 24px;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+.chat-header-btn:hover {
+  color: #1890ff;
+}
+.chat-header-btn-right {
+  float: right;
+}
+
 </style>
