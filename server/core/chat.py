@@ -38,9 +38,8 @@ class CoreChat:
         return event
 
     @staticmethod
-    async def forward_request(account_id: str, query: str, conversation_id: str, is_new_conversation: bool, new_text_message_cb: callable):
+    async def forward_request(account_id: str, bot_app_key: str, query: str, conversation_id: str, is_new_conversation: bool, new_text_message_cb: callable):
         url = tagentic_config.TCADP_API_URL
-        bot_app_key = tagentic_config.TCADP_APP_KEY
         session_id = conversation_id
         visitor_biz_id = account_id
         async with aiohttp.ClientSession() as session:
@@ -82,7 +81,7 @@ class CoreChat:
                 #     await new_text_message_cb(last_message_id, last_from_role, last_message_test)
 
     @staticmethod
-    async def messages(db: AsyncSession, account_id: str, query: str, conversation_id: str):
+    async def message(db: AsyncSession, account_id: str, query: str, conversation_id: str, agent_id: str, app_key: str):
         async def new_text_message(message_id: str, from_role: str, content: str):
             message = await CoreMessage.create(db, conversation_id, from_role, content)
             logging.info(f"forward_request: {message_id}, {content}, {message.id}")
@@ -90,9 +89,9 @@ class CoreChat:
         if conversation_id is None:
             title = query[:10]
             is_new_conversation = True
-            conversation = await CoreConversation.create(db, account_id, title=title)
+            conversation = await CoreConversation.create(db, account_id, agent_id, title=title)
             conversation_id = str(conversation.id)
-        async for message in CoreChat.forward_request(account_id, query, conversation_id, is_new_conversation, new_text_message):
+        async for message in CoreChat.forward_request(account_id, app_key, query, conversation_id, is_new_conversation, new_text_message):
             yield message
 
 class CoreMessage:

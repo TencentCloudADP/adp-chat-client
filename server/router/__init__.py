@@ -9,6 +9,8 @@ def login_required(view):
 
         auth = request.headers.get("Authorization")
         if auth is None:
+            auth = request.cookies.get('token', None)
+        if auth is None:
             raise AccountUnauthorized()
 
         auth_token = auth.split(' ')[-1]

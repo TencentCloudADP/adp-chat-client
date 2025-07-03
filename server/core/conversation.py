@@ -23,8 +23,8 @@ class CoreConversation:
         return conversations
 
     @staticmethod
-    async def create(db: AsyncSession, account_id: str, title: str = "new conversation") -> ChatConversation:
-        conversation = ChatConversation(account_id=account_id, title=title)
+    async def create(db: AsyncSession, account_id: str, agent_id: str, title: str = "new conversation") -> ChatConversation:
+        conversation = ChatConversation(account_id=account_id, agent_id=agent_id, title=title)
         db.add(conversation)
         await db.commit()
         return conversation

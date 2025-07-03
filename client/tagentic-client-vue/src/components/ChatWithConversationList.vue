@@ -16,7 +16,7 @@ import {
 defineOptions({ name: 'AXConversationsBasic' });
 
 const collapsed = ref(false)
-const conversations = ref([] as {'id':null, 'title':string, 'last_active_at':string}[])
+const conversations = ref([] as {'id':null, 'agent_id': string, 'title':string, 'last_active_at':string}[])
 const activeConversationId = ref(undefined as string|undefined)
 
 const emit = defineEmits<{
@@ -37,11 +37,24 @@ const handleUpdate = async () => {
 
 const handleCreateConversation = async () => {
   activeConversationId.value = undefined
+  currentAgentId.value = agents.value[0]['AppBizId']
 }
 
 const handleOnNewConversation = async (converdation_id: string) => {
   await handleUpdate()
   activeConversationId.value = converdation_id
+}
+
+const currentAgentId = ref(undefined as string|undefined)
+const agents = ref([])
+const handleLoadAgent = async () => {
+    const res = await api.get('/agent/list', {})
+    if (res.data.agents) {
+        agents.value = res.data.agents
+        if (currentAgentId.value === undefined) {
+            currentAgentId.value = agents.value[0]['AppBizId']
+        }
+    }
 }
 
 onBeforeMount(() => {
@@ -50,11 +63,17 @@ onBeforeMount(() => {
   }
 })
 onMounted(async () => {
+  await handleLoadAgent()
   await handleUpdate()
 })
 
 const updateActiveKey = (v: string) => {
   activeConversationId.value = v
+  conversations.value.forEach((conversation) => {
+    if (conversation['id'] === v) {
+      currentAgentId.value = conversation['agent_id']
+    }
+  })
 }
 
 </script>
@@ -84,12 +103,18 @@ const updateActiveKey = (v: string) => {
         @click="() => (collapsed = !collapsed)"
       />
       <menu-fold-outlined v-else class="chat-header-btn" @click="() => (collapsed = !collapsed)" />
-      <plus-square-outlined class="chat-header-btn chat-header-btn-right" @click="handleCreateConversation" />
+
+      <a-select v-model:value="currentAgentId" style="width: 200px; margin: 0 auto" id="agent-select" :disabled="!!activeConversationId">
+        <a-select-option v-for="agent in agents" :value="agent['AppBizId']">{{'BaseConfig' in agent ? agent['BaseConfig']['Name'] : '智能体(信息获取失败)'}}</a-select-option>
+      </a-select>
+
+      <plus-square-outlined class="chat-header-btn" @click="handleCreateConversation" />
     </a-layout-header>
     <a-layout-content id="chat">
       <Chat
         :conversationId="activeConversationId"
-        @new_conversation="handleOnNewConversation"
+        :agentId="currentAgentId"
+        @newConversation="handleOnNewConversation"
       />
     </a-layout-content>
   </a-layout>
@@ -136,8 +161,9 @@ const updateActiveKey = (v: string) => {
 #chat-header {
   background: #fff;
   padding: 0;
+  display: flex;
+  align-items: center;
 }
-
 .chat-header-btn {
   font-size: 18px;
   line-height: 64px;
@@ -147,9 +173,6 @@ const updateActiveKey = (v: string) => {
 }
 .chat-header-btn:hover {
   color: #1890ff;
-}
-.chat-header-btn-right {
-  float: right;
 }
 
 </style>

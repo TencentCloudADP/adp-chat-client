@@ -40,11 +40,12 @@ const renderMarkdown: BubbleProps['messageRender'] = (content) =>
   })
 
 const emit = defineEmits<{
-  new_conversation: [conversation_id: string]
+  newConversation: [conversation_id: string]
 }>()
 
-const { conversationId = null } = defineProps<{
+const { conversationId = null, agentId = null } = defineProps<{
   conversationId?: string,
+  agentId?: string,
 }>()
 
 const skip_update_once = ref(false)
@@ -78,17 +79,21 @@ const expandedKeys = computed(():string[] => {
 })
 
 const handleUpdate = async () => {
+  console.log(1);
   if (skip_update_once.value) {
     skip_update_once.value = false
     return
   }
+  console.log(2);
   if (!conversationId) {
     messages.value = []
     return
   }
+  console.log(3);
   const options = {
     params: {
       conversation_id: conversationId,
+      agent_id: agentId,
     }
   } as AxiosRequestConfig
   try {
@@ -106,6 +111,7 @@ const handleSend = async () => {
   const post_body = {
     query: query.value,
     conversation_id: conversationId,
+    agent_id: agentId,
   }
   const options = {
     responseType: 'stream',
@@ -121,7 +127,7 @@ const handleSend = async () => {
       if (msg_map['type'] == 'custom' && msg_map['name'] == 'new_conversation') {
           let converdation_id = msg_map['value']['conversation_id']
           skip_update_once.value = true
-          emit('new_conversation', converdation_id)
+          emit('newConversation', converdation_id)
       } else {
         let msg: Message = msg_map
         let record = messageToRecord(msg)

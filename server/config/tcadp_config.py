@@ -22,7 +22,7 @@ class TCADPConfig(BaseSettings):
         default="",
     )
 
-    TCADP_APP_KEY: str = Field(
+    TCADP_APP_KEYS: list[str] = Field(
         description="TCADP bot app key, you can obtain it from https://lke.cloud.tencent.com/",
         default="",
     )

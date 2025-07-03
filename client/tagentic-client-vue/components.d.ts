@@ -13,6 +13,8 @@ declare module 'vue' {
     ALayoutContent: typeof import('ant-design-vue/es')['LayoutContent']
     ALayoutHeader: typeof import('ant-design-vue/es')['LayoutHeader']
     ALayoutSider: typeof import('ant-design-vue/es')['LayoutSider']
+    ASelect: typeof import('ant-design-vue/es')['Select']
+    ASelectOption: typeof import('ant-design-vue/es')['SelectOption']
     Chat: typeof import('./src/components/Chat.vue')['default']
     ChatWithConversationList: typeof import('./src/components/ChatWithConversationList.vue')['default']
     Login: typeof import('./src/components/Login.vue')['default']

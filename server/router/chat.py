@@ -24,10 +24,14 @@ class ChatMessageApi(HTTPMethodView):
         parser = reqparse.RequestParser()
         parser.add_argument("query", type=str, required=True, location="json")
         parser.add_argument("conversation_id", type=str, location="json")
+        parser.add_argument("agent_id", type=str, location="json")
         args = parser.parse_args(request)
 
+        agent_id = args['agent_id']
+        app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==agent_id][0]
+
         async def streaming_fn(response):
-            async for data in CoreChat.messages(request.ctx.db, request.ctx.account_id, args['query'], args['conversation_id']):
+            async for data in CoreChat.message(request.ctx.db, request.ctx.account_id, args['query'], args['conversation_id'], agent_id, app_key):
                 await response.write(data)
         return ResponseStream(streaming_fn, content_type='text/event-stream; charset=utf-8')
 
@@ -53,14 +57,17 @@ class TCADPChatMessageListApi(HTTPMethodView):
     async def get(self, request: Request):
         parser = reqparse.RequestParser()
         parser.add_argument("conversation_id", type=str, required=True, location="args")
+        parser.add_argument("agent_id", type=str, location="args")
         args = parser.parse_args(request)
+
+        app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==args['agent_id']][0]
 
         action = "GetMsgRecord"
         payload = {
             "Type": 5,
             "Count": 1000,
             "SessionId": args['conversation_id'],
-            "BotAppKey": tagentic_config.TCADP_APP_KEY,
+            "BotAppKey": app_key,
    
         }
         resp = await tc_request(action, payload)
