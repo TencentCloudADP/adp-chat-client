@@ -2,7 +2,7 @@
 import { theme } from 'ant-design-vue';
 import { Conversations } from 'ant-design-x-vue';
 import type { ConversationsProps } from 'ant-design-x-vue';
-import { computed, ref, reactive, onBeforeMount, onMounted } from 'vue';
+import { computed, ref, reactive, onBeforeMount, onMounted, watch } from 'vue';
 import Chat from './Chat.vue'
 import {api, chunkSplitter} from '@/util/api'
 import type { AxiosRequestConfig } from 'axios'
@@ -15,6 +15,7 @@ import {
 
 defineOptions({ name: 'AXConversationsBasic' });
 
+const isMobile = (window.innerWidth < 512)
 const collapsed = ref(false)
 const conversations = ref([] as {'id':null, 'agent_id': string, 'title':string, 'last_active_at':string}[])
 const activeConversationId = ref(undefined as string|undefined)
@@ -58,7 +59,7 @@ const handleLoadAgent = async () => {
 }
 
 onBeforeMount(() => {
-  if (window.innerWidth < 512) {
+  if (isMobile) {
     collapsed.value = true
   }
 })
@@ -68,6 +69,12 @@ onMounted(async () => {
 })
 
 const updateActiveKey = (v: string) => {
+  // 如果是移动设备，选择会话后，自动收起会话列表
+  // collapse conversation list when select a conversation on mobile device
+  if (isMobile) {
+    collapsed.value = true
+  }
+  
   activeConversationId.value = v
   conversations.value.forEach((conversation) => {
     if (conversation['id'] === v) {

@@ -29,6 +29,7 @@ class OAuthCallbackApi(HTTPMethodView):
             "token",
             token,
             max_age=tagentic_config.ACCESS_TOKEN_EXPIRE_HOURS * 3600,
+            secure=False,
         )
         return response
 

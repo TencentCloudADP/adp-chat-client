@@ -24,12 +24,13 @@ class CoreOAuth:
     async def list(db: AsyncSession) -> None:
         providers = []
         callback = quote(f'{tagentic_config.SERVICE_API_URL}/oauth/callback')
-        providers.append(
-            {
-                'name': 'github',
-                'url': f'https://github.com/login/oauth/authorize?client_id={tagentic_config.OAUTH_GITHUB_CLIENT_ID}&redirect_uri={callback}&scope=',
-            }
-        )
+        if tagentic_config.OAUTH_GITHUB_CLIENT_ID != '':
+            providers.append(
+                {
+                    'name': 'GitHub',
+                    'url': f'https://github.com/login/oauth/authorize?client_id={tagentic_config.OAUTH_GITHUB_CLIENT_ID}&redirect_uri={callback}&scope=',
+                }
+            )
         return providers
 
     @staticmethod

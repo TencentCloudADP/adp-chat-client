@@ -4,8 +4,18 @@ import api from '@/util/api'
 import useEventsBus from '@/util/eventBus'
 const {emit} = useEventsBus()
 
-const email = ref("")
-const password = ref("")
+import { UserOutlined, LockOutlined } from '@ant-design/icons-vue'
+interface FormState {
+  username: string;
+  password: string;
+}
+const formState = reactive<FormState>({
+  username: '',
+  password: '',
+})
+const disabled = computed(() => {
+  return !(formState.username && formState.password)
+})
 
 const oauthProviders = ref([])
 const handleLoadProvider = async () => {
@@ -17,8 +27,8 @@ const handleLoadProvider = async () => {
 
 const handleLogin = async () => {
     const res = await api.post('/login', {
-        email: email.value,
-        password: password.value
+        email: formState.username,
+        password: formState.password
     })
     if (res.data.token) {
         emit("login-state-changed", res.data.token)
@@ -33,44 +43,67 @@ onMounted(async () => {
 
 <template>
   <div class="login">
-    <h1>Login</h1>
-    <form @submit.prevent="handleLogin">
-      <div>
-        <label for="email">Email:</label>
-        <input id="email" v-model="email" type="email" required />
-      </div>
-      <div>
-        <label for="password">Password:</label>
-        <input id="password" v-model="password" type="password" required />
-      </div>
-      <button type="submit">Login</button>
-      <div>
-        <a v-for="provider in oauthProviders" :href="provider['url']">{{provider['name']}}</a>
-      </div>
-    </form>
+    <a-form
+      :model="formState"
+      name="normal_login"
+      class="login-form"
+      @finish="handleLogin"
+    >
+      <a-form-item
+        label="Username"
+        name="username"
+        :rules="[{ required: true, message: 'Please input your username!' }]"
+      >
+        <a-input v-model:value="formState.username">
+          <template #prefix>
+            <UserOutlined class="site-form-item-icon" />
+          </template>
+        </a-input>
+      </a-form-item>
+
+      <a-form-item
+        label="Password"
+        name="password"
+        :rules="[{ required: true, message: 'Please input your password!' }]"
+      >
+        <a-input-password v-model:value="formState.password">
+          <template #prefix>
+            <LockOutlined class="site-form-item-icon" />
+          </template>
+        </a-input-password>
+      </a-form-item>
+
+      <a-form-item class="form-item-clear">
+        <a-button :disabled="disabled" type="primary" html-type="submit" class="login-form-button">
+          Log in
+        </a-button>
+      </a-form-item>
+
+      <a-form-item class="form-item-clear" v-if="oauthProviders.length > 0">
+        Or login with
+        <span v-for="provider,index in oauthProviders">
+          <a class="login-providers" :href="provider['url']">{{provider['name']}}</a>
+          <span v-if="index !== oauthProviders.length - 1">,</span>
+        </span>
+      </a-form-item>
+    </a-form>
   </div>
 </template>
 
 <style scoped>
 .login {
   max-width: 400px;
-  margin: 0 auto;
+  margin: 20px auto;
   padding: 20px;
+  background: white;
+  border-radius: 5px;
 }
-label {
-  display: block;
-  margin-bottom: 5px;
-}
-input {
-  width: 100%;
-  padding: 8px;
+.form-item-clear {
   margin-bottom: 10px;
 }
-button {
-  padding: 10px 15px;
-  background-color: #42b983;
-  color: white;
-  border: none;
-  cursor: pointer;
+.login-form-button {
+  width: 100%;
+}
+.login-providers {
 }
 </style>

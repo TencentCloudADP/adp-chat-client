@@ -2,6 +2,7 @@ import axios from 'axios'
 import useEventsBus from '@/util/eventBus'
 const {emit} = useEventsBus()
 import Cookies from 'js-cookie'
+import { message } from 'ant-design-vue'
 
 const axiosInstance = axios.create({
   baseURL: '/',
@@ -27,6 +28,14 @@ axiosInstance.interceptors.response.use(response => {
 }, error => {
   // 全局处理错误
   console.log('[error]', error)
+  let msg = error
+  if (error.response.data.detail.message) {
+    msg = error.response.data.detail.message
+  }
+  else if (error.response.data.detail.exception) {
+    msg = error.response.data.detail.exception
+  }
+  message.error(msg)
 
   try {
     if (error.response.data.detail.exception == 'AccountUnauthorized') {
