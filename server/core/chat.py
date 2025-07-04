@@ -86,7 +86,7 @@ class CoreChat:
             message = await CoreMessage.create(db, conversation_id, from_role, content)
             logging.info(f"forward_request: {message_id}, {content}, {message.id}")
         is_new_conversation = False
-        if conversation_id is None:
+        if conversation_id is None or conversation_id == '':
             title = query[:10]
             is_new_conversation = True
             conversation = await CoreConversation.create(db, account_id, agent_id, title=title)

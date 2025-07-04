@@ -43,10 +43,10 @@ const emit = defineEmits<{
   newConversation: [conversation_id: string]
 }>()
 
-const { conversationId = null, agentId = null } = defineProps<{
+const { conversationId = null } = defineProps<{
   conversationId?: string,
-  agentId?: string,
 }>()
+const agentId = defineModel('agentId', { type: String })
 
 const skip_update_once = ref(false)
 const query = ref("")
@@ -79,39 +79,36 @@ const expandedKeys = computed(():string[] => {
 })
 
 const handleUpdate = async () => {
-  console.log(1);
   if (skip_update_once.value) {
     skip_update_once.value = false
     return
   }
-  console.log(2);
   if (!conversationId) {
     messages.value = []
     return
   }
-  console.log(3);
   const options = {
     params: {
       conversation_id: conversationId,
-      agent_id: agentId,
     }
   } as AxiosRequestConfig
   try {
     const res = await api.get('/chat/messages', options)
     // console.log(res)
     messages.value = res.data.Response.Records
+    agentId.value = res.data.Response.AgentId
   } catch (e) {
     console.log(e)
   }
 }
-watch(() => conversationId, handleUpdate)
+watch(() => conversationId, handleUpdate, { immediate: true })
 
 const handleSend = async () => {
   senderLoading.value = true
   const post_body = {
     query: query.value,
     conversation_id: conversationId,
-    agent_id: agentId,
+    agent_id: agentId.value,
   }
   const options = {
     responseType: 'stream',

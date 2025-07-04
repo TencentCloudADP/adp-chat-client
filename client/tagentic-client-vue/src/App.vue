@@ -1,34 +1,43 @@
 <script setup lang="ts">
-import { ref, reactive, computed, watch, handleError } from 'vue'
-import Chat from './components/ChatWithConversationList.vue'
-import Login from './components/Login.vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import useEventsBus from '@/util/eventBus'
 const { emit, bus } = useEventsBus()
 import Cookies from 'js-cookie'
+import { useRoute, useRouter } from 'vue-router'
+const route = useRoute()
+const router = useRouter()
 
 const access_token = ref(Cookies.get('token') as null|string)
 
-const isAuthenticated = computed(() => {
-  return !!(access_token.value)
-})
+const checkLogin = async () => {
+  if (access_token.value) {
+    await router.isReady()
+    if (!route.path.startsWith('/chat/')) {
+      router.replace('/chat')
+    }
+  } else {
+    router.replace('/login')
+  }
+}
 
 watch(()=>bus.value.get('login-state-changed'), (_access_token) => {
   access_token.value = _access_token
+  checkLogin()
 })
 
-const handleLogout = () => {
-  Cookies.remove('token')
-  emit("login-state-changed", null)
-}
+onMounted(async () => {
+  await checkLogin()
+})
 
 </script>
 
 <template>
   <a-layout id="root-layout">
-    <a-layout>
+    <RouterView />
+    <!-- <a-layout>
       <Login v-if="!isAuthenticated" />
       <Chat v-else @logout="handleLogout" />
-    </a-layout>
+    </a-layout> -->
   </a-layout>
 </template>
 

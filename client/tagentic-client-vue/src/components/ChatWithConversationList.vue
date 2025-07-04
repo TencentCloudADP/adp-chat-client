@@ -18,11 +18,12 @@ defineOptions({ name: 'AXConversationsBasic' });
 const isMobile = (window.innerWidth < 512)
 const collapsed = ref(false)
 const conversations = ref([] as {'id':null, 'agent_id': string, 'title':string, 'last_active_at':string}[])
-const activeConversationId = ref(undefined as string|undefined)
 
 const emit = defineEmits<{
   logout: []
 }>()
+
+const conversationId = defineModel('conversationId', { type: String })
 
 const handleUpdate = async () => {
   const options = {
@@ -37,13 +38,13 @@ const handleUpdate = async () => {
 }
 
 const handleCreateConversation = async () => {
-  activeConversationId.value = undefined
+  conversationId.value = undefined
   currentAgentId.value = agents.value[0]['AppBizId']
 }
 
 const handleOnNewConversation = async (converdation_id: string) => {
   await handleUpdate()
-  activeConversationId.value = converdation_id
+  conversationId.value = converdation_id
 }
 
 const currentAgentId = ref(undefined as string|undefined)
@@ -74,13 +75,9 @@ const updateActiveKey = (v: string) => {
   if (isMobile) {
     collapsed.value = true
   }
-  
-  activeConversationId.value = v
-  conversations.value.forEach((conversation) => {
-    if (conversation['id'] === v) {
-      currentAgentId.value = conversation['agent_id']
-    }
-  })
+
+  conversationId.value = v
+  console.log(`[updateActiveKey] conversationId changed to ${conversationId.value}`)  
 }
 
 </script>
@@ -95,7 +92,7 @@ const updateActiveKey = (v: string) => {
             label: `${conversation['title']} ${conversation['last_active_at'].substring(5, 16)}`,
             disabled: false,
           }))"
-          :active-key="activeConversationId"
+          :active-key="conversationId"
           :on-active-change="(v) => updateActiveKey(v)"
           id="conversion-list"
       />
@@ -111,7 +108,7 @@ const updateActiveKey = (v: string) => {
       />
       <menu-fold-outlined v-else class="chat-header-btn" @click="() => (collapsed = !collapsed)" />
 
-      <a-select v-model:value="currentAgentId" style="width: 200px; margin: 0 auto" id="agent-select" :disabled="!!activeConversationId">
+      <a-select v-model:value="currentAgentId" style="width: 200px; margin: 0 auto" id="agent-select" :disabled="!!conversationId">
         <a-select-option v-for="agent in agents" :value="agent['AppBizId']">{{'BaseConfig' in agent ? agent['BaseConfig']['Name'] : '智能体(信息获取失败)'}}</a-select-option>
       </a-select>
 
@@ -119,8 +116,8 @@ const updateActiveKey = (v: string) => {
     </a-layout-header>
     <a-layout-content id="chat">
       <Chat
-        :conversationId="activeConversationId"
-        :agentId="currentAgentId"
+        :conversationId="conversationId"
+        v-model:agentId="currentAgentId"
         @newConversation="handleOnNewConversation"
       />
     </a-layout-content>

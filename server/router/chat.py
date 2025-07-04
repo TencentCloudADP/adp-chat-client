@@ -26,6 +26,7 @@ class ChatMessageApi(HTTPMethodView):
         parser.add_argument("conversation_id", type=str, location="json")
         parser.add_argument("agent_id", type=str, location="json")
         args = parser.parse_args(request)
+        logging.info(f"ChatMessageApi: {args}")
 
         agent_id = args['agent_id']
         app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==agent_id][0]
@@ -57,10 +58,10 @@ class TCADPChatMessageListApi(HTTPMethodView):
     async def get(self, request: Request):
         parser = reqparse.RequestParser()
         parser.add_argument("conversation_id", type=str, required=True, location="args")
-        parser.add_argument("agent_id", type=str, location="args")
         args = parser.parse_args(request)
 
-        app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==args['agent_id']][0]
+        agent_id = await CoreConversation.get_agent_id(request.ctx.db, request.ctx.account_id, args['conversation_id'])
+        app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==agent_id][0]
 
         action = "GetMsgRecord"
         payload = {
@@ -71,6 +72,7 @@ class TCADPChatMessageListApi(HTTPMethodView):
    
         }
         resp = await tc_request(action, payload)
+        resp['Response']['AgentId'] = agent_id
         return json(resp)
 
 app.add_route(ChatMessageApi.as_view(), "/chat/message")

@@ -22,5 +22,7 @@ declare module 'vue' {
     Chat: typeof import('./src/components/Chat.vue')['default']
     ChatWithConversationList: typeof import('./src/components/ChatWithConversationList.vue')['default']
     Login: typeof import('./src/components/Login.vue')['default']
+    RouterLink: typeof import('vue-router')['RouterLink']
+    RouterView: typeof import('vue-router')['RouterView']
   }
 }
