@@ -19,6 +19,7 @@ declare module 'vue' {
     ALayoutSider: typeof import('ant-design-vue/es')['LayoutSider']
     ASelect: typeof import('ant-design-vue/es')['Select']
     ASelectOption: typeof import('ant-design-vue/es')['SelectOption']
+    AUpload: typeof import('ant-design-vue/es')['Upload']
     Chat: typeof import('./src/components/Chat.vue')['default']
     ChatWithConversationList: typeof import('./src/components/ChatWithConversationList.vue')['default']
     Login: typeof import('./src/components/Login.vue')['default']

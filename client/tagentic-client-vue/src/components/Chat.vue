@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { UserOutlined } from '@ant-design/icons-vue'
-import { Flex } from 'ant-design-vue'
+import { UserOutlined, LinkOutlined } from '@ant-design/icons-vue'
+import { Flex, Upload } from 'ant-design-vue'
 import { Bubble, Sender, ThoughtChain, type BubbleListProps, type BubbleProps } from 'ant-design-x-vue'
 import { Typography } from 'ant-design-vue'
 import { ref, reactive, watch, computed, h } from 'vue'
@@ -9,8 +9,9 @@ import type { AxiosRequestConfig } from 'axios'
 import markdownit from 'markdown-it'
 import type { Message, ReplyMessage } from '@/model/message'
 import type { Record } from '@/model/record'
+import type { UploadProps } from 'ant-design-vue'
 import { messageToRecord, mergeRecord } from '@/model/record'
-
+import { message } from 'ant-design-vue'
 
 const roles: BubbleListProps['roles'] = {
   agent: {
@@ -105,8 +106,18 @@ watch(() => conversationId, handleUpdate, { immediate: true })
 
 const handleSend = async () => {
   senderLoading.value = true
+
+  let _query = ''
+  for (const file of fileList.value || []) {
+    if (file.status == 'done') {
+      _query += `![](${file.url})\n\n`
+    }
+  }
+  _query += query.value
+  fileList.value = []
+
   const post_body = {
-    query: query.value,
+    query: _query,
     conversation_id: conversationId,
     agent_id: agentId.value,
   }
@@ -148,6 +159,34 @@ const handleSend = async () => {
   senderLoading.value = false
 }
 
+const fileList = ref([] as UploadProps['fileList'])
+const handleFile = async (file: any, _: any[]) => {
+  const allowed = ['image/png', 'image/jpeg']
+  if (!allowed.includes(file.type)) {
+    message.error(`${file.name} is not allowed`)
+    return Upload.LIST_IGNORE
+  }
+
+  const options = {
+  } as AxiosRequestConfig
+  const res = await api.post(`/file/upload?agent_id=${agentId.value}`, file, options)
+  if ('url' in res['data']) {
+    const url = res['data']['url']
+    fileList.value?.push({
+      uid: url,
+      name: '',
+      status: 'done',
+      response: '',
+      url: url,
+    })
+  } else {
+    console.log(res)
+    message.error('upload failed')
+  }
+  
+  return Upload.LIST_IGNORE
+}
+
 </script>
 
 <template>
@@ -157,6 +196,7 @@ const handleSend = async () => {
     gap="middle"
   >
     <Bubble.List
+      class="bubble-list"
       :roles="roles"
       :autoScroll="true"
       :style="{ 'flex-grow': 1 }"
@@ -215,6 +255,28 @@ const handleSend = async () => {
         handleSend()
         setQuery('')
       }"
-    />
+    >
+      <template #prefix>
+        <a-upload
+          v-model:file-list="fileList"
+          :before-upload="handleFile"
+          list-type="picture"
+          multiple
+        >
+          <a-button shape="circle">
+            <link-outlined></link-outlined>
+          </a-button>
+        </a-upload>
+      </template>
+    </Sender>
   </Flex>
 </template>
+
+<style>
+
+.bubble-list img {
+  width: 100%;
+  max-width: 640px;
+}
+
+</style>
