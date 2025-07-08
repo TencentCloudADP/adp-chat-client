@@ -2,6 +2,10 @@
 import os
 import hashlib
 import hmac
+import base64
+import uuid
+from urllib.parse import quote
+from random import randint, randrange
 import json
 import sys
 import time
@@ -9,6 +13,45 @@ from datetime import datetime
 import aiohttp
 from config import tagentic_config
 
+
+def asr_sign(msg):
+    secret_key = tagentic_config.TC_SECRET_KEY
+    hmacstr = hmac.new(secret_key.encode('utf-8'), msg.encode('utf-8'), hashlib.sha1).digest()
+    s = base64.b64encode(hmacstr)
+    s = s.decode('utf-8')
+    return s
+
+def asr_query_string(param):
+    signstr = "asr.cloud.tencent.com/asr/v2/"
+    for k, v in param.items():
+        if 'appid' in k:
+            signstr += str(v)
+            break
+    signstr += "?"
+    for k, v in sorted(param.items()):
+        if 'appid' in k:
+            continue
+        signstr += f'{str(k)}={str(v)}&'
+    signstr = signstr[:-1]
+    return signstr
+
+def asr_url(engine_model_type="16k_zh", voice_format=1):
+    # https://cloud.tencent.com/document/api/1093/48982
+    ts = int(time.time())
+    param = {
+        "appid": tagentic_config.TC_SECRET_APPID,
+        "secretid": tagentic_config.TC_SECRET_ID,
+        "voice_id": str(uuid.uuid4()),
+        "engine_model_type": engine_model_type,
+        "voice_format": voice_format,
+        "nonce": str(randint(1_000_000, 9_999_999)),
+        "timestamp": str(ts),
+        "expired": str(ts + 600),
+    }
+    url = asr_query_string(param)
+    sign = quote(asr_sign(url))
+    url = f'wss://{url}&signature={sign}'
+    return url
 
 def sign(key, msg):
     return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).digest()

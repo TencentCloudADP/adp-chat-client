@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { UserOutlined, LinkOutlined } from '@ant-design/icons-vue'
 import { Flex, Upload } from 'ant-design-vue'
-import { Bubble, Sender, ThoughtChain, type BubbleListProps, type BubbleProps } from 'ant-design-x-vue'
+import { Bubble, Sender, type SenderProps, ThoughtChain, type BubbleListProps, type BubbleProps } from 'ant-design-x-vue'
 import { Typography } from 'ant-design-vue'
 import { ref, reactive, watch, computed, h } from 'vue'
 import {api, chunkSplitter} from '@/util/api'
@@ -106,6 +106,7 @@ watch(() => conversationId, handleUpdate, { immediate: true })
 
 const handleSend = async () => {
   senderLoading.value = true
+  recording.value = false
 
   let _query = ''
   for (const file of fileList.value || []) {
@@ -159,6 +160,7 @@ const handleSend = async () => {
   senderLoading.value = false
 }
 
+// file upload
 const fileList = ref([] as UploadProps['fileList'])
 const handleFile = async (file: any, _: any[]) => {
   const allowed = ['image/png', 'image/jpeg']
@@ -186,6 +188,64 @@ const handleFile = async (file: any, _: any[]) => {
   
   return Upload.LIST_IGNORE
 }
+
+// asr
+import WebRecorder from "@/util/webRecorder.js"
+const queryBeforeAsr = ref('')
+const recorder = ref(null as WebRecorder|null)
+const asrWebSocket = ref(null as WebSocket|null)
+const recording = ref(false)
+type SpeechConfig = SenderProps['allowSpeech']
+const startRecording = () => {
+  const requestId = '0'
+  recorder.value = new WebRecorder({requestId: requestId})
+  recorder.value.OnReceivedData = (data) => {
+    if (asrWebSocket.value?.readyState === WebSocket.OPEN) {
+      asrWebSocket.value?.send(data)
+    }
+  }
+  // 录音失败时
+  recorder.value.OnError = (err) => {
+    message.error(err)
+    recording.value = false
+  }
+  recorder.value.start()
+  queryBeforeAsr.value = query.value
+}
+watch(() => recording.value, async () => {
+  if (recording.value) {
+    const res = await api.get(`/helper/asr/url`)
+    const url = res['data']['url']
+    asrWebSocket.value = new WebSocket(url)
+    asrWebSocket.value.onopen = () => {
+      startRecording()
+    }
+    asrWebSocket.value.onmessage = (event) => {
+      if (!recording.value) {
+        return
+      }
+      const msg = JSON.parse(event.data)
+      if ('result' in msg) {
+        query.value = queryBeforeAsr.value + msg['result']['voice_text_str']
+      }
+    }
+  }
+  else
+  {
+    recorder.value?.stop()
+    recorder.value = null
+    asrWebSocket.value?.close()
+    asrWebSocket.value = null
+  }
+})
+const speechConfig = computed<SpeechConfig>(
+  () => ({
+    recording: recording.value,
+    onRecordingChange: (nextRecording) => {
+      recording.value = nextRecording
+    },
+  }
+))
 
 </script>
 
@@ -251,6 +311,7 @@ const handleFile = async (file: any, _: any[]) => {
       :loading="senderLoading"
       :value="query"
       :on-change="setQuery"
+      :allow-speech="speechConfig"
       :on-submit="() => {
         handleSend()
         setQuery('')
