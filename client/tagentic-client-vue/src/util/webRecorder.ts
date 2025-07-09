@@ -177,8 +177,9 @@ export default class WebRecorder {
     }
 
     stop(): void {
-        if (!(/Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent))) {
+        try {
             this.audioContext && this.audioContext.suspend();
+        } catch (e) {
         }
         this.destroyStream();
         this.isLog && console.log(this.requestId, `webRecorder stop ${this.sampleCount}/${this.bitCount}/${this.getDataCount}`, JSON.stringify(this.frameTime), TAG);
