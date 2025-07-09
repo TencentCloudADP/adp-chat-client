@@ -6,6 +6,9 @@
       "@/*": ["./src/*"]
     },
 
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": false,

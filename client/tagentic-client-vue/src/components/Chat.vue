@@ -1,6 +1,6 @@
-<script setup lang="ts">
-import { UserOutlined, LinkOutlined } from '@ant-design/icons-vue'
-import { Flex, Upload } from 'ant-design-vue'
+<script setup lang="tsx">
+import { UserOutlined, LinkOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined } from '@ant-design/icons-vue'
+import { Flex, Upload, Button } from 'ant-design-vue'
 import { Bubble, Sender, type SenderProps, ThoughtChain, type BubbleListProps, type BubbleProps } from 'ant-design-x-vue'
 import { Typography } from 'ant-design-vue'
 import { ref, reactive, watch, computed, h } from 'vue'
@@ -10,36 +10,10 @@ import markdownit from 'markdown-it'
 import type { Message, ReplyMessage } from '@/model/message'
 import type { Record } from '@/model/record'
 import type { UploadProps } from 'ant-design-vue'
-import { messageToRecord, mergeRecord } from '@/model/record'
+import { messageToRecord, mergeRecord, ScoreValue } from '@/model/record'
 import { message } from 'ant-design-vue'
 
-const roles: BubbleListProps['roles'] = {
-  agent: {
-    placement: 'start',
-    avatar: { icon: h(UserOutlined), style: { background: '#fde3cf' } },
-    style: {
-      // maxWidth: '600px',
-    },
-  },
-  thought: {
-    placement: 'start',
-    avatar: { icon: h(UserOutlined), style: { visibility: 'hidden' } },
-    variant: 'borderless',
-    messageRender: (items) =>
-      h(ThoughtChain, { collapsible: { expandedKeys: expandedKeys.value, onExpand }, items: items as any }),
-  },
-  user: {
-    placement: 'end',
-    avatar: { icon: h(UserOutlined), style: { background: '#87d068' } },
-  },
-}
-
-const md = markdownit({ html: true, breaks: true });
-const renderMarkdown: BubbleProps['messageRender'] = (content) =>
-  h(Typography, null, {
-    default: () => h('div', { innerHTML: md.render(content) }),
-  })
-
+// variables
 const emit = defineEmits<{
   newConversation: [conversation_id: string]
 }>()
@@ -56,6 +30,74 @@ const messages = ref([] as Record[])
 const setQuery = (v: string) => {
   query.value = v
 }
+
+// roles
+const roles: BubbleListProps['roles'] = {
+  agent: {
+    placement: 'start',
+    avatar: { icon: h(UserOutlined), style: { background: '#fde3cf' } },
+    style: {
+    },
+  },
+  thought: {
+    placement: 'start',
+    avatar: { icon: h(UserOutlined), style: { visibility: 'hidden' } },
+    variant: 'borderless',
+    messageRender: (items) =>
+      h(ThoughtChain, { collapsible: { expandedKeys: expandedKeys.value, onExpand }, items: items as any }),
+  },
+  user: {
+    placement: 'end',
+    avatar: { icon: h(UserOutlined), style: { background: '#87d068' } },
+  },
+}
+
+// bubble footer
+const rate = async (record: Record, score: ScoreValue) => {
+  const post_body = {
+    conversation_id: conversationId,
+    record_id: record.RecordId,
+    score: score,
+  }
+  const options = {
+  } as AxiosRequestConfig
+  const res = await api.post('/feedback/rate', post_body, options)
+  console.log(res)
+  record.Score = score
+}
+
+const renderFooter: BubbleProps['footer'] = (content) => {
+  const record = (content as Record)
+  const score = record.Score
+  const disabled = (score != ScoreValue.Unknown)
+  if (!record.CanRating || record.IsFinal===false) {
+    return <></>
+  }
+  return <Flex>
+    <Button
+      class="footer-button"
+      type="link"
+      icon={score == ScoreValue.Like ? <LikeFilled /> : <LikeOutlined />} 
+      onClick={() => rate(record, ScoreValue.Like)}
+      disabled={disabled}
+    />
+    <Button
+      class="footer-button"
+      type="link"
+      icon={score == ScoreValue.Dislike ? <DislikeFilled /> : <DislikeOutlined />} 
+      onClick={() => rate(record, ScoreValue.Dislike)}
+      disabled={disabled}
+    />
+  </Flex>
+}
+
+// message rendering
+const md = markdownit({ html: true, breaks: true });
+const renderMarkdown: BubbleProps['messageRender'] = (content) =>
+  <Typography>
+    <div innerHTML={md.render((content as Record)['Content'] || '')} />
+  </Typography>
+
 // thought-chain
 const expandedKeysUser = reactive([] as string[])
 const onExpand = (keys: string[]) => {
@@ -79,6 +121,7 @@ const expandedKeys = computed(():string[] => {
   return [...expandedKeysUser, ...ids]
 })
 
+// message processing
 const handleUpdate = async () => {
   if (skip_update_once.value) {
     skip_update_once.value = false
@@ -299,9 +342,10 @@ const speechConfig = computed<SpeechConfig>(
         }
         items.push({
           key: record['RecordId'] || '',
-          loading: false,
+          loading: record['Content']=='',
           role: record['IsLlmGenerated'] ? 'agent' : 'user',
-          content: record['Content'],
+          content: record,
+          footer: renderFooter,
           messageRender: renderMarkdown,
         })
         return items
@@ -338,6 +382,12 @@ const speechConfig = computed<SpeechConfig>(
 .bubble-list img {
   width: 100%;
   max-width: 640px;
+}
+
+.footer-button:hover,
+.footer-button:focus {
+  border: 0 !important;
+  outline: 0 !important;
 }
 
 </style>

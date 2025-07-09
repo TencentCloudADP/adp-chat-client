@@ -98,6 +98,13 @@ export interface ExtraInfo {
   EChartsInfo?: any;
 }
 
+export const ScoreValue = {
+  Unknown: 0,
+  Like: 1,
+  Dislike: 2
+} as const
+export type ScoreValue = typeof ScoreValue[keyof typeof ScoreValue]
+
 export interface Record {
   AgentThought?: AgentThought;
   CanFeedback?: boolean;
@@ -111,6 +118,7 @@ export interface Record {
   ImageUrls?: any[];
   IsFromSelf?: boolean;
   IsLlmGenerated?: boolean;
+  IsFinal?: boolean;
   OptionCards?: any[];
   QuoteInfos?: any[];
   Reasons?: any[];
@@ -118,7 +126,7 @@ export interface Record {
   References?: any[];
   RelatedRecordId?: string;
   ReplyMethod?: number;
-  Score?: number;
+  Score?: ScoreValue;
   SessionId?: string;
   TaskFlow?: any;
   Timestamp?: string;
@@ -142,6 +150,9 @@ import type { Message } from '@/model/message'
 export function mergeRecord(record: Record, delta: Record, msg: Message) {
   if (msg.type === "reply") {
     record.Content = (record.Content||'') + delta.Content
+    record.CanRating = delta.CanRating
+    record.IsFinal = delta.IsFinal
+    record.Score = delta.Score
   } else if (msg.type === "thought") {
     // 处理 ThoughtMessage 合并
     let length = record.AgentThought?.Procedures?.length || 0
@@ -200,11 +211,13 @@ export function messageToRecord(message: Message): Record | null {
       FromName: message.payload.from_name,
       IsFromSelf: message.payload.is_from_self,
       IsLlmGenerated: message.payload.is_llm_generated,
+      IsFinal: message.payload.is_final,
       OptionCards: message.payload.option_cards ? [message.payload.option_cards] : [],
       QuoteInfos: message.payload.quote_infos ? [message.payload.quote_infos] : [],
       RecordId: message.payload.record_id,
       RelatedRecordId: message.payload.related_record_id,
       ReplyMethod: message.payload.reply_method,
+      Score: ScoreValue.Unknown,
       SessionId: message.payload.session_id,
       Timestamp: new Date(message.payload.timestamp * 1000).toISOString(),
       Type: 1 // 假设 1 表示回复类型
