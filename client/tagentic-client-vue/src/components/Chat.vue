@@ -1,5 +1,5 @@
 <script setup lang="tsx">
-import { UserOutlined, LinkOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, LinkOutlined, RedoOutlined, CopyOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined } from '@ant-design/icons-vue'
 import { Flex, Upload, Button } from 'ant-design-vue'
 import { Bubble, Sender, type SenderProps, ThoughtChain, type BubbleListProps, type BubbleProps } from 'ant-design-x-vue'
 import { Typography } from 'ant-design-vue'
@@ -23,7 +23,7 @@ const { conversationId = null } = defineProps<{
 }>()
 const agentId = defineModel('agentId', { type: String })
 
-const skip_update_once = ref(false)
+const skipUpdateOnce = ref(false)
 const query = ref("")
 const senderLoading = ref(false)
 const messages = ref([] as Record[])
@@ -77,14 +77,26 @@ const renderFooter: BubbleProps['footer'] = (content) => {
     <Button
       class="footer-button"
       type="link"
-      icon={score == ScoreValue.Like ? <LikeFilled /> : <LikeOutlined />} 
+      icon={<RedoOutlined />}
+      onClick={() => handleReSend(record.RelatedRecordId)}
+    />
+    <Button
+      class="footer-button"
+      type="link"
+      icon={<CopyOutlined />}
+      onClick={() => handleCopy(record)}
+    />
+    <Button
+      class="footer-button"
+      type="link"
+      icon={score == ScoreValue.Like ? <LikeFilled /> : <LikeOutlined />}
       onClick={() => rate(record, ScoreValue.Like)}
       disabled={disabled}
     />
     <Button
       class="footer-button"
       type="link"
-      icon={score == ScoreValue.Dislike ? <DislikeFilled /> : <DislikeOutlined />} 
+      icon={score == ScoreValue.Dislike ? <DislikeFilled /> : <DislikeOutlined />}
       onClick={() => rate(record, ScoreValue.Dislike)}
       disabled={disabled}
     />
@@ -123,8 +135,8 @@ const expandedKeys = computed(():string[] => {
 
 // message processing
 const handleUpdate = async () => {
-  if (skip_update_once.value) {
-    skip_update_once.value = false
+  if (skipUpdateOnce.value) {
+    skipUpdateOnce.value = false
     return
   }
   if (!conversationId) {
@@ -147,19 +159,28 @@ const handleUpdate = async () => {
 }
 watch(() => conversationId, handleUpdate, { immediate: true })
 
-const handleSend = async () => {
+let abort = null as AbortController|null
+const handleSend = async (_lastQuery = null as null|string) => {
   senderLoading.value = true
   recording.value = false
 
   let _query = ''
-  for (const file of fileList.value || []) {
-    if (file.status == 'done') {
-      _query += `![](${file.url})\n\n`
+  if (_lastQuery == null)
+  {
+    for (const file of fileList.value || []) {
+      if (file.status == 'done') {
+        _query += `![](${file.url})\n\n`
+      }
     }
+    _query += query.value
+    fileList.value = []
   }
-  _query += query.value
-  fileList.value = []
+  else
+  {
+    _query = _lastQuery
+  }
 
+  abort = new AbortController()
   const post_body = {
     query: _query,
     conversation_id: conversationId,
@@ -169,6 +190,7 @@ const handleSend = async () => {
     responseType: 'stream',
     adapter: 'fetch',
     timeout: 1000 * 600,
+    signal: abort.signal
   } as AxiosRequestConfig
   try {
     const res = await api.post('/chat/message', post_body, options)
@@ -178,7 +200,7 @@ const handleSend = async () => {
       let msg_map = JSON.parse(msg_body)
       if (msg_map['type'] == 'custom' && msg_map['name'] == 'new_conversation') {
           let converdation_id = msg_map['value']['conversation_id']
-          skip_update_once.value = true
+          skipUpdateOnce.value = true
           emit('newConversation', converdation_id)
       } else {
         let msg: Message = msg_map
@@ -201,6 +223,23 @@ const handleSend = async () => {
   }
   console.log('done')
   senderLoading.value = false
+}
+const handleReSend = async (recordId: string|undefined) => {
+  const related = messages.value.filter((record) => record.RecordId == recordId)
+  if (related.length == 0) {
+    return
+  }
+  await handleSend(related[0].Content)
+}
+const handleCopy = async (record: Record) => {
+  if (navigator.clipboard && record.Content) {
+    await navigator.clipboard.writeText(record.Content)
+    message.info(`复制成功`)
+  }
+}
+const handleStop = async () => {
+  abort?.abort()
+  abort = null
 }
 
 // file upload
@@ -359,6 +398,9 @@ const speechConfig = computed<SpeechConfig>(
       :on-submit="() => {
         handleSend()
         setQuery('')
+      }"
+      :on-cancel="() => {
+        handleStop()
       }"
     >
       <template #prefix>

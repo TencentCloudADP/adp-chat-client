@@ -153,6 +153,8 @@ export function mergeRecord(record: Record, delta: Record, msg: Message) {
     record.CanRating = delta.CanRating
     record.IsFinal = delta.IsFinal
     record.Score = delta.Score
+    record.RecordId = delta.RecordId
+    record.RelatedRecordId = delta.RelatedRecordId
   } else if (msg.type === "thought") {
     // 处理 ThoughtMessage 合并
     let length = record.AgentThought?.Procedures?.length || 0
