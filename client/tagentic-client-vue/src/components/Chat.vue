@@ -293,6 +293,7 @@ const startRecording = () => {
   }
   recorder.value.start()
   queryBeforeAsr.value = query.value
+  console.log('[asr] start')
 }
 watch(() => recording.value, async () => {
   if (recording.value) {
@@ -310,10 +311,17 @@ watch(() => recording.value, async () => {
       if ('result' in msg) {
         query.value = queryBeforeAsr.value + msg['result']['voice_text_str']
       }
+      if ('message' in msg && 'code' in msg && msg['code'] != 0) {
+        message.error(msg['message'])
+      }
+    }
+    asrWebSocket.value.onclose = () => {
+      recording.value = false      
     }
   }
   else
   {
+    console.log('[asr] stop')
     recorder.value?.stop()
     recorder.value = null
     asrWebSocket.value?.close()
