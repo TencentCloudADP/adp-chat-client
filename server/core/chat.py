@@ -67,18 +67,21 @@ class CoreChat:
                 last_message_test = ''
                 last_message_id = ''
                 last_from_role = ''
-                while True:
-                    raw_line = await resp.content.readline()
-                    if not raw_line:
-                        break
-                    line = raw_line.decode()
-                    if ':' not in line:
-                        continue
-                    line_type, data = line.split(':', 1)
-                    if line_type == 'data':
-                        yield raw_line + '\n'.encode()
-                # if last_event_type == EventType.TEXT_MESSAGE_CONTENT:
-                #     await new_text_message_cb(last_message_id, last_from_role, last_message_test)
+                try:
+                    while True:
+                        raw_line = await resp.content.readline()
+                        if not raw_line:
+                            break
+                        line = raw_line.decode()
+                        if ':' not in line:
+                            continue
+                        line_type, data = line.split(':', 1)
+                        if line_type == 'data':
+                            yield raw_line + '\n'.encode()
+                except asyncio.CancelledError:
+                    logging.info("forward_request: cancelled")
+                    resp.close()
+            logging.info(f"forward_request: done")
 
     @staticmethod
     async def message(db: AsyncSession, account_id: str, query: str, conversation_id: str, agent_id: str, app_key: str):
