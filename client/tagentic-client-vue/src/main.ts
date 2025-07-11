@@ -4,10 +4,12 @@ import App from './App.vue'
 import { createWebHashHistory, createRouter } from 'vue-router'
 import Login from './components/Login.vue'
 import ChatView from './views/ChatView.vue'
+import SharedChatView from './views/SharedChatView.vue'
 
 const routes = [
   { path: '/login', name: 'login', component: Login },
   { path: '/chat/:conversationId?', name: 'chat', component: ChatView },
+  { path: '/share/:shareId?', name: 'share', component: SharedChatView },
 ]
 
 const router = createRouter({

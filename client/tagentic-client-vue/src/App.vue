@@ -10,12 +10,15 @@ const router = useRouter()
 const access_token = ref(Cookies.get('token') as null|string)
 
 const checkLogin = async () => {
+  await router.isReady()
   if (access_token.value) {
-    await router.isReady()
-    if (!route.path.startsWith('/chat/')) {
+    if (route.path == '/') {
       router.replace('/chat')
     }
   } else {
+    if (route.path.startsWith('/share/')) {
+      return
+    }
     router.replace('/login')
   }
 }
@@ -34,10 +37,6 @@ onMounted(async () => {
 <template>
   <a-layout id="root-layout">
     <RouterView />
-    <!-- <a-layout>
-      <Login v-if="!isAuthenticated" />
-      <Chat v-else @logout="handleLogout" />
-    </a-layout> -->
   </a-layout>
 </template>
 

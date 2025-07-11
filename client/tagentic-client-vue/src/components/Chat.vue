@@ -1,6 +1,6 @@
 <script setup lang="tsx">
-import { UserOutlined, LinkOutlined, RedoOutlined, CopyOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined } from '@ant-design/icons-vue'
-import { Flex, Upload, Button } from 'ant-design-vue'
+import { UserOutlined, LinkOutlined, RedoOutlined, CopyOutlined, ShareAltOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined } from '@ant-design/icons-vue'
+import { Flex, Upload, Button, Checkbox, CheckboxGroup } from 'ant-design-vue'
 import { Bubble, Sender, type SenderProps, ThoughtChain, type BubbleListProps, type BubbleProps } from 'ant-design-x-vue'
 import { Typography } from 'ant-design-vue'
 import { ref, reactive, watch, computed, h } from 'vue'
@@ -18,8 +18,9 @@ const emit = defineEmits<{
   newConversation: [conversation_id: string]
 }>()
 
-const { conversationId = null } = defineProps<{
+const { conversationId = null, shareId = null } = defineProps<{
   conversationId?: string,
+  shareId?: string,
 }>()
 const agentId = defineModel('agentId', { type: String })
 
@@ -49,6 +50,9 @@ const roles: BubbleListProps['roles'] = {
   user: {
     placement: 'end',
     avatar: { icon: h(UserOutlined), style: { background: '#87d068' } },
+    style: {
+      'flex-direction': 'row',
+    },
   },
 }
 
@@ -70,7 +74,7 @@ const renderFooter: BubbleProps['footer'] = (content) => {
   const record = (content as Record)
   const score = record.Score
   const disabled = (score != ScoreValue.Unknown)
-  if (!record.CanRating || record.IsFinal===false) {
+  if (!record.CanRating || record.IsFinal===false || shareId) {
     return <></>
   }
   return <Flex>
@@ -100,6 +104,12 @@ const renderFooter: BubbleProps['footer'] = (content) => {
       onClick={() => rate(record, ScoreValue.Dislike)}
       disabled={disabled}
     />
+    <Button
+      class="footer-button"
+      type="link"
+      icon={<ShareAltOutlined />}
+      onClick={ () => handleSelect([record.RecordId, record.RelatedRecordId]) }
+    />
   </Flex>
 }
 
@@ -109,6 +119,59 @@ const renderMarkdown: BubbleProps['messageRender'] = (content) =>
   <Typography>
     <div innerHTML={md.render((content as Record)['Content'] || '')} />
   </Typography>
+
+const isSelection = ref(false)
+const selectedRecords = ref([] as string[])
+const items = computed(():BubbleListProps['items'] =>
+  messages.value.flatMap((record) => {
+    let items:any[] = []
+    let procedures:any[] = []
+    if (record.TokenStat?.Procedures?.length||0 > 0) {
+      procedures = [...procedures, ...record.TokenStat?.Procedures?.map((proc, index) => {
+        const Knowledge = proc.Debugging?.Knowledge
+        const RunNodes = proc.Debugging?.WorkFlow?.RunNodes
+        let content = proc.Debugging?.WorkFlow?.WorkflowName
+        if (Knowledge?.length||0 > 0) {
+          content += ' 查询知识库：' + Knowledge?.length
+        }
+        else if (RunNodes?.length||0 > 0) {
+          content += ' 工作流：' + RunNodes?.length
+        }
+        return {
+          key: (record['RecordId'] || '') + '-stat-' + index,
+          title: proc.Title||'已思考',
+          description: '',
+          content: content,
+        }})!]
+    }
+    if (record.AgentThought?.Procedures?.length||0 > 0) {
+      procedures = [...procedures, ...record.AgentThought?.Procedures?.map((proc, index) => ({
+          key: (record['RecordId'] || '') + '-thought-' + index,
+          title: proc.Title||'已思考',
+          description: proc.TargetAgentName,
+          content: renderMarkdown(proc.Debugging?.Content || ''),
+        }))!]
+    }
+    if (procedures.length||0 > 0) {
+      items.push({
+        key: record['RecordId'] || '',
+        loading: false,
+        role: 'thought',
+        content: procedures,
+      })
+    }
+    items.push({
+      key: record['RecordId'] || '',
+      loading: record['Content']=='',
+      role: record['IsLlmGenerated'] ? 'agent' : 'user',
+      content: record,
+      footer: renderFooter,
+      avatar: isSelection.value ? <Checkbox value={record['RecordId']}></Checkbox> : <></>,
+      messageRender: renderMarkdown,
+    })
+    return items
+  })
+)
 
 // thought-chain
 const expandedKeysUser = reactive([] as string[])
@@ -139,13 +202,14 @@ const handleUpdate = async () => {
     skipUpdateOnce.value = false
     return
   }
-  if (!conversationId) {
+  if (!conversationId && !shareId) {
     messages.value = []
     return
   }
   const options = {
     params: {
       conversation_id: conversationId,
+      share_id: shareId,
     }
   } as AxiosRequestConfig
   try {
@@ -157,7 +221,7 @@ const handleUpdate = async () => {
     console.log(e)
   }
 }
-watch(() => conversationId, handleUpdate, { immediate: true })
+watch(() => [conversationId, shareId], handleUpdate, { immediate: true })
 
 let abort = null as AbortController|null
 const handleSend = async (_lastQuery = null as null|string) => {
@@ -337,68 +401,57 @@ const speechConfig = computed<SpeechConfig>(
   }
 ))
 
+// handle share
+const handleSelect = (recordIds: (string|undefined)[]) => {
+  isSelection.value = !isSelection.value
+  selectedRecords.value = recordIds.filter((item): item is string => item !== undefined)
+}
+const handleShare = async () => {
+  const post_body = {
+    conversation_id: conversationId,
+    agent_id: agentId.value,
+    record_ids: selectedRecords.value,
+  }
+  const options = {
+  } as AxiosRequestConfig
+  const res = await api.post('/share/create', post_body, options)
+  console.log(res)
+
+  if (navigator.clipboard && res.data.ShareId) {
+    const baseUrl = window.location.href.split('#')[0]
+    const url = `${baseUrl}#/share/${res.data.ShareId}`
+    await navigator.clipboard.writeText(url)
+    message.info(`分享链接复制成功`)
+  }
+
+  selectedRecords.value = []
+  isSelection.value = false
+}
+
 </script>
 
 <template>
-  <Flex
+  <flex
     vertical
     :style="{ 'height': '100%' }"
     gap="middle"
   >
-    <Bubble.List
-      class="bubble-list"
-      :roles="roles"
-      :autoScroll="true"
-      :style="{ 'flex-grow': 1 }"
-      :items="messages.flatMap((record) => {
-        let items:any[] = []
-        let procedures:any[] = []
-        if (record.TokenStat?.Procedures?.length||0 > 0) {
-          procedures = [...procedures, ...record.TokenStat?.Procedures?.map((proc, index) => {
-            const Knowledge = proc.Debugging?.Knowledge
-            const RunNodes = proc.Debugging?.WorkFlow?.RunNodes
-            let content = proc.Debugging?.WorkFlow?.WorkflowName
-            if (Knowledge?.length||0 > 0) {
-              content += ' 查询知识库：' + Knowledge?.length
-            }
-            else if (RunNodes?.length||0 > 0) {
-              content += ' 工作流：' + RunNodes?.length
-            }
-            return {
-              key: (record['RecordId'] || '') + '-stat-' + index,
-              title: proc.Title||'已思考',
-              description: '',
-              content: content,
-            }})!]
-        }
-        if (record.AgentThought?.Procedures?.length||0 > 0) {
-          procedures = [...procedures, ...record.AgentThought?.Procedures?.map((proc, index) => ({
-              key: (record['RecordId'] || '') + '-thought-' + index,
-              title: proc.Title||'已思考',
-              description: proc.TargetAgentName,
-              content: renderMarkdown(proc.Debugging?.Content || ''),
-            }))!]
-        }
-        if (procedures.length||0 > 0) {
-          items.push({
-            key: record['RecordId'] || '',
-            loading: false,
-            role: 'thought',
-            content: procedures,
-          })
-        }
-        items.push({
-          key: record['RecordId'] || '',
-          loading: record['Content']=='',
-          role: record['IsLlmGenerated'] ? 'agent' : 'user',
-          content: record,
-          footer: renderFooter,
-          messageRender: renderMarkdown,
-        })
-        return items
-      })"
-    />
-    <Sender
+    <checkbox-group v-model:value="selectedRecords" class="bubble-list-wrap">
+      <Bubble.List
+        class="bubble-list"
+        :roles="roles"
+        :autoScroll="true"
+        :items="items"
+      />
+    </checkbox-group>
+    <flex class="share-panel" v-if="isSelection">
+      <div class="share-panel-space"/>
+      <a-button @click="handleShare">分享</a-button>
+      <a-button @click="isSelection=false">取消</a-button>
+      <div class="share-panel-space"/>
+    </flex>
+    <sender
+      v-if="!isSelection && !shareId"
       :loading="senderLoading"
       :value="query"
       :on-change="setQuery"
@@ -423,15 +476,36 @@ const speechConfig = computed<SpeechConfig>(
           </a-button>
         </a-upload>
       </template>
-    </Sender>
-  </Flex>
+    </sender>
+  </flex>
 </template>
 
 <style>
 
+.bubble-list {
+  height: 100%;
+  width: 100%;
+}
+.bubble-list-wrap {
+  flex-grow: 1;
+  width: 100%;
+  overflow: hidden;
+  cursor: inherit;
+}
+
 .bubble-list img {
   width: 100%;
   max-width: 640px;
+}
+
+.share-panel {
+  padding: 12px 0;
+}
+.share-panel button {
+  margin-right: 12px;
+}
+.share-panel-space {
+  flex-grow: 1;
 }
 
 .footer-button:hover,
@@ -440,4 +514,10 @@ const speechConfig = computed<SpeechConfig>(
   outline: 0 !important;
 }
 
+.ant-bubble-end .ant-bubble-content-filled {
+  background-color: cornflowerblue;
+}
+.ant-bubble-end .ant-bubble-content-filled p {
+  color: white;
+}
 </style>

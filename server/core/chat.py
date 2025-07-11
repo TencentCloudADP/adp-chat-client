@@ -8,10 +8,11 @@ from sqlalchemy import select, desc
 import asyncio
 import aiohttp
 import json
+from util.tca import tc_request
 
 from config import tagentic_config
 from core.conversation import CoreConversation
-from model.chat import ChatMessage
+from model.chat import ChatRecord
 
 class TCADPEventType(str, Enum):
     """
@@ -99,15 +100,28 @@ class CoreChat:
 
 class CoreMessage:
     @staticmethod
-    async def list(db: AsyncSession, conversation_id: str) -> list[ChatMessage]:
-        conversations = (await db.execute(select(ChatMessage).where(
-            ChatMessage.conversation_id==conversation_id
-        ).order_by(ChatMessage.created_at))).scalars()
+    async def list(db: AsyncSession, conversation_id: str) -> list[ChatRecord]:
+        conversations = (await db.execute(select(ChatRecord).where(
+            ChatRecord.conversation_id==conversation_id
+        ).order_by(ChatRecord.created_at))).scalars()
         return conversations
 
     @staticmethod
-    async def create(db: AsyncSession, conversation_id: str, from_role: str, content: str) -> ChatMessage:
-        message = ChatMessage(conversation_id=conversation_id, from_role=from_role, content=content)
+    async def list_from_remote(db: AsyncSession, app_key: str, conversation_id: str) -> list:
+        action = "GetMsgRecord"
+        payload = {
+            "Type": 5,
+            "Count": 1000,
+            "SessionId": conversation_id,
+            "BotAppKey": app_key,
+   
+        }
+        resp = await tc_request(action, payload)
+        return resp['Response']['Records']
+
+    @staticmethod
+    async def create(db: AsyncSession, conversation_id: str, from_role: str, content: str) -> ChatRecord:
+        message = ChatRecord(conversation_id=conversation_id, from_role=from_role, content=content)
         db.add(message)
         await db.commit()
         return message
