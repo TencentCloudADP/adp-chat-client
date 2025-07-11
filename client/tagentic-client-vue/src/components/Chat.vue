@@ -550,6 +550,7 @@ const handleShare = async () => {
   width: 100%;
   overflow: hidden;
   cursor: inherit;
+  white-space: inherit;
 }
 
 .bubble-list img {
