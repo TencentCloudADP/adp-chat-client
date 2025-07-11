@@ -295,11 +295,16 @@ const handleReSend = async (recordId: string|undefined) => {
   }
   await handleSend(related[0].Content)
 }
-const handleCopy = async (record: Record) => {
-  if (navigator.clipboard && record.Content) {
-    await navigator.clipboard.writeText(record.Content)
-    message.info(`复制成功`)
+const doCopy = async (content: string, tips = '') => {
+  if (navigator.clipboard) {
+    await navigator.clipboard.writeText(content)
+    message.info(`${tips}复制成功`)
+  } else {
+    message.error(`复制失败（请使用https协议部署！）`)
   }
+}
+const handleCopy = async (record: Record) => {
+  await doCopy(record.Content || '')
 }
 const handleStop = async () => {
   abort?.abort()
@@ -415,13 +420,11 @@ const handleShare = async () => {
   const options = {
   } as AxiosRequestConfig
   const res = await api.post('/share/create', post_body, options)
-  console.log(res)
 
-  if (navigator.clipboard && res.data.ShareId) {
+  if (res.data.ShareId) {
     const baseUrl = window.location.href.split('#')[0]
     const url = `${baseUrl}#/share/${res.data.ShareId}`
-    await navigator.clipboard.writeText(url)
-    message.info(`分享链接复制成功`)
+    await doCopy(url, `分享链接`)
   }
 
   selectedRecords.value = []
