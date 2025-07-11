@@ -11,7 +11,7 @@ apps_info = []
 apps_info_ts = time.time()
 
 @app.middleware("request")
-async def agent_info(request):
+async def application_info(request):
     global apps_info, apps_info_ts
     ts = time.time()
     if ts - apps_info_ts > 60 or len(apps_info) == 0:

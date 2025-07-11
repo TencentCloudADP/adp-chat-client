@@ -26,8 +26,8 @@ class TCADPFeedbackRateApi(HTTPMethodView):
         parser.add_argument("score", type=int, required=True, location="json")
         args = parser.parse_args(request)
 
-        agent_id = await CoreConversation.get_agent_id(request.ctx.db, request.ctx.account_id, args['conversation_id'])
-        app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==agent_id][0]
+        application_id = await CoreConversation.get_application_id(request.ctx.db, request.ctx.account_id, args['conversation_id'])
+        app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==application_id][0]
 
         action = "RateMsgRecord"
         payload = {

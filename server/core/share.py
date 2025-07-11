@@ -18,8 +18,8 @@ from config import tagentic_config
 class CoreShareConversation:
 
     @staticmethod
-    async def create(db: AsyncSession, account_id: str, conversation_id: str, agent_id: str, records: list) -> SharedConversation:
-        shared = SharedConversation(AccountId=account_id, AgentId=agent_id, ParentConversationId=conversation_id, Records=records)
+    async def create(db: AsyncSession, account_id: str, conversation_id: str, application_id: str, records: list) -> SharedConversation:
+        shared = SharedConversation(AccountId=account_id, ApplicationId=application_id, ParentConversationId=conversation_id, Records=records)
         db.add(shared)
         await db.commit()
    

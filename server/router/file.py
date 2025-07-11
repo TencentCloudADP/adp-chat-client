@@ -17,12 +17,12 @@ class FileUploadApi(HTTPMethodView):
     @login_required
     async def post(self, request: Request):
         parser = reqparse.RequestParser()
-        parser.add_argument("agent_id", type=str, required=True, location="args")
+        parser.add_argument("application_id", type=str, required=True, location="args")
         args = parser.parse_args(request)
 
         action = "DescribeStorageCredential"
         payload = {
-            "BotBizId": args['agent_id'],
+            "BotBizId": args['application_id'],
             "FileType": 'png',
             "IsPublic": True,
             "TypeKey": 'realtime',

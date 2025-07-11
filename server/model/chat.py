@@ -22,7 +22,7 @@ class ChatConversation(Base):
 
     id: Mapped[str] = mapped_column(UUID(), server_default=text("uuid_generate_v4()"), primary_key=True)
     account_id = Column(UUID(), nullable=False, index=True)
-    agent_id = Column(String(64), nullable=False)
+    application_id = Column(String(64), nullable=False)
     title = Column(String(255), nullable=False)
     last_active_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
     created_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
@@ -32,7 +32,7 @@ class SharedConversation(Base):
 
     Id: Mapped[str] = mapped_column(UUID(), server_default=text("uuid_generate_v4()"), primary_key=True)
     AccountId = Column(UUID(), nullable=False, index=True)
-    AgentId = Column(String(64), nullable=False)
+    ApplicationId = Column(String(64), nullable=False)
     ParentConversationId = Column(UUID(), nullable=False)
     CreatedAt = Column(DateTime, nullable=False, server_default=func.current_timestamp())
     Records = Column(JSON(64), nullable=False)

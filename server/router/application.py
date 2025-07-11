@@ -18,7 +18,7 @@ from app_factory import TAgenticApp
 app = TAgenticApp.get_app()
 
 
-class AgentListApi(HTTPMethodView):
+class ApplicationListApi(HTTPMethodView):
     @login_required
     async def get(self, request: Request):
         parser = reqparse.RequestParser()
@@ -26,6 +26,6 @@ class AgentListApi(HTTPMethodView):
 
         apps_info = request.ctx.apps_info
         apps_info = [{k:v for k,v in info.items() if k not in ['AppKey']} for info in apps_info]
-        return json({"agents": apps_info})
+        return json({"applications": apps_info})
 
-app.add_route(AgentListApi.as_view(), "/agent/list")
+app.add_route(ApplicationListApi.as_view(), "/application/list")

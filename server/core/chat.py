@@ -85,7 +85,7 @@ class CoreChat:
             logging.info(f"forward_request: done")
 
     @staticmethod
-    async def message(db: AsyncSession, account_id: str, query: str, conversation_id: str, agent_id: str, app_key: str):
+    async def message(db: AsyncSession, account_id: str, query: str, conversation_id: str, application_id: str, app_key: str):
         async def new_text_message(message_id: str, from_role: str, content: str):
             message = await CoreMessage.create(db, conversation_id, from_role, content)
             logging.info(f"forward_request: {message_id}, {content}, {message.id}")
@@ -93,7 +93,7 @@ class CoreChat:
         if conversation_id is None or conversation_id == '':
             title = query[:10]
             is_new_conversation = True
-            conversation = await CoreConversation.create(db, account_id, agent_id, title=title)
+            conversation = await CoreConversation.create(db, account_id, application_id, title=title)
             conversation_id = str(conversation.id)
         async for message in CoreChat.forward_request(account_id, app_key, query, conversation_id, is_new_conversation, new_text_message):
             yield message

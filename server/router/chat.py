@@ -25,15 +25,15 @@ class ChatMessageApi(HTTPMethodView):
         parser = reqparse.RequestParser()
         parser.add_argument("query", type=str, required=True, location="json")
         parser.add_argument("conversation_id", type=str, location="json")
-        parser.add_argument("agent_id", type=str, location="json")
+        parser.add_argument("application_id", type=str, location="json")
         args = parser.parse_args(request)
         logging.info(f"ChatMessageApi: {args}")
 
-        agent_id = args['agent_id']
-        app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==agent_id][0]
+        application_id = args['application_id']
+        app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==application_id][0]
 
         async def streaming_fn(response):
-            async for data in CoreChat.message(request.ctx.db, request.ctx.account_id, args['query'], args['conversation_id'], agent_id, app_key):
+            async for data in CoreChat.message(request.ctx.db, request.ctx.account_id, args['query'], args['conversation_id'], application_id, app_key):
                 await response.write(data)
         return ResponseStream(streaming_fn, content_type='text/event-stream; charset=utf-8')
 
@@ -46,14 +46,14 @@ class ChatMessageListApi(HTTPMethodView):
 
         if args["conversation_id"] is not None:
             check_login(request)
-            agent_id = await CoreConversation.get_agent_id(request.ctx.db, request.ctx.account_id, args['conversation_id'])
-            app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==agent_id][0]
+            application_id = await CoreConversation.get_application_id(request.ctx.db, request.ctx.account_id, args['conversation_id'])
+            app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==application_id][0]
 
             # messages = await CoreMessage.list(request.ctx.db, args['conversation_id'])
             messages = await CoreMessage.list_from_remote(request.ctx.db, app_key, args['conversation_id'])
             resp = {
                 'Response': {
-                    'AgentId': agent_id,
+                    'ApplicationId': application_id,
                     'Records': messages,
                 }
             }

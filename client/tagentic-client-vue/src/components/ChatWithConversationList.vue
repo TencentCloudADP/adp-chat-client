@@ -16,7 +16,7 @@ defineOptions({ name: 'AXConversationsBasic' });
 
 const isMobile = (window.innerWidth < 512)
 const collapsed = ref(false)
-const conversations = ref([] as {'id':null, 'agent_id': string, 'title':string, 'last_active_at':string}[])
+const conversations = ref([] as {'id':null, 'application_id': string, 'title':string, 'last_active_at':string}[])
 
 const emit = defineEmits<{
   logout: []

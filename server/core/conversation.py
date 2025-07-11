@@ -23,16 +23,16 @@ class CoreConversation:
         return conversations
 
     @staticmethod
-    async def get_agent_id(db: AsyncSession, account_id: str, conversation_id: str) -> str:
+    async def get_application_id(db: AsyncSession, account_id: str, conversation_id: str) -> str:
         conversation = (await db.execute(select(ChatConversation).where(
             ChatConversation.account_id==account_id,
             ChatConversation.id==conversation_id,
         ).limit(1))).scalar()
-        return conversation.agent_id
+        return conversation.application_id
 
     @staticmethod
-    async def create(db: AsyncSession, account_id: str, agent_id: str, title: str = "new conversation") -> ChatConversation:
-        conversation = ChatConversation(account_id=account_id, agent_id=agent_id, title=title)
+    async def create(db: AsyncSession, account_id: str, application_id: str, title: str = "new conversation") -> ChatConversation:
+        conversation = ChatConversation(account_id=account_id, application_id=application_id, title=title)
         db.add(conversation)
         await db.commit()
         return conversation

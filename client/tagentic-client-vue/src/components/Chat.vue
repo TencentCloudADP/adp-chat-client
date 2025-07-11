@@ -1,13 +1,14 @@
 <script setup lang="tsx">
 import { PlusSquareOutlined, UserOutlined, LinkOutlined, RedoOutlined, CopyOutlined, ShareAltOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined } from '@ant-design/icons-vue'
 import { Flex, Upload, Button, Checkbox, CheckboxGroup } from 'ant-design-vue'
-import { Bubble, Sender, type SenderProps, ThoughtChain, type BubbleListProps, type BubbleProps } from 'ant-design-x-vue'
+import { Bubble, Sender, type SenderProps, ThoughtChain, type BubbleListProps, type BubbleProps, Prompts, type PromptsProps } from 'ant-design-x-vue'
 import { Typography } from 'ant-design-vue'
 import { ref, reactive, watch, computed, h, onMounted } from 'vue'
 import {api, chunkSplitter} from '@/util/api'
 import type { AxiosRequestConfig } from 'axios'
 import markdownit from 'markdown-it'
 import type { Message, ReplyMessage } from '@/model/message'
+import type { Application } from '@/model/application'
 import type { Record } from '@/model/record'
 import type { UploadProps } from 'ant-design-vue'
 import { messageToRecord, mergeRecord, ScoreValue } from '@/model/record'
@@ -33,18 +34,31 @@ const setQuery = (v: string) => {
 
 // lifecycle
 onMounted(async () => {
-  await handleLoadAgent()
+  await handleLoadApplication()
 })
 
-// agents
-const currentAgentId = ref(undefined as string|undefined)
-const agents = ref([])
-const handleLoadAgent = async () => {
-    const res = await api.get('/agent/list', {})
-    if (res.data.agents) {
-        agents.value = res.data.agents
-        if (currentAgentId.value === undefined) {
-            currentAgentId.value = agents.value[0]['AppBizId']
+// applications
+const currentApplicationId = ref(undefined as string|undefined)
+const applications = ref([] as Application[])
+const currentApplication = computed(() => applications.value.find((application) => application['AppBizId'] == currentApplicationId.value))
+const currentApplicationAvatar = computed(() => currentApplication.value?.BaseConfig.Avatar)
+const currentApplicationName = computed(() => currentApplication.value?.BaseConfig.Name)
+const currentApplicationGreeting = computed(() => currentApplication.value?.AppConfig.KnowledgeQa.Greeting)
+const currentApplicationPrompts = computed(():PromptsProps['items'] =>
+  currentApplication.value?.AppConfig.KnowledgeQa.OpeningQuestions.map((item, index) => (
+    {
+      key: `${index}`,
+      description: item,
+    }
+  ))
+)
+
+const handleLoadApplication = async () => {
+    const res = await api.get('/application/list', {})
+    if (res.data.applications) {
+        applications.value = res.data.applications
+        if (currentApplicationId.value === undefined) {
+            currentApplicationId.value = applications.value[0].AppBizId
         }
     }
 }
@@ -225,7 +239,7 @@ const handleUpdate = async () => {
   }
   if (!conversationId.value && !shareId) {
     messages.value = []
-    currentAgentId.value = agents.value[0]['AppBizId']
+    currentApplicationId.value = applications.value[0]['AppBizId']
     return
   }
   const options = {
@@ -238,7 +252,7 @@ const handleUpdate = async () => {
     const res = await api.get('/chat/messages', options)
     // console.log(res)
     messages.value = res.data.Response.Records
-    currentAgentId.value = res.data.Response.AgentId
+    currentApplicationId.value = res.data.Response.ApplicationId
   } catch (e) {
     console.log(e)
   }
@@ -270,7 +284,7 @@ const handleSend = async (_lastQuery = null as null|string) => {
   const post_body = {
     query: _query,
     conversation_id: conversationId.value,
-    agent_id: currentAgentId.value,
+    application_id: currentApplicationId.value,
   }
   const options = {
     responseType: 'stream',
@@ -344,7 +358,7 @@ const handleFile = async (file: any, _: any[]) => {
 
   const options = {
   } as AxiosRequestConfig
-  const res = await api.post(`/file/upload?agent_id=${currentAgentId.value}`, file, options)
+  const res = await api.post(`/file/upload?application_id=${currentApplicationId.value}`, file, options)
   if ('url' in res['data']) {
     const url = res['data']['url']
     fileList.value?.push({
@@ -436,7 +450,7 @@ const handleSelect = (recordIds: (string|undefined)[]) => {
 const handleShare = async () => {
   const post_body = {
     conversation_id: conversationId.value,
-    agent_id: currentAgentId.value,
+    application_id: currentApplicationId.value,
     record_ids: selectedRecords.value,
   }
   const options = {
@@ -459,8 +473,8 @@ const handleShare = async () => {
   <a-layout-header id="chat-header">
     <slot name="header"></slot>
 
-    <a-select v-model:value="currentAgentId" style="width: 200px; margin: 0 auto" id="agent-select" :disabled="!!conversationId || !!shareId">
-      <a-select-option v-for="agent in agents" :value="agent['AppBizId']">{{'BaseConfig' in agent ? agent['BaseConfig']['Name'] : '智能体(信息获取失败)'}}</a-select-option>
+    <a-select v-model:value="currentApplicationId" style="width: 200px; margin: 0 auto" id="agent-select" :disabled="!!conversationId || !!shareId">
+      <a-select-option v-for="application in applications" :value="application['AppBizId']">{{'BaseConfig' in application ? application['BaseConfig']['Name'] : '智能体(信息获取失败)'}}</a-select-option>
     </a-select>
 
     <plus-square-outlined v-if="!shareId" class="chat-header-btn" @click="handleCreateConversation" />
@@ -471,7 +485,13 @@ const handleShare = async () => {
       :style="{ 'height': '100%' }"
       gap="middle"
     >
-      <checkbox-group v-model:value="selectedRecords" class="bubble-list-wrap">
+      <flex v-if="messages.length == 0" class="greeting-panel">
+        <img :src="currentApplicationAvatar" class="avatar" />
+        <div class="name">{{ currentApplicationName }}</div>
+        <div v-if="!!currentApplicationGreeting" class="greeting">{{ currentApplicationGreeting }}</div>
+        <prompts v-if="(currentApplicationPrompts?.length || 0) > 0" :items="currentApplicationPrompts" :onItemClick="(info) => setQuery(info.data.description?.toString()||'')" vertical class="prompts" />
+      </flex>
+      <checkbox-group v-else v-model:value="selectedRecords" class="bubble-list-wrap">
         <Bubble.List
           class="bubble-list"
           :roles="roles"
@@ -551,6 +571,31 @@ const handleShare = async () => {
   overflow: hidden;
   cursor: inherit;
   white-space: inherit;
+}
+.greeting-panel {
+  flex-grow: 1;
+  width: 100%;
+  overflow: hidden;
+  flex-direction: column;
+}
+.greeting-panel .avatar {
+  width: 64px;
+  height: 64px;
+  margin: 20px auto 0;
+}
+.greeting-panel .name {
+  margin-top: 16px;
+  font-size: 20px;
+  font-style: normal;
+  font-weight: 600;
+  text-align: center;
+}
+.greeting-panel .greeting {
+  margin-top: 16px;
+  padding: 10px;
+}
+.greeting-panel .prompts {
+  margin-top: 16px;
 }
 
 .bubble-list img {
