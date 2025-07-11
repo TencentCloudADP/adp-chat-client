@@ -20,14 +20,8 @@ watch(() => route.params.shareId,
 </script>
 
 <template>
-  <div class="wrapper">
-    <chat v-model:shareId="shareId" />
-  </div>
+    <chat :shareId="shareId" />
 </template>
 
 <style scoped>
-.wrapper {
-  padding: 24px 24px 0 24px;
-  overflow: hidden;
-}
 </style>

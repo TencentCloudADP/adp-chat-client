@@ -1,9 +1,9 @@
 <script setup lang="tsx">
-import { UserOutlined, LinkOutlined, RedoOutlined, CopyOutlined, ShareAltOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined } from '@ant-design/icons-vue'
+import { PlusSquareOutlined, UserOutlined, LinkOutlined, RedoOutlined, CopyOutlined, ShareAltOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined } from '@ant-design/icons-vue'
 import { Flex, Upload, Button, Checkbox, CheckboxGroup } from 'ant-design-vue'
 import { Bubble, Sender, type SenderProps, ThoughtChain, type BubbleListProps, type BubbleProps } from 'ant-design-x-vue'
 import { Typography } from 'ant-design-vue'
-import { ref, reactive, watch, computed, h } from 'vue'
+import { ref, reactive, watch, computed, h, onMounted } from 'vue'
 import {api, chunkSplitter} from '@/util/api'
 import type { AxiosRequestConfig } from 'axios'
 import markdownit from 'markdown-it'
@@ -18,11 +18,10 @@ const emit = defineEmits<{
   newConversation: [conversation_id: string]
 }>()
 
-const { conversationId = null, shareId = null } = defineProps<{
-  conversationId?: string,
+const { shareId = null } = defineProps<{
   shareId?: string,
 }>()
-const agentId = defineModel('agentId', { type: String })
+const conversationId = defineModel('conversationId', { type: String })
 
 const skipUpdateOnce = ref(false)
 const query = ref("")
@@ -30,6 +29,28 @@ const senderLoading = ref(false)
 const messages = ref([] as Record[])
 const setQuery = (v: string) => {
   query.value = v
+}
+
+// lifecycle
+onMounted(async () => {
+  await handleLoadAgent()
+})
+
+// agents
+const currentAgentId = ref(undefined as string|undefined)
+const agents = ref([])
+const handleLoadAgent = async () => {
+    const res = await api.get('/agent/list', {})
+    if (res.data.agents) {
+        agents.value = res.data.agents
+        if (currentAgentId.value === undefined) {
+            currentAgentId.value = agents.value[0]['AppBizId']
+        }
+    }
+}
+
+const handleCreateConversation = async () => {
+  conversationId.value = undefined
 }
 
 // roles
@@ -59,7 +80,7 @@ const roles: BubbleListProps['roles'] = {
 // bubble footer
 const rate = async (record: Record, score: ScoreValue) => {
   const post_body = {
-    conversation_id: conversationId,
+    conversation_id: conversationId.value,
     record_id: record.RecordId,
     score: score,
   }
@@ -202,13 +223,14 @@ const handleUpdate = async () => {
     skipUpdateOnce.value = false
     return
   }
-  if (!conversationId && !shareId) {
+  if (!conversationId.value && !shareId) {
     messages.value = []
+    currentAgentId.value = agents.value[0]['AppBizId']
     return
   }
   const options = {
     params: {
-      conversation_id: conversationId,
+      conversation_id: conversationId.value,
       share_id: shareId,
     }
   } as AxiosRequestConfig
@@ -216,12 +238,12 @@ const handleUpdate = async () => {
     const res = await api.get('/chat/messages', options)
     // console.log(res)
     messages.value = res.data.Response.Records
-    agentId.value = res.data.Response.AgentId
+    currentAgentId.value = res.data.Response.AgentId
   } catch (e) {
     console.log(e)
   }
 }
-watch(() => [conversationId, shareId], handleUpdate, { immediate: true })
+watch(() => [conversationId.value, shareId], handleUpdate, { immediate: true })
 
 let abort = null as AbortController|null
 const handleSend = async (_lastQuery = null as null|string) => {
@@ -247,8 +269,8 @@ const handleSend = async (_lastQuery = null as null|string) => {
   abort = new AbortController()
   const post_body = {
     query: _query,
-    conversation_id: conversationId,
-    agent_id: agentId.value,
+    conversation_id: conversationId.value,
+    agent_id: currentAgentId.value,
   }
   const options = {
     responseType: 'stream',
@@ -322,7 +344,7 @@ const handleFile = async (file: any, _: any[]) => {
 
   const options = {
   } as AxiosRequestConfig
-  const res = await api.post(`/file/upload?agent_id=${agentId.value}`, file, options)
+  const res = await api.post(`/file/upload?agent_id=${currentAgentId.value}`, file, options)
   if ('url' in res['data']) {
     const url = res['data']['url']
     fileList.value?.push({
@@ -413,8 +435,8 @@ const handleSelect = (recordIds: (string|undefined)[]) => {
 }
 const handleShare = async () => {
   const post_body = {
-    conversation_id: conversationId,
-    agent_id: agentId.value,
+    conversation_id: conversationId.value,
+    agent_id: currentAgentId.value,
     record_ids: selectedRecords.value,
   }
   const options = {
@@ -434,56 +456,90 @@ const handleShare = async () => {
 </script>
 
 <template>
-  <flex
-    vertical
-    :style="{ 'height': '100%' }"
-    gap="middle"
-  >
-    <checkbox-group v-model:value="selectedRecords" class="bubble-list-wrap">
-      <Bubble.List
-        class="bubble-list"
-        :roles="roles"
-        :autoScroll="true"
-        :items="items"
-      />
-    </checkbox-group>
-    <flex class="share-panel" v-if="isSelection">
-      <div class="share-panel-space"/>
-      <a-button @click="handleShare">分享</a-button>
-      <a-button @click="isSelection=false">取消</a-button>
-      <div class="share-panel-space"/>
-    </flex>
-    <sender
-      v-if="!isSelection && !shareId"
-      :loading="senderLoading"
-      :value="query"
-      :on-change="setQuery"
-      :allow-speech="speechConfig"
-      :on-submit="() => {
-        handleSend()
-        setQuery('')
-      }"
-      :on-cancel="() => {
-        handleStop()
-      }"
+  <a-layout-header id="chat-header">
+    <slot name="header"></slot>
+
+    <a-select v-model:value="currentAgentId" style="width: 200px; margin: 0 auto" id="agent-select" :disabled="!!conversationId || !!shareId">
+      <a-select-option v-for="agent in agents" :value="agent['AppBizId']">{{'BaseConfig' in agent ? agent['BaseConfig']['Name'] : '智能体(信息获取失败)'}}</a-select-option>
+    </a-select>
+
+    <plus-square-outlined v-if="!shareId" class="chat-header-btn" @click="handleCreateConversation" />
+  </a-layout-header>
+  <a-layout-content id="chat">
+    <flex
+      vertical
+      :style="{ 'height': '100%' }"
+      gap="middle"
     >
-      <template #prefix>
-        <a-upload
-          v-model:file-list="fileList"
-          :before-upload="handleFile"
-          list-type="picture"
-          multiple
-        >
-          <a-button shape="circle">
-            <link-outlined></link-outlined>
-          </a-button>
-        </a-upload>
-      </template>
-    </sender>
-  </flex>
+      <checkbox-group v-model:value="selectedRecords" class="bubble-list-wrap">
+        <Bubble.List
+          class="bubble-list"
+          :roles="roles"
+          :autoScroll="true"
+          :items="items"
+        />
+      </checkbox-group>
+      <flex class="share-panel" v-if="isSelection">
+        <div class="share-panel-space"/>
+        <a-button @click="handleShare">分享</a-button>
+        <a-button @click="isSelection=false">取消</a-button>
+        <div class="share-panel-space"/>
+      </flex>
+      <sender
+        v-if="!isSelection && !shareId"
+        :loading="senderLoading"
+        :value="query"
+        :on-change="setQuery"
+        :allow-speech="speechConfig"
+        :on-submit="() => {
+          handleSend()
+          setQuery('')
+        }"
+        :on-cancel="() => {
+          handleStop()
+        }"
+      >
+        <template #prefix>
+          <a-upload
+            v-model:file-list="fileList"
+            :before-upload="handleFile"
+            list-type="picture"
+            multiple
+          >
+            <a-button shape="circle">
+              <link-outlined></link-outlined>
+            </a-button>
+          </a-upload>
+        </template>
+      </sender>
+    </flex>
+  </a-layout-content>
 </template>
 
 <style>
+
+#chat-header {
+  background: #fff;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+.chat-header-btn {
+  font-size: 18px;
+  line-height: 64px;
+  padding: 0 24px;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+.chat-header-btn:hover {
+  color: #1890ff;
+}
+#chat {
+  background: #fff;
+  padding: 0 24px 24px 24px;
+  margin: 0;
+  min-height: 150px;
+}
 
 .bubble-list {
   height: 100%;

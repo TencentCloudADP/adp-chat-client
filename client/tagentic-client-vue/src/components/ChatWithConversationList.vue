@@ -10,7 +10,6 @@ import { dateFormat } from '@/util/dateFormat'
 import {
   MenuUnfoldOutlined,
   MenuFoldOutlined,
-  PlusSquareOutlined,
 } from '@ant-design/icons-vue'
 
 defineOptions({ name: 'AXConversationsBasic' });
@@ -37,26 +36,9 @@ const handleUpdate = async () => {
   }
 }
 
-const handleCreateConversation = async () => {
-  conversationId.value = undefined
-  currentAgentId.value = agents.value[0]['AppBizId']
-}
-
 const handleOnNewConversation = async (converdation_id: string) => {
   await handleUpdate()
   conversationId.value = converdation_id
-}
-
-const currentAgentId = ref(undefined as string|undefined)
-const agents = ref([])
-const handleLoadAgent = async () => {
-    const res = await api.get('/agent/list', {})
-    if (res.data.agents) {
-        agents.value = res.data.agents
-        if (currentAgentId.value === undefined) {
-            currentAgentId.value = agents.value[0]['AppBizId']
-        }
-    }
 }
 
 onBeforeMount(() => {
@@ -65,7 +47,6 @@ onBeforeMount(() => {
   }
 })
 onMounted(async () => {
-  await handleLoadAgent()
   await handleUpdate()
 })
 
@@ -85,7 +66,6 @@ const updateActiveKey = (v: string) => {
 <template>
   <a-layout-sider id="conversion-panel" width="256" collapsedWidth="0" v-model:collapsed="collapsed" :trigger="null" collapsible>
     <Flex vertical id="conversion-panel-flex">
-      <a-button @click="handleCreateConversation" id="conversation-new">新会话</a-button>
       <Conversations
           :items="conversations.map((conversation) => ({
             key: conversation['id'] || '',
@@ -100,27 +80,19 @@ const updateActiveKey = (v: string) => {
     </Flex>
   </a-layout-sider>
   <a-layout id="chat-panel">
-    <a-layout-header id="chat-header">
-      <menu-unfold-outlined
+    <chat
+      v-model:conversationId="conversationId"
+      @newConversation="handleOnNewConversation"
+    >
+      <template v-slot:header>
+        <menu-unfold-outlined
         v-if="collapsed"
         class="chat-header-btn"
         @click="() => (collapsed = !collapsed)"
       />
-      <menu-fold-outlined v-else class="chat-header-btn" @click="() => (collapsed = !collapsed)" />
-
-      <a-select v-model:value="currentAgentId" style="width: 200px; margin: 0 auto" id="agent-select" :disabled="!!conversationId">
-        <a-select-option v-for="agent in agents" :value="agent['AppBizId']">{{'BaseConfig' in agent ? agent['BaseConfig']['Name'] : '智能体(信息获取失败)'}}</a-select-option>
-      </a-select>
-
-      <plus-square-outlined class="chat-header-btn" @click="handleCreateConversation" />
-    </a-layout-header>
-    <a-layout-content id="chat">
-      <Chat
-        :conversationId="conversationId"
-        v-model:agentId="currentAgentId"
-        @newConversation="handleOnNewConversation"
-      />
-    </a-layout-content>
+        <menu-fold-outlined v-else class="chat-header-btn" @click="() => (collapsed = !collapsed)" />
+      </template>
+    </chat>
   </a-layout>
 </template>
 
@@ -151,32 +123,8 @@ const updateActiveKey = (v: string) => {
 #chat-panel {
   min-width: 256px;
 }
-#chat {
-  background: #fff;
-  padding: 0 24px 24px 24px;
-  margin: 0;
-  min-height: 150px;
-}
-
 .site-layout-background {
   background: #fff;
-}
-
-#chat-header {
-  background: #fff;
-  padding: 0;
-  display: flex;
-  align-items: center;
-}
-.chat-header-btn {
-  font-size: 18px;
-  line-height: 64px;
-  padding: 0 24px;
-  cursor: pointer;
-  transition: color 0.3s;
-}
-.chat-header-btn:hover {
-  color: #1890ff;
 }
 
 </style>
