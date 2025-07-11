@@ -12,7 +12,7 @@ const access_token = ref(Cookies.get('token') as null|string)
 const checkLogin = async () => {
   await router.isReady()
   if (access_token.value) {
-    if (route.path == '/') {
+    if (route.path == '/' || route.path == '/login') {
       router.replace('/chat')
     }
   } else {

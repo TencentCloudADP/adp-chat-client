@@ -1,7 +1,5 @@
 .PHONY: client server docs deploy
 
-http_port := 8080
-
 -include Makefile.local
 # 运行环境信息放在自己的Makefile.local文件
 # host      := x.x.x.x
@@ -9,6 +7,8 @@ http_port := 8080
 # login     := root
 # port      := 36000
 # http_port := 8080
+
+http_port ?= 8080
 
 up:
 	rsync -avrL -e 'ssh -p $(port)' --exclude="research" --exclude="node_modules" --exclude=".venv" --exclude=".git" --exclude=".next" --exclude="__pycache__" --exclude=".ipynb_checkpoints" --exclude=".DS_Store" ./server ./client ./deploy ./docker Makefile $(login)@$(host):$(path)
