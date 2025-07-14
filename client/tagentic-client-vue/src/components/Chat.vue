@@ -152,7 +152,7 @@ const renderFooter: BubbleProps['footer'] = (content) => {
 const md = markdownit({ html: true, breaks: true });
 const renderMarkdown: BubbleProps['messageRender'] = (content) =>
   <Typography>
-    <div innerHTML={md.render((content as Record)['Content'] || '')} />
+    <div innerHTML={md.render((content as Record)['Content'] || (content as string) ||'')} />
   </Typography>
 
 const isSelection = ref(false)
