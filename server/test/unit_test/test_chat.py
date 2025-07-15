@@ -9,6 +9,16 @@ async def test_error_asgi_client(app, auth_token):
         "Authorization": f"Bearer {auth_token}",
     }
 
+    # get application list
+    request, response = await app.asgi_client.get("/application/list", headers=headers)
+    assert request.method.lower() == "get"
+    assert response.status == 200
+    resp_dict = json.loads(response.body.decode())
+    assert isinstance(resp_dict, dict)
+    assert 'applications' in resp_dict
+    applications = resp_dict["applications"]
+    assert len(applications) > 0
+
     # check conversation list
     request, response = await app.asgi_client.get("/chat/conversations", headers=headers)
     assert request.method.lower() == "get"
@@ -20,6 +30,7 @@ async def test_error_asgi_client(app, auth_token):
     # make a conversation
     params = {
         "query": "hello",
+        "application_id": applications[0]["AppBizId"],
     }
     post_json = json.dumps(params)
     request, response = await app.asgi_client.post("/chat/message", headers=headers, data=post_json)

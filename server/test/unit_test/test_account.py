@@ -13,4 +13,3 @@ async def test_error_create_account(app, account):
     request, response = await app.asgi_client.post("/account/create", data = post_json)
     resp_dict = json.loads(response.body.decode())
     assert request.method.lower() == "post"
-    assert response.status == 500

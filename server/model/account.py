@@ -38,6 +38,7 @@ class Account(Base):
 
     id: Mapped[str] = mapped_column(UUID(), server_default=text("uuid_generate_v4()"), primary_key=True)
     name = Column(String(255), nullable=False)
+    role = Column(String(16), nullable=False, server_default=AccountRole.NORMAL)
     email = Column(String(255), nullable=True, unique=True)
     password = Column(String(255), nullable=True)
     password_salt = Column(String(255), nullable=True)
@@ -45,13 +46,9 @@ class Account(Base):
     last_login_at = Column(DateTime)
     last_login_ip = Column(String(255))
     last_active_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
-    status = Column(String(16), nullable=False, server_default=text("'active'::character varying"))
+    status = Column(String(16), nullable=False, server_default=AccountStatus.ACTIVE)
     created_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
     updated_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
-
-    @reconstructor
-    def init_on_load(self):
-        self.role: Optional[AccountRole] = None
 
     @property
     def is_password_set(self):
@@ -67,7 +64,7 @@ class Account(Base):
 
     @property
     def is_admin(self):
-        return AccountRole.is_admin_role(self.role)
+        return AccountRole.is_admin(self.role)
 
 class AccountThirdParty(Base):
     __tablename__ = "account_third_party"

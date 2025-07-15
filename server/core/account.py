@@ -13,7 +13,7 @@ from core.error.account import (
     AccountUnauthorized,
 )
 from core.session import SessionToken
-from model.account import Account, AccountThirdParty
+from model.account import Account, AccountThirdParty, AccountRole
 from util.password import hash, compare
 
 class CoreAccount:
@@ -44,6 +44,14 @@ class CoreAccount:
                 )
             ).scalar()
         return account
+
+    @staticmethod
+    async def find_admins(db: AsyncSession) -> list[Account]:
+        accounts = (await db.execute(
+            select(Account)
+                .where(Account.role == AccountRole.ADMIN)
+        )).scalars().all()
+        return accounts
 
     @staticmethod
     async def authenticate(db: AsyncSession, email: str, password: str) -> Account:

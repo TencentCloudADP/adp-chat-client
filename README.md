@@ -31,13 +31,6 @@ make pull_image
 make deploy
 ```
 
-5. 初始化（临时措施）
-``` bash
-docker exec -it tagentic-server bash
-sanic main:create_migrations_app --factory --port 8888
-pytest test/unit_test -W ignore::DeprecationWarning
-```
-
 # 开发指南
 
 ## 前端

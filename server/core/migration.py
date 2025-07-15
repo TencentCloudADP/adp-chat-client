@@ -1,20 +1,37 @@
 import logging
+from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 from asyncpg.exceptions import InvalidCatalogNameError, DuplicateDatabaseError
 from sqlalchemy.exc import ProgrammingError
+from asyncpg.exceptions import InvalidCatalogNameError
+from sqlalchemy import inspect
 from core.error.account import (
     AccountAuthenticationError,
     AccountUnauthorized,
 )
 from model.account import Account
 from model.chat import ChatRecord, ChatConversation, SharedConversation
-from middleware.database import create_db_engine
+from util.database import create_db_engine
 
 from app_factory import TAgenticApp
 app = TAgenticApp.get_app()
 
 class Migration:
+    @staticmethod
+    async def check_tables(db: AsyncSession):   
+        exist_tables = []
+        try:
+            async with db.bind.connect() as conn:
+                exist_tables = await conn.run_sync(lambda sync_conn: inspect(sync_conn).get_table_names())
+                await conn.commit()
+        except InvalidCatalogNameError as e:#asyncpg.exceptions.UndefinedTableError:
+            logging.error(f"[check_tables] {e}")
+
+        target_tables = [t.name for t in Migration.tables()[0].metadata.sorted_tables]
+        logging.info(f"[check_tables] exist_tables={exist_tables}, target_tables={target_tables}")
+        return [t for t in target_tables if t not in exist_tables]
+
     @staticmethod
     async def init_db(app: TAgenticApp):   
         _, sessionmaker = create_db_engine(app, override_db='')
@@ -35,15 +52,22 @@ class Migration:
         await conn.close()
 
     @staticmethod
-    async def init(db: AsyncSession, app: TAgenticApp):
+    def tables() -> list[DeclarativeBase]:
+        return [
+            Account,
+            ChatRecord,
+            ChatConversation,
+            SharedConversation,
+        ]
+
+    @staticmethod
+    async def init_table(db: AsyncSession, app: TAgenticApp):
         await Migration.init_db(app)
 
         steps = [
             'CREATE EXTENSION IF NOT EXISTS "uuid-ossp";',
-            Account.metadata.create_all,
-            ChatRecord.metadata.create_all,
-            ChatConversation.metadata.create_all,
-            SharedConversation.metadata.create_all,
+        ] + [
+            t.metadata.create_all for t in Migration.tables()
         ]
 
         conn = await db.connection()
@@ -58,8 +82,12 @@ class Migration:
         await conn.commit()
         await conn.close()
         logging.info('Migration done')
-        app.stop()
 
-@app.listener('before_server_start')
-async def connect_db(app, loop):
-    await Migration.init(app.config['sessionmaker'](), app)
+    @staticmethod
+    async def init(db: AsyncSession, app: TAgenticApp):
+        # 检查数据库和表是否已初始化
+        tbls = await Migration.check_tables(db)
+        if len(tbls) > 0:
+            logging.warning(f"[SetupInitApi] need to create tables: {tbls}")
+            # 初始化数据库和表
+            await Migration.init_table(db, app)
