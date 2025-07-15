@@ -6,11 +6,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import secrets
 import binascii
+import hmac
+import hashlib
+import time
 
 from config import tagentic_config
 from core.error.account import (
     AccountAuthenticationError,
     AccountUnauthorized,
+    CustomerAccountSign,
 )
 from core.session import SessionToken
 from model.account import Account, AccountThirdParty, AccountRole
@@ -88,7 +92,7 @@ class CoreAccount:
     ) -> str:
         account = await CoreAccount.create_account(db, name, email, password)
         if provider is not None and open_id is not None:
-            await CoreAccount.link_or_update_account(db, provider, open_id, token, account)
+            await CoreAccount.link_or_update_account(db, account, provider, open_id, token)
 
         await db.commit()
 
@@ -104,7 +108,7 @@ class CoreAccount:
         """create account"""
         account = Account()
         account.email = email
-        if name is None:
+        if name is None and email is not None:
             name = email.split("@")[0]
         account.name = name
 
@@ -153,10 +157,10 @@ class CoreAccount:
     @staticmethod
     async def link_or_update_account(
         db: AsyncSession,
+        account: Account,
         provider: str,
         open_id: str,
-        token: str,
-        account: Account
+        token: str = None
     ) -> None:
         """link account with oauth provider"""
 
@@ -178,3 +182,39 @@ class CoreAccount:
 
         await db.commit()
 
+
+    @staticmethod
+    async def customer_auth(db: AsyncSession, customer_id: Optional[str], name: Optional[str], timestamp: Optional[int], code: Optional[str]) -> None:
+        provider = 'customer'
+
+        # 注意：需要对传入信息进行验证！避免被恶意批量注册
+        # 验证可以采取以下任意方法：
+        # 1. 离线验证，通过传入的code进行签名，通过加密算法确保只有拥有SECRET_KEY的服务器可以生成该签名
+        # 2. 在线验证，通过传入的code，发起与客户账户系统后端服务器进行交互，确保该code由可信的服务生成
+        
+        # 离线验证
+        # SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, customer_id + name + str(timestamp)))
+        msg = f'{customer_id}{name}{timestamp}'
+        ts  = int(time.time())
+        if abs(timestamp - ts) > 60:
+            err_msg = f'timestamp diff too much (abs({timestamp} - {ts}) = {abs(timestamp - ts)}) > 60'
+            logging.error(f'[customer_auth] {err_msg}')
+            raise CustomerAccountSign(err_msg)
+        sign = hmac.new(tagentic_config.CUSTOMER_ACCOUNT_SECRET_KEY.encode("utf-8"), msg.encode("utf-8"), hashlib.sha256).hexdigest()
+        if sign != code:
+            err_msg = f'sign mismatch'
+            logging.error(f'[customer_auth] {err_msg} ({sign} != {code})')
+            raise CustomerAccountSign(err_msg)
+        
+        # 在线验证
+        # 参考core/oauth.py: CoreOAuth.callback()
+
+        account = await CoreAccount.find(db, provider=provider, open_id=customer_id)
+        if account is None:
+            if name is None:
+                name = f'{provider}_{customer_id}'
+            account = await CoreAccount.register(db, provider=provider, open_id=customer_id, name=name)
+        else:
+            await CoreAccount.link_or_update_account(db, account, provider=provider, open_id=customer_id)
+        
+        return account

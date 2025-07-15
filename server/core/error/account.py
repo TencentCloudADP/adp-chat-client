@@ -6,3 +6,6 @@ class AccountAuthenticationError(BaseError):
 
 class AccountUnauthorized(BaseError):
     pass
+
+class CustomerAccountSign(BaseError):
+    pass

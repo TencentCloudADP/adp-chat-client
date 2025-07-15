@@ -1,4 +1,4 @@
-from sanic import json
+from sanic import json, redirect
 from sanic.views import HTTPMethodView
 from sanic_restful_api import reqparse
 from sanic.request.types import Request
@@ -8,6 +8,7 @@ import logging
 from util.helper import get_remote_ip
 from model import Account
 from core.account import CoreAccount
+from config import tagentic_config
 from app_factory import TAgenticApp
 app = TAgenticApp.get_app()
 
@@ -26,4 +27,27 @@ class CreateAccountApi(HTTPMethodView):
 
         return json(account.to_dict())
 
+class CustomerAccountApi(HTTPMethodView):
+    async def get(self, request: Request):
+        parser = reqparse.RequestParser()
+        parser.add_argument("customer_id", type=str, required=True, location="args")
+        parser.add_argument("name", type=str, required=False, location="args")
+        parser.add_argument("timestamp", type=int, required=False, location="args")
+        parser.add_argument("code", type=str, required=False, location="args")
+        args = parser.parse_args(request)
+
+        account = await CoreAccount.customer_auth(request.ctx.db, args["customer_id"], args["name"], args["timestamp"], args["code"])
+        token = await CoreAccount.login(request.ctx.db, account, get_remote_ip(request))
+
+        # TODO: read from config
+        response = redirect("/")
+        response.add_cookie(
+            "token",
+            token,
+            max_age=tagentic_config.ACCESS_TOKEN_EXPIRE_HOURS * 3600,
+            secure=False,
+        )
+        return response
+
 app.add_route(CreateAccountApi.as_view(), "/account/create")
+app.add_route(CustomerAccountApi.as_view(), "/account/customer")

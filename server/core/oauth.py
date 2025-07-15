@@ -71,15 +71,6 @@ class CoreOAuth:
             if account is None:
                 account = await CoreAccount.register(db, provider=provider, open_id=id, token=access_token, name=login)
             else:
-                await CoreAccount.link_or_update_account(db, provider=provider, open_id=id, token=access_token, account=account)
+                await CoreAccount.link_or_update_account(db, account, provider=provider, open_id=id, token=access_token)
             
             return account
-
-
-
-
-   
-
-   
-
-

@@ -31,6 +31,35 @@ make pull_image
 make deploy
 ```
 
+注意：正式的生产系统需要通过自有域名申请证书，使用nginx反代等方式部署到https协议，如果基于http协议部署，无法使用语音、复制消息等功能
+
+## 账户体系对接
+
+### OAuth
+
+默认支持GitHub OAuth协议，可以配置，其他OAuth系统可根据具体协议修改core/oauth.py文件：
+```
+OAUTH_GITHUB_CLIENT_ID=
+OAUTH_GITHUB_SECRET=
+```
+
+### url跳转
+
+如果你已经有自己的账户体系，但没有标准的OAuth，希望用更简单的方法对接，那么可以采用这个方法。
+
+1. 【你现有的账户服务】：生成指向本系统的url，携带customer_uid、timestamp、签名等信息
+2. 【用户】：用户点击该url
+3. 【本系统】：校验签名通过，自动创建、绑定账户，生成登录态，自动跳转到对话页面
+
+详细参数：
+
+ - url: https://your-domain.com/account/customer?customer_id=&name=&timestamp=&code=
+ - customer_id: 你现有账户体系的uid
+ - name: 你现有账户体系的username（可选）
+ - timestamp: 当前时间戳
+ - code: 签名，SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, customer_id + name + str(timestamp)))
+ - 详细实现可以参考代码core/account.py, CoreAccount.customer_auth
+
 # 开发指南
 
 ## 前端
@@ -53,7 +82,7 @@ make client
 #### 命令行
 
 ``` bash
-# 1. 执行deploy的所有步骤
+# 1. 执行【部署】的所有步骤
 # 2. 复制刚刚编辑好的.env文件到server文件夹
 cp deploy/.env server/.env
 # 3. 以文件挂载方式启动server容器（不需要重新打包）

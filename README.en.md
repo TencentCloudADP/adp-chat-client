@@ -31,6 +31,35 @@ make pull_image
 make deploy
 ```
 
+Note: For production, you should use your own domain, apply for an SSL certificate, and use nginx as a reverse proxy for HTTPS. If you deploy with HTTP, some features (like voice input and copy message) may not work.
+
+## Account System Integration
+
+### OAuth
+
+GitHub OAuth is supported by default. You can configure it, or modify `core/oauth.py` for other OAuth systems:
+```
+OAUTH_GITHUB_CLIENT_ID=
+OAUTH_GITHUB_SECRET=
+```
+
+### URL Redirection
+
+If you already have your own account system but not standard OAuth, you can use this simpler method for integration.
+
+1. **Your account service:** Generate a URL pointing to this system, carrying customer_uid, timestamp, signature, etc.
+2. **User:** Clicks the URL.
+3. **This system:** Verifies the signature, auto-creates/binds the account, generates a login session, and redirects to the chat page.
+
+Parameters:
+
+ - url: https://your-domain.com/account/customer?customer_id=&name=&timestamp=&code=
+ - customer_id: Your account system's uid
+ - name: Your account system's username (optional)
+ - timestamp: Current timestamp
+ - code: Signature, SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, customer_id + name + str(timestamp)))
+ - For details, see the code in core/account.py, CoreAccount.customer_auth
+
 # Development Guide
 
 ## Frontend
@@ -59,7 +88,7 @@ cp deploy/.env server/.env
 make debug
 ```
 
-#### Quick Debugging in VSCode
+#### VSCode Quick Debugging
 
 Use the shortcut command (cmd+shift+p), enter "Preferences: Open Keyboard Shortcuts (JSON)", and add the following configuration to quickly launch commands via the shortcut cmd+r, such as running unit tests for the server.
 

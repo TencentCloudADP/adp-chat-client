@@ -77,7 +77,7 @@ class AccountThirdParty(Base):
     account_id = Column(UUID(), nullable=False)
     provider = Column(String(16), nullable=False)
     open_id = Column(String(255), nullable=False)
-    token = Column(String(255), nullable=False)
+    token = Column(String(255), nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
     updated_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
 

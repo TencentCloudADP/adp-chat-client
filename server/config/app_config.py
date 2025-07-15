@@ -36,6 +36,13 @@ class TAgenticConfig(
         default="",
     )
 
+    CUSTOMER_ACCOUNT_SECRET_KEY: str = Field(
+        description="Secret key for secure customer account signing."
+            "Make sure you are changing this key for your deployment with a strong key."
+            "Generate a strong key using `openssl rand -base64 64`.",
+        default="",
+    )
+
     ACCESS_TOKEN_EXPIRE_HOURS: PositiveInt = Field(
         description="Expiration time for access tokens in hours",
         default=24,
