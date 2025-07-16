@@ -5,6 +5,7 @@ from sanic_restful_api import reqparse
 from sanic.request.types import Request
 from sanic.response import ResponseStream
 from sanic import response
+import logging
 from util.tca import tc_request
 from router import login_required
 from util.warehouse import AsyncWareHouseS3
@@ -29,6 +30,9 @@ class FileUploadApi(HTTPMethodView):
         }
         resp = await tc_request(action, payload)
         resp = resp['Response']
+        if 'Error' in resp:
+            logging.error(resp)
+            raise Exception(resp['Error']['Message'])
         cos = AsyncWareHouseS3(secretId=resp['Credentials']['TmpSecretId'], secretKey=resp['Credentials']['TmpSecretKey'], tmpToken=resp['Credentials']['Token'], region=resp['Region'], bucket=resp['Bucket'])
 
         async with cos.put_multipart(resp['UploadPath']) as uploader:

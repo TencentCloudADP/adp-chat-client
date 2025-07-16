@@ -23,6 +23,9 @@ async def update_application_info(request):
             "AppKey": app,
         }
         resp = await tc_request(action, payload)
+        if 'Error' in resp['Response']:
+            logging.error(resp)
+            continue
         BotBizId = resp['Response']['BotBizId']
 
         action = "DescribeApp"

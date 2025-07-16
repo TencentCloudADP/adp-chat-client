@@ -62,8 +62,8 @@ async def tc_request(action: str, payload: dict = {}):
     token = ""
 
     service = "lke"
-    host = "lke.tencentcloudapi.com"
-    region = "ap-guangzhou"
+    host = tagentic_config.TC_TCADP_HOST
+    region = tagentic_config.TC_TCADP_REGION
     version = "2023-11-30"
     payload = json.dumps(payload)
     algorithm = "TC3-HMAC-SHA256"

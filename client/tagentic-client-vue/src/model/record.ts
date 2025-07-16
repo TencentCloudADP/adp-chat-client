@@ -206,7 +206,7 @@ export function messageToRecord(message: Message): Record | null {
       CanRating: message.payload.can_rating,
       Content: message.payload.content,
       ExtraInfo: {
-        EChartsInfo: message.payload.extra_info.e_charts_info
+        EChartsInfo: message.payload.extra_info?.e_charts_info
       },
       FileInfos: message.payload.file_infos ? [message.payload.file_infos] : [],
       FromAvatar: message.payload.from_avatar,

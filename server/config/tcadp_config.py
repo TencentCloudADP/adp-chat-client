@@ -36,3 +36,13 @@ class TCADPConfig(BaseSettings):
         description="TCADP API service url",
         default="",
     )
+
+    TC_TCADP_HOST: str = Field(
+        description="host of TCADP API service",
+        default="",
+    )
+
+    TC_TCADP_REGION: str = Field(
+        description="region of TCADP API service",
+        default="",
+    )

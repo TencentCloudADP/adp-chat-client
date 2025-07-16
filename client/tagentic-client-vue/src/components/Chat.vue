@@ -45,7 +45,7 @@ const currentApplicationAvatar = computed(() => currentApplication.value?.BaseCo
 const currentApplicationName = computed(() => currentApplication.value?.BaseConfig.Name)
 const currentApplicationGreeting = computed(() => currentApplication.value?.AppConfig.KnowledgeQa.Greeting)
 const currentApplicationPrompts = computed(():PromptsProps['items'] =>
-  currentApplication.value?.AppConfig.KnowledgeQa.OpeningQuestions.map((item, index) => (
+  currentApplication.value?.AppConfig.KnowledgeQa.OpeningQuestions?.map((item, index) => (
     {
       key: `${index}`,
       description: item,
