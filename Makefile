@@ -55,7 +55,13 @@ db:
 # ----------------- pack -----------------
 
 pack:
-	docker build -t tagentic-system-client -f docker/Dockerfile .
+	rm -rf build
+	mkdir build
+	rsync -avL --exclude='__pycache__' --exclude='.*' server/ build/server/
+
+	cd build && docker build -t tagentic-system-client -f ../docker/Dockerfile .
+
+	rm -rf build
 
 push_image:
 	docker tag tagentic-system-client mirrors.tencent.com/ti-machine-learning/tagentic-system-client:0.0.2

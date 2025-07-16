@@ -23,12 +23,12 @@ TCADP_APP_KEYS='[
 
 3. 拉取镜像
 ``` bash
-make pull_image
+sudo make pull_image
 ```
 
 4. 启动容器
 ``` bash
-make deploy
+sudo make deploy
 ```
 
 注意：正式的生产系统需要通过自有域名申请证书，使用nginx反代等方式部署到https协议，如果基于http协议部署，无法使用语音、复制消息等功能
@@ -64,6 +64,16 @@ OAUTH_GITHUB_SECRET=
 
 ## 前端
 
+### 依赖
+
+1. node >= 18
+2. npm
+
+``` bash
+# for Ubuntu Server 24.04
+sudo apt install nodejs npm
+```
+
 ### 调试
 
 #### 命令行
@@ -86,7 +96,7 @@ make client
 # 2. 复制刚刚编辑好的.env文件到server文件夹
 cp deploy/.env server/.env
 # 3. 以文件挂载方式启动server容器（不需要重新打包）
-make debug
+sudo make debug
 ```
 
 #### vscode快捷调试

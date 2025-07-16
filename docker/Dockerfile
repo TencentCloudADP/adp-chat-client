@@ -1,10 +1,10 @@
-# syntax=docker.io/docker/dockerfile:1.7-labs
-
 FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY --exclude=**/__pycache__ --exclude=**/.env --exclude=**/.venv server .
+COPY server .
+
+ENV PIP_INDEX_URL=https://mirrors.tencent.com/pypi/simple/
 
 RUN pip install --no-cache-dir -r requirements.txt
 
