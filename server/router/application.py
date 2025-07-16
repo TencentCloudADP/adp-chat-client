@@ -19,7 +19,6 @@ app = TAgenticApp.get_app()
 
 
 class ApplicationListApi(HTTPMethodView):
-    @login_required
     async def get(self, request: Request):
         parser = reqparse.RequestParser()
         args = parser.parse_args(request)
