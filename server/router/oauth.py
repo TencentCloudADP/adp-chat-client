@@ -8,7 +8,7 @@ import logging
 from util.helper import get_remote_ip
 from model import Account
 from core.oauth import CoreOAuth
-from core.account import CoreAccount
+from core.account import CoreAccount, CoreAccountProvider
 from config import tagentic_config
 from app_factory import TAgenticApp
 app = TAgenticApp.get_app()
@@ -33,14 +33,4 @@ class OAuthCallbackApi(HTTPMethodView):
         )
         return response
 
-class OAuthListProviderApi(HTTPMethodView):
-    async def get(self, request: Request):
-        parser = reqparse.RequestParser()
-        args = parser.parse_args(request)
-
-        providers = await CoreOAuth.list(request.ctx.db)
-
-        return json({"providers": providers})
-
-app.add_route(OAuthListProviderApi.as_view(), "/oauth/providers")
 app.add_route(OAuthCallbackApi.as_view(), "/oauth/callback")

@@ -7,7 +7,7 @@ import logging
 
 from util.helper import get_remote_ip
 from model import Account
-from core.account import CoreAccount
+from core.account import CoreAccount, CoreAccountProvider
 from config import tagentic_config
 from app_factory import TAgenticApp
 app = TAgenticApp.get_app()
@@ -49,5 +49,15 @@ class CustomerAccountApi(HTTPMethodView):
         )
         return response
 
+class AccountProviderListApi(HTTPMethodView):
+    async def get(self, request: Request):
+        parser = reqparse.RequestParser()
+        args = parser.parse_args(request)
+
+        providers = CoreAccountProvider.getProviders()
+
+        return json({"providers": providers})
+
+app.add_route(AccountProviderListApi.as_view(), "/account/providers")
 app.add_route(CreateAccountApi.as_view(), "/account/create")
 app.add_route(CustomerAccountApi.as_view(), "/account/customer")

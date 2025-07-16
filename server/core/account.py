@@ -20,6 +20,17 @@ from core.session import SessionToken
 from model.account import Account, AccountThirdParty, AccountRole
 from util.password import hash, compare
 
+class CoreAccountProvider:
+    providers = []
+
+    @staticmethod
+    def addProvider(name: str, url: str) -> None:
+        CoreAccountProvider.providers.append({'name': name, 'url': url})
+
+    @staticmethod
+    def getProviders():
+        return CoreAccountProvider.providers
+
 class CoreAccount:
     @staticmethod
     async def find(db: AsyncSession, email: Optional[str] = None, provider: Optional[str] = None, open_id: Optional[str] = None) -> Account:

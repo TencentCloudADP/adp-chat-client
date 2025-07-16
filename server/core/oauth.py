@@ -17,22 +17,12 @@ from core.error.account import (
 from core.session import SessionToken
 from model.account import Account
 from util.password import hash, compare
-from core.account import CoreAccount
+from core.account import CoreAccount, CoreAccountProvider
+from app_factory import TAgenticApp
+app = TAgenticApp.get_app()
 
 class CoreOAuth:
-    @staticmethod
-    async def list(db: AsyncSession) -> None:
-        providers = []
-        callback = quote(f'{tagentic_config.SERVICE_API_URL}/oauth/callback')
-        if tagentic_config.OAUTH_GITHUB_CLIENT_ID != '':
-            providers.append(
-                {
-                    'name': 'GitHub',
-                    'url': f'https://github.com/login/oauth/authorize?client_id={tagentic_config.OAUTH_GITHUB_CLIENT_ID}&redirect_uri={callback}&scope=',
-                }
-            )
-        return providers
-
+ 
     @staticmethod
     async def callback(db: AsyncSession, code: Optional[str]) -> None:
         provider = 'github'
@@ -74,3 +64,9 @@ class CoreOAuth:
                 await CoreAccount.link_or_update_account(db, account, provider=provider, open_id=id, token=access_token)
             
             return account
+
+@app.listener('before_server_start')
+def oauth_init(app, loop):
+    if tagentic_config.OAUTH_GITHUB_CLIENT_ID != '':
+        callback = quote(f'{tagentic_config.SERVICE_API_URL}/oauth/callback')
+        CoreAccountProvider.addProvider('GitHub', f'https://github.com/login/oauth/authorize?client_id={tagentic_config.OAUTH_GITHUB_CLIENT_ID}&redirect_uri={callback}&scope=')

@@ -19,7 +19,7 @@ const disabled = computed(() => {
 
 const oauthProviders = ref([])
 const handleLoadProvider = async () => {
-    const res = await api.get('/oauth/providers', {})
+    const res = await api.get('/account/providers', {})
     if (res.data.providers) {
         oauthProviders.value = res.data.providers
     }
