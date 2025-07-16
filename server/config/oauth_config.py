@@ -22,3 +22,12 @@ class OAuthConfig(BaseSettings):
         default="",
     )
 
+    OAUTH_MICROSOFT_ENTRA_CLIENT_ID: str = Field(
+        description="OAuth with Microsoft Entra ID, client id, you can obtain it from https://entra.microsoft.com",
+        default="",
+    )
+
+    OAUTH_MICROSOFT_ENTRA_SECRET: str = Field(
+        description="OAuth with Microsoft Entra ID, secret, you can obtain it from https://entra.microsoft.com",
+        default="",
+    )

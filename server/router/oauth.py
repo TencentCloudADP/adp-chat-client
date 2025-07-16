@@ -15,12 +15,12 @@ app = TAgenticApp.get_app()
 
 
 class OAuthCallbackApi(HTTPMethodView):
-    async def get(self, request: Request):
+    async def get(self, request: Request, provider: str):
         parser = reqparse.RequestParser()
         parser.add_argument("code", type=str, required=True, location="args")
         args = parser.parse_args(request)
 
-        account = await CoreOAuth.callback(request.ctx.db, args["code"])
+        account = await CoreOAuth.callback(request.ctx.db, provider, args["code"])
         token = await CoreAccount.login(request.ctx.db, account, get_remote_ip(request))
 
         # TODO: read from config
@@ -33,4 +33,4 @@ class OAuthCallbackApi(HTTPMethodView):
         )
         return response
 
-app.add_route(OAuthCallbackApi.as_view(), "/oauth/callback")
+app.add_route(OAuthCallbackApi.as_view(), "/oauth/callback/<provider>")
