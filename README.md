@@ -52,7 +52,7 @@ OAUTH_GITHUB_SECRET=
 
 如果你已经有自己的账户体系，但没有标准的OAuth，希望用更简单的方法对接，那么可以采用这个方法。
 
-1. 【你现有的账户服务】：生成指向本系统的url，携带customer_uid、timestamp、签名等信息
+1. 【你现有的账户服务】：生成指向本系统的url，携带CustomerId、Name、ExtraInfo、Timestamp、签名等信息
 2. 【用户】：用户点击该url
 3. 【本系统】：校验签名通过，自动创建、绑定账户，生成登录态，自动跳转到对话页面
 
@@ -64,7 +64,7 @@ OAUTH_GITHUB_SECRET=
  - Timestamp: 当前时间戳
  - ExtraInfo: 用户信息
  - Code: 签名，SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, CustomerId + Name + ExtraInfo + str(Timestamp)))
- - 详细实现可以参考代码core/account.py, CoreAccount.customer_auth
+ - 以上参数需要分别进行url_encode，详细实现可以参考代码core/account.py, CoreAccount.customer_auth，生成url的方式可以参考test/unit_test/conftest.py
 
 # 开发指南
 

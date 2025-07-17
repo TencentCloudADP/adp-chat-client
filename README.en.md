@@ -64,7 +64,7 @@ Parameters:
  - Timestamp: Current timestamp
  - ExtraInfo: User information
  - Code: Signature, SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, CustomerId + Name + ExtraInfo + str(Timestamp)))
- - For details, see the code in core/account.py, CoreAccount.customer_auth
+ - For details, see the code in core/account.py: CoreAccount.customer_auth, test/unit_test/conftest.py
 
 # Development Guide
 
