@@ -223,7 +223,7 @@ class CoreAccount:
         sign = hmac.new(tagentic_config.CUSTOMER_ACCOUNT_SECRET_KEY.encode("utf-8"), msg.encode("utf-8"), hashlib.sha256).hexdigest()
         if sign != code:
             err_msg = f'sign mismatch'
-            logging.error(f'[customer_auth] {err_msg} ({sign} != {code})')
+            logging.error(f'[customer_auth] {err_msg} ({sign} != {code}) msg={msg}')
             raise CustomerAccountSign(err_msg)
         
         # 在线验证

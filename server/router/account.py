@@ -31,8 +31,8 @@ class CustomerAccountApi(HTTPMethodView):
     async def get(self, request: Request):
         parser = reqparse.RequestParser()
         parser.add_argument("CustomerId", type=str, required=True, location="args")
-        parser.add_argument("Name", type=str, required=False, location="args")
-        parser.add_argument("ExtraInfo", type=str, required=False, location="args")
+        parser.add_argument("Name", type=str, required=False, default="", location="args")
+        parser.add_argument("ExtraInfo", type=str, required=False, default="", location="args")
         parser.add_argument("Timestamp", type=int, required=False, location="args")
         parser.add_argument("Code", type=str, required=False, location="args")
         args = parser.parse_args(request)
