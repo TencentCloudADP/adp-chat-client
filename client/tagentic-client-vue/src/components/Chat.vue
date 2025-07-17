@@ -488,7 +488,7 @@ const handleShare = async () => {
       :style="{ 'height': '100%' }"
       gap="middle"
     >
-      <flex v-if="messages.length == 0 && !conversationId" class="greeting-panel">
+      <flex v-if="messages.length == 0 && !conversationId && !shareId" class="greeting-panel">
         <img :src="currentApplicationAvatar" class="avatar" />
         <div class="name">{{ currentApplicationName }}</div>
         <div v-if="!!currentApplicationGreeting" class="greeting">{{ currentApplicationGreeting }}</div>
