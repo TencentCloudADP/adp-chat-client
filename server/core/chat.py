@@ -49,7 +49,7 @@ class CoreChat:
                 "bot_app_key": bot_app_key,
                 "session_id": session_id,
                 "visitor_biz_id": visitor_biz_id,
-                "incremental" : True,
+                "incremental" : False,
             }
             headers = {
                 "Accept": "text/event-stream",

@@ -148,8 +148,13 @@ export interface RootObject {
 import type { Message } from '@/model/message'
 
 export function mergeRecord(record: Record, delta: Record, msg: Message) {
+  const incremental = false
   if (msg.type === "reply") {
-    record.Content = (record.Content||'') + delta.Content
+    if (incremental) {
+      record.Content = (record.Content||'') + delta.Content
+    } else {
+      record.Content = delta.Content
+    }
     record.CanRating = delta.CanRating
     record.IsFinal = delta.IsFinal
     record.Score = delta.Score
@@ -164,7 +169,11 @@ export function mergeRecord(record: Record, delta: Record, msg: Message) {
         record.AgentThought!.Procedures![length-1].Status = delta.AgentThought!.Procedures![length-1].Status
         // 如果procedures长度相同，则说明最后一个过程在增量输出（协议设计不好，应该有明确字段说明），合并最后一条
         if (delta.AgentThought?.Procedures![length-1].Debugging!.Content) {
-          record.AgentThought!.Procedures![length-1].Debugging!.Content = (record.AgentThought?.Procedures?.[length-1].Debugging?.Content||'') + delta.AgentThought?.Procedures![length-1].Debugging!.Content
+          if (incremental) {
+            record.AgentThought!.Procedures![length-1].Debugging!.Content = (record.AgentThought?.Procedures?.[length-1].Debugging?.Content||'') + delta.AgentThought?.Procedures![length-1].Debugging!.Content
+          } else {
+            record.AgentThought!.Procedures![length-1].Debugging!.Content = delta.AgentThought?.Procedures![length-1].Debugging!.Content
+          }
         }
       } else {
         // 如果procedures长度不同，则说明有一个新的过程
