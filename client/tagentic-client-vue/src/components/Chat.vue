@@ -1,5 +1,5 @@
 <script setup lang="tsx">
-import { PlusSquareOutlined, UserOutlined, LinkOutlined, RedoOutlined, CopyOutlined, ShareAltOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined } from '@ant-design/icons-vue'
+import { PlusSquareOutlined, UserOutlined, LinkOutlined, RedoOutlined, CopyOutlined, ShareAltOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined, LoadingOutlined } from '@ant-design/icons-vue'
 import { Flex, Upload, Button, Checkbox, CheckboxGroup } from 'ant-design-vue'
 import { Bubble, Sender, type SenderProps, ThoughtChain, type BubbleListProps, type BubbleProps, Prompts, type PromptsProps } from 'ant-design-x-vue'
 import { Typography } from 'ant-design-vue'
@@ -24,6 +24,7 @@ const { shareId = null } = defineProps<{
 }>()
 const conversationId = defineModel('conversationId', { type: String })
 
+const messagesLoading = ref(false)
 const skipUpdateOnce = ref(false)
 const query = ref("")
 const senderLoading = ref(false)
@@ -237,8 +238,8 @@ const handleUpdate = async () => {
     skipUpdateOnce.value = false
     return
   }
+  messages.value = []
   if (!conversationId.value && !shareId) {
-    messages.value = []
     currentApplicationId.value = applications.value[0]['AppBizId']
     return
   }
@@ -249,6 +250,7 @@ const handleUpdate = async () => {
     }
   } as AxiosRequestConfig
   try {
+    messagesLoading.value = true
     const res = await api.get('/chat/messages', options)
     // console.log(res)
     messages.value = res.data.Response.Records
@@ -256,6 +258,7 @@ const handleUpdate = async () => {
   } catch (e) {
     console.log(e)
   }
+  messagesLoading.value = false
 }
 watch(() => [conversationId.value, shareId], handleUpdate, { immediate: true })
 
@@ -485,11 +488,14 @@ const handleShare = async () => {
       :style="{ 'height': '100%' }"
       gap="middle"
     >
-      <flex v-if="messages.length == 0" class="greeting-panel">
+      <flex v-if="messages.length == 0 && !conversationId" class="greeting-panel">
         <img :src="currentApplicationAvatar" class="avatar" />
         <div class="name">{{ currentApplicationName }}</div>
         <div v-if="!!currentApplicationGreeting" class="greeting">{{ currentApplicationGreeting }}</div>
         <prompts v-if="(currentApplicationPrompts?.length || 0) > 0" :items="currentApplicationPrompts" :onItemClick="(info) => setQuery(info.data.description?.toString()||'')" vertical class="prompts" />
+      </flex>
+      <flex v-else-if="messagesLoading" class="loading-panel">
+        <loading-outlined />
       </flex>
       <checkbox-group v-else v-model:value="selectedRecords" class="bubble-list-wrap">
         <Bubble.List
@@ -572,6 +578,7 @@ const handleShare = async () => {
   cursor: inherit;
   white-space: inherit;
 }
+.loading-panel,
 .greeting-panel {
   flex-grow: 1;
   width: 100%;
