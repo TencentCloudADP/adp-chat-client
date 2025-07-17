@@ -5,7 +5,7 @@ from sanic.request.types import Request
 from sqlalchemy import select
 import logging
 
-from util.helper import get_remote_ip
+from util.helper import get_remote_ip, get_path_base
 from model import Account
 from core.oauth import CoreOAuth
 from core.account import CoreAccount, CoreAccountProvider
@@ -23,11 +23,11 @@ class OAuthCallbackApi(HTTPMethodView):
         account = await CoreOAuth.callback(request.ctx.db, provider, args["code"])
         token = await CoreAccount.login(request.ctx.db, account, get_remote_ip(request))
 
-        # TODO: read from config
-        response = redirect("/")
+        response = redirect(get_path_base())
         response.add_cookie(
             "token",
             token,
+            path=get_path_base(),
             max_age=tagentic_config.ACCESS_TOKEN_EXPIRE_HOURS * 3600,
             secure=False,
         )

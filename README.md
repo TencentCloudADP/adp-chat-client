@@ -2,12 +2,17 @@
 
 ## docker
 
-1. 复制.env.example文件到deploy文件夹
+1. 安装docker
 ``` bash
-cp server/.env.example deploy/.env
+bash script/init_env.sh
 ```
 
-2. 修改deploy/.env文件
+2. 复制.env.example文件到deploy文件夹
+``` bash
+cp server/.env.example deploy/default/.env
+```
+
+3. 修改deploy/default/.env文件
 
 ```
 # 腾讯云账户密钥：https://console.cloud.tencent.com/cam/capi
@@ -21,12 +26,12 @@ TCADP_APP_KEYS='[
 ]'
 ```
 
-3. 拉取镜像
+4. 拉取镜像
 ``` bash
 sudo make pull_image
 ```
 
-4. 启动容器
+5. 启动容器
 ``` bash
 sudo make deploy
 ```
@@ -94,7 +99,7 @@ make client
 ``` bash
 # 1. 执行【部署】的所有步骤
 # 2. 复制刚刚编辑好的.env文件到server文件夹
-cp deploy/.env server/.env
+cp deploy/default/.env server/.env
 # 3. 以文件挂载方式启动server容器（不需要重新打包）
 sudo make debug
 ```

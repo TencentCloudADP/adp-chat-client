@@ -6,12 +6,9 @@
 # path      := /opt/agent/
 # login     := root
 # port      := 36000
-# http_port := 8080
-
-http_port ?= 8080
 
 up:
-	rsync -avrL -e 'ssh -p $(port)' --exclude="research" --exclude="node_modules" --exclude=".venv" --exclude=".git" --exclude=".next" --exclude="__pycache__" --exclude=".ipynb_checkpoints" --exclude=".DS_Store" ./server ./client ./deploy ./docker Makefile $(login)@$(host):$(path)
+	rsync -avrL -e 'ssh -p $(port)' --exclude="research" --exclude="node_modules" --exclude=".venv" --exclude=".git" --exclude=".next" --exclude="__pycache__" --exclude=".ipynb_checkpoints" --exclude=".DS_Store" ./server ./script ./client ./deploy ./docker Makefile $(login)@$(host):$(path)
 	# ssh -p $(port) $(login)@$(host) "cd $(path)/server/task; rm config.py; ln -s config.$(config).py config.py"
 
 # ----------------- client -----------------
@@ -36,21 +33,6 @@ run:
 
 test_server:
 	source server/.venv/bin/activate; cd server; pytest test/unit_test -W ignore::DeprecationWarning
-
-debug:
-	-docker rm -f tagentic-server
-	cp deploy/.env server/
-	docker run --name tagentic-server -d -p $(http_port):8000 -v ./server/:/app/ --network tagentic-network tagentic-system-client
-
-# ----------------- db -----------------
-
-init_db:
-	source server/.venv/bin/activate; cd server; sanic main:create_migrations_app --factory
-
-db:
-	ssh -p $(port) $(login)@$(host) "docker rm -f pgsql-dev"
-	ssh -p $(port) $(login)@$(host) "docker run --name pgsql-dev -d -e POSTGRES_PASSWORD=ye823hd8euhwf -p 127.0.0.1:5432:5432 -v /data/postgres:/var/lib/postgresql/data postgres"
-	ssh -p $(port) $(login)@$(host) "docker ps"
 
 # ----------------- pack -----------------
 
@@ -77,21 +59,20 @@ send_image:
 
 # ----------------- deploy -----------------
 
-stop_deploy:
-	-docker rm -f tagentic-db
-	-docker rm -f tagentic-server
-	-docker network rm tagentic-network
+stop:
+	@bash script/deploy.sh stop
 
-deploy: stop_deploy
-	docker network create tagentic-network
-	cd deploy; docker run --name tagentic-db -d -e POSTGRES_PASSWORD=ye823hd8euhwf -v ./volume/db:/var/lib/postgresql/data --network tagentic-network postgres
-	cd deploy; docker run --name tagentic-server -d -p $(http_port):8000 -v ./.env:/app/.env --network tagentic-network tagentic-system-client
+debug:
+	@bash script/deploy.sh debug
 
-login_server:
-	docker exec -it tagentic-server bash
+deploy:
+	@bash script/deploy.sh deploy
 
-login_db:
-	docker exec -it tagentic-db bash
+login:
+	@bash script/deploy.sh login
+
+logs:
+	@bash script/deploy.sh logs
 
 init_env:
-	sudo bash deploy/init_env.sh
+	sudo bash script/init_env.sh

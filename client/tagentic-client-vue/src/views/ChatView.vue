@@ -24,7 +24,8 @@ watch(conversationId,
 )
 
 const handleLogout = () => {
-  Cookies.remove('token')
+  const path = window.location.pathname.split('/static/app/index')[0]
+  Cookies.remove('token', { path: path})
   emit("login-state-changed", null)
 }
 

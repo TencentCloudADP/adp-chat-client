@@ -5,9 +5,8 @@ import Cookies from 'js-cookie'
 import { message } from 'ant-design-vue'
 
 const axiosInstance = axios.create({
-  baseURL: '/',
+  baseURL: '../..',
   timeout: 10*1000,
-  headers: { 'X-Custom-Header': 'foobar' }
 })
 
 // 请求拦截器
