@@ -6,6 +6,11 @@ from sanic import response
 from core.account import CoreAccount
 from util.database import create_db_engine
 from app_factory import create_app
+from urllib.parse import quote
+import hmac
+import hashlib
+import time
+from config import tagentic_config
 
 @pytest.fixture(scope="session")
 def app():
@@ -15,8 +20,6 @@ def app():
 @pytest.fixture(scope="session")
 def account():
     _account = {
-        "email": "foo@bar.com",
-        "password": "123456"
     }
     return _account
 
@@ -24,32 +27,17 @@ def account():
 async def auth_token(app, account):
     post_json = json.dumps(account)
 
-    # clean up the account first
-    _, sessionmaker = create_db_engine(app)
-    db = sessionmaker()
-    try:
-        _account = await CoreAccount.find(db, email=account["email"])
-        if _account:
-            await CoreAccount.remove_account(db, _account)
-    except Exception as e:
-        pass
-    await db.close()
-
+    customer_id = "123456"
+    name = "test"
+    extra_info = '{"Level":1}'
+    timestamp = int(time.time())
+    msg = f'{customer_id}{name}{extra_info}{timestamp}'
+    sign = hmac.new(tagentic_config.CUSTOMER_ACCOUNT_SECRET_KEY.encode("utf-8"), msg.encode("utf-8"), hashlib.sha256).hexdigest()
     # create account
-    request, response = await app.asgi_client.post("/account/create", data = post_json)
-    resp_dict = json.loads(response.body.decode())
-    print(f"/account/create: {response.body}")
-    assert request.method.lower() == "post"
-    assert resp_dict['id'] is not None
-    assert resp_dict['password'] is None
-    assert resp_dict['email'] == account['email']
-    assert response.status == 200
-
-    # login
-    request, response = await app.asgi_client.post("/login", data = post_json)
-    resp_dict = json.loads(response.body.decode())
-    assert request.method.lower() == "post"
-    assert 'token' in resp_dict
-    assert response.status == 200
+    request, response = await app.asgi_client.get(f"/account/customer?CustomerId={quote(customer_id)}&Name={quote(name)}&Timestamp={str(timestamp)}&ExtraInfo={quote(extra_info)}&Code={quote(sign)}")
+    print(response.cookies)
+    assert request.method.lower() == "get"
+    assert 'token' in response.cookies
+    assert response.status == 302
     
-    return resp_dict['token']
+    return response.cookies['token']

@@ -23,34 +23,34 @@ class ChatMessageApi(HTTPMethodView):
     @login_required
     async def post(self, request: Request):
         parser = reqparse.RequestParser()
-        parser.add_argument("query", type=str, required=True, location="json")
-        parser.add_argument("conversation_id", type=str, location="json")
-        parser.add_argument("application_id", type=str, location="json")
+        parser.add_argument("Query", type=str, required=True, location="json")
+        parser.add_argument("ConversationId", type=str, location="json")
+        parser.add_argument("ApplicationId", type=str, location="json")
         args = parser.parse_args(request)
         logging.info(f"ChatMessageApi: {args}")
 
-        application_id = args['application_id']
+        application_id = args['ApplicationId']
         app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==application_id][0]
 
         async def streaming_fn(response):
-            async for data in CoreChat.message(request.ctx.db, request.ctx.account_id, args['query'], args['conversation_id'], application_id, app_key):
+            async for data in CoreChat.message(request.ctx.db, request.ctx.account_id, args['Query'], args['ConversationId'], application_id, app_key):
                 await response.write(data)
         return ResponseStream(streaming_fn, content_type='text/event-stream; charset=utf-8')
 
 class ChatMessageListApi(HTTPMethodView):
     async def get(self, request: Request):
         parser = reqparse.RequestParser()
-        parser.add_argument("conversation_id", type=str, required=False, location="args")
-        parser.add_argument("share_id", type=str, required=False, location="args")
+        parser.add_argument("ConversationId", type=str, required=False, location="args")
+        parser.add_argument("ShareId", type=str, required=False, location="args")
         args = parser.parse_args(request)
 
-        if args["conversation_id"] is not None:
+        if args["ConversationId"] is not None:
             check_login(request)
-            application_id = await CoreConversation.get_application_id(request.ctx.db, request.ctx.account_id, args['conversation_id'])
+            application_id = await CoreConversation.get_application_id(request.ctx.db, request.ctx.account_id, args['ConversationId'])
             app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==application_id][0]
 
-            # messages = await CoreMessage.list(request.ctx.db, args['conversation_id'])
-            messages = await CoreMessage.list_from_remote(request.ctx.db, app_key, args['conversation_id'])
+            # messages = await CoreMessage.list(request.ctx.db, args['ConversationId'])
+            messages = await CoreMessage.list_from_remote(request.ctx.db, app_key, args['ConversationId'])
             resp = {
                 'Response': {
                     'ApplicationId': application_id,
@@ -59,11 +59,11 @@ class ChatMessageListApi(HTTPMethodView):
             }
             return json(resp)
 
-        if args["share_id"] is not None:
-            conversation = await CoreShareConversation.list(request.ctx.db, args["share_id"])
+        if args["ShareId"] is not None:
+            conversation = await CoreShareConversation.list(request.ctx.db, args["ShareId"])
             return json({"Response": conversation.to_dict()})
 
-        raise SanicException(f'conversation_id or share_id is required')
+        raise SanicException(f'ConversationId or ShareId is required')
 
 class ChatConversationListApi(HTTPMethodView):
     @login_required

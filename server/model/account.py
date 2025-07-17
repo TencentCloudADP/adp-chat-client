@@ -1,7 +1,7 @@
 import enum
 import json
 from typing import Optional, cast
-from sqlalchemy import func, INTEGER, Column, ForeignKey, String, DateTime, text, UniqueConstraint
+from sqlalchemy import func, INTEGER, Column, ForeignKey, String, DateTime, JSON, Text, text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, reconstructor, DeclarativeBase
 from sqlalchemy import UUID
 from model.base import Base
@@ -36,48 +36,49 @@ class AccountStatus(enum.StrEnum):
 class Account(Base):
     __tablename__ = "account"
 
-    id: Mapped[str] = mapped_column(UUID(), server_default=text("uuid_generate_v4()"), primary_key=True)
-    name = Column(String(255), nullable=False)
-    role = Column(String(16), nullable=False, server_default=AccountRole.NORMAL)
-    email = Column(String(255), nullable=True, unique=True)
-    password = Column(String(255), nullable=True)
-    password_salt = Column(String(255), nullable=True)
-    timezone = Column(String(255))
-    last_login_at = Column(DateTime)
-    last_login_ip = Column(String(255))
-    last_active_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
-    status = Column(String(16), nullable=False, server_default=AccountStatus.ACTIVE)
-    created_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
-    updated_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
+    Id: Mapped[str] = mapped_column(UUID(), server_default=text("uuid_generate_v4()"), primary_key=True)
+    Name = Column(String(255), nullable=False)
+    Role = Column(String(16), nullable=False, server_default=AccountRole.NORMAL)
+    Email = Column(String(255), nullable=True, unique=True)
+    Password = Column(String(255), nullable=True)
+    PasswordSalt = Column(String(255), nullable=True)
+    Timezone = Column(String(255))
+    LastLoginAt = Column(DateTime)
+    LastLoginIp = Column(String(255))
+    LastActiveAt = Column(DateTime, nullable=False, server_default=func.current_timestamp())
+    Status = Column(String(16), nullable=False, server_default=AccountStatus.ACTIVE)
+    CreatedAt = Column(DateTime, nullable=False, server_default=func.current_timestamp())
+    UpdatedAt = Column(DateTime, nullable=False, server_default=func.current_timestamp())
+    ExtraInfo = Column(Text(), nullable=True)
 
     @property
     def is_password_set(self):
-        return self.password is not None
+        return self.Password is not None
 
     @property
     def get_role(self):
-        return self.role
+        return self.Role
 
     def get_status(self) -> AccountStatus:
-        status_str = self.status
+        status_str = self.Status
         return AccountStatus(status_str)
 
     @property
     def is_admin(self):
-        return AccountRole.is_admin(self.role)
+        return AccountRole.is_admin(self.Role)
 
 class AccountThirdParty(Base):
     __tablename__ = "account_third_party"
     __table_args__ = (
-        UniqueConstraint("account_id", "provider", name="unique_account_provider"),
-        UniqueConstraint("provider", "open_id", name="unique_provider_open_id"),
+        UniqueConstraint("AccountId", "Provider", name="unique_account_provider"),
+        UniqueConstraint("Provider", "OpenId", name="unique_provider_open_id"),
     )
 
-    id: Mapped[str] = mapped_column(UUID(), server_default=text("uuid_generate_v4()"), primary_key=True)
-    account_id = Column(UUID(), nullable=False)
-    provider = Column(String(16), nullable=False)
-    open_id = Column(String(255), nullable=False)
-    token = Column(String(255), nullable=True)
-    created_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
-    updated_at = Column(DateTime, nullable=False, server_default=func.current_timestamp())
+    Id: Mapped[str] = mapped_column(UUID(), server_default=text("uuid_generate_v4()"), primary_key=True)
+    AccountId = Column(UUID(), nullable=False)
+    Provider = Column(String(16), nullable=False)
+    OpenId = Column(String(255), nullable=False)
+    Token = Column(String(255), nullable=True)
+    CreatedAt = Column(DateTime, nullable=False, server_default=func.current_timestamp())
+    UpdatedAt = Column(DateTime, nullable=False, server_default=func.current_timestamp())
 

@@ -20,18 +20,18 @@ const disabled = computed(() => {
 const oauthProviders = ref([])
 const handleLoadProvider = async () => {
     const res = await api.get('/account/providers', {})
-    if (res.data.providers) {
-        oauthProviders.value = res.data.providers
+    if (res.data.Providers) {
+        oauthProviders.value = res.data.Providers
     }
 }
 
 const handleLogin = async () => {
     const res = await api.post('/login', {
-        email: formState.username,
-        password: formState.password
+        Email: formState.username,
+        Password: formState.password
     })
-    if (res.data.token) {
-        emit("login-state-changed", res.data.token)
+    if (res.data.Token) {
+        emit("login-state-changed", res.data.Token)
     }
 }
 

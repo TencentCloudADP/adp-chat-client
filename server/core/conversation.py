@@ -18,21 +18,23 @@ class CoreConversation:
     @staticmethod
     async def list(db: AsyncSession, account_id: str) -> list[ChatConversation]:
         conversations = (await db.execute(select(ChatConversation).where(
-            ChatConversation.account_id==account_id
-        ).order_by(desc(ChatConversation.last_active_at)))).scalars()
+            ChatConversation.AccountId==account_id
+        ).order_by(desc(ChatConversation.LastActiveAt)))).scalars()
         return conversations
 
     @staticmethod
     async def get_application_id(db: AsyncSession, account_id: str, conversation_id: str) -> str:
         conversation = (await db.execute(select(ChatConversation).where(
-            ChatConversation.account_id==account_id,
-            ChatConversation.id==conversation_id,
+            ChatConversation.AccountId==account_id,
+            ChatConversation.Id==conversation_id,
         ).limit(1))).scalar()
-        return conversation.application_id
+        if conversation is None:
+            raise Exception("conversation not found")
+        return conversation.ApplicationId
 
     @staticmethod
     async def create(db: AsyncSession, account_id: str, application_id: str, title: str = "new conversation") -> ChatConversation:
-        conversation = ChatConversation(account_id=account_id, application_id=application_id, title=title)
+        conversation = ChatConversation(AccountId=account_id, ApplicationId=application_id, Title=title)
         db.add(conversation)
         await db.commit()
         return conversation

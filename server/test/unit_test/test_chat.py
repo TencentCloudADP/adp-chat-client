@@ -15,8 +15,8 @@ async def test_error_asgi_client(app, auth_token):
     assert response.status == 200
     resp_dict = json.loads(response.body.decode())
     assert isinstance(resp_dict, dict)
-    assert 'applications' in resp_dict
-    applications = resp_dict["applications"]
+    assert 'Applications' in resp_dict
+    applications = resp_dict["Applications"]
     assert len(applications) > 0
 
     # check conversation list
@@ -25,12 +25,12 @@ async def test_error_asgi_client(app, auth_token):
     assert response.status == 200
     resp_dict = json.loads(response.body.decode())
     assert isinstance(resp_dict, list)
-    assert len(resp_dict) == 0
+    n_conversations = len(resp_dict)
 
     # make a conversation
     params = {
-        "query": "hello",
-        "application_id": applications[0]["AppBizId"],
+        "Query": "hello",
+        "ApplicationId": applications[0]["AppBizId"],
     }
     post_json = json.dumps(params)
     request, response = await app.asgi_client.post("/chat/message", headers=headers, data=post_json)
@@ -43,4 +43,4 @@ async def test_error_asgi_client(app, auth_token):
     assert response.status == 200
     resp_dict = json.loads(response.body.decode())
     assert isinstance(resp_dict, list)
-    assert len(resp_dict) == 1
+    assert len(resp_dict) == n_conversations + 1

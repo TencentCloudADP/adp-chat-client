@@ -12,4 +12,7 @@ def get_remote_ip(request: Request) -> str:
 
 def get_path_base() -> str:
     parsed_url = urlparse(tagentic_config.SERVICE_API_URL)
-    return parsed_url.path
+    path = parsed_url.path
+    if path == '':
+        path = '/'
+    return path

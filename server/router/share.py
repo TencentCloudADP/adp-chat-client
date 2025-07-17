@@ -22,20 +22,20 @@ class ShareCreateApi(HTTPMethodView):
     @login_required
     async def post(self, request: Request):
         parser = reqparse.RequestParser()
-        parser.add_argument("conversation_id", type=str, required=True, location="json")
-        parser.add_argument("application_id", type=str, required=True, location="json")
-        parser.add_argument("record_ids", type=list[str], required=True, location="json")
+        parser.add_argument("ConversationId", type=str, required=True, location="json")
+        parser.add_argument("ApplicationId", type=str, required=True, location="json")
+        parser.add_argument("RecordIds", type=list[str], required=True, location="json")
         args = parser.parse_args(request)
         # print(args['records'])
 
-        application_id = await CoreConversation.get_application_id(request.ctx.db, request.ctx.account_id, args['conversation_id'])
+        application_id = await CoreConversation.get_application_id(request.ctx.db, request.ctx.account_id, args['ConversationId'])
         app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==application_id][0]
 
-        # messages = await CoreMessage.list(request.ctx.db, args['conversation_id'])
-        records = await CoreMessage.list_from_remote(request.ctx.db, app_key, args['conversation_id'])
-        records = [record for record in records if record["RecordId"] in args["record_ids"]]
+        # messages = await CoreMessage.list(request.ctx.db, args['ConversationId'])
+        records = await CoreMessage.list_from_remote(request.ctx.db, app_key, args['ConversationId'])
+        records = [record for record in records if record["RecordId"] in args["RecordIds"]]
 
-        shared = await CoreShareConversation.create(request.ctx.db, request.ctx.account_id, args["conversation_id"], args["application_id"], records)
+        shared = await CoreShareConversation.create(request.ctx.db, request.ctx.account_id, args["ConversationId"], args["ApplicationId"], records)
 
         return json({"ShareId": shared.Id})
 

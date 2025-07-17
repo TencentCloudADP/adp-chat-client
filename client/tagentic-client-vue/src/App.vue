@@ -24,6 +24,13 @@ const checkLogin = async () => {
 }
 
 watch(()=>bus.value.get('login-state-changed'), (_access_token) => {
+  if (_access_token == null) {
+    let path = window.location.pathname.split('/static/app/index')[0]
+    if (path == '') {
+      path = '/'
+    }
+    Cookies.remove('token', { path: path})
+  }
   access_token.value = _access_token
   checkLogin()
 })

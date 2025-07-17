@@ -28,17 +28,16 @@ axiosInstance.interceptors.response.use(response => {
   // 全局处理错误
   console.log('[error]', error)
   let msg = error
-  if (error.response.data.detail.message) {
-    msg = error.response.data.detail.message
+  if (error.response.data.Error.Message) {
+    msg = error.response.data.Error.Message
   }
-  else if (error.response.data.detail.exception) {
-    msg = error.response.data.detail.exception
+  else if (error.response.data.Error.Exception) {
+    msg = error.response.data.Error.Exception
   }
   message.error(msg)
 
   try {
-    if (error.response.data.detail.exception == 'AccountUnauthorized') {
-      Cookies.remove('token')
+    if (error.response.data.Error.Exception == 'AccountUnauthorized') {
       emit("login-state-changed", null)
     }
   } catch (e) {

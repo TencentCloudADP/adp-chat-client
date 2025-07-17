@@ -16,7 +16,7 @@ defineOptions({ name: 'AXConversationsBasic' });
 
 const isMobile = (window.innerWidth < 512)
 const collapsed = ref(false)
-const conversations = ref([] as {'id':null, 'application_id': string, 'title':string, 'last_active_at':string}[])
+const conversations = ref([] as {'Id':null, 'ApplicationId': string, 'Title':string, 'LastActiveAt':string}[])
 
 const emit = defineEmits<{
   logout: []
@@ -68,8 +68,8 @@ const updateActiveKey = (v: string) => {
     <Flex vertical id="conversion-panel-flex">
       <Conversations
           :items="conversations.map((conversation) => ({
-            key: conversation['id'] || '',
-            label: `${conversation['title']} ${conversation['last_active_at'].substring(5, 16)}`,
+            key: conversation['Id'] || '',
+            label: `${conversation['Title']} ${conversation['LastActiveAt'].substring(5, 16)}`,
             disabled: false,
           }))"
           :active-key="conversationId"

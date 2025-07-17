@@ -56,8 +56,8 @@ const currentApplicationPrompts = computed(():PromptsProps['items'] =>
 
 const handleLoadApplication = async () => {
     const res = await api.get('/application/list', {})
-    if (res.data.applications) {
-        applications.value = res.data.applications
+    if (res.data.Applications) {
+        applications.value = res.data.Applications
         if (currentApplicationId.value === undefined) {
             currentApplicationId.value = applications.value[0].AppBizId
         }
@@ -95,9 +95,9 @@ const roles: BubbleListProps['roles'] = {
 // bubble footer
 const rate = async (record: Record, score: ScoreValue) => {
   const post_body = {
-    conversation_id: conversationId.value,
-    record_id: record.RecordId,
-    score: score,
+    ConversationId: conversationId.value,
+    RecordId: record.RecordId,
+    Score: score,
   }
   const options = {
   } as AxiosRequestConfig
@@ -245,8 +245,8 @@ const handleUpdate = async () => {
   }
   const options = {
     params: {
-      conversation_id: conversationId.value,
-      share_id: shareId,
+      ConversationId: conversationId.value,
+      ShareId: shareId,
     }
   } as AxiosRequestConfig
   try {
@@ -285,9 +285,9 @@ const handleSend = async (_lastQuery = null as null|string) => {
 
   abort = new AbortController()
   const post_body = {
-    query: _query,
-    conversation_id: conversationId.value,
-    application_id: currentApplicationId.value,
+    Query: _query,
+    ConversationId: conversationId.value,
+    ApplicationId: currentApplicationId.value,
   }
   const options = {
     responseType: 'stream',
@@ -361,9 +361,9 @@ const handleFile = async (file: any, _: any[]) => {
 
   const options = {
   } as AxiosRequestConfig
-  const res = await api.post(`/file/upload?application_id=${currentApplicationId.value}`, file, options)
-  if ('url' in res['data']) {
-    const url = res['data']['url']
+  const res = await api.post(`/file/upload?ApplicationId=${currentApplicationId.value}`, file, options)
+  if ('Url' in res.data) {
+    const url = res.data['Url']
     fileList.value?.push({
       uid: url,
       name: '',
@@ -452,9 +452,9 @@ const handleSelect = (recordIds: (string|undefined)[]) => {
 }
 const handleShare = async () => {
   const post_body = {
-    conversation_id: conversationId.value,
-    application_id: currentApplicationId.value,
-    record_ids: selectedRecords.value,
+    ConversationId: conversationId.value,
+    ApplicationId: currentApplicationId.value,
+    RecordIds: selectedRecords.value,
   }
   const options = {
   } as AxiosRequestConfig

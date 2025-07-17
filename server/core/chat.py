@@ -88,13 +88,13 @@ class CoreChat:
     async def message(db: AsyncSession, account_id: str, query: str, conversation_id: str, application_id: str, app_key: str):
         async def new_text_message(message_id: str, from_role: str, content: str):
             message = await CoreMessage.create(db, conversation_id, from_role, content)
-            logging.info(f"forward_request: {message_id}, {content}, {message.id}")
+            logging.info(f"forward_request: {message_id}, {content}, {message.Id}")
         is_new_conversation = False
         if conversation_id is None or conversation_id == '':
             title = query[:10]
             is_new_conversation = True
             conversation = await CoreConversation.create(db, account_id, application_id, title=title)
-            conversation_id = str(conversation.id)
+            conversation_id = str(conversation.Id)
         async for message in CoreChat.forward_request(account_id, app_key, query, conversation_id, is_new_conversation, new_text_message):
             yield message
 
@@ -102,8 +102,8 @@ class CoreMessage:
     @staticmethod
     async def list(db: AsyncSession, conversation_id: str) -> list[ChatRecord]:
         conversations = (await db.execute(select(ChatRecord).where(
-            ChatRecord.conversation_id==conversation_id
-        ).order_by(ChatRecord.created_at))).scalars()
+            ChatRecord.ConversationId==conversation_id
+        ).order_by(ChatRecord.CreatedAt))).scalars()
         return conversations
 
     @staticmethod
@@ -121,7 +121,7 @@ class CoreMessage:
 
     @staticmethod
     async def create(db: AsyncSession, conversation_id: str, from_role: str, content: str) -> ChatRecord:
-        message = ChatRecord(conversation_id=conversation_id, from_role=from_role, content=content)
+        message = ChatRecord(ConversationId=conversation_id, FromRole=from_role, Content=content)
         db.add(message)
         await db.commit()
         return message

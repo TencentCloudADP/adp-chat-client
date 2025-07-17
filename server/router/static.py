@@ -15,4 +15,7 @@ redirect to index.html
 """
 @app.get('/')
 async def handler(request):
-    return response.redirect(f'{get_path_base()}/static/app/index')
+    path = get_path_base()
+    if path.endswith('/'):
+        path = path[:-1]
+    return response.redirect(f'{path}/static/app/index')

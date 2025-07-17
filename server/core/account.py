@@ -36,7 +36,7 @@ class CoreAccount:
     async def find(db: AsyncSession, email: Optional[str] = None, provider: Optional[str] = None, open_id: Optional[str] = None) -> Account:
         account_third_party = (await db.execute(
             select(AccountThirdParty)
-                .where(AccountThirdParty.provider == provider, AccountThirdParty.open_id == open_id)
+                .where(AccountThirdParty.Provider == provider, AccountThirdParty.OpenId == open_id)
                 .limit(1)
             )
         ).scalar()
@@ -45,7 +45,7 @@ class CoreAccount:
         if account_third_party:
             account = (await db.execute(
                 select(Account)
-                    .where(Account.id==account_third_party.account_id)
+                    .where(Account.Id==account_third_party.AccountId)
                     .limit(1)
                 )
             ).scalar()
@@ -54,7 +54,7 @@ class CoreAccount:
         if email is not None:
             account = (await db.execute(
                 select(Account)
-                    .where(Account.email==email)
+                    .where(Account.Email==email)
                     .limit(1)
                 )
             ).scalar()
@@ -64,7 +64,7 @@ class CoreAccount:
     async def find_admins(db: AsyncSession) -> list[Account]:
         accounts = (await db.execute(
             select(Account)
-                .where(Account.role == AccountRole.ADMIN)
+                .where(Account.Role == AccountRole.ADMIN)
         )).scalars().all()
         return accounts
 
@@ -74,7 +74,7 @@ class CoreAccount:
         if not account:
             raise AccountAuthenticationError()
 
-        if account.password is None or not compare(password, account.password, account.password_salt):
+        if account.Password is None or not compare(password, account.Password, account.PasswordSalt):
             raise AccountAuthenticationError()
 
         return account
@@ -84,8 +84,8 @@ class CoreAccount:
         access_token = CoreAccount.create_jwt_token(account=account)
 
         # update last login info
-        account.last_login_at = datetime.now(UTC).replace(tzinfo=None)
-        account.last_login_ip = ip_address
+        account.LastLoginAt = datetime.now(UTC).replace(tzinfo=None)
+        account.LastLoginIp = ip_address
         db.add(account)
         await db.commit()
 
@@ -99,11 +99,12 @@ class CoreAccount:
         password: Optional[str] = None,
         provider: Optional[str] = None,
         open_id: Optional[str] = None,
+        extra_info: Optional[str] = None,
         token: Optional[str] = None,
     ) -> str:
-        account = await CoreAccount.create_account(db, name, email, password)
+        account = await CoreAccount.create_account(db, name=name, email=email, password=password, extra_info=extra_info)
         if provider is not None and open_id is not None:
-            await CoreAccount.link_or_update_account(db, account, provider, open_id, token)
+            await CoreAccount.link_or_update_account(db, account, provider, open_id, name=name, extra_info=extra_info, token=token)
 
         await db.commit()
 
@@ -115,13 +116,15 @@ class CoreAccount:
         name: Optional[str] = None,
         email: Optional[str] = None,
         password: Optional[str] = None,
+        extra_info: Optional[str] = None,
     ) -> Account:
         """create account"""
         account = Account()
-        account.email = email
+        account.Email = email
         if name is None and email is not None:
             name = email.split("@")[0]
-        account.name = name
+        account.Name = name
+        account.ExtraInfo = extra_info
 
         if password:
             # generate salt
@@ -131,14 +134,14 @@ class CoreAccount:
             # encrypt password with salt
             password_hashed = hash(password, hex_salt)
 
-            account.password = password_hashed
-            account.password_salt = hex_salt
+            account.Password = password_hashed
+            account.PasswordSalt = hex_salt
 
         db.add(account)
         await db.commit()
 
-        account.password = None
-        account.password_salt = None
+        account.Password = None
+        account.PasswordSalt = None
 
         return account
 
@@ -157,7 +160,7 @@ class CoreAccount:
         exp = int(exp_dt.timestamp())
 
         payload = {
-            "account_id": str(account.id),
+            "AccountId": str(account.Id),
             "token_source": "login_token",
             "exp": exp,
         }
@@ -171,31 +174,37 @@ class CoreAccount:
         account: Account,
         provider: str,
         open_id: str,
+        name: Optional[str] = None,
+        extra_info: Optional[str] = None,
         token: str = None
     ) -> None:
         """link account with oauth provider"""
 
         account_third_party = (await db.execute(
             select(AccountThirdParty)
-                .where(AccountThirdParty.provider == provider, AccountThirdParty.open_id == open_id)
+                .where(AccountThirdParty.Provider == provider, AccountThirdParty.OpenId == open_id)
                 .limit(1)
             )
         ).scalar()
 
         if account_third_party is None:
             account_third_party = AccountThirdParty(
-                account_id=account.id, provider=provider, open_id=open_id, token=token
+                AccountId=account.Id, Provider=provider, OpenId=open_id, Token=token
             )
             db.add(account_third_party)
         
-        account_third_party.token = token
-        account.updated_at = datetime.now(UTC).replace(tzinfo=None)
+        account_third_party.Token = token
+        account.UpdatedAt = datetime.now(UTC).replace(tzinfo=None)
+        if name is not None:
+            account.Name = name
+        if extra_info is not None:
+            account.ExtraInfo = extra_info
 
         await db.commit()
 
 
     @staticmethod
-    async def customer_auth(db: AsyncSession, customer_id: Optional[str], name: Optional[str], timestamp: Optional[int], code: Optional[str]) -> None:
+    async def customer_auth(db: AsyncSession, customer_id: Optional[str], name: Optional[str], timestamp: Optional[int], extra_info: Optional[str], code: Optional[str]) -> None:
         provider = 'customer'
 
         # 注意：需要对传入信息进行验证！避免被恶意批量注册
@@ -205,7 +214,7 @@ class CoreAccount:
         
         # 离线验证
         # SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, customer_id + name + str(timestamp)))
-        msg = f'{customer_id}{name}{timestamp}'
+        msg = f'{customer_id}{name}{extra_info}{timestamp}'
         ts  = int(time.time())
         if abs(timestamp - ts) > 60:
             err_msg = f'timestamp diff too much (abs({timestamp} - {ts}) = {abs(timestamp - ts)}) > 60'
@@ -220,12 +229,12 @@ class CoreAccount:
         # 在线验证
         # 参考core/oauth.py: CoreOAuth.callback()
 
+        if name is None:
+            name = f'{provider}_{customer_id}'
         account = await CoreAccount.find(db, provider=provider, open_id=customer_id)
         if account is None:
-            if name is None:
-                name = f'{provider}_{customer_id}'
-            account = await CoreAccount.register(db, provider=provider, open_id=customer_id, name=name)
+            account = await CoreAccount.register(db, provider=provider, open_id=customer_id, extra_info=extra_info, name=name)
         else:
-            await CoreAccount.link_or_update_account(db, account, provider=provider, open_id=customer_id)
+            await CoreAccount.link_or_update_account(db, account, provider=provider, open_id=customer_id, extra_info=extra_info, name=name)
         
         return account

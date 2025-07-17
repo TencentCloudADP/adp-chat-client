@@ -58,11 +58,12 @@ OAUTH_GITHUB_SECRET=
 
 详细参数：
 
- - url: https://your-domain.com/account/customer?customer_id=&name=&timestamp=&code=
- - customer_id: 你现有账户体系的uid
- - name: 你现有账户体系的username（可选）
- - timestamp: 当前时间戳
- - code: 签名，SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, customer_id + name + str(timestamp)))
+ - url: https://your-domain.com/account/customer?CustomerId=&Name=&Timestamp=&ExtraInfo=&Code=
+ - CustomerId: 你现有账户体系的uid
+ - Name: 你现有账户体系的username（可选）
+ - Timestamp: 当前时间戳
+ - ExtraInfo: 用户信息
+ - Code: 签名，SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, CustomerId + Name + ExtraInfo + str(Timestamp)))
  - 详细实现可以参考代码core/account.py, CoreAccount.customer_auth
 
 # 开发指南

@@ -2,12 +2,17 @@
 
 ## Docker
 
-1. Copy the .env.example file to the deploy folder
+1. Install Docker
 ```bash
-cp server/.env.example deploy/.env
+bash script/init_env.sh
 ```
 
-2. Edit the deploy/.env file
+2. Copy the .env.example file to the deploy folder
+```bash
+cp server/.env.example deploy/default/.env
+```
+
+3. Edit the deploy/default/.env file
 
 ```
 # Tencent Cloud account secret: https://console.cloud.tencent.com/cam/capi
@@ -21,14 +26,14 @@ TCADP_APP_KEYS='[
 ]'
 ```
 
-3. Pull the image
+4. Pull the image
 ```bash
-make pull_image
+sudo make pull_image
 ```
 
-4. Start the container
+5. Start the container
 ```bash
-make deploy
+sudo make deploy
 ```
 
 Note: For production, you should use your own domain, apply for an SSL certificate, and use nginx as a reverse proxy for HTTPS. If you deploy with HTTP, some features (like voice input and copy message) may not work.
@@ -47,22 +52,33 @@ OAUTH_GITHUB_SECRET=
 
 If you already have your own account system but not standard OAuth, you can use this simpler method for integration.
 
-1. **Your account service:** Generate a URL pointing to this system, carrying customer_uid, timestamp, signature, etc.
+1. **Your account service:** Generate a URL pointing to this system, carrying CustomerId, Name, Timestamp, ExtraInfo, Code, etc.
 2. **User:** Clicks the URL.
 3. **This system:** Verifies the signature, auto-creates/binds the account, generates a login session, and redirects to the chat page.
 
 Parameters:
 
- - url: https://your-domain.com/account/customer?customer_id=&name=&timestamp=&code=
- - customer_id: Your account system's uid
- - name: Your account system's username (optional)
- - timestamp: Current timestamp
- - code: Signature, SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, customer_id + name + str(timestamp)))
+ - url: https://your-domain.com/account/customer?CustomerId=&Name=&Timestamp=&ExtraInfo=&Code=
+ - CustomerId: Your account system's uid
+ - Name: Your account system's username (optional)
+ - Timestamp: Current timestamp
+ - ExtraInfo: User information
+ - Code: Signature, SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, CustomerId + Name + ExtraInfo + str(Timestamp)))
  - For details, see the code in core/account.py, CoreAccount.customer_auth
 
 # Development Guide
 
 ## Frontend
+
+### Dependencies
+
+1. node >= 18
+2. npm
+
+```bash
+# for Ubuntu Server 24.04
+sudo apt install nodejs npm
+```
 
 ### Debugging
 
@@ -81,11 +97,11 @@ make client
 
 #### Command Line
 ```bash
-# 1. Execute all steps in deploy
+# 1. Execute all steps in Deployment
 # 2. Copy the edited .env file to the server folder
-cp deploy/.env server/.env
+cp deploy/default/.env server/.env
 # 3. Start the server container in mount mode (no need to rebuild)
-make debug
+sudo make debug
 ```
 
 #### VSCode Quick Debugging

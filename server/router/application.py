@@ -25,6 +25,6 @@ class ApplicationListApi(HTTPMethodView):
 
         apps_info = request.ctx.apps_info
         apps_info = [{k:v for k,v in info.items() if k not in ['AppKey']} for info in apps_info]
-        return json({"applications": apps_info})
+        return json({"Applications": apps_info})
 
 app.add_route(ApplicationListApi.as_view(), "/application/list")

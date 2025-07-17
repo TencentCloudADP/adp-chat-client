@@ -21,18 +21,18 @@ class TCADPFeedbackRateApi(HTTPMethodView):
     @login_required
     async def post(self, request: Request):
         parser = reqparse.RequestParser()
-        parser.add_argument("conversation_id", type=str, required=True, location="json")
-        parser.add_argument("record_id", type=str, required=True, location="json")
-        parser.add_argument("score", type=int, required=True, location="json")
+        parser.add_argument("ConversationId", type=str, required=True, location="json")
+        parser.add_argument("RecordId", type=str, required=True, location="json")
+        parser.add_argument("Score", type=int, required=True, location="json")
         args = parser.parse_args(request)
 
-        application_id = await CoreConversation.get_application_id(request.ctx.db, request.ctx.account_id, args['conversation_id'])
+        application_id = await CoreConversation.get_application_id(request.ctx.db, request.ctx.account_id, args['ConversationId'])
         app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==application_id][0]
 
         action = "RateMsgRecord"
         payload = {
-            "RecordId": args['record_id'],
-            "Score": args['score'],
+            "RecordId": args['RecordId'],
+            "Score": args['Score'],
             "BotAppKey": app_key,
    
         }

@@ -16,14 +16,14 @@ app = TAgenticApp.get_app()
 class LoginApi(HTTPMethodView):
     async def post(self, request: Request):
         parser = reqparse.RequestParser()
-        parser.add_argument("email", type=str, required=True, location="json")
-        parser.add_argument("password", type=str, required=True, location="json")
+        parser.add_argument("Email", type=str, required=True, location="json")
+        parser.add_argument("Password", type=str, required=True, location="json")
         args = parser.parse_args(request)
 
-        account = await CoreAccount.authenticate(request.ctx.db, args["email"], args["password"])
+        account = await CoreAccount.authenticate(request.ctx.db, args["Email"], args["Password"])
         token = await CoreAccount.login(request.ctx.db, account, get_remote_ip(request))
 
-        response = json({"token": token})
+        response = json({"Token": token})
         response.add_cookie(
             "token",
             token,
