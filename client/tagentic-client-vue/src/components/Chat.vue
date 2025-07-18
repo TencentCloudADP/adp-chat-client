@@ -162,30 +162,12 @@ const items = computed(():BubbleListProps['items'] =>
   messages.value.flatMap((record) => {
     let items:any[] = []
     let procedures:any[] = []
-    if (record.TokenStat?.Procedures?.length||0 > 0) {
-      procedures = [...procedures, ...record.TokenStat?.Procedures?.map((proc, index) => {
-        const Knowledge = proc.Debugging?.Knowledge
-        const RunNodes = proc.Debugging?.WorkFlow?.RunNodes
-        let content = proc.Debugging?.WorkFlow?.WorkflowName
-        if (Knowledge?.length||0 > 0) {
-          content += ' 查询知识库：' + Knowledge?.length
-        }
-        else if (RunNodes?.length||0 > 0) {
-          content += ' 工作流：' + RunNodes?.length
-        }
-        return {
-          key: (record['RecordId'] || '') + '-stat-' + index,
-          title: proc.Title||'已思考',
-          description: '',
-          content: content,
-        }})!]
-    }
     if (record.AgentThought?.Procedures?.length||0 > 0) {
       procedures = [...procedures, ...record.AgentThought?.Procedures?.map((proc, index) => ({
           key: (record['RecordId'] || '') + '-thought-' + index,
           title: proc.Title||'已思考',
           description: proc.TargetAgentName,
-          content: renderMarkdown(proc.Debugging?.Content || ''),
+          content: renderMarkdown(proc.Debugging?.DisplayContent || proc.Debugging?.Content || ''),
         }))!]
     }
     if (procedures.length||0 > 0) {

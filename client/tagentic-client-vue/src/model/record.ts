@@ -175,6 +175,13 @@ export function mergeRecord(record: Record, delta: Record, msg: Message) {
             record.AgentThought!.Procedures![length-1].Debugging!.Content = delta.AgentThought?.Procedures![length-1].Debugging!.Content
           }
         }
+        if (delta.AgentThought?.Procedures![length-1].Debugging!.DisplayContent) {
+          if (incremental) {
+            record.AgentThought!.Procedures![length-1].Debugging!.DisplayContent = (record.AgentThought?.Procedures?.[length-1].Debugging?.DisplayContent||'') + delta.AgentThought?.Procedures![length-1].Debugging!.DisplayContent
+          } else {
+            record.AgentThought!.Procedures![length-1].Debugging!.DisplayContent = delta.AgentThought?.Procedures![length-1].Debugging!.DisplayContent
+          }
+        }
       } else {
         // 如果procedures长度不同，则说明有一个新的过程
         let newLength = delta?.AgentThought?.Procedures?.length || 0
@@ -242,6 +249,7 @@ export function messageToRecord(message: Message): Record | null {
           AgentIcon: proc.agent_icon,
           Debugging: {
             Content: proc.debugging.content,
+            DisplayContent: proc.debugging.display_content,
           },
           Elapsed: proc.elapsed,
           Icon: proc.icon,

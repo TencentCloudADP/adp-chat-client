@@ -38,6 +38,7 @@ export interface ReplyMessage extends MessageBase {
 
 interface Debugging {
     content?: string;
+    display_content: string;
     agent?: Record<string, unknown>;
     task_flow?: Record<string, unknown>;
     work_flow?: {
