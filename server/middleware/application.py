@@ -43,6 +43,7 @@ async def update_application_info(request):
             _apps_info.append(resp['Response'])
     
     apps_info = _apps_info
+    logging.info(f'[update_application_info] done')
     
 
 @app.middleware("request")

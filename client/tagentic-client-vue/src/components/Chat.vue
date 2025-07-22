@@ -1,5 +1,5 @@
 <script setup lang="tsx">
-import { PlusSquareOutlined, UserOutlined, LinkOutlined, RedoOutlined, CopyOutlined, ShareAltOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined, LoadingOutlined } from '@ant-design/icons-vue'
+import { PlusSquareOutlined, UserOutlined, LinkOutlined, RedoOutlined, CopyOutlined, ShareAltOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined, LoadingOutlined, GlobalOutlined, RightOutlined } from '@ant-design/icons-vue'
 import { Flex, Upload, Button, Checkbox, CheckboxGroup } from 'ant-design-vue'
 import { Bubble, Sender, type SenderProps, ThoughtChain, type BubbleListProps, type BubbleProps, Prompts, type PromptsProps } from 'ant-design-x-vue'
 import { Typography } from 'ant-design-vue'
@@ -11,7 +11,7 @@ import type { Message, ReplyMessage } from '@/model/message'
 import type { Application } from '@/model/application'
 import type { Record } from '@/model/record'
 import type { UploadProps } from 'ant-design-vue'
-import { messageToRecord, mergeRecord, ScoreValue } from '@/model/record'
+import { messageToRecord, mergeRecord, ScoreValue, type QuoteInfo } from '@/model/record'
 import { message } from 'ant-design-vue'
 
 // variables
@@ -150,10 +150,49 @@ const renderFooter: BubbleProps['footer'] = (content) => {
 }
 
 // message rendering
+function insertReference(content: string, quotes?: QuoteInfo[]): string {
+  if (!quotes) {
+    return content
+  }
+  // 1. 将QuoteInfo数组按Position降序排序，这样从后往前插入不会影响前面的位置
+  const sortedQuotes = [...quotes].sort((a, b) => (b.Position == a.Position) ? (b.Index > a.Index ? 1 : -1) : (b.Position - a.Position))
+  
+  // 2. 将字符串转为数组便于操作
+  let contentArray = [...content]
+  
+  // 3. 遍历每个QuoteInfo并插入角标
+  for (const quote of sortedQuotes) {
+    const { Index, Position } = quote
+    // 在指定位置插入角标
+    contentArray.splice(Position, 0, `<sup>[${Index}]</sup>`)
+  }
+  
+  // 4. 将数组转回字符串
+  return contentArray.join('')
+}
+
 const md = markdownit({ html: true, breaks: true });
-const renderMarkdown: BubbleProps['messageRender'] = (content) =>
+const renderRecord = (record: Record) => {
+  const content = md.render(insertReference(record.Content || '', record.QuoteInfos))
+  const hasReferences = record.References && record.References.length > 0
+  return <Typography>
+    <div innerHTML={content} />
+    {hasReferences && <div class="reference">
+      参考来源：
+      {record.References?.map((ref, index) => (
+        <p key={index}>
+          <a href={ref.Url} target="_blank" rel="noopener noreferrer">
+            <GlobalOutlined/>&nbsp;{index+1}.{ref.Name}&nbsp;<RightOutlined />
+          </a>
+        </p>
+      ))}
+      </div>
+    }
+  </Typography>
+}
+const renderMarkdown = (content: string) =>
   <Typography>
-    <div innerHTML={md.render((content as Record)['Content'] || (typeof(content) == 'string' ? content as string : ''))} />
+    <div innerHTML={md.render(typeof(content) == 'string' ? content as string : '')} />
   </Typography>
 
 const isSelection = ref(false)
@@ -185,7 +224,7 @@ const items = computed(():BubbleListProps['items'] =>
       content: record,
       footer: renderFooter,
       avatar: isSelection.value ? <Checkbox value={record['RecordId']}></Checkbox> : <></>,
-      messageRender: renderMarkdown,
+      messageRender: renderRecord,
     })
     return items
   })
@@ -526,6 +565,12 @@ const handleShare = async () => {
 
 <style>
 
+.reference {
+  color: gray;
+}
+.reference p {
+  margin: 0;
+}
 #chat-header {
   background: #fff;
   padding: 0;

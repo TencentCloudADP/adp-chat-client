@@ -39,7 +39,7 @@ class CoreChat:
         return event
 
     @staticmethod
-    async def forward_request(account_id: str, bot_app_key: str, query: str, conversation_id: str, is_new_conversation: bool, new_text_message_cb: callable):
+    async def forward_request(account_id: str, bot_app_key: str, query: str, conversation_id: str, is_new_conversation: bool, new_text_message_cb: callable, search_network = True, custom_variables = {}):
         url = tagentic_config.TCADP_API_URL
         session_id = conversation_id
         visitor_biz_id = account_id
@@ -49,8 +49,11 @@ class CoreChat:
                 "bot_app_key": bot_app_key,
                 "session_id": session_id,
                 "visitor_biz_id": visitor_biz_id,
+                "search_network": "enable" if search_network else "disable",
+                "custom_variables": custom_variables,
                 "incremental" : False,
             }
+            print(param)
             headers = {
                 "Accept": "text/event-stream",
                 "Content-Type": "application/json",
@@ -85,7 +88,7 @@ class CoreChat:
             logging.info(f"forward_request: done")
 
     @staticmethod
-    async def message(db: AsyncSession, account_id: str, query: str, conversation_id: str, application_id: str, app_key: str):
+    async def message(db: AsyncSession, account_id: str, query: str, conversation_id: str, application_id: str, app_key: str, search_network: bool, custom_variables: dict):
         async def new_text_message(message_id: str, from_role: str, content: str):
             message = await CoreMessage.create(db, conversation_id, from_role, content)
             logging.info(f"forward_request: {message_id}, {content}, {message.Id}")
@@ -95,7 +98,7 @@ class CoreChat:
             is_new_conversation = True
             conversation = await CoreConversation.create(db, account_id, application_id, title=title)
             conversation_id = str(conversation.Id)
-        async for message in CoreChat.forward_request(account_id, app_key, query, conversation_id, is_new_conversation, new_text_message):
+        async for message in CoreChat.forward_request(account_id, app_key, query, conversation_id, is_new_conversation, new_text_message, search_network=search_network, custom_variables=custom_variables):
             yield message
 
 class CoreMessage:

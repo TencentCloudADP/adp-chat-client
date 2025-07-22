@@ -98,6 +98,23 @@ export interface ExtraInfo {
   EChartsInfo?: any;
 }
 
+export interface QuoteInfo {
+  Index: string;
+  Position: number;
+}
+
+export interface Reference {
+  Type: number;
+  Url: string;
+  DocBizId: string;
+  Id: string;
+  QaBizId: string;
+  Name: string;
+  DocId: string;
+  KnowledgeBizId?: string;
+  KnowledgeName?: string;
+}
+
 export const ScoreValue = {
   Unknown: 0,
   Like: 1,
@@ -120,10 +137,10 @@ export interface Record {
   IsLlmGenerated?: boolean;
   IsFinal?: boolean;
   OptionCards?: any[];
-  QuoteInfos?: any[];
+  QuoteInfos?: QuoteInfo[];
   Reasons?: any[];
   RecordId?: string;
-  References?: any[];
+  References?: Reference[];
   RelatedRecordId?: string;
   ReplyMethod?: number;
   Score?: ScoreValue;
@@ -149,17 +166,21 @@ import type { Message } from '@/model/message'
 
 export function mergeRecord(record: Record, delta: Record, msg: Message) {
   const incremental = false
+  record.RecordId = delta.RecordId
   if (msg.type === "reply") {
     if (incremental) {
       record.Content = (record.Content||'') + delta.Content
     } else {
       record.Content = delta.Content
     }
+    record.QuoteInfos = delta.QuoteInfos
     record.CanRating = delta.CanRating
     record.IsFinal = delta.IsFinal
     record.Score = delta.Score
-    record.RecordId = delta.RecordId
     record.RelatedRecordId = delta.RelatedRecordId
+  } else if (msg.type === "reference") {
+    // 处理 ReferenceMessage 合并
+    record.References = delta.References
   } else if (msg.type === "thought") {
     // 处理 ThoughtMessage 合并
     let length = record.AgentThought?.Procedures?.length || 0
@@ -231,7 +252,10 @@ export function messageToRecord(message: Message): Record | null {
       IsLlmGenerated: message.payload.is_llm_generated,
       IsFinal: message.payload.is_final,
       OptionCards: message.payload.option_cards ? [message.payload.option_cards] : [],
-      QuoteInfos: message.payload.quote_infos ? [message.payload.quote_infos] : [],
+      QuoteInfos: message.payload.quote_infos?.map(quote => ({
+        Index: `${quote.index}`,
+        Position: quote.position,
+      })),
       RecordId: message.payload.record_id,
       RelatedRecordId: message.payload.related_record_id,
       ReplyMethod: message.payload.reply_method,
@@ -240,6 +264,20 @@ export function messageToRecord(message: Message): Record | null {
       Timestamp: new Date(message.payload.timestamp * 1000).toISOString(),
       Type: 1 // 假设 1 表示回复类型
     };
+  } else if (message.type === "reference") {
+    // 处理 ReferenceMessage 转换
+    return {
+      RecordId: message.payload.record_id,
+      References: message.payload.references.map(ref => ({
+        Type: ref.type,
+        Url: ref.url,
+        DocBizId: ref.doc_biz_id,
+        Id: ref.id,
+        QaBizId: ref.qa_biz_id,
+        Name: ref.name,
+        DocId: ref.doc_id,
+      }))
+    }
   } else if (message.type === "thought") {
     // 处理 ThoughtMessage 转换
     return {

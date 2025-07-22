@@ -26,6 +26,8 @@ class ChatMessageApi(HTTPMethodView):
         parser.add_argument("Query", type=str, required=True, location="json")
         parser.add_argument("ConversationId", type=str, location="json")
         parser.add_argument("ApplicationId", type=str, location="json")
+        parser.add_argument("SearchNetwork", type=bool, default=True, location="json")
+        parser.add_argument("CustomVariables", type=dict, default={}, location="json")
         args = parser.parse_args(request)
         logging.info(f"ChatMessageApi: {args}")
 
@@ -33,7 +35,7 @@ class ChatMessageApi(HTTPMethodView):
         app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==application_id][0]
 
         async def streaming_fn(response):
-            async for data in CoreChat.message(request.ctx.db, request.ctx.account_id, args['Query'], args['ConversationId'], application_id, app_key):
+            async for data in CoreChat.message(request.ctx.db, request.ctx.account_id, args['Query'], args['ConversationId'], application_id, app_key, args['SearchNetwork'], args['CustomVariables']):
                 await response.write(data)
         return ResponseStream(streaming_fn, content_type='text/event-stream; charset=utf-8')
 

@@ -4,6 +4,11 @@ interface MessageBase {
     message_id: string;
 }
 
+interface QuoteInfo {
+  index: number;
+  position: number;
+}
+
 export interface ReplyMessage extends MessageBase {
     type: "reply";
     payload: {
@@ -25,7 +30,7 @@ export interface ReplyMessage extends MessageBase {
         is_llm_generated: boolean;
         knowledge: null;
         option_cards: null;
-        quote_infos: null;
+        quote_infos: QuoteInfo[];
         record_id: string;
         related_record_id: string;
         reply_method: number;
@@ -87,6 +92,25 @@ interface Procedure {
     workflow_name: string;
 }
 
+interface Reference {
+    doc_biz_id: string;
+    doc_id: string;
+    doc_name: string;
+    id: string;
+    name: string;
+    qa_biz_id: string;
+    type: number;
+    url: string;
+}
+
+export interface ReferenceMessage extends MessageBase {
+    type: "reference";
+    payload: {
+        record_id: string;
+        references: Reference[];
+        trace_id: string;
+    }
+}
 export interface ThoughtMessage extends MessageBase {
     type: "thought";
     payload: {
@@ -129,4 +153,4 @@ export interface TokenStatMessage extends MessageBase {
     };
 }
 
-export type Message = ReplyMessage | ThoughtMessage | TokenStatMessage;
+export type Message = ReferenceMessage | ReplyMessage | ThoughtMessage | TokenStatMessage;
