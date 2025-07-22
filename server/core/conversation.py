@@ -38,3 +38,9 @@ class CoreConversation:
         db.add(conversation)
         await db.commit()
         return conversation
+
+    @staticmethod
+    async def update(db: AsyncSession, conversation: ChatConversation, title: str = None):
+        if title is not None:
+            conversation.Title = title
+        await db.commit()
