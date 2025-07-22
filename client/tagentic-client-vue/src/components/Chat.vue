@@ -263,7 +263,9 @@ const handleUpdate = async () => {
   }
   messages.value = []
   if (!conversationId.value && !shareId) {
-    currentApplicationId.value = applications.value[0]['AppBizId']
+    if (applications.value.length > 0) {
+      currentApplicationId.value = applications.value[0].AppBizId
+    }
     return
   }
   const options = {
