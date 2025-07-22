@@ -12,6 +12,7 @@ from util.tca import tc_request
 
 from config import tagentic_config
 from core.conversation import CoreConversation
+from core.completion import CoreCompletion
 from model.chat import ChatRecord
 
 class TCADPEventType(str, Enum):
@@ -94,7 +95,14 @@ class CoreChat:
             logging.info(f"forward_request: {message_id}, {content}, {message.Id}")
         is_new_conversation = False
         if conversation_id is None or conversation_id == '':
-            title = query[:10]
+            try:
+                # 生成标题
+                completion = CoreCompletion(system_prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n\n请直接输出提炼结果，不要解释。')
+                summarize = await completion.chat(f'user: {query}\n\nassistance:')
+                title = summarize
+            except Exception as e:
+                logging.error(f'failed to summarize with model. error: {e}')
+                title = str(e)
             is_new_conversation = True
             conversation = await CoreConversation.create(db, account_id, application_id, title=title)
             conversation_id = str(conversation.Id)

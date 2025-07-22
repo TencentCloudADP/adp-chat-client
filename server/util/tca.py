@@ -11,6 +11,8 @@ import sys
 import time
 from datetime import datetime
 import aiohttp
+import asyncio
+import logging
 from config import tagentic_config
 
 
@@ -56,16 +58,21 @@ def asr_url(engine_model_type="16k_zh", voice_format=1):
 def sign(key, msg):
     return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).digest()
 
-async def tc_request(action: str, payload: dict = {}):
+def tc_request_prepare(action: str, payload: dict = {}, service = "lke") -> dict:
     secret_id = tagentic_config.TC_SECRET_ID
     secret_key = tagentic_config.TC_SECRET_KEY
     token = ""
 
-    service = "lke"
     host = tagentic_config.TC_TCADP_HOST
+    if service=='lkeap':
+        # hmm...
+        host = host.replace('lke', 'lkeap')
     region = tagentic_config.TC_TCADP_REGION
-    version = "2023-11-30"
-    payload = json.dumps(payload)
+    versions = {
+        "lke": "2023-11-30",
+        "lkeap": "2024-05-22",
+    }
+    version = versions[service]
     algorithm = "TC3-HMAC-SHA256"
     timestamp = int(time.time())
     date = datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d")
@@ -118,7 +125,36 @@ async def tc_request(action: str, payload: dict = {}):
         headers["X-TC-Region"] = region
     if token:
         headers["X-TC-Token"] = token
+    return headers, host
 
+async def tc_request(action: str, payload: dict = {}, service = "lke") -> str:
+    payload = json.dumps(payload)
+    headers, host = tc_request_prepare(action, payload, service)
     async with aiohttp.ClientSession() as session:
         async with session.post(f'https://{host}/', headers=headers, data=payload) as resp:
             return await resp.json()
+
+async def tc_request_sse(action: str, payload: dict = {}, service = "lke"):
+    payload = json.dumps(payload)
+    headers, host = tc_request_prepare(action, payload, service)
+    async with aiohttp.ClientSession() as session:
+        async with session.post(f'https://{host}/', headers=headers, data=payload) as resp:
+            try:
+                while True:
+                    raw_line = await resp.content.readline()
+                    if resp.headers['Content-Type'] != 'text/event-stream':
+                        yield raw_line
+                        continue
+                    # logging.info(raw_line)
+                    if not raw_line:
+                        break
+                    line = raw_line.decode()
+                    if ':' not in line:
+                        continue
+                    line_type, data = line.split(':', 1)
+                    if line_type == 'data':
+                        yield data
+            except asyncio.CancelledError:
+                logging.info("tc_request_sse: cancelled")
+                resp.close()
+            logging.info("tc_request_sse: done")

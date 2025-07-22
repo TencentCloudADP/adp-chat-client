@@ -38,6 +38,13 @@ sudo make deploy
 
 注意：正式的生产系统需要通过自有域名申请证书，使用nginx反代等方式部署到https协议，如果基于http协议部署，无法使用语音、复制消息等功能
 
+## 服务开关
+
+为了正常使用本系统，需要开启以下服务：
+1. 对话标题：[知识引擎原子能力：后付费设置](https://console.cloud.tencent.com/lkeap/settings)，开启：原子能力_DeepSeek API-V3后付费
+2. 语音输入：[语音识别：设置](https://console.cloud.tencent.com/asr/settings)，开启：所需区域的实时语音识别
+
+
 ## 账户体系对接
 
 ### OAuth
