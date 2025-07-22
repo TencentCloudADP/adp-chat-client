@@ -11,12 +11,13 @@ import {
   MenuUnfoldOutlined,
   MenuFoldOutlined,
 } from '@ant-design/icons-vue'
+import type { ChatConversation } from '@/model/conversation';
 
 defineOptions({ name: 'AXConversationsBasic' });
 
 const isMobile = (window.innerWidth < 512)
 const collapsed = ref(false)
-const conversations = ref([] as {'Id':null, 'ApplicationId': string, 'Title':string, 'LastActiveAt':string}[])
+const conversations = ref([] as ChatConversation[])
 
 const emit = defineEmits<{
   logout: []
@@ -39,6 +40,12 @@ const handleUpdate = async () => {
 const handleOnNewConversation = async (converdation_id: string) => {
   await handleUpdate()
   conversationId.value = converdation_id
+}
+
+const handleOnConversationUpdate = async (conversation: ChatConversation) => {
+  conversations.value = conversations.value.map(conv => 
+    conv.Id == conversation.Id ? conversation : conv
+  )
 }
 
 onBeforeMount(() => {
@@ -83,6 +90,7 @@ const updateActiveKey = (v: string) => {
     <chat
       v-model:conversationId="conversationId"
       @newConversation="handleOnNewConversation"
+      @conversationUpdate="handleOnConversationUpdate"
     >
       <template v-slot:header>
         <menu-unfold-outlined

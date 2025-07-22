@@ -10,10 +10,11 @@ import aiohttp
 import json
 from util.tca import tc_request
 
+from util.json_format import custom_dumps
 from config import tagentic_config
 from core.conversation import CoreConversation
 from core.completion import CoreCompletion
-from model.chat import ChatRecord
+from model.chat import ChatRecord, ChatConversation
 
 class TCADPEventType(str, Enum):
     """
@@ -34,8 +35,16 @@ class CoreChat:
             "type": "custom",
             "name": "new_conversation",
             "value": {
-                "conversation_id": conversation_id,
+                "ConversationId": conversation_id,
             },
+        }
+        return event
+    
+    def message_conversation_update(conversation: ChatConversation):
+        event = {
+            "type": "custom",
+            "name": "conversation_update",
+            "value": conversation.to_dict(),
         }
         return event
 
@@ -65,7 +74,7 @@ class CoreChat:
                     raise(Exception())
 
                 if is_new_conversation:
-                    yield ('data:'+json.dumps(CoreChat.message_new_conversation_id(conversation_id))+'\n\n').encode()
+                    yield ('data:'+custom_dumps(CoreChat.message_new_conversation_id(conversation_id))+'\n\n').encode()
 
                 # 逐行读取事件流
                 last_event_type = None
@@ -108,7 +117,7 @@ class CoreChat:
                 completion = CoreCompletion(system_prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n\n请直接输出提炼结果，不要解释。')
                 summarize = await completion.chat(f'user: {query}\n\nassistance:')
                 await CoreConversation.update(db, conversation, title = summarize)
-                yield ('data:'+json.dumps(CoreChat.message_new_conversation_id(conversation_id))+'\n\n').encode()
+                yield ('data:'+custom_dumps(CoreChat.message_conversation_update(conversation))+'\n\n').encode()
             except Exception as e:
                 logging.error(f'failed to summarize with model. error: {e}')
 

@@ -12,11 +12,13 @@ import type { Application } from '@/model/application'
 import type { Record } from '@/model/record'
 import type { UploadProps } from 'ant-design-vue'
 import { messageToRecord, mergeRecord, ScoreValue, type QuoteInfo } from '@/model/record'
+import { type ChatConversation } from '@/model/conversation'
 import { message } from 'ant-design-vue'
 
 // variables
 const emit = defineEmits<{
   newConversation: [conversation_id: string]
+  conversationUpdate: [conversation: ChatConversation]
 }>()
 
 const { shareId = null } = defineProps<{
@@ -323,9 +325,12 @@ const handleSend = async (_lastQuery = null as null|string) => {
       let msg_body = line.substring(line.indexOf(':')+1).trim()
       let msg_map = JSON.parse(msg_body)
       if (msg_map['type'] == 'custom' && msg_map['name'] == 'new_conversation') {
-          let converdation_id = msg_map['value']['conversation_id']
+          let converdation_id = msg_map['value']['ConversationId']
           skipUpdateOnce.value = true
           emit('newConversation', converdation_id)
+      } else if (msg_map['type'] == 'custom' && msg_map['name'] == 'conversation_update') {
+          let converdation: ChatConversation = msg_map['value']
+          emit('conversationUpdate', converdation)
       } else {
         let msg: Message = msg_map
         let record = messageToRecord(msg)
