@@ -26,9 +26,15 @@ TCADP_APP_KEYS='[
 ]'
 ```
 
-4. Pull the image
+4. Pull or Build docker image
 ```bash
-sudo make pull_image
+# Pull image (if no permission, you must build instead)  
+sudo make pull_image  
+
+# Build  
+# 1. Complete all steps in the "Development Guide - Frontend" section of this document  
+# 2. Package as follow
+sudo make pack  
 ```
 
 5. Start the container
@@ -37,6 +43,12 @@ sudo make deploy
 ```
 
 Note: For production, you should use your own domain, apply for an SSL certificate, and use nginx as a reverse proxy for HTTPS. If you deploy with HTTP, some features (like voice input and copy message) may not work.
+
+## Service Configuration
+
+To use the system, enable the following services:
+1. Dialogue title generation: [Knowledge Engine Atomic Capability: Postpaid Settings](https://console.cloud.tencent.com/lkeap/settings), enable: Atomic Capability_DeepSeek API-V3 Postpaid
+2. Voice input: [Speech Recognition: Settings](https://console.cloud.tencent.com/asr/settings), enable: Real-time speech recognition for the required region.
 
 ## Account System Integration
 
