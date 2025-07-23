@@ -1,9 +1,9 @@
 <script setup lang="tsx">
 import { PlusSquareOutlined, UserOutlined, LinkOutlined, RedoOutlined, CopyOutlined, ShareAltOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined, LoadingOutlined, GlobalOutlined, RightOutlined } from '@ant-design/icons-vue'
 import { Flex, Upload, Button, Checkbox, CheckboxGroup } from 'ant-design-vue'
-import { Bubble, Sender, type SenderProps, ThoughtChain, type BubbleListProps, type BubbleProps, Prompts, type PromptsProps } from 'ant-design-x-vue'
+import { Bubble, BubbleList, Sender, type SenderProps, ThoughtChain, type BubbleListProps, type BubbleProps, Prompts, type PromptsProps } from 'ant-design-x-vue'
 import { Typography } from 'ant-design-vue'
-import { ref, reactive, watch, computed, h, onMounted } from 'vue'
+import { ref, reactive, watch, computed, h, onMounted, nextTick } from 'vue'
 import {api, chunkSplitter} from '@/util/api'
 import type { AxiosRequestConfig } from 'axios'
 import markdownit from 'markdown-it'
@@ -14,6 +14,7 @@ import type { UploadProps } from 'ant-design-vue'
 import { messageToRecord, mergeRecord, ScoreValue, type QuoteInfo } from '@/model/record'
 import { type ChatConversation } from '@/model/conversation'
 import { message } from 'ant-design-vue'
+import { VueEternalLoading, LoadAction } from '@ts-pro/vue-eternal-loading'
 
 // variables
 const emit = defineEmits<{
@@ -25,6 +26,7 @@ const { shareId = null } = defineProps<{
   shareId?: string,
 }>()
 const conversationId = defineModel('conversationId', { type: String })
+const listRef = ref<InstanceType<typeof BubbleList>>()
 
 const messagesLoading = ref(false)
 const skipUpdateOnce = ref(false)
@@ -37,6 +39,7 @@ const setQuery = (v: string) => {
 
 // lifecycle
 onMounted(async () => {
+  console.log('[onMounted]')
   await handleLoadApplication()
 })
 
@@ -256,6 +259,41 @@ const expandedKeys = computed(():string[] => {
 })
 
 // message processing
+const handleUpdateMore = async ({ loaded, noMore }: LoadAction) => {
+  console.log('[handleUpdateMore]')
+  let len = 0
+  let LastRecordId = undefined as string|undefined
+  if (messages.value.length > 0 && (!!conversationId.value || !!shareId)) {
+    LastRecordId = messages.value[0].RecordId
+    const options = {
+      params: {
+        ConversationId: conversationId.value,
+        ShareId: shareId,
+        LastRecordId: LastRecordId,
+      }
+    } as AxiosRequestConfig
+    try {
+      const res = await api.get('/chat/messages', options)
+      // console.log(res)
+      len = res.data.Response.Records.length
+      messages.value = [... res.data.Response.Records, ... messages.value]
+    } catch (e) {
+      console.log(e)
+    }
+  }
+
+  // scroll to bottom
+  await nextTick()
+  if (!!LastRecordId) {
+    listRef.value?.scrollTo({ key: LastRecordId, block: 'start', behavior: 'instant' })
+  }
+
+  if (len > 0) {
+    loaded(len)
+  } else {
+    noMore()
+  }
+}
 const handleUpdate = async () => {
   if (skipUpdateOnce.value) {
     skipUpdateOnce.value = false
@@ -284,6 +322,13 @@ const handleUpdate = async () => {
     console.log(e)
   }
   messagesLoading.value = false
+
+  // scroll to bottom
+  await nextTick()
+  if (messages.value.length > 0) {
+    const newest = messages.value[messages.value.length - 1].RecordId
+    listRef.value?.scrollTo({ key: newest, block: 'end', behavior: 'instant' })
+  }
 }
 watch(() => [conversationId.value, shareId], handleUpdate, { immediate: true })
 
@@ -526,7 +571,17 @@ const handleShare = async () => {
         <loading-outlined />
       </flex>
       <checkbox-group v-else v-model:value="selectedRecords" class="bubble-list-wrap">
-        <Bubble.List
+        <VueEternalLoading class="infinite-loading" :isFirstLoad="false" position="top" :load="handleUpdateMore">
+          <template #loading>
+            <div><loading-outlined /></div>
+          </template>
+          <template #no-more>
+            <div class="no-more"></div>
+          </template>
+        </VueEternalLoading>
+
+        <BubbleList
+          ref="listRef"
           class="bubble-list"
           :roles="roles"
           :autoScroll="true"
@@ -602,13 +657,16 @@ const handleShare = async () => {
 }
 
 .bubble-list {
-  height: 100%;
   width: 100%;
+}
+.infinite-loading div {
+  width: 30px;
+  margin: 0 auto;
 }
 .bubble-list-wrap {
   flex-grow: 1;
   width: 100%;
-  overflow: hidden;
+  overflow: auto;
   cursor: inherit;
   white-space: inherit;
 }

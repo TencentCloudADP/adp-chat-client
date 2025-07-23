@@ -43,6 +43,7 @@ class ChatMessageListApi(HTTPMethodView):
     async def get(self, request: Request):
         parser = reqparse.RequestParser()
         parser.add_argument("ConversationId", type=str, required=False, location="args")
+        parser.add_argument("LastRecordId", type=str, required=False, location="args")
         parser.add_argument("ShareId", type=str, required=False, location="args")
         args = parser.parse_args(request)
 
@@ -52,7 +53,7 @@ class ChatMessageListApi(HTTPMethodView):
             app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==application_id][0]
 
             # messages = await CoreMessage.list(request.ctx.db, args['ConversationId'])
-            messages = await CoreMessage.list_from_remote(request.ctx.db, app_key, args['ConversationId'])
+            messages = await CoreMessage.list_from_remote(request.ctx.db, app_key, args['ConversationId'], args['LastRecordId'])
             resp = {
                 'Response': {
                     'ApplicationId': application_id,

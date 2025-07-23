@@ -65,7 +65,7 @@ const updateActiveKey = (v: string) => {
   }
 
   conversationId.value = v
-  console.log(`[updateActiveKey] conversationId changed to ${conversationId.value}`)  
+  console.log(`[updateActiveKey] conversationId changed to ${v}`)  
 }
 
 </script>

@@ -130,16 +130,19 @@ class CoreMessage:
         return conversations
 
     @staticmethod
-    async def list_from_remote(db: AsyncSession, app_key: str, conversation_id: str) -> list:
+    async def list_from_remote(db: AsyncSession, app_key: str, conversation_id: str, last_record_id: str = None) -> list:
         action = "GetMsgRecord"
         payload = {
             "Type": 5,
-            "Count": 1000,
+            "Count": 4,
             "SessionId": conversation_id,
             "BotAppKey": app_key,
-   
         }
+        if last_record_id is not None:
+            payload['LastRecordId'] = last_record_id
         resp = await tc_request(action, payload)
+        if 'Error' in resp['Response']:
+            raise Exception(resp['Response']['Error'])
         return resp['Response']['Records']
 
     @staticmethod
