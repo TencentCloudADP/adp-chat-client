@@ -72,6 +72,14 @@ const groupable: ConversationsProps['groupable'] = {
   title: (group, { components: { GroupTitle } }) =>
     <div class="conversation-list-title"><span>{group}</span></div>
 };
+const converdationItems = computed(() =>
+  conversations.value.map((conversation) => ({
+    key: conversation['Id'] || '',
+    label: <div class="item-box"><span>{conversation['Title']}</span><div class="item-space" /><span class="item-end">{dateFormat(new Date(conversation['LastActiveAt']*1000), 'HH:mm')}</span></div>,
+    disabled: false,
+    group: dateGroup(conversation['LastActiveAt']),
+  }))
+)
 
 </script>
 
@@ -79,12 +87,7 @@ const groupable: ConversationsProps['groupable'] = {
   <a-layout-sider id="conversion-panel" width="256" collapsedWidth="0" v-model:collapsed="collapsed" :trigger="null" collapsible>
     <Flex vertical id="conversion-panel-flex">
       <Conversations
-          :items="conversations.map((conversation) => ({
-            key: conversation['Id'] || '',
-            label: `${conversation['Title']} ${dateFormat(new Date(conversation['LastActiveAt']*1000), 'HH:mm')}`,
-            disabled: false,
-            group: dateGroup(conversation['LastActiveAt']),
-          }))"
+          :items="converdationItems"
           :groupable="groupable"
           :active-key="conversationId"
           :on-active-change="(v) => updateActiveKey(v)"
@@ -112,6 +115,15 @@ const groupable: ConversationsProps['groupable'] = {
 </template>
 
 <style>
+.item-box {
+  display: flex;
+}
+.item-space {
+  flex-grow: 1;
+}
+.item-end {
+  color: #00000055 !important;
+}
 .conversation-list-title {
   color: gray;
   padding: 8px;
