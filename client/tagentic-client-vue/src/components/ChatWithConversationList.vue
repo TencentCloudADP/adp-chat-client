@@ -31,6 +31,16 @@ const handleUpdate = async () => {
   try {
     const res = await api.get('/chat/conversations', options)
     conversations.value = res.data
+    if (conversations.value.length > 0) {
+      const activateTimeout = 3600
+      const now = new Date().getTime() / 1000
+      const lastActive = now - conversations.value[0].LastActiveAt
+ 
+      if (lastActive < activateTimeout && !conversationId.value) {
+        console.log(`[update] redirect to activate conversation, lastActive: ${lastActive}, ${now}, ${conversations.value[0].LastActiveAt}`)
+        conversationId.value = conversations.value[0].Id
+      }
+    }
     // console.log(res)
   } catch (e) {
     console.log(e)
