@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script setup lang="tsx">
 import { theme } from 'ant-design-vue';
 import { Conversations } from 'ant-design-x-vue';
 import type { ConversationsProps } from 'ant-design-x-vue';
@@ -6,7 +6,7 @@ import { computed, ref, reactive, onBeforeMount, onMounted, watch } from 'vue';
 import Chat from './Chat.vue'
 import {api, chunkSplitter} from '@/util/api'
 import type { AxiosRequestConfig } from 'axios'
-import { dateFormat } from '@/util/dateFormat'
+import { dateFormat, dateGroup } from '@/util/dateFormat'
 import {
   MenuUnfoldOutlined,
   MenuFoldOutlined,
@@ -68,6 +68,11 @@ const updateActiveKey = (v: string) => {
   console.log(`[updateActiveKey] conversationId changed to ${v}`)  
 }
 
+const groupable: ConversationsProps['groupable'] = {
+  title: (group, { components: { GroupTitle } }) =>
+    <div class="conversation-list-title"><span>{group}</span></div>
+};
+
 </script>
 
 <template>
@@ -76,9 +81,11 @@ const updateActiveKey = (v: string) => {
       <Conversations
           :items="conversations.map((conversation) => ({
             key: conversation['Id'] || '',
-            label: `${conversation['Title']} ${dateFormat(new Date(conversation['LastActiveAt']*1000), 'MM-DD HH:mm')}`,
+            label: `${conversation['Title']} ${dateFormat(new Date(conversation['LastActiveAt']*1000), 'HH:mm')}`,
             disabled: false,
+            group: dateGroup(conversation['LastActiveAt']),
           }))"
+          :groupable="groupable"
           :active-key="conversationId"
           :on-active-change="(v) => updateActiveKey(v)"
           id="conversion-list"
@@ -104,6 +111,25 @@ const updateActiveKey = (v: string) => {
   </a-layout>
 </template>
 
+<style>
+.conversation-list-title {
+  color: gray;
+  padding: 8px;
+}
+#conversion-list li {
+  list-style: none;
+}
+.ant-conversations .ant-conversations-list .ant-conversations-item {
+  padding-inline-start: 8px;
+}
+.ant-conversations .ant-conversations-list .ant-conversations-item span {
+  color: inherit;
+}
+.ant-conversations-list {
+  margin-bottom: 16px;
+}
+</style>
+
 <style scoped>
 #conversion-panel {
   background: #f5f5f5;
@@ -114,16 +140,17 @@ const updateActiveKey = (v: string) => {
   height: 100%;
   overflow: hidden;
   background: #fff;
-  margin-right: 10px;
+  margin-right: 6px;
 }
 #conversation-new {
   margin: 15px;
 }
 #conversion-list {
-  width: 256px;
+  width: 250px;
   flex-grow: 1;
   margin: 0;
   overflow: scroll;
+  padding: 6px;
 }
 #logout {
   margin: 15px;
