@@ -1,5 +1,7 @@
 
 const dateFormat = (date: Date, format: string) => {
+  date = new Date(date.getTime() - (date.getTimezoneOffset() * 60000))
+
   const pad = (num: number) => num.toString().padStart(2, '0')
   return format
     .replace('YYYY', date.getFullYear().toString())

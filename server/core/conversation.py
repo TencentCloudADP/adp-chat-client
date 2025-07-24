@@ -40,7 +40,15 @@ class CoreConversation:
         return conversation
 
     @staticmethod
+    async def get(db: AsyncSession, conversation_id: str) -> ChatConversation:
+        conversation = (await db.execute(select(ChatConversation).where(
+            ChatConversation.Id==conversation_id
+        ).limit(1))).scalar()
+        return conversation
+
+    @staticmethod
     async def update(db: AsyncSession, conversation: ChatConversation, title: str = None):
+        conversation.LastActiveAt = datetime.now(UTC).replace(tzinfo=None)
         if title is not None:
             conversation.Title = title
         await db.commit()

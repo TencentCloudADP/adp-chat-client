@@ -4,7 +4,7 @@ import functools
 from datetime import datetime, date
 def datetime_to_json_formatting(o):
     if isinstance(o, (date, datetime)):
-        return o.strftime('%Y-%m-%d %H:%M:%S')
+        return int(o.timestamp())
     if isinstance(o, UUID):
         return str(o)
 

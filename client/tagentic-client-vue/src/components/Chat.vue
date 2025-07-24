@@ -633,6 +633,9 @@ const handleShare = async () => {
 .reference p {
   margin: 0;
 }
+.ant-thought-chain-item-header {
+  user-select: none;
+}
 #chat-header {
   background: #fff;
   padding: 0;

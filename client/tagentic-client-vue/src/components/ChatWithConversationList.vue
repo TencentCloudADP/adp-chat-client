@@ -45,7 +45,7 @@ const handleOnNewConversation = async (converdation_id: string) => {
 const handleOnConversationUpdate = async (conversation: ChatConversation) => {
   conversations.value = conversations.value.map(conv => 
     conv.Id == conversation.Id ? conversation : conv
-  )
+  ).sort((a: ChatConversation, b: ChatConversation) => b.LastActiveAt - a.LastActiveAt)
 }
 
 onBeforeMount(() => {
@@ -76,7 +76,7 @@ const updateActiveKey = (v: string) => {
       <Conversations
           :items="conversations.map((conversation) => ({
             key: conversation['Id'] || '',
-            label: `${conversation['Title']} ${conversation['LastActiveAt'].substring(5, 16)}`,
+            label: `${conversation['Title']} ${dateFormat(new Date(conversation['LastActiveAt']*1000), 'MM-DD HH:mm')}`,
             disabled: false,
           }))"
           :active-key="conversationId"

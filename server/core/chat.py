@@ -107,7 +107,12 @@ class CoreChat:
             is_new_conversation = True
             title = query[:10]
             conversation = await CoreConversation.create(db, account_id, application_id, title=title)
-            conversation_id = str(conversation.Id)
+        else:
+            conversation = await CoreConversation.get(db, conversation_id)
+            # 更新时间
+            await CoreConversation.update(db, conversation)
+            yield ('data:'+custom_dumps(CoreChat.message_conversation_update(conversation))+'\n\n').encode()
+        conversation_id = str(conversation.Id)
         async for message in CoreChat.forward_request(account_id, app_key, query, conversation_id, is_new_conversation, new_text_message, search_network=search_network, custom_variables=custom_variables):
             yield message
 
