@@ -28,6 +28,9 @@ const { shareId = null } = defineProps<{
 const conversationId = defineModel('conversationId', { type: String })
 const listRef = ref<InstanceType<typeof BubbleList>>()
 
+const scrollOnMsgTs = ref(new Date().getTime())
+const scrollOnMsgCount = ref(0)
+const scrollReachEnd = ref(true)
 const messagesLoading = ref(false)
 const skipUpdateOnce = ref(false)
 const query = ref("")
@@ -391,12 +394,30 @@ const handleSend = async (_lastQuery = null as null|string) => {
         } else {
           messages.value.push(record)
         }
+
+        // 自动滚动到底部
+        if (scrollReachEnd.value) {
+          const ts = new Date().getTime()
+          // 不要太频繁的滚动，否则无法捕获用户滑动操作
+          if (ts - scrollOnMsgTs.value > 100) {
+            scrollOnMsgTs.value = ts
+            scrollOnMsgCount.value += 1
+            listRef.value?.scrollTo({ key: record.RecordId, block: 'end', behavior: 'instant' })
+          }
+        }
       }
       // console.log(msg_map)
     }
   } catch (e) {
     console.log(e)
   }
+
+  // 消息结束时自动滚动到底部
+  if (scrollReachEnd.value) {
+    scrollOnMsgCount.value += 1
+    listRef.value?.scrollTo({ key: messages.value[messages.value.length-1].RecordId, block: 'end', behavior: 'instant' })
+  }
+
   console.log('done')
   senderLoading.value = false
 }
@@ -542,7 +563,20 @@ const handleShare = async () => {
   selectedRecords.value = []
   isSelection.value = false
 }
+// auto scroll on message
+const onScroll = (e: Event) => {
+  const AUTO_SCROLL_TOLERANCE = 1
+  const target = e.target as HTMLElement
+  const distance = target.scrollHeight - Math.abs(target.scrollTop) - target.clientHeight
 
+  if (scrollOnMsgCount.value > 0) {
+    scrollOnMsgCount.value = 0
+    return
+  }
+
+  scrollReachEnd.value = distance <= AUTO_SCROLL_TOLERANCE
+  // console.log(distance)
+}
 </script>
 
 <template>
@@ -570,7 +604,7 @@ const handleShare = async () => {
       <flex v-else-if="messagesLoading" class="loading-panel">
         <loading-outlined />
       </flex>
-      <checkbox-group v-else v-model:value="selectedRecords" class="bubble-list-wrap">
+      <checkbox-group v-else v-model:value="selectedRecords" class="bubble-list-wrap" :onscroll="onScroll">
         <VueEternalLoading class="infinite-loading" :isFirstLoad="false" position="top" :load="handleUpdateMore">
           <template #loading>
             <div><loading-outlined /></div>
@@ -584,7 +618,6 @@ const handleShare = async () => {
           ref="listRef"
           class="bubble-list"
           :roles="roles"
-          :autoScroll="true"
           :items="items"
         />
       </checkbox-group>
