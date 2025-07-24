@@ -17,14 +17,12 @@ const dateGroup = (timestamp: number): string => {
   const diffInDays = Math.floor((now.getTime()/1000 - timestamp) / (60 * 60 * 24));
   
   // 今天
-  if (diffInDays === 0 && date.getDate() === now.getDate() && 
-      date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+  if (diffInDays === 0) {
     return "今天";
   }
   
   // 昨天
-  if (diffInDays === 1 && date.getDate() === now.getDate() - 1 && 
-      date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+  if (diffInDays === 1) {
     return "昨天";
   }
   
