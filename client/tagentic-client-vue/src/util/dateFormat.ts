@@ -12,9 +12,12 @@ const dateFormat = (date: Date, format: string) => {
 const dateGroup = (timestamp: number): string => {
   const now = new Date();
   const date = new Date(timestamp*1000);
+  const timezoneOffset = -now.getTimezoneOffset() * 60
   
   // 计算时间差（天）
-  const diffInDays = Math.floor((now.getTime()/1000 - timestamp) / (60 * 60 * 24));
+  const today = Math.floor((now.getTime()/1000 + timezoneOffset) / (60 * 60 * 24));
+  const diffInDays = today - Math.floor((timestamp + timezoneOffset) / (60 * 60 * 24));
+  // console.log(timezoneOffset, today, diffInDays)
   
   // 今天
   if (diffInDays === 0) {

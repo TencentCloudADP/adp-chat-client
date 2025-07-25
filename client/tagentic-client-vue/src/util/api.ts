@@ -28,7 +28,14 @@ axiosInstance.interceptors.response.use(response => {
   // 全局处理错误
   console.log('[error]', error)
   let msg = error
-  if (error.response.data.Error.Message) {
+  if (!error.response) {
+    if (error.message) {
+      msg = error.message
+    } else {
+      msg = '网络错误'
+    }
+  }
+  else if (error.response.data.Error.Message) {
     msg = error.response.data.Error.Message
   }
   else if (error.response.data.Error.Exception) {
