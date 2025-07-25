@@ -356,6 +356,22 @@ const handleSend = async (_lastQuery = null as null|string) => {
     _query = _lastQuery
   }
 
+  // display user query and agent response placeholder immediately
+  const record0: Record = {
+    RecordId: 'placeholder-user',
+    Content: _query,
+    IsLlmGenerated: false,
+  }
+  messages.value.push(record0)
+  const record1: Record = {
+    RecordId: 'placeholder-agent',
+    Content: '',
+    IsLlmGenerated: true,
+  }
+  messages.value.push(record1)
+  await nextTick()
+  checkAutoScroll()
+
   abort = new AbortController()
   const post_body = {
     Query: _query,
@@ -387,23 +403,32 @@ const handleSend = async (_lastQuery = null as null|string) => {
         if (record == null) {
           continue
         }
+        // user query will be inserted locally
+        if (!record.IsLlmGenerated) {
+          // replace RecordId
+          for (let item of messages.value) {
+            if (item.RecordId == 'placeholder-user') {
+              item.RecordId = record.RecordId
+            }
+          }
+          continue
+        }
 
         const lastIndex = messages.value.length - 1
+        if (messages.value[lastIndex].RecordId == 'placeholder-agent') {
+          messages.value[lastIndex].RecordId = record.RecordId
+        }
         if (lastIndex >= 0 && messages.value[lastIndex].RecordId == record.RecordId) {
           mergeRecord(messages.value[lastIndex], record, msg)
         } else {
           messages.value.push(record)
         }
 
-        // 自动滚动到底部
-        if (scrollReachEnd.value) {
-          const ts = new Date().getTime()
-          // 不要太频繁的滚动，否则无法捕获用户滑动操作
-          if (ts - scrollOnMsgTs.value > 100) {
-            scrollOnMsgTs.value = ts
-            scrollOnMsgCount.value += 1
-            listRef.value?.scrollTo({ key: record.RecordId, block: 'end', behavior: 'instant' })
-          }
+        // 自动滚动到底部，不要太频繁的滚动，否则无法捕获用户滑动操作
+        const ts = new Date().getTime()
+        if (ts - scrollOnMsgTs.value > 100) {
+          scrollOnMsgTs.value = ts
+          checkAutoScroll()
         }
       }
       // console.log(msg_map)
@@ -412,11 +437,7 @@ const handleSend = async (_lastQuery = null as null|string) => {
     console.log(e)
   }
 
-  // 消息结束时自动滚动到底部
-  if (scrollReachEnd.value) {
-    scrollOnMsgCount.value += 1
-    listRef.value?.scrollTo({ key: messages.value[messages.value.length-1].RecordId, block: 'end', behavior: 'instant' })
-  }
+  checkAutoScroll()
 
   console.log('done')
   senderLoading.value = false
@@ -563,7 +584,7 @@ const handleShare = async () => {
   selectedRecords.value = []
   isSelection.value = false
 }
-// auto scroll on message
+// scroll event handler
 const onScroll = (e: Event) => {
   const AUTO_SCROLL_TOLERANCE = 1
   const target = e.target as HTMLElement
@@ -576,6 +597,13 @@ const onScroll = (e: Event) => {
 
   scrollReachEnd.value = distance <= AUTO_SCROLL_TOLERANCE
   // console.log(distance)
+}
+// auto scroll on message
+const checkAutoScroll = () => {
+  if (scrollReachEnd.value) {
+    scrollOnMsgCount.value += 1
+    listRef.value?.scrollTo({ key: messages.value[messages.value.length-1].RecordId, block: 'end', behavior: 'instant' })
+  }
 }
 </script>
 
