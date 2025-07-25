@@ -11,7 +11,7 @@ app = TAgenticApp.get_app()
 apps_info = []
 apps_info_ts = time.time()
 
-async def update_application_info(request):
+async def update_application_info():
     global apps_info, apps_info_ts
     logging.info(f'[update_application_info] begin')
 
@@ -45,19 +45,19 @@ async def update_application_info(request):
     apps_info = _apps_info
     logging.info(f'[update_application_info] done')
     
+@app.listener('before_server_start')
+async def init_application_info(app, loop):
+    await update_application_info()
 
 @app.middleware("request")
 async def application_info(request):
     global apps_info, apps_info_ts
 
     ts = time.time()
-    if ts - apps_info_ts > 60 or len(apps_info) == 0:
+    if ts - apps_info_ts > 60:
         apps_info_ts = ts
-        if len(apps_info) == 0:
-            await update_application_info(request)
-        else:
-            # 异步更新，不阻塞流程
-            task = asyncio.create_task(update_application_info(request))
-            logging.info(f'[update_application_info] {task}')
+        # 异步更新，不阻塞流程
+        task = asyncio.create_task(update_application_info())
+        logging.info(f'[update_application_info] {task}')
             
     request.ctx.apps_info = apps_info

@@ -49,8 +49,7 @@ class CoreChat:
         return event
 
     @staticmethod
-    async def forward_request(account_id: str, bot_app_key: str, query: str, conversation_id: str, is_new_conversation: bool, new_text_message_cb: callable, search_network = True, custom_variables = {}):
-        url = tagentic_config.TCADP_API_URL
+    async def forward_request(account_id: str, bot_app_key: str, query: str, conversation_id: str, is_new_conversation: bool, new_text_message_cb: callable, search_network = True, custom_variables = {}, url = tagentic_config.TCADP_API_URL):
         session_id = conversation_id
         visitor_biz_id = account_id
         async with aiohttp.ClientSession() as session:
