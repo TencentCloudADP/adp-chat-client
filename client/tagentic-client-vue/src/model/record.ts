@@ -267,6 +267,7 @@ export function messageToRecord(message: Message): Record | null {
   } else if (message.type === "reference") {
     // 处理 ReferenceMessage 转换
     return {
+      IsLlmGenerated: true,
       RecordId: message.payload.record_id,
       References: message.payload.references.map(ref => ({
         Type: ref.type,

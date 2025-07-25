@@ -1,5 +1,5 @@
 <script setup lang="tsx">
-import { PlusSquareOutlined, UserOutlined, LinkOutlined, RedoOutlined, CopyOutlined, ShareAltOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined, LoadingOutlined, GlobalOutlined, RightOutlined } from '@ant-design/icons-vue'
+import { PlusSquareOutlined, UserOutlined, LinkOutlined, RedoOutlined, CopyOutlined, ShareAltOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined, LoadingOutlined, GlobalOutlined, RightOutlined, FileTextOutlined } from '@ant-design/icons-vue'
 import { Flex, Upload, Button, Checkbox, CheckboxGroup } from 'ant-design-vue'
 import { Bubble, BubbleList, Sender, type SenderProps, ThoughtChain, type BubbleListProps, type BubbleProps, Prompts, type PromptsProps } from 'ant-design-x-vue'
 import { Typography } from 'ant-design-vue'
@@ -190,7 +190,7 @@ const renderRecord = (record: Record) => {
       {record.References?.map((ref, index) => (
         <p key={index}>
           <a href={ref.Url} target="_blank" rel="noopener noreferrer">
-            <GlobalOutlined/>&nbsp;{index+1}.{ref.Name}&nbsp;<RightOutlined />
+            {ref.Type == 2 ? <FileTextOutlined /> : <GlobalOutlined/>}&nbsp;{index+1}.{ref.Name}&nbsp;<RightOutlined />
           </a>
         </p>
       ))}
