@@ -63,8 +63,13 @@ class ChatMessageListApi(HTTPMethodView):
             return json(resp)
 
         if args["ShareId"] is not None:
-            conversation = await CoreShareConversation.list(request.ctx.db, args["ShareId"])
-            return json({"Response": conversation.to_dict()})
+            if args['LastRecordId'] is not None:
+                # temporarily disable pagination loading for the share API
+                result = []
+            else:
+                conversation = await CoreShareConversation.list(request.ctx.db, args["ShareId"])
+                result = conversation.to_dict()
+            return json({"Response": result})
 
         raise SanicException(f'ConversationId or ShareId is required')
 
