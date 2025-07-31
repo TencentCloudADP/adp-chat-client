@@ -7,6 +7,8 @@ import { ref, reactive, watch, computed, h, onMounted, nextTick } from 'vue'
 import {api, chunkSplitter} from '@/util/api'
 import type { AxiosRequestConfig } from 'axios'
 import markdownit from 'markdown-it'
+import katex from 'markdown-it-texmath'
+import 'katex/dist/katex.min.css'
 import type { Message, ReplyMessage } from '@/model/message'
 import type { Application } from '@/model/application'
 import type { Record } from '@/model/record'
@@ -179,7 +181,8 @@ function insertReference(content: string, quotes?: QuoteInfo[]): string {
   return contentArray.join('')
 }
 
-const md = markdownit({ html: true, breaks: true });
+const md = markdownit({ html: true, breaks: true })
+md.use(katex, {delimiters: ['dollars','brackets','beg_end'], katexOptions: {strict: false, throwOnError: false}})
 const renderRecord = (record: Record) => {
   const content = md.render(insertReference(record.Content || '', record.QuoteInfos))
   const hasReferences = record.References && record.References.length > 0

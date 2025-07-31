@@ -3,7 +3,7 @@
 const fs = require('fs');
 const kt = require('katex');
 const tm = require('../texmath.js').use(kt);
-const md = require('markdown-it')({html:true}).use(tm);
+const md = require('markdown-it')({html:true}).use(tm, {delimiters: ['dollars','brackets','beg_end'], katexOptions: {strict: false, throwOnError: false}});
 const tests = require('./tests.js');
 
 const html = (content) => `<!DOCTYPE html>
@@ -11,8 +11,8 @@ const html = (content) => `<!DOCTYPE html>
   <head>
     <meta charset="UTF-8">
     <title>markdown-it-texmath Tests</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css"> <!-- version is necessary here -->
-    <link rel="stylesheet" href="https://gitcdn.xyz/cdn/goessner/markdown-it-texmath/master/css/texmath.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.0/katex.min.css"> <!-- version is necessary here -->
+    <link rel="stylesheet" href="../css/texmath.css">
     <style>
        body {
           color: darkslategray;
@@ -40,7 +40,7 @@ const html = (content) => `<!DOCTYPE html>
         <tr>
           <th style="width:20px">i</th>
           <th style="width:20px">valid</th>
-          <th style="width:250px;max-width:250px">src</th>
+          <th style="width:250px">src</th>
           <th style="width:201px">render</th>
           <th style="width:201px">comment</th>
         </tr>
@@ -55,8 +55,8 @@ const row = (i, valid, src, comment) =>
 `   <tr id="#${i}">
       <td style="text-align:right;">${i}</td>
       <td style="text-align:center;">${valid ? "&#128522;" : "&#128545;"}</td>
-      <td style="text-align:left;">${src.replace("<","&lt;")}</td>
-      <td style="text-align:left;">${md.render(src)}</td>
+      <td style="text-align:left;max-width:500px;overflow: auto;text-overflow:inherit;">${src.replace("<","&lt;")}</td>
+      <td style="text-align:left;max-width:500px;overflow: auto;">${md.render(src)}</td>
       <td style="text-align:left;">${comment}</td>
     </tr>
 `;

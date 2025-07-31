@@ -39,7 +39,8 @@ function texmath(md, options) {
     }
     // inject block rules to markdown-it
     for (const rule of delimiters.block) {
-        md.block.ruler.before('fence', rule.name, texmath.block(rule));  // ! important for ```math delimiters
+        // md.block.ruler.before('fence', rule.name, texmath.block(rule));  // ! important for ```math delimiters
+        md.inline.ruler.before('escape', rule.name, texmath.inline(rule));  // ! important
         md.renderer.rules[rule.name] = (tokens, idx) => rule.tmpl.replace(/\$2/,escapeHTML(tokens[idx].info))  // equation number .. ?
                                                                  .replace(/\$1/,texmath.render(tokens[idx].content,true,katexOptions));
     }

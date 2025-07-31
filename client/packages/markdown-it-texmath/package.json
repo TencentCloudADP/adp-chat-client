@@ -2,6 +2,10 @@
   "name": "markdown-it-texmath",
   "version": "1.0.1",
   "description": "markdown-it extension for rendering TeX Math",
+  "types": "types.d.ts",
+  "scripts": {
+      "test": "cd test && node index.js"
+  },
   "keywords": [
     "TeX",
     "LaTeX",
@@ -19,8 +23,12 @@
     "url": "git://github.com/goessner/markdown-it-texmath.git"
   },
   "license": "MIT",
+  "dependencies": {
+      "markdown-it": "^14.1.0",
+      "katex": "^0.16.4"
+  },
   "devDependencies": {
-    "katex": "^0.15.6",
-    "markdown-it": "^13.0.1"
+    "@types/markdown-it": "^14.1.2",
+    "@types/katex": "^0.16.0"
   }
 }
