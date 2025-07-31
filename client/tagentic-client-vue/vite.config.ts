@@ -27,4 +27,7 @@ export default defineConfig({
       "@": path.resolve("./src"),
     },
   },
+  build: {
+    commonjsOptions: { include: [/markdown-it-texmath/, /node_modules/] },
+  },
 })

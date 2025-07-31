@@ -1,0 +1,8 @@
+{
+  "name": "adp-system-client",
+  "private": true,
+  "workspaces": [
+    "tagentic-client-vue",
+    "packages/*"
+  ]
+}

@@ -14,10 +14,13 @@ up:
 # ----------------- client -----------------
 
 init_client:
-	cd client/tagentic-client-vue && npm install
+	cd client && npm install
 
 client:
 	cd client/tagentic-client-vue && npm run build
+
+test_client:
+	cd client && npm run test --ws
 
 # ----------------- server -----------------
 
