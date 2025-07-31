@@ -1,5 +1,5 @@
 # 系统客户端（System Client）
-系统客户端是 ADP 智能系统（Agentic System）规划中的关键组成部分，旨在帮助开发者快速实现对话式 AI Agent 应用与客户端的连接和应用。它支持多种接入方式，包括 PC/Mac 应用、Web 服务、小程序、手机应用（如 Android/iOS）以及终端应用（如车载系统等）。无论哪种形式的客户端，都可以与应用服务 API 进行交互。系统客户端现已支持通过 Docker 快速部署，简化了安装和配置过程。
+系统客户端是一个开源的对话式 AI 智能体应用 SDK，专为开发者设计，旨在快速构建与 [腾讯云智能体开发平台（ADP）](https://cloud.tencent.com/product/tcadp) 内 AI 智能体应用的无缝连接。它不仅支持实时对话、对话历史管理，还能实现语音与图片理解，轻松对接账户体系等多种强大功能。当前，系统客户端支持 H5 页面，可以方便地嵌入到小程序、Android 和 iOS 应用中，帮助开发者与 ADP 内 AI 智能体应用建立高效、流畅的连接。系统客户端还支持通过 Docker 快速部署，简化了安装和配置过程。
 
 #### 目录
 
@@ -43,21 +43,12 @@ TCADP_APP_KEYS='[
 
 4. 拉取或制作镜像
 ``` bash
-<<<<<<< HEAD
-# 拉取（如果无权限的话，只能制作）
-sudo make pull_image
-
-# 制作
-# 1. 执行本文档“开发指南 - 前端”所有部分
-# 2. 打包镜像
-=======
 # 拉取镜像（若无权限，请使用制作方法）：
 sudo make pull_image
 
 # 制作镜像
 # 1. 执行本文档“开发指南 - 前端”所有步骤
 # 2. 打包镜像：
->>>>>>> 037db67 ( [improve] added 2 versions of init_env.sh file for different server user. Updated README.md file by adding a breif introduction and improved overall formatting)
 sudo make pack
 ```
 
@@ -67,7 +58,7 @@ sudo make deploy
 ```
 浏览器打开 http://localhost:8000 即可看到登录页面
 
-> :warning: **注意:** 正式的生产系统需要通过自有域名申请 SSL 证书，并使用 nginx 进行反向代理，部署到 https 协议。如果仅基于 http 协议部署，某些功能（如语音识别、消息复制等）可能无法正常工作。
+> :warning: **注意:** 正式的生产系统需要通过自有域名申请 SSL 证书，并使用 nginx 进行反向代理等方式部署到 https 协议。如果仅基于 http 协议部署，某些功能（如语音识别、消息复制等）可能无法正常工作。
 
 ## 服务开关
 
@@ -80,12 +71,12 @@ sudo make deploy
 
 ### OAuth
 
-系统默认支持 GitHub OAuth 协议，开发者可以根据需要进行配置。如果需要使用其他 OAuth 系统，可以根据具体协议修改 `core/oauth.py` 文件以适配：
+系统默认支持 GitHub OAuth 协议，开发者可以根据需要进行配置：
 ```
 OAUTH_GITHUB_CLIENT_ID=
 OAUTH_GITHUB_SECRET=
 ```
-> OAuth 协议可以帮助实现无缝的身份验证和授权，开发者可以根据业务需求定制自己的认证方式。
+> OAuth 协议可以帮助实现无缝的身份验证和授权，开发者可以根据业务需求定制自己的认证方式。如需使用其他 OAuth 系统，可以根据具体协议修改 `core/oauth.py` 文件以适配
 
 ### url跳转
 
