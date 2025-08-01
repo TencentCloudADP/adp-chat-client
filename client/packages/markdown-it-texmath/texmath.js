@@ -39,8 +39,19 @@ function texmath(md, options) {
     }
     // inject block rules to markdown-it
     for (const rule of delimiters.block) {
-        // md.block.ruler.before('fence', rule.name, texmath.block(rule));  // ! important for ```math delimiters
+        // 'escape' 不能捕获如下形式（公式内有形似markdown的语法），所以增加 'fence' 捕获形式：
+        // $$
+        // + \int_{-\infty}^{\infty} e^{-x^2} \, dx = \sqrt{\pi}
+        // $$
+        md.block.ruler.before('fence', rule.name, texmath.block(rule));  // ! important for ```math delimiters
+
+        // 'fence' 不能捕获如下形式（公式起始位置和上一行直接没有空行），所以保留 'escape' 捕获形式：
+        // **独立公式**：
+        // \[
+        // \int_{-\infty}^{\infty} e^{-x^2} \, dx = \sqrt{\pi}
+        // \]
         md.inline.ruler.before('escape', rule.name, texmath.inline(rule));  // ! important
+
         md.renderer.rules[rule.name] = (tokens, idx) => rule.tmpl.replace(/\$2/,escapeHTML(tokens[idx].info))  // equation number .. ?
                                                                  .replace(/\$1/,texmath.render(tokens[idx].content,true,katexOptions));
     }
