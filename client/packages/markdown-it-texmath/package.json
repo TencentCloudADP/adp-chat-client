@@ -25,7 +25,7 @@
   "license": "MIT",
   "dependencies": {
       "markdown-it": "^14.1.0",
-      "katex": "^0.16.4"
+      "katex": "^0.16.22"
   },
   "devDependencies": {
     "@types/markdown-it": "^14.1.2",
