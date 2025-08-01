@@ -1,4 +1,4 @@
-# About adp-chat-client
+# About
 
 **adp-chat-client** is an open sourced AI Agent application conversation interface. It allows developers to quickly deploy AI agent applications developed on the [Tencent Cloud AI Agent Development Platform (ADP)](https://cloud.tencent.com/product/tcadp) as web applications (or embed them into mini-programs, Android, and iOS apps). The client supports real-time conversations, conversation history management, voice input, image understanding, third-party account system integration, and more. It supports fast deployment via Docker.
 
