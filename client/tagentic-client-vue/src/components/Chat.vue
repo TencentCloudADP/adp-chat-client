@@ -789,6 +789,9 @@ const checkAutoScroll = () => {
   outline: 0 !important;
 }
 
+.ant-bubble-content {
+  overflow-x: auto;
+}
 .ant-bubble-end .ant-bubble-content-filled {
   background-color: cornflowerblue;
 }
