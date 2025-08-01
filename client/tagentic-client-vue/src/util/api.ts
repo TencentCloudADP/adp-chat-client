@@ -24,9 +24,26 @@ axiosInstance.interceptors.request.use(config => {
 axiosInstance.interceptors.response.use(response => {
   // 在响应到达之前可以做一些处理
   return response
-}, error => {
+}, async error => {
   // 全局处理错误
   console.log('[error]', error)
+
+  // 如果是stream响应
+  if (error.response.config.responseType === 'stream') {
+    try {
+      // 将流转换为文本
+      const data = await new Response(error.response.data).text()
+      // 替换为转换后的数据
+      if (error.response.headers['content-type'] === 'application/json') {
+        error.response.data = JSON.parse(data)
+      } else {
+        error.response.data = data
+      }
+    } catch (e) {
+      console.error('stream转换失败:', e)
+    }
+  }
+
   let msg = error
   if (!error.response) {
     if (error.message) {

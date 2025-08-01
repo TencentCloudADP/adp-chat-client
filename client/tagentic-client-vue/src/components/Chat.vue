@@ -400,6 +400,10 @@ const handleSend = async (_lastQuery = null as null|string) => {
       } else if (msg_map['type'] == 'custom' && msg_map['name'] == 'conversation_update') {
           let converdation: ChatConversation = msg_map['value']
           emit('conversationUpdate', converdation)
+      } else if (msg_map['type'] == 'error') {
+        // remove place holder
+        messages.value = messages.value.filter((msg, _) => msg.RecordId !== 'placeholder-agent')
+        message.error(msg_map['payload']['error']['message'])
       } else {
         let msg: Message = msg_map
         let record = messageToRecord(msg)
