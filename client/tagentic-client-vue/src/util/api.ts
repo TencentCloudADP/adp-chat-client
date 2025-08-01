@@ -72,5 +72,21 @@ async function* chunkSplitter(src: any) : AsyncGenerator<string> {
   }
 }
 
+// workaround for webkit bug 194379 (https://bugs.webkit.org/show_bug.cgi?id=194379)
+if (!ReadableStream.prototype[Symbol.asyncIterator]) {
+  ReadableStream.prototype[Symbol.asyncIterator] = async function* () {
+    const reader = this.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) return;
+        yield value;
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  };
+}
+
 export { axiosInstance as api, chunkSplitter };
 export default axiosInstance;
