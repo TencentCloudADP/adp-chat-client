@@ -472,7 +472,7 @@ const fileList = ref([] as UploadProps['fileList'])
 const handleFile = async (file: any, _: any[]) => {
   const allowed = ['image/png', 'image/jpeg']
   if (!allowed.includes(file.type)) {
-    message.error(`${file.name} is not allowed`)
+    message.error(`${file.name} 暂不支持该类型文件（支持类型：jpg/png）`)
     return Upload.LIST_IGNORE
   }
 
@@ -688,6 +688,7 @@ const checkAutoScroll = () => {
             v-model:file-list="fileList"
             :before-upload="handleFile"
             list-type="picture"
+            accept=".jpg,.jpeg,.png"
             multiple
           >
             <a-button shape="circle">
