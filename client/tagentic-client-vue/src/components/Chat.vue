@@ -30,7 +30,6 @@ const { shareId = null } = defineProps<{
 const conversationId = defineModel('conversationId', { type: String })
 const listRef = ref<InstanceType<typeof BubbleList>>()
 
-const scrollOnMsgTs = ref(new Date().getTime())
 const scrollOnMsgCount = ref(0)
 const scrollReachEnd = ref(true)
 const messagesLoading = ref(false)
@@ -431,12 +430,8 @@ const handleSend = async (_lastQuery = null as null|string) => {
           messages.value.push(record)
         }
 
-        // 自动滚动到底部，不要太频繁的滚动，否则无法捕获用户滑动操作
-        const ts = new Date().getTime()
-        if (ts - scrollOnMsgTs.value > 100) {
-          scrollOnMsgTs.value = ts
-          checkAutoScroll()
-        }
+        // 自动滚动到底部
+        checkAutoScroll()
       }
       // console.log(msg_map)
     }
@@ -596,19 +591,31 @@ const onScroll = (e: Event) => {
   const AUTO_SCROLL_TOLERANCE = 1
   const target = e.target as HTMLElement
   const distance = target.scrollHeight - Math.abs(target.scrollTop) - target.clientHeight
+  // console.log('[onScroll]', distance, scrollOnMsgCount.value)
 
+  // 内容高度变化可能触发多次onScroll事件，需要避免因此误判用户滚动
   if (scrollOnMsgCount.value > 0) {
-    scrollOnMsgCount.value = 0
+    scrollOnMsgCount.value -= 1
     return
   }
 
   scrollReachEnd.value = distance <= AUTO_SCROLL_TOLERANCE
-  // console.log(distance)
 }
 // auto scroll on message
+let lastScrollHeight = 0
 const checkAutoScroll = () => {
+  const target = listRef.value?.nativeElement as HTMLElement
+  // 只有内容高度变化才触发自动滚动，从而更容易区分非高度变化造成的onScroll事件（用户滚动）
+  if (lastScrollHeight == target.scrollHeight) {
+    return
+  }
+  lastScrollHeight = target.scrollHeight
+
+  // console.log('[checkAutoScroll]', target.scrollHeight, scrollOnMsgCount.value)
   if (scrollReachEnd.value) {
-    scrollOnMsgCount.value += 1
+    if (scrollOnMsgCount.value < 3) {
+      scrollOnMsgCount.value += 1
+    }
     listRef.value?.scrollTo({ key: messages.value[messages.value.length-1].RecordId, block: 'end', behavior: 'instant' })
   }
 }
