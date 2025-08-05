@@ -29,6 +29,7 @@ const { shareId = null } = defineProps<{
 }>()
 const conversationId = defineModel('conversationId', { type: String })
 const listRef = ref<InstanceType<typeof BubbleList>>()
+const listContainerRef = ref<HTMLDivElement|null>()
 
 const scrollOnMsgCount = ref(0)
 const scrollReachEnd = ref(true)
@@ -304,6 +305,8 @@ const handleUpdate = async () => {
     skipUpdateOnce.value = false
     return
   }
+  // enable auto scroll on new conversation
+  scrollReachEnd.value = true
   messages.value = []
   if (!conversationId.value && !shareId) {
     if (applications.value.length > 0) {
@@ -328,12 +331,6 @@ const handleUpdate = async () => {
   }
   messagesLoading.value = false
 
-  // scroll to bottom
-  await nextTick()
-  if (messages.value.length > 0) {
-    const newest = messages.value[messages.value.length - 1].RecordId
-    listRef.value?.scrollTo({ key: newest, block: 'end', behavior: 'instant' })
-  }
 }
 watch(() => [conversationId.value, shareId], handleUpdate, { immediate: true })
 
@@ -371,8 +368,6 @@ const handleSend = async (_lastQuery = null as null|string) => {
     IsLlmGenerated: true,
   }
   messages.value.push(record1)
-  await nextTick()
-  checkAutoScroll()
 
   abort = new AbortController()
   const post_body = {
@@ -429,18 +424,12 @@ const handleSend = async (_lastQuery = null as null|string) => {
         } else {
           messages.value.push(record)
         }
-
-        // 自动滚动到底部
-        checkAutoScroll()
       }
       // console.log(msg_map)
     }
   } catch (e) {
     console.log(e)
   }
-
-  checkAutoScroll()
-
   console.log('done')
   senderLoading.value = false
 }
@@ -601,24 +590,27 @@ const onScroll = (e: Event) => {
 
   scrollReachEnd.value = distance <= AUTO_SCROLL_TOLERANCE
 }
-// auto scroll on message
-let lastScrollHeight = 0
-const checkAutoScroll = () => {
-  const target = listRef.value?.nativeElement as HTMLElement
-  // 只有内容高度变化才触发自动滚动，从而更容易区分非高度变化造成的onScroll事件（用户滚动）
-  if (lastScrollHeight == target.scrollHeight) {
-    return
+// auto scroll on content height change
+watch(() => listContainerRef.value, async (newValue, oldValue) => {
+  if (oldValue) {
+    resizeObserver.unobserve(oldValue)
   }
-  lastScrollHeight = target.scrollHeight
-
-  // console.log('[checkAutoScroll]', target.scrollHeight, scrollOnMsgCount.value)
-  if (scrollReachEnd.value) {
-    if (scrollOnMsgCount.value < 3) {
-      scrollOnMsgCount.value += 1
+  if (newValue) {
+    resizeObserver.observe(newValue)
+  }
+})
+const resizeObserver = new ResizeObserver(entries => {
+  for (let entry of entries) {
+    // Access the new dimensions of the observed element
+    console.log(`Element resized: ${entry.contentRect.width} x ${entry.contentRect.height}`)
+    if (scrollReachEnd.value) {
+      if (scrollOnMsgCount.value < 3) {
+        scrollOnMsgCount.value += 1
+      }
+      listRef.value?.scrollTo({ key: messages.value[messages.value.length-1].RecordId, block: 'end', behavior: 'instant' })
     }
-    listRef.value?.scrollTo({ key: messages.value[messages.value.length-1].RecordId, block: 'end', behavior: 'instant' })
   }
-}
+})
 </script>
 
 <template>
@@ -647,21 +639,23 @@ const checkAutoScroll = () => {
         <loading-outlined />
       </flex>
       <checkbox-group v-else v-model:value="selectedRecords" class="bubble-list-wrap" :onscroll="onScroll">
-        <VueEternalLoading class="infinite-loading" :isFirstLoad="false" position="top" :load="handleUpdateMore">
-          <template #loading>
-            <div><loading-outlined /></div>
-          </template>
-          <template #no-more>
-            <div class="no-more"></div>
-          </template>
-        </VueEternalLoading>
+        <div ref="listContainerRef" class="bubble-list-container">
+          <VueEternalLoading class="infinite-loading" :isFirstLoad="false" position="top" :load="handleUpdateMore">
+            <template #loading>
+              <div><loading-outlined /></div>
+            </template>
+            <template #no-more>
+              <div class="no-more"></div>
+            </template>
+          </VueEternalLoading>
 
-        <BubbleList
-          ref="listRef"
-          class="bubble-list"
-          :roles="roles"
-          :items="items"
-        />
+          <BubbleList
+            ref="listRef"
+            class="bubble-list"
+            :roles="roles"
+            :items="items"
+          />
+        </div>
       </checkbox-group>
       <flex class="share-panel" v-if="isSelection">
         <div class="share-panel-space"/>
@@ -749,6 +743,9 @@ const checkAutoScroll = () => {
   cursor: inherit;
   white-space: inherit;
 }
+.bubble-list-container {
+  width: 100%;
+}
 .loading-panel,
 .greeting-panel {
   flex-grow: 1;
@@ -799,6 +796,7 @@ const checkAutoScroll = () => {
 
 .ant-bubble-content {
   overflow-x: auto;
+  overflow-y: hidden;
 }
 .ant-bubble-end .ant-bubble-content-filled {
   background-color: cornflowerblue;
