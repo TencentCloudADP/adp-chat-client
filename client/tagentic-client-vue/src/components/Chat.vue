@@ -599,18 +599,24 @@ watch(() => listContainerRef.value, async (newValue, oldValue) => {
     resizeObserver.observe(newValue)
   }
 })
+watch(() => isSelection.value, async (newValue, oldValue) => {
+  // isSelection改变时可能触发onScroll事件，通过onResize标识为主动触发
+  onResize()
+})
 const resizeObserver = new ResizeObserver(entries => {
   for (let entry of entries) {
-    // Access the new dimensions of the observed element
-    console.log(`Element resized: ${entry.contentRect.width} x ${entry.contentRect.height}`)
-    if (scrollReachEnd.value) {
-      if (scrollOnMsgCount.value < 3) {
-        scrollOnMsgCount.value += 1
-      }
-      listRef.value?.scrollTo({ key: messages.value[messages.value.length-1].RecordId, block: 'end', behavior: 'instant' })
-    }
+    // console.log(`Element resized: ${entry.contentRect.width} x ${entry.contentRect.height}`)
+    onResize()
   }
 })
+const onResize = () => {
+  if (scrollReachEnd.value) {
+    if (scrollOnMsgCount.value < 3) {
+      scrollOnMsgCount.value += 1
+    }
+    listRef.value?.scrollTo({ key: messages.value[messages.value.length-1].RecordId, block: 'end', behavior: 'instant' })
+  }
+}
 </script>
 
 <template>

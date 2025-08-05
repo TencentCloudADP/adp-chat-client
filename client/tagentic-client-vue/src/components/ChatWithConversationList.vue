@@ -2,7 +2,7 @@
 import { theme } from 'ant-design-vue';
 import { Conversations } from 'ant-design-x-vue';
 import type { ConversationsProps } from 'ant-design-x-vue';
-import { computed, ref, reactive, onBeforeMount, onMounted, watch } from 'vue';
+import { computed, ref, reactive, onBeforeMount, onMounted, onUnmounted, watch } from 'vue';
 import Chat from './Chat.vue'
 import {api, chunkSplitter} from '@/util/api'
 import type { AxiosRequestConfig } from 'axios'
@@ -15,6 +15,8 @@ import type { ChatConversation } from '@/model/conversation';
 
 defineOptions({ name: 'AXConversationsBasic' });
 
+const screenWidth = ref(window.innerWidth)
+const screenHeight = ref(window.innerHeight)
 const isMobile = (window.innerWidth < 512)
 const collapsed = ref(false)
 const conversations = ref([] as ChatConversation[])
@@ -25,6 +27,28 @@ const emit = defineEmits<{
 
 const conversationId = defineModel('conversationId', { type: String })
 
+// lifecycle
+onBeforeMount(() => {
+  if (isMobile) {
+    collapsed.value = true
+  }
+})
+onMounted(async () => {
+  window.addEventListener('resize', handleResize)
+  await handleUpdate()
+})
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
+})
+
+const handleResize = () => {
+  screenWidth.value = window.innerWidth;
+  screenHeight.value = window.innerHeight;
+  // You can add more logic here to react to the new dimensions
+  console.log(`Window resized to: ${screenWidth.value}x${screenHeight.value}`);
+}
+
+// applications
 const handleUpdate = async () => {
   const options = {
   } as AxiosRequestConfig
@@ -57,15 +81,6 @@ const handleOnConversationUpdate = async (conversation: ChatConversation) => {
     conv.Id == conversation.Id ? conversation : conv
   ).sort((a: ChatConversation, b: ChatConversation) => b.LastActiveAt - a.LastActiveAt)
 }
-
-onBeforeMount(() => {
-  if (isMobile) {
-    collapsed.value = true
-  }
-})
-onMounted(async () => {
-  await handleUpdate()
-})
 
 const updateActiveKey = (v: string) => {
   // 如果是移动设备，选择会话后，自动收起会话列表
@@ -106,7 +121,7 @@ const converdationItems = computed(() =>
       <a-button id="logout" @click="emit('logout')">退出</a-button>
     </Flex>
   </a-layout-sider>
-  <a-layout id="chat-panel">
+  <a-layout :style="{'min-width': `${screenWidth - (isMobile ? 0 : 250)}px`}">
     <chat
       v-model:conversationId="conversationId"
       @newConversation="handleOnNewConversation"
@@ -176,9 +191,6 @@ const converdationItems = computed(() =>
 }
 #logout {
   margin: 15px;
-}
-#chat-panel {
-  min-width: 256px;
 }
 .site-layout-background {
   background: #fff;
