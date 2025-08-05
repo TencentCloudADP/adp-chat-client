@@ -587,7 +587,7 @@ const onScroll = (e: Event) => {
   const AUTO_SCROLL_TOLERANCE = 1
   const target = e.target as HTMLElement
   const distance = target.scrollHeight - Math.abs(target.scrollTop) - target.clientHeight
-  // console.log('[onScroll]', distance, scrollOnMsgCount.value)
+  // console.log(`[onScroll], ${distance}, ${scrollOnMsgCount.value}`)
 
   // 内容高度变化可能触发多次onScroll事件，需要避免因此误判用户滚动
   if (scrollOnMsgCount.value > 0) {
@@ -619,7 +619,8 @@ const resizeObserver = new ResizeObserver(entries => {
 const onResize = () => {
   if (scrollReachEnd.value) {
     if (scrollOnMsgCount.value < 3) {
-      scrollOnMsgCount.value += 1
+      // 在iOS上，一次resize事件后可能有2次onScroll事件，需要避免因此误判用户滚动
+      scrollOnMsgCount.value += 2
     }
     listRef.value?.scrollTo({ key: messages.value[messages.value.length-1].RecordId, block: 'end', behavior: 'instant' })
   }
