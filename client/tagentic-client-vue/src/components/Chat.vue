@@ -24,8 +24,9 @@ const emit = defineEmits<{
   conversationUpdate: [conversation: ChatConversation]
 }>()
 
-const { shareId = null } = defineProps<{
+const { shareId = null, copyRawContent = true } = defineProps<{
   shareId?: string,
+  copyRawContent?: boolean, // message copy button: copy raw content (otherwise copy text stripped of HTML and Markdown) | 复制按钮：是否复制原始内容(否则复制去除html和markdown后的文本)
 }>()
 const conversationId = defineModel('conversationId', { type: String })
 const listRef = ref<InstanceType<typeof BubbleList>>()
@@ -134,7 +135,7 @@ const renderFooter: BubbleProps['footer'] = (content) => {
       class="footer-button"
       type="link"
       icon={<CopyOutlined />}
-      onClick={() => handleCopy(record)}
+      onClick={($event) => handleCopy($event, record)}
     />
     <Button
       class="footer-button"
@@ -448,8 +449,14 @@ const doCopy = async (content: string, tips = '') => {
     message.error(`复制失败（请使用https协议部署！）`)
   }
 }
-const handleCopy = async (record: Record) => {
-  await doCopy(record.Content || '')
+const handleCopy = async (event: Event|undefined, record: Record) => {
+  const container = event?.target as HTMLElement
+  let text = container?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode?.textContent
+  text = text?.replace(/\n{3,}/g, '\n\n')
+  if (copyRawContent || text == null) {
+    text = record.Content || ''
+  }
+  await doCopy(text)
 }
 const handleStop = async () => {
   abort?.abort()

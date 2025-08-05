@@ -124,6 +124,7 @@ const converdationItems = computed(() =>
   <a-layout :style="{'min-width': `${screenWidth - (isMobile ? 0 : 250)}px`}">
     <chat
       v-model:conversationId="conversationId"
+      :copyRawContent="!isMobile"
       @newConversation="handleOnNewConversation"
       @conversationUpdate="handleOnConversationUpdate"
     >
