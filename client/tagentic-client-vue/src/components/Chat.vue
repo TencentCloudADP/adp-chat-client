@@ -811,6 +811,11 @@ const onResize = () => {
 .ant-bubble-content {
   overflow-x: auto;
   overflow-y: hidden;
+  padding: 0 12px !important;
+  min-height: 38px !important;
+}
+.ant-bubble-content p {
+  margin: 8px 0;
 }
 .ant-bubble-end .ant-bubble-content-filled {
   background-color: cornflowerblue;
