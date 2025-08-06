@@ -188,7 +188,7 @@ const renderRecord = (record: Record) => {
   const content = md.render(insertReference(record.Content || '', record.QuoteInfos))
   const hasReferences = record.References && record.References.length > 0
   return <Typography>
-    <div innerHTML={content} />
+    <div class="content" innerHTML={content} />
     {hasReferences && <div class="reference">
       参考来源：
       {record.References?.map((ref, index) => (
@@ -451,7 +451,7 @@ const doCopy = async (content: string, tips = '') => {
 }
 const handleCopy = async (event: Event|undefined, record: Record) => {
   const container = event?.target as HTMLElement
-  let text = container?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode?.textContent
+  let text = container?.closest('.ant-bubble-content-wrapper')?.querySelector('.content')?.textContent
   text = text?.replace(/\n{3,}/g, '\n\n')
   if (copyRawContent || text == null) {
     text = record.Content || ''
