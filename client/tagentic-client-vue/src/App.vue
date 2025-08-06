@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import useEventsBus from '@/util/eventBus'
+import { store } from '@/util/store.js'
 const { emit, bus } = useEventsBus()
 import Cookies from 'js-cookie'
 import { useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
 
-const access_token = ref(Cookies.get('token') as null|string)
+const accessToken = ref(Cookies.get('token') as null|string)
 
 const checkLogin = async () => {
   await router.isReady()
-  if (access_token.value) {
+  if (accessToken.value) {
     if (route.path == '/' || route.path == '/login') {
       router.replace('/chat')
     }
@@ -23,15 +24,15 @@ const checkLogin = async () => {
   }
 }
 
-watch(()=>bus.value.get('login-state-changed'), (_access_token) => {
-  if (_access_token == null) {
+watch(()=>bus.value.get('login-state-changed'), (_accessToken) => {
+  if (_accessToken == null) {
     let path = window.location.pathname.split('/static/app/index')[0]
     if (path == '') {
       path = '/'
     }
     Cookies.remove('token', { path: path})
   }
-  access_token.value = _access_token
+  accessToken.value = _accessToken
   checkLogin()
 })
 
@@ -42,6 +43,13 @@ onMounted(async () => {
 </script>
 
 <template>
+  <a-config-provider
+    :theme="{
+      token: {
+        fontSize: store.isMobile ? 17 : 14,
+      },
+    }"
+  />
   <a-layout id="root-layout">
     <RouterView />
   </a-layout>

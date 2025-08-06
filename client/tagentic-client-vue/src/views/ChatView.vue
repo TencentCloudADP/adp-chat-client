@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onBeforeMount } from 'vue'
 import Chat from '@/components/ChatWithConversationList.vue'
+import { store } from '@/util/store.js'
 import useEventsBus from '@/util/eventBus'
 const { emit, bus } = useEventsBus()
 import Cookies from 'js-cookie'
@@ -30,7 +31,7 @@ const handleLogout = () => {
 </script>
 
 <template>
-    <chat v-model:conversationId="conversationId" @logout="handleLogout" />
+    <chat v-model:conversationId="conversationId" @logout="handleLogout" :isMobile="store.isMobile" />
 </template>
 
 <style scoped>

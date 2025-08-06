@@ -17,12 +17,15 @@ defineOptions({ name: 'AXConversationsBasic' });
 
 const screenWidth = ref(window.innerWidth)
 const screenHeight = ref(window.innerHeight)
-const isMobile = (window.innerWidth < 512)
 const collapsed = ref(false)
 const conversations = ref([] as ChatConversation[])
 
 const emit = defineEmits<{
   logout: []
+}>()
+
+const { isMobile = true } = defineProps<{
+  isMobile: boolean,
 }>()
 
 const conversationId = defineModel('conversationId', { type: String })
@@ -100,12 +103,11 @@ const groupable: ConversationsProps['groupable'] = {
 const converdationItems = computed(() =>
   conversations.value.map((conversation) => ({
     key: conversation['Id'] || '',
-    label: <div class="item-box"><span>{conversation['Title']}</span><div class="item-space" /><span class="item-end">{dateFormat(new Date(conversation['LastActiveAt']*1000), 'HH:mm')}</span></div>,
+    label: <div class="item-box"><span class="conversation-title">{conversation['Title']}</span><div class="item-space" /><span class="item-end">{dateFormat(new Date(conversation['LastActiveAt']*1000), 'HH:mm')}</span></div>,
     disabled: false,
     group: dateGroup(conversation['LastActiveAt']),
   }))
 )
-
 </script>
 
 <template>
@@ -149,6 +151,12 @@ const converdationItems = computed(() =>
 }
 .item-end {
   color: #00000055 !important;
+}
+.conversation-title {
+  width: 160px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 .conversation-list-title {
   color: gray;
