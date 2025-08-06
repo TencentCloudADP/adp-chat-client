@@ -62,5 +62,6 @@ onMounted(async () => {
 #root-layout {
   height: 100%;
   overflow: hidden;
+  background: white;
 }
 </style>

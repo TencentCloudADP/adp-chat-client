@@ -20,8 +20,17 @@ watch(() => route.params.shareId,
 </script>
 
 <template>
+  <div class="main">
     <chat :shareId="shareId" />
+  </div>
 </template>
 
 <style scoped>
+.main {
+  max-width: 1000px;
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
 </style>

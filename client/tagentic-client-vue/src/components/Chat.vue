@@ -235,7 +235,7 @@ const items = computed(():BubbleListProps['items'] =>
       role: record['IsLlmGenerated'] ? 'agent' : 'user',
       content: record,
       footer: renderFooter,
-      avatar: isSelection.value ? <Checkbox value={record['RecordId']}></Checkbox> : <></>,
+      avatar: isSelection.value ? <Checkbox class="select-checkbox" value={record['RecordId']}></Checkbox> : <></>,
       messageRender: renderRecord,
     })
     return items
@@ -738,7 +738,7 @@ const onResize = () => {
 }
 #chat {
   background: #fff;
-  padding: 0 24px 24px 24px;
+  padding: 0 16px 16px 16px;
   margin: 0;
   min-height: 150px;
 }
@@ -756,6 +756,12 @@ const onResize = () => {
   overflow: auto;
   cursor: inherit;
   white-space: inherit;
+}
+.select-checkbox {
+  margin-right: 12px;
+}
+.ant-bubble {
+  column-gap: 0;
 }
 .bubble-list-container {
   width: 100%;
