@@ -696,7 +696,7 @@ const onResize = () => {
             v-model:file-list="fileList"
             :before-upload="handleFile"
             list-type="picture"
-            accept=".jpg,.jpeg,.png"
+            accept="image/png,image/jpeg,.jpg,.jpeg,.png"
             multiple
           >
             <a-button shape="circle">
