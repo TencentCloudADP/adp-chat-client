@@ -31,6 +31,7 @@ const { shareId = null, copyRawContent = true } = defineProps<{
 const conversationId = defineModel('conversationId', { type: String })
 const listRef = ref<InstanceType<typeof BubbleList>>()
 const listContainerRef = ref<HTMLDivElement|null>()
+const senderRef = ref<InstanceType<typeof Sender>>()
 
 const scrollOnMsgCount = ref(0)
 const scrollReachEnd = ref(true)
@@ -723,6 +724,7 @@ const onResize = () => {
         <div class="share-panel-space"/>
       </flex>
       <sender
+        ref="senderRef"
         v-if="!isSelection && !shareId"
         :loading="senderLoading"
         :value="query"
@@ -731,9 +733,11 @@ const onResize = () => {
         :on-submit="() => {
           handleSend()
           setQuery('')
+          senderRef?.blur()
         }"
         :on-cancel="() => {
           handleStop()
+          senderRef?.blur()
         }"
       >
         <template #prefix>
