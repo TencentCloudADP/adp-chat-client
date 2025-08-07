@@ -268,6 +268,7 @@ export function messageToRecord(message: Message): Record | null {
     // 处理 ReferenceMessage 转换
     return {
       IsLlmGenerated: true,
+      IsFromSelf: false,
       RecordId: message.payload.record_id,
       References: message.payload.references.map(ref => ({
         Type: ref.type,
@@ -309,6 +310,7 @@ export function messageToRecord(message: Message): Record | null {
         WorkflowName: message.payload.workflow_name
       },
       IsLlmGenerated: true,
+      IsFromSelf: false,
       RecordId: message.payload.record_id,
       SessionId: message.payload.session_id,
       Timestamp: new Date().toISOString(), // ThoughtMessage 没有 timestamp，使用当前时间
@@ -367,6 +369,7 @@ export function messageToRecord(message: Message): Record | null {
         UsedCount: message.payload.used_count
       },
       IsLlmGenerated: true,
+      IsFromSelf: false,
       RecordId: message.payload.record_id,
       SessionId: message.payload.session_id,
       Timestamp: new Date().toISOString(),

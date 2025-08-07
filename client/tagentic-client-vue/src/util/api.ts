@@ -29,7 +29,7 @@ axiosInstance.interceptors.response.use(response => {
   console.log('[error]', error)
 
   // 如果是stream响应
-  if (error.response.config.responseType === 'stream') {
+  if (error.response && error.response.config && error.response.config.responseType === 'stream') {
     try {
       // 将流转换为文本
       const data = await new Response(error.response.data).text()
