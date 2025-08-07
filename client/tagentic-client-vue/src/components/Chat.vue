@@ -1,9 +1,9 @@
 <script setup lang="tsx">
-import { PlusSquareOutlined, UserOutlined, LinkOutlined, RedoOutlined, CopyOutlined, ShareAltOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined, LoadingOutlined, GlobalOutlined, RightOutlined, FileTextOutlined } from '@ant-design/icons-vue'
-import { Flex, Upload, Button, Checkbox, CheckboxGroup } from 'ant-design-vue'
-import { Bubble, BubbleList, Sender, type SenderProps, ThoughtChain, type BubbleListProps, type BubbleProps, Prompts, type PromptsProps } from 'ant-design-x-vue'
+import { PlusSquareOutlined, UserOutlined, LinkOutlined, RedoOutlined, CopyOutlined, ShareAltOutlined, LikeFilled, DislikeFilled, LikeOutlined, DislikeOutlined, LoadingOutlined, GlobalOutlined, RightOutlined, FileTextOutlined, BulbOutlined, UpOutlined, DownOutlined } from '@ant-design/icons-vue'
+import { Flex, Upload, Button, Checkbox, CheckboxGroup, Space } from 'ant-design-vue'
+import { Bubble, BubbleList, Sender, type SenderProps, type BubbleListProps, type BubbleProps, Prompts, type PromptsProps } from 'ant-design-x-vue'
 import { Typography } from 'ant-design-vue'
-import { ref, reactive, watch, computed, h, onMounted, nextTick } from 'vue'
+import { ref, reactive, watch, computed, h, onMounted, nextTick, type VNode } from 'vue'
 import {api, chunkSplitter} from '@/util/api'
 import type { AxiosRequestConfig } from 'axios'
 import markdownit from 'markdown-it'
@@ -86,13 +86,6 @@ const roles: BubbleListProps['roles'] = {
     avatar: { icon: h(UserOutlined), style: { background: '#fde3cf' } },
     style: {
     },
-  },
-  thought: {
-    placement: 'start',
-    avatar: { icon: h(UserOutlined), style: { visibility: 'hidden' } },
-    variant: 'borderless',
-    messageRender: (items) =>
-      h(ThoughtChain, { collapsible: { expandedKeys: expandedKeys.value, onExpand }, items: items as any }),
   },
   user: {
     placement: 'end',
@@ -187,8 +180,55 @@ md.use(katex, {delimiters: ['dollars','brackets','beg_end'], katexOptions: {stri
 const renderRecord = (record: Record) => {
   const content = md.render(insertReference(record.Content || '', record.QuoteInfos))
   const hasReferences = record.References && record.References.length > 0
+  let thinkContent = undefined as VNode[] | undefined
+  let isThinking = false
+  if (record.AgentThought?.Procedures?.length||0 > 0) {
+    isThinking = record.AgentThought?.Procedures?.map((proc, index) => (proc.Status == 'processing')).some(Boolean) || false
+    thinkContent = record.AgentThought?.Procedures?.map((proc, index) => (
+      <Typography>
+        <p>
+          {proc.Title||'已思考'}
+        </p>
+        <p>
+          {proc.TargetAgentName} {renderMarkdown(proc.Debugging?.DisplayContent || proc.Debugging?.Content || '')}
+        </p>
+      </Typography>
+    ))
+  }
+  const collapse = ref(!isThinking)
+
   return <Typography>
-    <div class="content" innerHTML={content} />
+    { thinkContent !== undefined ?
+      <Bubble
+        onClick={() => {
+          collapse.value = !collapse.value;
+        }}
+        styles={{ footer: { marginTop: '10px' } }}
+        content={
+          <Space class="thinking-button">
+            <BulbOutlined />
+            <span>{isThinking ? "思考中..." : "已深度思考"}</span>
+            {collapse.value ? <UpOutlined /> : <DownOutlined />}
+          </Space>
+        }
+        footer={
+          <Space direction="vertical">
+            { !collapse.value &&
+            <Bubble
+              class="thinking-content"
+              variant="borderless"
+              typing
+              content={thinkContent}
+            />
+            }
+            {isThinking && <LoadingOutlined />}
+            <div innerHTML={content} />
+          </Space>
+        }
+      />
+    :
+      <div v-else class="content" innerHTML={content} />
+    }
     {hasReferences && <div class="reference">
       参考来源：
       {record.References?.map((ref, index) => (
@@ -212,26 +252,10 @@ const selectedRecords = ref([] as string[])
 const items = computed(():BubbleListProps['items'] =>
   messages.value.flatMap((record) => {
     let items:any[] = []
-    let procedures:any[] = []
-    if (record.AgentThought?.Procedures?.length||0 > 0) {
-      procedures = [...procedures, ...record.AgentThought?.Procedures?.map((proc, index) => ({
-          key: (record['RecordId'] || '') + '-thought-' + index,
-          title: proc.Title||'已思考',
-          description: proc.TargetAgentName,
-          content: renderMarkdown(proc.Debugging?.DisplayContent || proc.Debugging?.Content || ''),
-        }))!]
-    }
-    if (procedures.length||0 > 0) {
-      items.push({
-        key: record['RecordId'] || '',
-        loading: false,
-        role: 'thought',
-        content: procedures,
-      })
-    }
     items.push({
       key: record['RecordId'] || '',
-      loading: record['Content']=='',
+      // loading: record['Content']=='',
+      variant: record['IsLlmGenerated'] ? 'borderless' : 'filled',
       role: record['IsLlmGenerated'] ? 'agent' : 'user',
       content: record,
       footer: renderFooter,
@@ -760,6 +784,12 @@ const onResize = () => {
 .select-checkbox {
   margin-right: 12px;
 }
+.thinking-button {
+  margin: 6px 0;
+}
+.thinking-content .ant-typography {
+  color: gray !important;
+}
 .ant-bubble {
   column-gap: 0;
 }
@@ -822,6 +852,9 @@ const onResize = () => {
 }
 .ant-bubble-content p {
   margin: 8px 0;
+}
+.ant-bubble-content-borderless {
+  padding: 0 6px !important;
 }
 .ant-bubble-end .ant-bubble-content-filled {
   background-color: cornflowerblue;
