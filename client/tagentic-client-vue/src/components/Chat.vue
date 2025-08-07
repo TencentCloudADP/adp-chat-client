@@ -229,7 +229,7 @@ const renderRecord = (record: Record) => {
     :
       <div v-else class="content" innerHTML={content} />
     }
-    {hasReferences && <div class="reference">
+    {hasReferences && !(record.IsFinal===false) && <div class="reference">
       参考来源：
       {record.References?.map((ref, index) => (
         <p key={index}>
