@@ -39,6 +39,7 @@ const skipUpdateOnce = ref(false)
 const query = ref("")
 const senderLoading = ref(false)
 const messages = ref([] as Record[])
+let abort = null as AbortController|null
 const setQuery = (v: string) => {
   query.value = v
 }
@@ -336,6 +337,8 @@ const handleUpdate = async () => {
     return
   }
   // restore to default state on new conversation
+  abort?.abort()
+  abort = null
   scrollReachEnd.value = true
   messages.value = []
   selectedRecords.value = []
@@ -366,7 +369,6 @@ const handleUpdate = async () => {
 }
 watch(() => [conversationId.value, shareId], handleUpdate, { immediate: true })
 
-let abort = null as AbortController|null
 const handleSend = async (_lastQuery = null as null|string) => {
   senderLoading.value = true
   recording.value = false
