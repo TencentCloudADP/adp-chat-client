@@ -80,7 +80,7 @@ login() {
 ### 封装 logs 逻辑
 show_logs() {
     local INSTANCE="$1"
-    docker logs tagentic-server-$INSTANCE
+    docker logs -f tagentic-server-$INSTANCE
 }
 
 ### 主逻辑
