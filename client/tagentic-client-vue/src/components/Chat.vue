@@ -294,29 +294,6 @@ const items = computed(():BubbleListProps['items'] =>
   })
 )
 
-// thought-chain
-const expandedKeysUser = reactive([] as string[])
-const onExpand = (keys: string[]) => {
-  expandedKeysUser.splice(0, expandedKeysUser.length, ...keys)
-}
-// 展开的思维链：用户点击展开 或者 “思考中”
-// expanded thought-chain: user click to expand or "Thinking"
-const expandedKeys = computed(():string[] => {
-  let ids = messages.value.flatMap((record):string[] => {
-    let arr:any[] = []
-    arr = arr.concat(record.AgentThought?.Procedures?.map((proc, index) => (
-      proc.Status == 'processing' ? (record['RecordId'] || '') + '-thought-' + index : undefined
-    )))
-    arr = arr.concat(record.TokenStat?.Procedures?.map((proc, index) => (
-      proc.Status == 'processing' ? (record['RecordId'] || '') + '-stat-' + index : undefined
-    )))
-    // remove undefined
-    const filtered = arr?.filter((item): item is string => item !== undefined) || []
-    return filtered
-  })
-  return [...expandedKeysUser, ...ids]
-})
-
 // message processing
 const handleUpdateMore = async ({ loaded, noMore }: LoadAction) => {
   console.log('[handleUpdateMore]')
