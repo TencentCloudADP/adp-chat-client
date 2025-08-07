@@ -476,8 +476,12 @@ const handleReSend = async (recordId: string|undefined) => {
 }
 const doCopy = async (content: string, tips = '') => {
   if (navigator.clipboard) {
-    await navigator.clipboard.writeText(content)
-    message.info(`${tips}复制成功`)
+    try {
+      await navigator.clipboard.writeText(content)
+      message.info(`${tips}复制成功`)
+    } catch (err) {
+      message.info(`复制失败（${err}）`)
+    }
   } else {
     message.error(`复制失败（请使用https协议部署！）`)
   }
