@@ -12,7 +12,7 @@ import 'katex/dist/katex.min.css'
 import type { Message, ReplyMessage } from '@/model/message'
 import type { Application } from '@/model/application'
 import type { Record } from '@/model/record'
-import type { UploadProps } from 'ant-design-vue'
+import type { CheckboxProps, UploadProps } from 'ant-design-vue'
 import { messageToRecord, mergeRecord, ScoreValue, type QuoteInfo } from '@/model/record'
 import { type ChatConversation } from '@/model/conversation'
 import { message } from 'ant-design-vue'
@@ -247,6 +247,34 @@ const renderMarkdown = (content: string) =>
     <div innerHTML={md.render(typeof(content) == 'string' ? content as string : '')} />
   </Typography>
 
+// 字段选择关联的消息
+const handleSelectChange = async (e: any) => {
+  // 查找相关记录
+  let RelatedRecordId = undefined as string | undefined
+  for (let record of messages.value) {
+    if (record.RecordId == e.target.value && record.RelatedRecordId !== '') {
+      RelatedRecordId = record.RelatedRecordId
+    }
+    else if (record.RelatedRecordId == e.target.value) {
+      RelatedRecordId = record.RecordId
+    }
+  }
+  if (RelatedRecordId !== undefined) {
+    if (selectedRecords.value.indexOf(e.target.value) !== -1) {
+      // 取消选择
+      await nextTick()
+      selectedRecords.value = selectedRecords.value.filter((item, _) => item !== RelatedRecordId)
+    }
+    else {
+      // 选择
+      if (selectedRecords.value.indexOf(RelatedRecordId) === -1) {
+        selectedRecords.value.push(RelatedRecordId)
+      }
+    }
+  }
+  console.log(selectedRecords.value)
+}
+
 const isSelection = ref(false)
 const selectedRecords = ref([] as string[])
 const items = computed(():BubbleListProps['items'] =>
@@ -259,7 +287,7 @@ const items = computed(():BubbleListProps['items'] =>
       role: record['IsLlmGenerated'] ? 'agent' : 'user',
       content: record,
       footer: renderFooter,
-      avatar: isSelection.value ? <Checkbox class="select-checkbox" value={record['RecordId']}></Checkbox> : <></>,
+      avatar: isSelection.value ? <Checkbox class="select-checkbox" value={record['RecordId']} onChange={handleSelectChange}></Checkbox> : <></>,
       messageRender: renderRecord,
     })
     return items
@@ -330,9 +358,11 @@ const handleUpdate = async () => {
     skipUpdateOnce.value = false
     return
   }
-  // enable auto scroll on new conversation
+  // restore to default state on new conversation
   scrollReachEnd.value = true
   messages.value = []
+  selectedRecords.value = []
+  isSelection.value = false
   if (!conversationId.value && !shareId) {
     if (applications.value.length > 0) {
       currentApplicationId.value = applications.value[0].AppBizId
@@ -588,6 +618,10 @@ const handleSelect = (recordIds: (string|undefined)[]) => {
   selectedRecords.value = recordIds.filter((item): item is string => item !== undefined)
 }
 const handleShare = async () => {
+  if (selectedRecords.value.length == 0) {
+    message.error(`请选择要分享的消息`)
+    return
+  }
   const post_body = {
     ConversationId: conversationId.value,
     ApplicationId: currentApplicationId.value,
@@ -641,6 +675,10 @@ const resizeObserver = new ResizeObserver(entries => {
   }
 })
 const onResize = () => {
+  if (messages.value.length == 0) {
+    return
+  }
+  // console.log(`[onResize], ${scrollReachEnd.value}, ${scrollOnMsgCount.value}`
   if (scrollReachEnd.value) {
     if (scrollOnMsgCount.value < 3) {
       // 在iOS上，一次resize事件后可能有2次onScroll事件，需要避免因此误判用户滚动
