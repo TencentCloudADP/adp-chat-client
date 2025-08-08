@@ -219,17 +219,19 @@ const renderRecord = (record: Record) => {
             <Bubble
               class="thinking-content"
               variant="borderless"
-              typing
               content={thinkContent}
             />
             }
-            {isThinking && <LoadingOutlined />}
-            <div innerHTML={content} />
+            <div class="content" innerHTML={content} />
           </Space>
         }
       />
     :
-      <div v-else class="content" innerHTML={content} />
+      ( content == '' ?
+          <Bubble variant="borderless" loading={true} />
+        :
+          <div class="content" innerHTML={content} />
+      )
     }
     {hasReferences && !(record.IsFinal===false) && <div class="reference">
       参考来源：
