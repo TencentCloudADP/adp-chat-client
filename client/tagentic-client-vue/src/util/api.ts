@@ -71,20 +71,40 @@ axiosInstance.interceptors.response.use(response => {
 })
 
 async function* chunkSplitter(src: any) : AsyncGenerator<string> {
-  let buffer = ''
-  for await (const raw of src) {
-    buffer += new TextDecoder().decode(raw)
-    let lines = buffer.split('\n')
-    for (let i = 0; i < lines.length - 1; i++) {
-      if (lines[i].trim() != '') {
-        yield lines[i]
+  let buffer = new Uint8Array(0)
+  const textDecoder = new TextDecoder('utf-8')
+  const newlineChar = '\n'.charCodeAt(0)
+
+  for await (const chunk of src) {
+    // 合并新数据到缓冲区
+    const newBuffer = new Uint8Array(buffer.length + chunk.length)
+    newBuffer.set(buffer)
+    newBuffer.set(chunk, buffer.length)
+    buffer = newBuffer
+
+    // 查找所有 \n 的位置
+    let lineStart = 0
+    for (let i = 0; i < buffer.length; i++) {
+      if (buffer[i] === newlineChar) {
+        // 提取当前行（不包括 \n）
+        const lineBytes = buffer.slice(lineStart, i)
+        const line = textDecoder.decode(lineBytes).trim()
+        if (line) {
+          yield line
+        }
+        lineStart = i + 1 // 跳过 \n
       }
     }
-    buffer = lines[lines.length - 1]
+
+    // 保留未处理的部分（可能包含不完整的行或 UTF-8 字符）
+    buffer = buffer.slice(lineStart)
   }
-  if (buffer) {
-    if (buffer.trim() != '') {
-      yield buffer
+
+  // 处理剩余数据（最后一行可能没有 \n）
+  if (buffer.length > 0) {
+    const line = textDecoder.decode(buffer).trim()
+    if (line) {
+      yield line
     }
   }
 }
