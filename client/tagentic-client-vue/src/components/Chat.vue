@@ -182,6 +182,12 @@ md.use(katex, {delimiters: ['dollars','brackets','beg_end'], katexOptions: {stri
 const renderRecord = (record: Record) => {
   const content = md.render(insertReference(record.Content || '', record.QuoteInfos))
   const hasReferences = record.References && record.References.length > 0
+  const hasOptionCards = record.OptionCards && record.OptionCards.length > 0
+  const prompts: PromptsProps['items'] = record.OptionCards?.map((card, index) => ({
+    key: card,
+    description: card,
+  }))
+
   let thinkContent = undefined as VNode[] | undefined
   let isThinking = false
   if (record.AgentThought?.Procedures?.length||0 > 0) {
@@ -232,6 +238,25 @@ const renderRecord = (record: Record) => {
         :
           <div class="content" innerHTML={content} />
       )
+    }
+    {hasOptionCards && !(record.IsFinal===false) && <div class="option-cards">
+      <Prompts
+        items={prompts}
+        vertical
+        styles={
+          {
+            item: {
+              color: '#1677ff',
+              border: '1px solid #1677ff',
+              padding: '6px',
+            },
+          }
+        }
+        onItemClick={async (info) => {
+          await handleSend(info.data.description as string)
+        }}
+      />
+    </div>
     }
     {hasReferences && !(record.IsFinal===false) && <div class="reference">
       参考来源：

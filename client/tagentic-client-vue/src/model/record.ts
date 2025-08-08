@@ -22,7 +22,7 @@ export interface Debugging {
     UpdatedSlotValues?: any[];
   };
   WorkFlow?: {
-    OptionCards?: any[];
+    OptionCards?: string[];
     Outputs?: any[];
     RunNodes?: any[];
     WorkflowId?: string;
@@ -74,7 +74,7 @@ export interface TokenStat {
 }
 
 export interface WorkFlow {
-  OptionCards?: any[];
+  OptionCards?: string[];
   Outputs?: any[];
   WorkflowId?: string;
   WorkflowName?: string;
@@ -136,7 +136,7 @@ export interface Record {
   IsFromSelf?: boolean;
   IsLlmGenerated?: boolean;
   IsFinal?: boolean;
-  OptionCards?: any[];
+  OptionCards?: string[];
   QuoteInfos?: QuoteInfo[];
   Reasons?: any[];
   RecordId?: string;
@@ -173,6 +173,7 @@ export function mergeRecord(record: Record, delta: Record, msg: Message) {
     } else {
       record.Content = delta.Content
     }
+    record.OptionCards = delta.OptionCards
     record.QuoteInfos = delta.QuoteInfos
     record.CanRating = delta.CanRating
     record.IsFinal = delta.IsFinal
@@ -251,7 +252,7 @@ export function messageToRecord(message: Message): Record | null {
       IsFromSelf: message.payload.is_from_self,
       IsLlmGenerated: message.payload.is_llm_generated,
       IsFinal: message.payload.is_final,
-      OptionCards: message.payload.option_cards ? [message.payload.option_cards] : [],
+      OptionCards: message.payload.option_cards ? message.payload.option_cards : [],
       QuoteInfos: message.payload.quote_infos?.map(quote => ({
         Index: `${quote.index}`,
         Position: quote.position,

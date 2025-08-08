@@ -29,7 +29,7 @@ export interface ReplyMessage extends MessageBase {
         is_from_self: boolean;
         is_llm_generated: boolean;
         knowledge: null;
-        option_cards: null;
+        option_cards: string[];
         quote_infos: QuoteInfo[];
         record_id: string;
         related_record_id: string;
