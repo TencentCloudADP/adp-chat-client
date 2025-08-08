@@ -375,6 +375,7 @@ watch(() => [conversationId.value, shareId], handleUpdate, { immediate: true })
 const handleSend = async (_lastQuery = null as null|string) => {
   senderLoading.value = true
   recording.value = false
+  scrollReachEnd.value = true
 
   let _query = ''
   if (_lastQuery == null)
