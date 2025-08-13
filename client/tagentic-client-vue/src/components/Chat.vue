@@ -211,7 +211,7 @@ const renderRecord = (record: Record) => {
         onClick={() => {
           collapse.value = !collapse.value;
         }}
-        styles={{ footer: { marginTop: '10px' } }}
+        styles={{ footer: { marginTop: '10px' }, content: { cursor: 'pointer', display: 'flex' } }}
         content={
           <Space class="thinking-button">
             <BulbOutlined />
@@ -228,7 +228,7 @@ const renderRecord = (record: Record) => {
               content={thinkContent}
             />
             }
-            <div class="content" innerHTML={content} />
+            <div onClick={($event)=>{$event.stopPropagation()}} class="content" innerHTML={content} />
           </Space>
         }
       />
