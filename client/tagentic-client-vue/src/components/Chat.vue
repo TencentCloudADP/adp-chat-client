@@ -191,7 +191,9 @@ const renderRecord = (record: Record) => {
   let thinkContent = undefined as VNode[] | undefined
   let isThinking = false
   if (record.AgentThought?.Procedures?.length||0 > 0) {
-    isThinking = record.AgentThought?.Procedures?.map((proc, index) => (proc.Status == 'processing')).some(Boolean) || false
+    if (content === '' && record.AgentThought?.Procedures?.length||0 > 0) {
+      isThinking = true
+    }
     thinkContent = record.AgentThought?.Procedures?.map((proc, index) => (
       <Typography>
         <p>
