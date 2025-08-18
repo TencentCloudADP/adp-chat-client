@@ -2,6 +2,7 @@
 import { ref, reactive, computed, watch, onBeforeMount } from 'vue'
 import Chat from '@/components/Chat.vue'
 import useEventsBus from '@/util/eventBus'
+import { store } from '@/util/store.js'
 const { emit, bus } = useEventsBus()
 import Cookies from 'js-cookie'
 import { useRoute, useRouter } from 'vue-router'
@@ -27,7 +28,7 @@ watch(() => route.params.shareId,
 
 <style scoped>
 .main {
-  max-width: 1000px;
+  max-width: v-bind(store.isMobile ? '100%' : '1000px');
   margin: 0 auto;
   height: 100%;
   display: flex;
