@@ -32,10 +32,11 @@ class ChatMessageApi(HTTPMethodView):
         logging.info(f"ChatMessageApi: {args}")
 
         application_id = args['ApplicationId']
-        app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==application_id][0]
+        vendor_app = app.get_vendor_app(application_id)
+        print('application_id: ', application_id, vendor_app)
 
         async def streaming_fn(response):
-            async for data in CoreChat.message(request.ctx.db, request.ctx.account_id, args['Query'], args['ConversationId'], application_id, app_key, args['SearchNetwork'], args['CustomVariables']):
+            async for data in CoreChat.message(vendor_app, request.ctx.db, request.ctx.account_id, args['Query'], args['ConversationId'], args['SearchNetwork'], args['CustomVariables']):
                 await response.write(data)
         return ResponseStream(streaming_fn, content_type='text/event-stream; charset=utf-8')
 
@@ -50,10 +51,12 @@ class ChatMessageListApi(HTTPMethodView):
         if args["ConversationId"] is not None:
             check_login(request)
             application_id = await CoreConversation.get_application_id(request.ctx.db, request.ctx.account_id, args['ConversationId'])
-            app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==application_id][0]
+            # 如果application_id全是数字，说明是旧版，兼容转换成新的application_id
+            if application_id.isdigit():
+                application_id = app.convert_old_application_id(application_id)
+            vendor_app = app.get_vendor_app(application_id)
 
-            # messages = await CoreMessage.list(request.ctx.db, args['ConversationId'])
-            messages = await CoreMessage.list_from_remote(request.ctx.db, app_key, args['ConversationId'], args['LastRecordId'])
+            messages = await vendor_app.get_messages(request.ctx.db, request.ctx.account_id, args['ConversationId'], args['LastRecordId'])
             resp = {
                 'Response': {
                     'ApplicationId': application_id,

@@ -2,7 +2,11 @@ from uuid import UUID
 import ujson
 import functools
 from datetime import datetime, date
+from pydantic import BaseModel
+
 def datetime_to_json_formatting(o):
+    if isinstance(o, BaseModel):
+        return o.model_dump()
     if isinstance(o, (date, datetime)):
         return int(o.timestamp())
     if isinstance(o, UUID):
