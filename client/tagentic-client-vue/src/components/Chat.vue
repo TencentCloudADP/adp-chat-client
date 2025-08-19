@@ -54,12 +54,12 @@ onMounted(async () => {
 // applications
 const currentApplicationId = ref(undefined as string|undefined)
 const applications = ref([] as Application[])
-const currentApplication = computed(() => applications.value.find((application) => application['AppBizId'] == currentApplicationId.value))
-const currentApplicationAvatar = computed(() => currentApplication.value?.BaseConfig.Avatar)
-const currentApplicationName = computed(() => currentApplication.value?.BaseConfig.Name)
-const currentApplicationGreeting = computed(() => currentApplication.value?.AppConfig.KnowledgeQa.Greeting)
+const currentApplication = computed(() => applications.value.find((application) => application['ApplicationId'] == currentApplicationId.value))
+const currentApplicationAvatar = computed(() => currentApplication.value?.Avatar)
+const currentApplicationName = computed(() => currentApplication.value?.Name)
+const currentApplicationGreeting = computed(() => currentApplication.value?.Greeting)
 const currentApplicationPrompts = computed(():PromptsProps['items'] =>
-  currentApplication.value?.AppConfig.KnowledgeQa.OpeningQuestions?.map((item, index) => (
+  currentApplication.value?.OpeningQuestions?.map((item, index) => (
     {
       key: `${index}`,
       description: item,
@@ -72,7 +72,7 @@ const handleLoadApplication = async () => {
     if (res.data.Applications) {
         applications.value = res.data.Applications
         if (currentApplicationId.value === undefined) {
-            currentApplicationId.value = applications.value[0].AppBizId
+            currentApplicationId.value = applications.value[0].ApplicationId
         }
     }
 }
@@ -372,7 +372,7 @@ const handleUpdate = async () => {
   isSelection.value = false
   if (!conversationId.value && !shareId) {
     if (applications.value.length > 0) {
-      currentApplicationId.value = applications.value[0].AppBizId
+      currentApplicationId.value = applications.value[0].ApplicationId
     }
     return
   }
@@ -707,7 +707,7 @@ const onResize = () => {
     <slot name="header"></slot>
 
     <a-select v-model:value="currentApplicationId" style="width: 200px; margin: 0 auto" id="agent-select" :disabled="!!conversationId || !!shareId">
-      <a-select-option v-for="application in applications" :value="application['AppBizId']">{{'BaseConfig' in application ? application['BaseConfig']['Name'] : '智能体(信息获取失败)'}}</a-select-option>
+      <a-select-option v-for="application in applications" :value="application['ApplicationId']">{{application['Name']}}</a-select-option>
     </a-select>
 
     <plus-square-outlined v-if="!shareId" class="chat-header-btn" @click="handleCreateConversation" />
