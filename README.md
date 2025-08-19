@@ -1,5 +1,5 @@
 # 关于
-**adp-chat-client** 是一个开源的AI智能体应用对话端。可以将 [腾讯云智能体开发平台（ADP）](https://cloud.tencent.com/product/tcadp) 开发的 AI 智能体应用快速部署为Web应用（或嵌入到小程序、Android、iOS 应用中）。支持实时对话、对话历史管理、语音输入、图片理解、第三方账户体系对接等功能。支持通过 Docker 快速部署。
+**adp-chat-client** 是一个开源的AI智能体应用对话端。可以将 [腾讯云智能体开发平台（Tencent Cloud ADP）](https://cloud.tencent.com/product/tcadp) 开发的 AI 智能体应用快速部署为Web应用（或嵌入到小程序、Android、iOS 应用中）。支持实时对话、对话历史管理、语音输入、图片理解、第三方账户体系对接等功能。支持通过 Docker 快速部署。
 
 #### 目录
 
