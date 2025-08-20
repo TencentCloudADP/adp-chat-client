@@ -45,7 +45,7 @@
 ### 2. 克隆项目仓库到本地
 将 `fork` 下来的仓库克隆到本地：
 ``` bash
-$ git git@github.com:<yourname>/adp-chat-client.git
+$ git clone git@github.com:<yourname>/adp-chat-client.git
 ```
 
 ### 3. 添加上游仓库

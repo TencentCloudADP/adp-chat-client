@@ -55,7 +55,7 @@ Click the `Fork` button on our GitHub main page to create your own copy of the r
 Clone the forked repository to your local machine:
 
 ```bash
-$ git git@github.com:<yourname>/adp-chat-client.git
+$ git clone git@github.com:<yourname>/adp-chat-client.git
 ```
 
 ### 3. Add the Upstream remote
