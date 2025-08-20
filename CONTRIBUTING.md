@@ -51,7 +51,7 @@ $ git clone git@github.com:<yourname>/adp-chat-client.git
 ### 3. 添加上游仓库
 将上游（原始）仓库（upstream）连接到本地仓库：
 ``` bash
-$ git remote add upstream git@github.com:TencentCloud/adp-chat-client.git
+$ git remote add upstream git@github.com:TencentCloudADP/adp-chat-client.git
 ```
 
 ### 4. 同步远程仓库

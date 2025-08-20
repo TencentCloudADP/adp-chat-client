@@ -63,7 +63,7 @@ $ git clone git@github.com:<yourname>/adp-chat-client.git
 Connect the upstream (original) repository to your local repo:
 
 ```bash
-$ git remote add upstream git@github.com:TencentCloud/adp-chat-client.git
+$ git remote add upstream git@github.com:TencentCloudADP/adp-chat-client.git
 ```
 
 ### 4. Sync with Upstream
