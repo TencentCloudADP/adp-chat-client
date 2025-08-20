@@ -913,6 +913,14 @@ const onResize = () => {
 .ant-bubble-content-borderless {
   padding: 0 6px !important;
 }
+.ant-bubble-content table {
+  border: 1px solid #ddd;
+  border-collapse: collapse;
+}
+.ant-bubble-content td, th {
+  border: 1px solid #ddd;
+}
+
 .ant-bubble-end .ant-bubble-content-filled {
   background-color: cornflowerblue;
 }
