@@ -11,3 +11,5 @@ Makefile.local
 docker.config
 research
 build
+cache
+deploy/default/volume/
