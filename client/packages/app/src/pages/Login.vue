@@ -4,14 +4,14 @@
       <div class="login-title">{{ $t('登录智能体开发平台') }}</div>
       <t-form class="login-form" layout="vertical" :label-width="0" @submit="onSubmit">
         <t-form-item>
-          <t-input v-model="username" :placeholder="$t('请输入账户名')" clearable>
+          <t-input v-model="username" :placeholder="$t('请输入账户名')" clearable disabled>
             <template #prefix-icon>
               <t-icon name="user" />
             </template>
           </t-input>
         </t-form-item>
         <t-form-item>
-          <t-input v-model="password" type="password" :placeholder="$t('请输入密码')" clearable>
+          <t-input v-model="password" type="password" :placeholder="$t('请输入密码')" clearable disabled>
             <template #prefix-icon>
               <t-icon name="lock-on" />
             </template>
@@ -20,39 +20,42 @@
         <t-form-item>
           <t-button theme="primary" type="submit" block :disabled="!username || !password">{{ $t('登录') }}</t-button>
         </t-form-item>
+
+        <t-form-item class="form-item-clear" v-if="oauthProviders.length > 0">
+          Or login with
+          <span v-for="provider, index in oauthProviders">
+            <a class="login-providers" :href="provider['url']">{{ provider['name'] }}</a>
+            <span v-if="index !== oauthProviders.length - 1">,</span>
+          </span>
+        </t-form-item>
+
       </t-form>
     </t-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { MessagePlugin } from 'tdesign-vue-next';
-import { uuidv4 } from '@/utils/id';
-import { login } from '@/service/auth';
+import { fetchLoginProviders } from '@/service/login';
 
 const { t } = useI18n();
 
 const username = ref('');
 const password = ref('');
-
-
-// mock密码
-const MOCK_PASS = '123456';
+const oauthProviders = ref([])
 
 const router = useRouter();
 
-const onSubmit = (e: Event) => {
-  console.log('onSubmit', e);
-  if (username.value && (password.value === MOCK_PASS)) {
-    const token = uuidv4();
-    login(token, () => router.replace('/'));
-  } else {
-    MessagePlugin.error({ content: t('账号或密码错误') });
-  }
-};
+const onSubmit = (e: Event) => { };
+
+onMounted(async () => {
+  const providers = await fetchLoginProviders();
+  console.log('Login Providers:', providers.Providers);
+  oauthProviders.value = providers.Providers;
+});
 </script>
 
 <style scoped>

@@ -4,7 +4,7 @@ import {
   type RouteLocationNormalized,
   type NavigationGuardNext,
 } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { isLoggedIn } from '@/service/login'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -25,10 +25,9 @@ const router = createRouter({
 
 router.beforeEach(
   (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
-    const authStore = useAuthStore()
-    if (to.name !== 'login' && !authStore.isLoggedIn) {
+    if (to.name !== 'login' && !isLoggedIn()) {
       next({ name: 'login' })
-    } else if (to.name === 'login' && authStore.isLoggedIn) {
+    } else if (to.name === 'login' && isLoggedIn()) {
       next({ name: 'Home' })
     } else {
       next()

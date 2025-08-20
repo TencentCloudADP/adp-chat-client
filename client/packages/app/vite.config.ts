@@ -40,5 +40,12 @@ export default defineConfig({
     host: '0.0.0.0', // 允许所有 IP 访问
     port: 5173, // 可选：指定端口
     strictPort: true, // 端口占用时报错（可选）
+    proxy: {
+      '/api': {
+        target: 'http://21.91.124.239:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+    },
   },
 })

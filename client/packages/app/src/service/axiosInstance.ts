@@ -1,10 +1,12 @@
 import axios from 'axios'
-import { useAuthStore } from '@/stores/auth'
-const authStore = useAuthStore()
+
+// 根据环境动态设置baseURL
+const isDev = import.meta.env.DEV
+const baseURL = isDev ? '/api' : ''
 
 // 创建axios实例
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL,
   timeout: 10000, // 请求超时时间
   headers: {
     'Content-Type': 'application/json',
@@ -14,11 +16,6 @@ const instance = axios.create({
 // 请求拦截器
 instance.interceptors.request.use(
   (config) => {
-    // 在发送请求之前做些什么，例如添加token
-    const token = authStore.token
-    if (token) {
-      config.url = `${config.url}?token=${token}`
-    }
     return config
   },
   (error) => {
