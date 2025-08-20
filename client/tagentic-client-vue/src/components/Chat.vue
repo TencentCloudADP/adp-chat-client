@@ -241,7 +241,18 @@ const renderRecord = (record: Record) => {
           <div class="content" innerHTML={content} />
       )
     }
-    {hasOptionCards && !(record.IsFinal===false) && <div class="option-cards">
+    {hasReferences && !(record.IsFinal===false) && <div class="reference">
+      参考来源：
+      {record.References?.map((ref, index) => (
+        <p key={index}>
+          <a href={ref.Url} target="_blank" rel="noopener noreferrer">
+            {ref.Type == 2 ? <FileTextOutlined /> : <GlobalOutlined/>}&nbsp;{index+1}.{ref.Name}&nbsp;<RightOutlined />
+          </a>
+        </p>
+      ))}
+      </div>
+    }
+    {hasOptionCards && !shareId && !(record.IsFinal===false) && <div class="option-cards">
       <Prompts
         items={prompts}
         vertical
@@ -259,17 +270,6 @@ const renderRecord = (record: Record) => {
         }}
       />
     </div>
-    }
-    {hasReferences && !(record.IsFinal===false) && <div class="reference">
-      参考来源：
-      {record.References?.map((ref, index) => (
-        <p key={index}>
-          <a href={ref.Url} target="_blank" rel="noopener noreferrer">
-            {ref.Type == 2 ? <FileTextOutlined /> : <GlobalOutlined/>}&nbsp;{index+1}.{ref.Name}&nbsp;<RightOutlined />
-          </a>
-        </p>
-      ))}
-      </div>
     }
   </Typography>
 }
