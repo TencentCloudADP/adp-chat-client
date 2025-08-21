@@ -17,48 +17,22 @@ from core.completion import CoreCompletion
 from model.chat import ChatRecord, ChatConversation
 from vendor.interface import BaseVendor, ApplicationInfo, ConversationCallback
 
-class TCADPEventType(str, Enum):
-    """
-    The type of event.
-    """
-    REPLY = "reply"
-    TOKEN_STAT = "token_stat"
-    REFERENCE = "reference"
-    ERROR = "error"
-    THOUGHT = "thought"
-
 class CoreChat:
-    def message_new_conversation_id(conversation_id: str):
-        event = {
-            "type": "custom",
-            "name": "new_conversation",
-            "value": {
-                "ConversationId": conversation_id,
-            },
-        }
-        return event
-    
-    def message_conversation_update(conversation: ChatConversation):
-        event = {
-            "type": "custom",
-            "name": "conversation_update",
-            "value": conversation.to_dict(),
-        }
-        return event
-
     @staticmethod
     async def message(vendor_app: BaseVendor, db: AsyncSession, account_id: str, query: str, conversation_id: str, search_network: bool, custom_variables: dict):
         class CoreConversationCallback(ConversationCallback):
-            async def create(self, title: str = None, conversation_id: str = None) -> str:
+            async def create(self, title: str = None, conversation_id: str = None) -> ChatConversation:
                 # create
                 if title is None:
                     title = query[:10]
                 conversation = await CoreConversation.create(db, account_id, vendor_app.application_id, title=title, conversation_id=conversation_id)
-                return str(conversation.Id)
+                return conversation
 
             async def update(self, conversation_id: str = None, title: str = None) -> ChatConversation:
                 # update
                 conversation = await CoreConversation.get(db, conversation_id)
+                if conversation is None:
+                    raise Exception(f'conversation not found: {conversation_id}')
                 await CoreConversation.update(db, conversation, title=title)
                 return conversation
         

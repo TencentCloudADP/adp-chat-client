@@ -16,7 +16,7 @@ from core.chat import CoreChat, CoreMessage
 from core.conversation import CoreConversation
 from core.share import CoreShareConversation
 from app_factory import TAgenticApp
-app = TAgenticApp.get_app()
+app: TAgenticApp = TAgenticApp.get_app()
 
 
 class ChatMessageApi(HTTPMethodView):
@@ -51,12 +51,9 @@ class ChatMessageListApi(HTTPMethodView):
         if args["ConversationId"] is not None:
             check_login(request)
             application_id = await CoreConversation.get_application_id(request.ctx.db, request.ctx.account_id, args['ConversationId'])
-            # 如果application_id全是数字，说明是旧版，兼容转换成新的application_id
-            if application_id.isdigit():
-                application_id = app.convert_old_application_id(application_id)
             vendor_app = app.get_vendor_app(application_id)
 
-            messages = await vendor_app.get_messages(request.ctx.db, request.ctx.account_id, args['ConversationId'], args['LastRecordId'])
+            messages = await vendor_app.get_messages(request.ctx.db, request.ctx.account_id, args['ConversationId'], 4, args['LastRecordId'])
             resp = {
                 'Response': {
                     'ApplicationId': application_id,

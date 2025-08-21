@@ -10,16 +10,17 @@ import aiohttp
 import json
 from util.tca import tc_request
 
+from util.helper import to_message, convert_dict_keys_to_pascal
 from util.json_format import custom_dumps
 from config import tagentic_config
 from core.chat import CoreMessage, CoreConversation, CoreCompletion, CoreChat
-from vendor.interface import BaseVendor, ApplicationInfo, ConversationCallback
+from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, ConversationCallback, MessageType
 
 class TCADP(BaseVendor):
 
     # ApplicationInterface
     @classmethod
-    def get_config_prefix(self) -> str:
+    def get_vendor(self) -> str:
         return 'TCADP'
     
     # ApplicationInterface
@@ -57,11 +58,11 @@ class TCADP(BaseVendor):
             )
 
     # MessageInterface
-    async def get_messages(self, db: AsyncSession, account_id: str, conversation_id: str, last_record_id: str = None) -> list:
+    async def get_messages(self, db: AsyncSession, account_id: str, conversation_id: str, limit: int, last_record_id: str = None) -> list[MsgRecord]:
         action = "GetMsgRecord"
         payload = {
             "Type": 5,
-            "Count": 4,
+            "Count": limit,
             "SessionId": conversation_id,
             "BotAppKey": self.config['AppKey'],
         }
@@ -70,14 +71,17 @@ class TCADP(BaseVendor):
         resp = await tc_request(action, payload)
         if 'Error' in resp['Response']:
             raise Exception(resp['Response']['Error'])
+        # records = [MsgRecord(**msg) for msg in resp['Response']['Records']]
+        # return records
         return resp['Response']['Records']
 
 
     # ChatInterface
     async def chat(self, account_id: str, query: str, conversation_id: str, is_new_conversation: bool, conversation_cb: ConversationCallback, search_network = True, custom_variables = {}):
         if is_new_conversation:
-            conversation_id = await conversation_cb.create() # 创建会话
-            yield ('data:'+custom_dumps(CoreChat.message_new_conversation_id( conversation_id ))+'\n\n').encode()
+            conversation = await conversation_cb.create() # 创建会话
+            yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=True)
+            conversation_id = str(conversation.Id)
         async with aiohttp.ClientSession() as session:
             param = {
                 "content": query,
@@ -114,7 +118,21 @@ class TCADP(BaseVendor):
                             continue
                         line_type, data = line.split(':', 1)
                         if line_type == 'data':
-                            yield raw_line + '\n'.encode()
+                            # 转换为与云API一致的大驼峰风格
+                            data = json.loads(data)
+                            if data['type'] in {'reply', 'thought', 'reference', 'token_stat'}:
+                                record = MsgRecord(**convert_dict_keys_to_pascal(data['payload']))
+                                yield to_message(MessageType.REPLY, record=record, incremental=True)
+                            elif data['type'] in {'error'}:
+                                if 'payload' in data:
+                                    msg = data['payload']['error']['message']
+                                elif 'error' in data:
+                                    msg = data['error']['message']
+                                else:
+                                    msg = f"未知错误: {str(data)}"
+                                yield to_message(MessageType.ERROR, error_msg=msg)
+
+                            # yield raw_line + '\n'.encode()
                 except asyncio.CancelledError:
                     logging.info("forward_request: cancelled")
                     resp.close()
@@ -127,9 +145,9 @@ class TCADP(BaseVendor):
                     completion = CoreCompletion(system_prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n\n请直接输出提炼结果，不要解释。')
                     summarize = await completion.chat(f'user: {query}\n\nassistance:')
                 conversation = await conversation_cb.update(conversation_id=conversation_id, title=summarize) # 更新会话
-                yield ('data:'+custom_dumps(CoreChat.message_conversation_update(conversation))+'\n\n').encode()
+                yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=False)
             except Exception as e:
-                logging.error(f'failed to summarize with model. error: {e}')
+                logging.error(f'failed to summarize conversation title. error: {e}')
 
 
 def get_class():

@@ -9,6 +9,7 @@ from util.helper import dict_md5
 from config import tagentic_config
 import router
 import middleware
+from vendor.interface import BaseVendor
 
 class TAgenticApp(Sanic):
     vendors = {}
@@ -22,31 +23,25 @@ class TAgenticApp(Sanic):
         # 厂商类注册
         from vendor.tcadp.tcadp import get_class
         cls = get_class()
-        self.vendors[cls.get_config_prefix()] = cls
+        self.vendors[cls.get_vendor()] = cls
         from vendor.dify.dify import get_class
         cls = get_class()
-        self.vendors[cls.get_config_prefix()] = cls
+        self.vendors[cls.get_vendor()] = cls
         logging.info(f'vendors: {self.vendors}')
         
         # 实例化应用配置
         apps = tagentic_config.APP_CONFIGS
         for app_config in apps:
-            if app_config['Type'] in self.vendors.keys():
-                application_id = dict_md5(app_config)
-                self.apps[application_id] = ( self.vendors[app_config['Type']](app_config, application_id) )
+            if app_config['Vendor'] in self.vendors.keys():
+                # application_id = dict_md5(app_config)
+                application_id = app_config['ApplicationId']
+                self.apps[application_id] = ( self.vendors[app_config['Vendor']](app_config, application_id) )
         logging.info(f'apps: {self.apps}')
     
-    def get_vendor_app(self, application_id: str):
+    def get_vendor_app(self, application_id: str) -> BaseVendor:
         if application_id in self.apps.keys():
             return self.apps[application_id]
         raise Exception(f'application_id {application_id} not found')
-
-    # 保存在conversation表里的application_id可能是旧的格式，需要转换成新的
-    def convert_old_application_id(self, application_id_old: str):
-        for application_id, vendor_app in self.apps.items():
-            if 'BotBizId' in vendor_app.config and vendor_app.config['BotBizId'] == application_id_old:
-                return application_id
-        return None
 
 def create_app_with_configs() -> TAgenticApp:
     """

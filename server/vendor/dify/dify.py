@@ -10,10 +10,11 @@ import aiohttp
 import json
 from util.tca import tc_request
 
-from util.json_format import custom_dumps
+from util.helper import to_message
 from config import tagentic_config
 from core.chat import CoreMessage, CoreConversation, CoreCompletion, CoreChat
-from vendor.interface import BaseVendor, ApplicationInfo, ConversationCallback
+from model.chat import ChatConversation
+from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, _TokenStat, ConversationCallback, MessageType
 
 async def request(url: str, authorization: str, payload: dict = {}, method = "get") -> str:
     headers = {
@@ -35,7 +36,7 @@ class Dify(BaseVendor):
     
     # ApplicationInterface
     @classmethod
-    def get_config_prefix(self) -> str:
+    def get_vendor(self) -> str:
         return 'Dify'
     
     # ApplicationInterface
@@ -50,9 +51,9 @@ class Dify(BaseVendor):
         )
 
     # MessageInterface
-    async def get_messages(self, db: AsyncSession, account_id: str, conversation_id: str, last_record_id: str = None) -> list:
+    async def get_messages(self, db: AsyncSession, account_id: str, conversation_id: str, limit: int, last_record_id: str = None) -> list[MsgRecord]:
         payload = {
-            "limit": 4,
+            "limit": limit,
             "user": account_id,
             "conversation_id": conversation_id,
         }
@@ -60,10 +61,14 @@ class Dify(BaseVendor):
             payload['first_id'] = last_record_id
         resp = await request(f'{self.config['BaseURL']}/messages', self.config['APIKey'], payload, method='get')
         print(resp)
+        records = []
+        for msg in resp['data']:
+            records.append(self.to_msg_record(msg, is_from_self=True))
+            records.append(self.to_msg_record(msg))
+        
         # if 'Error' in resp['Response']:
         #     raise Exception(resp['Response']['Error'])
-        return resp['data']
-
+        return records
 
     # ChatInterface
     async def chat(self, account_id: str, query: str, conversation_id: str, is_new_conversation: bool, conversation_cb: ConversationCallback, search_network = True, custom_variables = {}):
@@ -103,18 +108,39 @@ class Dify(BaseVendor):
                             continue
                         line_type, data = line.split(':', 1)
                         if line_type == 'data':
+                            data = json.loads(data)
                             if is_new_conversation:
-                                data = json.loads(data)
                                 if data['event'] == 'message':
                                     is_new_conversation = False
-                                    conversation_id = await conversation_cb.create(conversation_id=data['conversation_id']) # 创建会话
-                                    yield ('data:'+custom_dumps(CoreChat.message_new_conversation_id(conversation_id))+'\n\n').encode()
-                            
-                            yield raw_line + '\n'.encode()
+                                    conversation = await conversation_cb.create(conversation_id=data['conversation_id']) # 创建会话
+                                    yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=True)
+                                
+                            if data['event'] == 'message':
+                                yield to_message(MessageType.REPLY, record=self.to_msg_record(data, is_final=False), incremental=True)
+                            elif data['event'] == 'message_end':
+                                yield to_message(MessageType.REPLY, record=self.to_msg_record(data), incremental=True)
+
                 except asyncio.CancelledError:
                     logging.info("forward_request: cancelled")
                     resp.close()
             logging.info(f"forward_request: done")
+
+    def to_msg_record(self, msg: dict, is_from_self: bool = False, is_final: bool = True) -> MsgRecord:
+        token_stat = None
+        if "metadata" in msg:
+            metadata = msg["metadata"]
+            if "usage" in metadata:
+                token_stat = _TokenStat(TokenCount = metadata["usage"]["total_tokens"])
+        return MsgRecord(
+            RecordId = msg['id'] if is_from_self else f"{msg['id']}-a",
+            SessionId = msg['conversation_id'],
+            Content = msg['query'] if is_from_self else (msg['answer'] if 'answer' in msg else ''),
+            IsFromSelf = is_from_self,
+            IsLlmGenerated = not is_from_self,
+            IsFinal = is_final,
+            Timestamp = msg['created_at'],
+            TokenStat = token_stat,
+        )
 
 def get_class():
     return Dify
