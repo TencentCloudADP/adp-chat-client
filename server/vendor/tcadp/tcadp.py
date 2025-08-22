@@ -21,7 +21,7 @@ class TCADP(BaseVendor):
     # ApplicationInterface
     @classmethod
     def get_vendor(self) -> str:
-        return 'TCADP'
+        return 'Tencent'
     
     # ApplicationInterface
     async def get_info(self) -> ApplicationInfo:
@@ -83,6 +83,7 @@ class TCADP(BaseVendor):
             yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=True)
             conversation_id = str(conversation.Id)
         async with aiohttp.ClientSession() as session:
+            incremental = True
             param = {
                 "content": query,
                 "bot_app_key": self.config['AppKey'],
@@ -90,7 +91,7 @@ class TCADP(BaseVendor):
                 "visitor_biz_id": account_id,
                 "search_network": "enable" if search_network else "disable",
                 "custom_variables": custom_variables,
-                "incremental" : False,
+                "incremental" : incremental,
             }
             print(param)
             headers = {
@@ -120,17 +121,35 @@ class TCADP(BaseVendor):
                         if line_type == 'data':
                             # 转换为与云API一致的大驼峰风格
                             data = json.loads(data)
-                            if data['type'] in {'reply', 'thought', 'reference', 'token_stat'}:
-                                record = MsgRecord(**convert_dict_keys_to_pascal(data['payload']))
-                                yield to_message(MessageType.REPLY, record=record, incremental=True)
-                            elif data['type'] in {'error'}:
+                            try:
+                                msg_type = MessageType(data['type'])
+                            except ValueError:
+                                logging.info(f"Unknown message type: {data['type']}")
+                                continue
+
+                            if msg_type in {MessageType.REPLY, MessageType.THOUGHT, MessageType.REFERENCE, MessageType.TOKEN_STAT}:
+                                payload = convert_dict_keys_to_pascal(data['payload'])
+                                if msg_type == MessageType.REPLY:
+                                    pass
+                                elif msg_type == MessageType.THOUGHT:
+                                    payload = {'AgentThought': payload, **payload}
+                                elif msg_type == MessageType.REFERENCE:
+                                    payload = {'Reference': payload, **payload}
+                                elif msg_type == MessageType.TOKEN_STAT:
+                                    payload = {'TokenStat': payload, **payload}
+                                record = MsgRecord.model_validate(payload)
+                                
+                                yield to_message(msg_type, record=record, incremental=incremental)
+                            elif msg_type in {MessageType.ERROR}:
                                 if 'payload' in data:
                                     msg = data['payload']['error']['message']
                                 elif 'error' in data:
                                     msg = data['error']['message']
                                 else:
                                     msg = f"未知错误: {str(data)}"
-                                yield to_message(MessageType.ERROR, error_msg=msg)
+                                yield to_message(msg_type, error_msg=msg)
+                            else:
+                                logging.info(f"Unknown message type: {data['type']}")
 
                             # yield raw_line + '\n'.encode()
                 except asyncio.CancelledError:

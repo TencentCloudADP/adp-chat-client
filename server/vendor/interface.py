@@ -54,6 +54,46 @@ class _WorkFlow(BaseModel):
 class _ExtraInfo(BaseModel):
     EChartsInfo: Optional[List[Any]] = None
 
+class _DebuggingThought(BaseModel):
+    Content: Optional[str] = None
+    DisplayStatus: Optional[str] = None
+    QuoteInfos: Optional[List[Any]] = None
+    References: Optional[List[Any]] = None
+    SandboxUrl: Optional[str] = None
+    DisplayContent: Optional[str] = None
+    DisplayThought: Optional[str] = None
+    DisplayType: Optional[int] = None
+    DisplayUrl: Optional[str] = None
+
+class _ProcedureThought(BaseModel):
+    Index: Optional[int] = None
+    PluginType: Optional[int] = None
+    Debugging: Optional[_DebuggingThought] = None
+    ReplyIndex: Optional[int] = None
+    SourceAgentName: Optional[str] = None
+    Status: Optional[str] = None
+    WorkflowName: Optional[str] = None
+    Elapsed: Optional[int] = None
+    Name: Optional[str] = None
+    Switch: Optional[str] = None
+    TargetAgentName: Optional[str] = None
+    Title: Optional[str] = None
+    AgentIcon: Optional[str] = None
+    Icon: Optional[str] = None
+    NodeName: Optional[str] = None
+    StartTime: Optional[str] = None
+
+class _AgentThought(BaseModel):
+    Files: Optional[List[Any]] = None
+    IsWorkflow: Optional[bool] = None
+    Procedures: Optional[List[_ProcedureThought]] = None
+    RequestId: Optional[str] = None
+    Elapsed: Optional[int] = None
+    RecordId: Optional[str] = None
+    SessionId: Optional[str] = None
+    TraceId: Optional[str] = None
+    WorkflowName: Optional[str] = None
+
 class MsgRecord(BaseModel):
     Content: Optional[str] = None
     Type: Optional[int] = None
@@ -64,7 +104,7 @@ class MsgRecord(BaseModel):
     FromAvatar: Optional[str] = None
     HasRead: Optional[bool] = None
     IsFromSelf: Optional[bool] = None
-    IsFinal: Optional[bool] = True
+    IsFinal: Optional[bool] = None
     CanRating: Optional[bool] = None
     Timestamp: Optional[int] = None
     CanFeedback: Optional[bool] = None
@@ -81,7 +121,7 @@ class MsgRecord(BaseModel):
     FromName: Optional[str] = None
     OptionCards: Optional[List[Any]] = None
     ReplyMethod: Optional[int] = None
-    AgentThought: Optional[Any] = None
+    AgentThought: Optional[_AgentThought] = None
     References: Optional[List[Any]] = None
 
 class MessageType(Enum):
