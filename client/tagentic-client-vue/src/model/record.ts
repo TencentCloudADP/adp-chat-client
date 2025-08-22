@@ -146,28 +146,27 @@ export interface Record {
   Score?: ScoreValue;
   SessionId?: string;
   TaskFlow?: any;
-  Timestamp?: string;
+  Timestamp?: number;
   TokenStat?: TokenStat;
   Type?: number;
   WorkFlow?: WorkFlow;
+  Incremental?: boolean;
 }
 
 export interface Response {
   Records?: Record[];
   RequestId?: string;
-  SessionDisassociatedTimestamp?: string;
+  SessionDisassociatedTimestamp?: number;
 }
 
 export interface RootObject {
   Response?: Response;
 }
 
-import type { Message } from '@/model/message'
-
-export function mergeRecord(record: Record, delta: Record, msg: Message) {
-  const incremental = false
+export function mergeRecord(record: Record, delta: Record, msg_type: string) {
+  const incremental = delta.Incremental
   record.RecordId = delta.RecordId
-  if (msg.type === "reply") {
+  if (msg_type === "reply") {
     if (incremental) {
       record.Content = (record.Content||'') + delta.Content
     } else {
@@ -179,10 +178,10 @@ export function mergeRecord(record: Record, delta: Record, msg: Message) {
     record.IsFinal = delta.IsFinal
     record.Score = delta.Score
     record.RelatedRecordId = delta.RelatedRecordId
-  } else if (msg.type === "reference") {
+  } else if (msg_type === "reference") {
     // 处理 ReferenceMessage 合并
     record.References = delta.References
-  } else if (msg.type === "thought") {
+  } else if (msg_type === "thought") {
     // 处理 ThoughtMessage 合并
     let length = record.AgentThought?.Procedures?.length || 0
     if (length > 0 && record.AgentThought?.Procedures?.[length-1].Debugging) {
@@ -214,7 +213,7 @@ export function mergeRecord(record: Record, delta: Record, msg: Message) {
     } else {
       record.AgentThought = delta.AgentThought
     }
-  } else if (msg.type === "token_stat") {
+  } else if (msg_type === "token_stat") {
     // 处理 TokenStatMessage 合并
     let length = record.TokenStat?.Procedures?.length || 0
     if (length > 0 && record.TokenStat?.Procedures?.[length-1].Debugging) {
@@ -234,148 +233,4 @@ export function mergeRecord(record: Record, delta: Record, msg: Message) {
       record.TokenStat = delta.TokenStat
     }
   }
-}
-
-export function messageToRecord(message: Message): Record | null {
-  if (message.type === "reply") {
-    // 处理 ReplyMessage 转换
-    return {
-      CanFeedback: message.payload.can_feedback,
-      CanRating: message.payload.can_rating,
-      Content: message.payload.content,
-      ExtraInfo: {
-        EChartsInfo: message.payload.extra_info?.e_charts_info
-      },
-      FileInfos: message.payload.file_infos ? [message.payload.file_infos] : [],
-      FromAvatar: message.payload.from_avatar,
-      FromName: message.payload.from_name,
-      IsFromSelf: message.payload.is_from_self,
-      IsLlmGenerated: message.payload.is_llm_generated,
-      IsFinal: message.payload.is_final,
-      OptionCards: message.payload.option_cards ? message.payload.option_cards : [],
-      QuoteInfos: message.payload.quote_infos?.map(quote => ({
-        Index: `${quote.index}`,
-        Position: quote.position,
-      })),
-      RecordId: message.payload.record_id,
-      RelatedRecordId: message.payload.related_record_id,
-      ReplyMethod: message.payload.reply_method,
-      Score: ScoreValue.Unknown,
-      SessionId: message.payload.session_id,
-      Timestamp: new Date(message.payload.timestamp * 1000).toISOString(),
-      Type: 1 // 假设 1 表示回复类型
-    };
-  } else if (message.type === "reference") {
-    // 处理 ReferenceMessage 转换
-    return {
-      IsLlmGenerated: true,
-      IsFromSelf: false,
-      RecordId: message.payload.record_id,
-      References: message.payload.references.map(ref => ({
-        Type: ref.type,
-        Url: ref.url,
-        DocBizId: ref.doc_biz_id,
-        Id: ref.id,
-        QaBizId: ref.qa_biz_id,
-        Name: ref.name,
-        DocId: ref.doc_id,
-      }))
-    }
-  } else if (message.type === "thought") {
-    // 处理 ThoughtMessage 转换
-    return {
-      AgentThought: {
-        // 假设 AgentThought 接口与 ThoughtMessage 的 Procedures 相关
-        Procedures: message.payload.procedures.map(proc => ({
-          AgentIcon: proc.agent_icon,
-          Debugging: {
-            Content: proc.debugging.content,
-            DisplayContent: proc.debugging.display_content,
-          },
-          Elapsed: proc.elapsed,
-          Icon: proc.icon,
-          Index: proc.index,
-          Name: proc.name,
-          NodeName: proc.node_name,
-          PluginType: proc.plugin_type,
-          ReplyIndex: proc.reply_index,
-          SourceAgentName: proc.source_agent_name,
-          Status: proc.status,
-          Switch: proc.switch,
-          TargetAgentName: proc.target_agent_name,
-          Title: proc.title,
-          WorkflowName: proc.workflow_name
-        })),
-        Elapsed: message.payload.elapsed,
-        IsWorkflow: message.payload.is_workflow,
-        WorkflowName: message.payload.workflow_name
-      },
-      IsLlmGenerated: true,
-      IsFromSelf: false,
-      RecordId: message.payload.record_id,
-      SessionId: message.payload.session_id,
-      Timestamp: new Date().toISOString(), // ThoughtMessage 没有 timestamp，使用当前时间
-      Type: 1 // 假设 1 表示回复类型
-    };
-  } else if (message.type === "token_stat") {
-    return {
-      TokenStat: {
-        Elapsed: message.payload.elapsed,
-        FreeCount: message.payload.free_count,
-        OrderCount: message.payload.order_count,
-        Procedures: message.payload.procedures?.map(proc => ({
-          Count: proc.count,
-          Debugging: {
-            Content: proc.debugging?.content,
-            Knowledge: [
-                // TODO: message协议缺失这部分内容
-            ],
-            WorkFlow: {
-                WorkflowName: proc.debugging?.work_flow?.workflow_name,
-                RunNodes: proc.debugging?.work_flow?.run_nodes?.map(node => ({
-                    CostMilliSeconds: node.cost_milli_seconds,
-                    Input: node.input,
-                    IsCurrent: node.is_current,
-                    NodeId: node.node_id,
-                    NodeName: node.node_name,
-                    NodeType: node.node_type,
-                    Output: node.output,
-                    Status: node.status,
-                    StatisticInfos: node.statistic_infos?.map(info => ({
-                        FirstTokenCost: info.first_token_cost,
-                        InputTokens: info.input_tokens,
-                        ModelName: info.model_name,
-                        OutputTokens: info.output_tokens,
-                        TotalCost: info.total_cost,
-                        TotalTokens: info.total_tokens
-                    })),
-                    TaskOutput: node.task_output
-                })),
-            }
-          },
-          InputCount: proc.input_count,
-          Name: proc.name,
-          OutputCount: proc.output_count,
-          ResourceStatus: proc.resource_status,
-          Status: proc.status,
-          Title: proc.title
-        })),
-        RecordId: message.payload.record_id,
-        RequestId: message.payload.request_id,
-        SessionId: message.payload.session_id,
-        StatusSummary: message.payload.status_summary,
-        StatusSummaryTitle: message.payload.status_summary_title,
-        TokenCount: message.payload.token_count,
-        TraceId: message.payload.trace_id,
-        UsedCount: message.payload.used_count
-      },
-      IsLlmGenerated: true,
-      IsFromSelf: false,
-      RecordId: message.payload.record_id,
-      SessionId: message.payload.session_id,
-      Timestamp: new Date().toISOString(),
-      Type: 1
-    };
-  }
-  return null
 }

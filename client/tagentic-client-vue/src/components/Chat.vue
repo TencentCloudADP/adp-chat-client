@@ -9,11 +9,10 @@ import type { AxiosRequestConfig } from 'axios'
 import markdownit from 'markdown-it'
 import katex from 'markdown-it-texmath'
 import 'katex/dist/katex.min.css'
-import type { Message, ReplyMessage } from '@/model/message'
 import type { Application } from '@/model/application'
 import type { Record } from '@/model/record'
 import type { CheckboxProps, UploadProps } from 'ant-design-vue'
-import { messageToRecord, mergeRecord, ScoreValue, type QuoteInfo } from '@/model/record'
+import { mergeRecord, ScoreValue, type QuoteInfo } from '@/model/record'
 import { type ChatConversation } from '@/model/conversation'
 import { message } from 'ant-design-vue'
 import { VueEternalLoading, LoadAction } from '@ts-pro/vue-eternal-loading'
@@ -449,20 +448,24 @@ const handleSend = async (_lastQuery = null as null|string) => {
     for await (const line of chunkSplitter(res.data)) {
       let msg_body = line.substring(line.indexOf(':')+1).trim()
       let msg_map = JSON.parse(msg_body)
-      if (msg_map['type'] == 'custom' && msg_map['name'] == 'new_conversation') {
-          let converdation_id = msg_map['value']['ConversationId']
+      const msg_type = msg_map['Type']
+      if (msg_type == 'conversation') {
+        // 对话控制消息，新的对话，或者更新现有对话（标题、最后活跃时间等）
+        if (msg_map['Payload']['IsNewConversation']) {
+          let converdation_id = msg_map['Payload']['Id']
           skipUpdateOnce.value = true
           emit('newConversation', converdation_id)
-      } else if (msg_map['type'] == 'custom' && msg_map['name'] == 'conversation_update') {
-          let converdation: ChatConversation = msg_map['value']
-          emit('conversationUpdate', converdation)
-      } else if (msg_map['type'] == 'error') {
-        // remove place holder
+        } else {
+            let converdation: ChatConversation = msg_map['Payload']
+            emit('conversationUpdate', converdation)
+        }
+      } else if (msg_type == 'error') {
+        // 错误信息
         messages.value = messages.value.filter((msg, _) => msg.RecordId !== 'placeholder-agent')
-        message.error(msg_map['payload']['error']['message'])
+        message.error(msg_map['Payload']['Error']['Message'])
       } else {
-        let msg: Message = msg_map
-        let record = messageToRecord(msg)
+        // 其他消息类型，包括thought、reply、token_stat、reference
+        let record: Record = msg_map['Payload']
         if (record == null) {
           continue
         }
@@ -484,7 +487,7 @@ const handleSend = async (_lastQuery = null as null|string) => {
           messages.value[lastIndex].RecordId = record.RecordId
         }
         if (lastIndex >= 0 && messages.value[lastIndex].RecordId == record.RecordId) {
-          mergeRecord(messages.value[lastIndex], record, msg)
+          mergeRecord(messages.value[lastIndex], record, msg_type)
         } else {
           messages.value.push(record)
         }
