@@ -210,16 +210,13 @@ const renderRecord = (record: Record) => {
   return <Typography>
     { thinkContent !== undefined ?
       <Bubble
-        onClick={() => {
-          collapse.value = !collapse.value;
-        }}
         styles={{ footer: { marginTop: '10px' }, content: { cursor: 'pointer', display: 'flex' } }}
         content={
-          <Space class="thinking-button">
+          <div class="thinking-button" onClick={() => {collapse.value = !collapse.value}} >
             <BulbOutlined />
-            <span>{isThinking ? "思考中..." : "已深度思考"}</span>
+            <span class="thinking-label">{isThinking ? "思考中..." : "已深度思考"}</span>
             {collapse.value ? <UpOutlined /> : <DownOutlined />}
-          </Space>
+          </div>
         }
         footer={
           <Space direction="vertical">
@@ -230,7 +227,7 @@ const renderRecord = (record: Record) => {
               content={thinkContent}
             />
             }
-            <div onClick={($event)=>{$event.stopPropagation()}} class="content" innerHTML={content} />
+            <div class="content" innerHTML={content} />
           </Space>
         }
       />
@@ -798,7 +795,7 @@ const onResize = () => {
 .reference p {
   margin: 0;
 }
-.ant-thought-chain-item-header {
+.thinking-label {
   user-select: none;
 }
 #chat-header {
@@ -843,6 +840,9 @@ const onResize = () => {
 }
 .thinking-button {
   margin: 6px 0;
+  gap: 8px;
+  display: inline-flex;
+  align-items: center;
 }
 .thinking-content .ant-typography {
   color: gray !important;
