@@ -472,7 +472,7 @@ const handleSend = async (_lastQuery = null as null|string) => {
         // user query will be inserted locally
         // TODO: 临时使用record.RelatedRecordId是否存在来判断是不是用户发的消息，后续在ADP后端修复后需要替换成IsFromSelf
         record.IsLlmGenerated = (record.RelatedRecordId !== '')
-        if (!record.IsLlmGenerated) {
+        if (msg_type == 'reply' && !record.IsLlmGenerated) {
           // replace RecordId
           for (let item of messages.value) {
             if (item.RecordId == 'placeholder-user') {
