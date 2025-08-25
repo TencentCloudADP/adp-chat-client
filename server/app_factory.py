@@ -4,6 +4,7 @@ import time
 from sanic import Sanic
 
 from util.module import autodiscover
+from util.module import autodiscover_vendor
 from util.json_format import custom_dumps
 from util.helper import dict_md5
 from config import tagentic_config
@@ -21,14 +22,9 @@ class TAgenticApp(Sanic):
         logging.basicConfig(level=logging.getLevelNamesMapping()[self.config.LOG_LEVEL], format='%(asctime)s - %(levelname)s - %(message)s')
 
         # 厂商类注册
-        from vendor.tcadp.tcadp import get_class
-        cls = get_class()
-        self.vendors[cls.get_vendor()] = cls
-        from vendor.dify.dify import get_class
-        cls = get_class()
-        self.vendors[cls.get_vendor()] = cls
+        self.vendors.update(autodiscover_vendor())
         logging.info(f'vendors: {self.vendors}')
-        
+
         # 实例化应用配置
         apps = tagentic_config.APP_CONFIGS
         for app_config in apps:

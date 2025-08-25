@@ -93,7 +93,6 @@ class TCADP(BaseVendor):
                 "custom_variables": custom_variables,
                 "incremental" : incremental,
             }
-            print(param)
             headers = {
                 "Accept": "text/event-stream",
                 "Content-Type": "application/json",
