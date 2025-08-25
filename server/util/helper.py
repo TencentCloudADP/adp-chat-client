@@ -1,21 +1,11 @@
-import logging
 from sanic.request.types import Request
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import Optional, cast
 from config import tagentic_config
 from urllib.parse import urlparse
-import hashlib
 import re
-import json
 from vendor.interface import MessageType, MsgRecord
 from model.chat import ChatConversation
 from util.json_format import custom_dumps
-
-# 获取dict的md5值
-def dict_md5(d):
-    # 将字典转换为 JSON 字符串（确保排序一致）
-    dict_str = json.dumps(d, sort_keys=True)
-    # 计算 MD5
-    return hashlib.md5(dict_str.encode('utf-8')).hexdigest()
 
 def get_remote_ip(request: Request) -> str:
     if request.headers.get("X-Forwarded-For"):

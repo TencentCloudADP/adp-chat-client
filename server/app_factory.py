@@ -6,7 +6,6 @@ from sanic import Sanic
 from util.module import autodiscover
 from util.module import autodiscover_vendor
 from util.json_format import custom_dumps
-from util.helper import dict_md5
 from config import tagentic_config
 import router
 import middleware
@@ -29,7 +28,6 @@ class TAgenticApp(Sanic):
         apps = tagentic_config.APP_CONFIGS
         for app_config in apps:
             if app_config['Vendor'] in self.vendors.keys():
-                # application_id = dict_md5(app_config)
                 application_id = app_config['ApplicationId']
                 self.apps[application_id] = ( self.vendors[app_config['Vendor']](app_config, application_id) )
         logging.info(f'apps: {self.apps}')
