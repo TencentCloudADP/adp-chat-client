@@ -4,22 +4,44 @@ import time
 from sanic import Sanic
 
 from util.module import autodiscover
+from util.module import autodiscover_vendor
 from util.json_format import custom_dumps
 from config import tagentic_config
 import router
 import middleware
+from vendor.interface import BaseVendor
 
 class TAgenticApp(Sanic):
+    vendors = {}
+    apps = {}
+
     def __init__(self, *args, **kwargs):
         super().__init__(dumps=custom_dumps, *args, **kwargs)
+        self.config.update(tagentic_config.model_dump())
+        logging.basicConfig(level=logging.getLevelNamesMapping()[self.config.LOG_LEVEL], format='%(asctime)s - %(levelname)s - %(message)s')
+
+        # 厂商类注册
+        self.vendors.update(autodiscover_vendor())
+        logging.info(f'vendors: {self.vendors}')
+
+        # 实例化应用配置
+        apps = tagentic_config.APP_CONFIGS
+        for app_config in apps:
+            if app_config['Vendor'] in self.vendors.keys():
+                application_id = app_config['ApplicationId']
+                self.apps[application_id] = ( self.vendors[app_config['Vendor']](app_config, application_id) )
+        logging.info(f'apps: {self.apps}')
+    
+    def get_vendor_app(self, application_id: str) -> BaseVendor:
+        if application_id in self.apps.keys():
+            return self.apps[application_id]
+        raise Exception(f'application_id {application_id} not found')
 
 def create_app_with_configs() -> TAgenticApp:
     """
     create a sanic app and load configs from .env file
     """
     tagentic_app = TAgenticApp(__name__)
-    tagentic_app.config.update(tagentic_config.model_dump())
-    logging.basicConfig(level=logging.getLevelNamesMapping()[tagentic_app.config.LOG_LEVEL], format='%(asctime)s - %(levelname)s - %(message)s')
 
     return tagentic_app
 

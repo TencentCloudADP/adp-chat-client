@@ -30,7 +30,7 @@ async def test_error_asgi_client(app, auth_token):
     # make a conversation
     params = {
         "Query": "hello",
-        "ApplicationId": applications[0]["AppBizId"],
+        "ApplicationId": applications[0]["ApplicationId"],
     }
     post_json = json.dumps(params)
     request, response = await app.asgi_client.post("/chat/message", headers=headers, data=post_json)

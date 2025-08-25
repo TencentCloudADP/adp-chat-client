@@ -27,14 +27,9 @@ class TCADPConfig(BaseSettings):
         default="",
     )
 
-    TCADP_APP_KEYS: list[str] = Field(
-        description="TCADP bot app key, you can obtain it from https://lke.cloud.tencent.com/",
-        default="",
-    )
-
-    TCADP_API_URL: str = Field(
-        description="TCADP API service url",
-        default="",
+    APP_CONFIGS: list[dict] = Field(
+        description="app configs, for TCADP, you can obtain it from https://lke.cloud.tencent.com/",
+        default=[],
     )
 
     TC_TCADP_HOST: str = Field(

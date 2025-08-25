@@ -33,8 +33,8 @@ class CoreConversation:
         return conversation.ApplicationId
 
     @staticmethod
-    async def create(db: AsyncSession, account_id: str, application_id: str, title: str = "new conversation") -> ChatConversation:
-        conversation = ChatConversation(AccountId=account_id, ApplicationId=application_id, Title=title)
+    async def create(db: AsyncSession, account_id: str, application_id: str, title: str = "new conversation", conversation_id: str = None) -> ChatConversation:
+        conversation = ChatConversation(AccountId=account_id, ApplicationId=application_id, Title=title, Id=conversation_id)
         db.add(conversation)
         await db.commit()
         return conversation

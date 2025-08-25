@@ -9,11 +9,10 @@ import type { AxiosRequestConfig } from 'axios'
 import markdownit from 'markdown-it'
 import katex from 'markdown-it-texmath'
 import 'katex/dist/katex.min.css'
-import type { Message, ReplyMessage } from '@/model/message'
 import type { Application } from '@/model/application'
 import type { Record } from '@/model/record'
 import type { CheckboxProps, UploadProps } from 'ant-design-vue'
-import { messageToRecord, mergeRecord, ScoreValue, type QuoteInfo } from '@/model/record'
+import { mergeRecord, ScoreValue, type QuoteInfo } from '@/model/record'
 import { type ChatConversation } from '@/model/conversation'
 import { message } from 'ant-design-vue'
 import { VueEternalLoading, LoadAction } from '@ts-pro/vue-eternal-loading'
@@ -54,12 +53,12 @@ onMounted(async () => {
 // applications
 const currentApplicationId = ref(undefined as string|undefined)
 const applications = ref([] as Application[])
-const currentApplication = computed(() => applications.value.find((application) => application['AppBizId'] == currentApplicationId.value))
-const currentApplicationAvatar = computed(() => currentApplication.value?.BaseConfig.Avatar)
-const currentApplicationName = computed(() => currentApplication.value?.BaseConfig.Name)
-const currentApplicationGreeting = computed(() => currentApplication.value?.AppConfig.KnowledgeQa.Greeting)
+const currentApplication = computed(() => applications.value.find((application) => application['ApplicationId'] == currentApplicationId.value))
+const currentApplicationAvatar = computed(() => currentApplication.value?.Avatar)
+const currentApplicationName = computed(() => currentApplication.value?.Name)
+const currentApplicationGreeting = computed(() => currentApplication.value?.Greeting)
 const currentApplicationPrompts = computed(():PromptsProps['items'] =>
-  currentApplication.value?.AppConfig.KnowledgeQa.OpeningQuestions?.map((item, index) => (
+  currentApplication.value?.OpeningQuestions?.map((item, index) => (
     {
       key: `${index}`,
       description: item,
@@ -72,7 +71,7 @@ const handleLoadApplication = async () => {
     if (res.data.Applications) {
         applications.value = res.data.Applications
         if (currentApplicationId.value === undefined) {
-            currentApplicationId.value = applications.value[0].AppBizId
+            currentApplicationId.value = applications.value[0].ApplicationId
         }
     }
 }
@@ -372,7 +371,7 @@ const handleUpdate = async () => {
   isSelection.value = false
   if (!conversationId.value && !shareId) {
     if (applications.value.length > 0) {
-      currentApplicationId.value = applications.value[0].AppBizId
+      currentApplicationId.value = applications.value[0].ApplicationId
     }
     return
   }
@@ -449,27 +448,31 @@ const handleSend = async (_lastQuery = null as null|string) => {
     for await (const line of chunkSplitter(res.data)) {
       let msg_body = line.substring(line.indexOf(':')+1).trim()
       let msg_map = JSON.parse(msg_body)
-      if (msg_map['type'] == 'custom' && msg_map['name'] == 'new_conversation') {
-          let converdation_id = msg_map['value']['ConversationId']
+      const msg_type = msg_map['Type']
+      if (msg_type == 'conversation') {
+        // 对话控制消息，新的对话，或者更新现有对话（标题、最后活跃时间等）
+        if (msg_map['Payload']['IsNewConversation']) {
+          let converdation_id = msg_map['Payload']['Id']
           skipUpdateOnce.value = true
           emit('newConversation', converdation_id)
-      } else if (msg_map['type'] == 'custom' && msg_map['name'] == 'conversation_update') {
-          let converdation: ChatConversation = msg_map['value']
-          emit('conversationUpdate', converdation)
-      } else if (msg_map['type'] == 'error') {
-        // remove place holder
+        } else {
+            let converdation: ChatConversation = msg_map['Payload']
+            emit('conversationUpdate', converdation)
+        }
+      } else if (msg_type == 'error') {
+        // 错误信息
         messages.value = messages.value.filter((msg, _) => msg.RecordId !== 'placeholder-agent')
-        message.error(msg_map['payload']['error']['message'])
+        message.error(msg_map['Payload']['Error']['Message'])
       } else {
-        let msg: Message = msg_map
-        let record = messageToRecord(msg)
+        // 其他消息类型，包括thought、reply、token_stat、reference
+        let record: Record = msg_map['Payload']
         if (record == null) {
           continue
         }
         // user query will be inserted locally
         // TODO: 临时使用record.RelatedRecordId是否存在来判断是不是用户发的消息，后续在ADP后端修复后需要替换成IsFromSelf
         record.IsLlmGenerated = (record.RelatedRecordId !== '')
-        if (!record.IsLlmGenerated) {
+        if (msg_type == 'reply' && !record.IsLlmGenerated) {
           // replace RecordId
           for (let item of messages.value) {
             if (item.RecordId == 'placeholder-user') {
@@ -484,7 +487,7 @@ const handleSend = async (_lastQuery = null as null|string) => {
           messages.value[lastIndex].RecordId = record.RecordId
         }
         if (lastIndex >= 0 && messages.value[lastIndex].RecordId == record.RecordId) {
-          mergeRecord(messages.value[lastIndex], record, msg)
+          mergeRecord(messages.value[lastIndex], record, msg_type)
         } else {
           messages.value.push(record)
         }
@@ -707,7 +710,7 @@ const onResize = () => {
     <slot name="header"></slot>
 
     <a-select v-model:value="currentApplicationId" style="width: 200px; margin: 0 auto" id="agent-select" :disabled="!!conversationId || !!shareId">
-      <a-select-option v-for="application in applications" :value="application['AppBizId']">{{'BaseConfig' in application ? application['BaseConfig']['Name'] : '智能体(信息获取失败)'}}</a-select-option>
+      <a-select-option v-for="application in applications" :value="application['ApplicationId']">{{application['Name']}}</a-select-option>
     </a-select>
 
     <plus-square-outlined v-if="!shareId" class="chat-header-btn" @click="handleCreateConversation" />
