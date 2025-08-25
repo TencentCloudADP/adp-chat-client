@@ -17,4 +17,10 @@ export default defineConfig({
       ...enConfig,
     },
   },
+  vite: {
+    server: {
+      host: '0.0.0.0', // 监听所有IP地址
+      port: 5174, // 指定端口为5174
+    },
+  },
 })
