@@ -204,12 +204,13 @@ class ApplicationInterface:
         raise NotImplementedError("Subclasses must implement this method")
 
 class ChatInterface:
-    async def chat(self, account_id: str, query: str, conversation_id: str, is_new_conversation: bool, conversation_cb: ConversationCallback, search_network = True, custom_variables = {}):
+    async def chat(self, db: AsyncSession, account_id: str, query: str, conversation_id: str, is_new_conversation: bool, conversation_cb: ConversationCallback, search_network = True, custom_variables = {}):
         """执行聊天对话处理（异步方法）
 
         核心聊天交互接口，处理用户查询并实时返回对话结果。
 
         Args:
+            db (AsyncSession): SQLAlchemy db连接对象
             account_id (str): 用户账户唯一标识，用于标识不同用户
             query (str): 用户输入的查询文本
             conversation_id (str): 对话会话唯一标识
@@ -273,7 +274,7 @@ class FeedbackInterface:
             account_id (str): 账户唯一标识符
             conversation_id (str): 对话唯一标识
             record_id (str): 消息记录唯一标识
-            score (int): 评分值，-1: 差评，1: 好评
+            score (int): 评分值，0: 撤销，1: 赞，2: 踩
             comment (str): 反馈评论
             
         Returns:

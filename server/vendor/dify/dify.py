@@ -70,7 +70,7 @@ class Dify(BaseVendor):
         return records
 
     # ChatInterface
-    async def chat(self, account_id: str, query: str, conversation_id: str, is_new_conversation: bool, conversation_cb: ConversationCallback, search_network = True, custom_variables = {}):
+    async def chat(self, db: AsyncSession, account_id: str, query: str, conversation_id: str, is_new_conversation: bool, conversation_cb: ConversationCallback, search_network = True, custom_variables = {}):
         async with aiohttp.ClientSession() as session:
             param = {
                 "query": query,
@@ -124,6 +124,9 @@ class Dify(BaseVendor):
                     resp.close()
             logging.info(f"forward_request: done")
 
+            conversation = await conversation_cb.update(conversation_id=conversation_id) # 更新会话
+            yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=False)
+
     def to_msg_record(self, msg: dict, is_from_self: bool = False, is_final: bool = True) -> MsgRecord:
         token_stat = None
         if "metadata" in msg:
@@ -137,6 +140,8 @@ class Dify(BaseVendor):
             IsFromSelf = is_from_self,
             IsLlmGenerated = not is_from_self,
             IsFinal = is_final,
+            CanRating = is_final,
+            Score=0,
             Timestamp = msg['created_at'],
             TokenStat = token_stat,
         )

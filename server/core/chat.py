@@ -39,7 +39,7 @@ class CoreChat:
         if conversation_id is None or conversation_id == '':
             is_new_conversation = True
 
-        async for message in vendor_app.chat(account_id, query, conversation_id, is_new_conversation, CoreConversationCallback(), search_network=search_network, custom_variables=custom_variables):
+        async for message in vendor_app.chat(db, account_id, query, conversation_id, is_new_conversation, CoreConversationCallback(), search_network=search_network, custom_variables=custom_variables):
             yield message
 
 class CoreMessage:

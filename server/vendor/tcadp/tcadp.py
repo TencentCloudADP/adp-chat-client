@@ -73,13 +73,13 @@ class TCADP(BaseVendor):
         resp = await tc_request(self.tc_config(), action, payload)
         if 'Error' in resp['Response']:
             raise Exception(resp['Response']['Error'])
-        # records = [MsgRecord(**msg) for msg in resp['Response']['Records']]
-        # return records
-        return resp['Response']['Records']
+        records = [MsgRecord(**msg) for msg in resp['Response']['Records']]
+        return records
+        # return resp['Response']['Records']
 
 
     # ChatInterface
-    async def chat(self, account_id: str, query: str, conversation_id: str, is_new_conversation: bool, conversation_cb: ConversationCallback, search_network = True, custom_variables = {}):
+    async def chat(self, db: AsyncSession, account_id: str, query: str, conversation_id: str, is_new_conversation: bool, conversation_cb: ConversationCallback, search_network = True, custom_variables = {}):
         if is_new_conversation:
             conversation = await conversation_cb.create() # 创建会话
             yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=True)

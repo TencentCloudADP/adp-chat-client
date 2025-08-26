@@ -38,11 +38,11 @@ class ShareCreateApi(HTTPMethodView):
             _records = await vendor_app.get_messages(request.ctx.db, request.ctx.account_id, args['ConversationId'], 10, last_record_id=last_record_id)
             records = _records + records
             if len(_records) > 0:
-                last_record_id = _records[0]['RecordId']
+                last_record_id = _records[0].RecordId
             else:
                 break
 
-        records = [record for record in records if record["RecordId"] in args["RecordIds"]]
+        records = [record.model_dump() for record in records if record.RecordId in args["RecordIds"]]
 
         shared = await CoreShareConversation.create(request.ctx.db, request.ctx.account_id, args["ConversationId"], args["ApplicationId"], records)
 
