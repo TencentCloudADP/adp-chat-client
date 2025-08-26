@@ -114,7 +114,7 @@ const rate = async (record: Record, score: ScoreValue) => {
 const renderFooter: BubbleProps['footer'] = (content) => {
   const record = (content as Record)
   const score = record.Score
-  const disabled = (score != ScoreValue.Unknown)
+  const disabled = (score != ScoreValue.Unknown && score !== undefined)
   if (!record.CanRating || record.IsFinal===false || shareId) {
     return <></>
   }
