@@ -37,14 +37,14 @@ TC_SECRET_ID=
 TC_SECRET_KEY=
 
 # TCADP platform agent app key: https://lke.cloud.tencent.com/
-TCADP_APP_KEYS='[
+APP_CONFIGS='[
     {
         "Vendor":"Tencent",
         "ApplicationId":"The unique ID of the bot. It is recommended to use the vendor's appid or generate a random UUID using the 'uuidgen' command",
         "Comment": "Some comments",
         "AppKey": "",
         "SseURL": "https://wss.lke.tencentcloud.com/v1/qbot/chat/sse"
-    },
+    }
 ]'
 ```
 
