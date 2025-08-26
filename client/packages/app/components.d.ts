@@ -8,6 +8,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AppType: typeof import('./src/components/Chat/AppType.vue')['default']
     BackToBottom: typeof import('./src/components/Chat/BackToBottom.vue')['default']
     ChatAreaToogle: typeof import('./src/components/ChatAreaToogle.vue')['default']
     ChatItem: typeof import('./src/components/Chat/ChatItem.vue')['default']
@@ -28,6 +29,7 @@ declare module 'vue' {
     TAvatar: typeof import('tdesign-vue-next')['Avatar']
     TButton: typeof import('tdesign-vue-next')['Button']
     TCard: typeof import('tdesign-vue-next')['Card']
+    TCheckTag: typeof import('tdesign-vue-next')['CheckTag']
     TConfigProvider: typeof import('tdesign-vue-next')['ConfigProvider']
     TContent: typeof import('tdesign-vue-next')['Content']
     TDialog: typeof import('tdesign-vue-next')['Dialog']
@@ -43,7 +45,10 @@ declare module 'vue' {
     TIcon: typeof import('tdesign-vue-next')['Icon']
     TInput: typeof import('tdesign-vue-next')['Input']
     TLayout: typeof import('tdesign-vue-next')['Layout']
+    TOption: typeof import('tdesign-vue-next')['Option']
     TPopup: typeof import('tdesign-vue-next')['Popup']
+    TSelect: typeof import('tdesign-vue-next')['Select']
+    TSpace: typeof import('tdesign-vue-next')['Space']
     TTooltip: typeof import('tdesign-vue-next')['Tooltip']
   }
 }

@@ -39,11 +39,6 @@ import Sender from './Sender.vue'
 import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
 
-
-const props = defineProps<{
-    draggable?: boolean
-}>()
-
 const chatStore = useChatStore()
 const { activeId: chatId } = storeToRefs(chatStore)
 

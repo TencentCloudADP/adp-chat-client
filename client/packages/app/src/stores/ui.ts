@@ -8,7 +8,6 @@ export const useUiStore = defineStore('ui', () => {
   const theme = ref<'light' | 'dark' | null>('light')
   const language = ref<LanguageType>('zh')
   const drawerVisible = ref<boolean>(false)
-  const chatAreaDraggable = ref<boolean>(false)
 
   const setTheme = (newTheme: 'light' | 'dark' | null) => {
     theme.value = newTheme
@@ -30,25 +29,14 @@ export const useUiStore = defineStore('ui', () => {
     drawerVisible.value = !drawerVisible.value
   }
 
-  const setChatAreaDraggable = (draggable: boolean) => {
-    chatAreaDraggable.value = draggable
-  }
-
-  const toggleChatAreaDraggable = () => {
-    chatAreaDraggable.value = !chatAreaDraggable.value
-  }
-
   return {
     theme,
     language,
     drawerVisible,
-    chatAreaDraggable,
     setTheme,
     setLanguage,
     setDrawerVisible,
-    toggleDrawer,
-    setChatAreaDraggable,
-    toggleChatAreaDraggable,
+    toggleDrawer
   }
 })
 
