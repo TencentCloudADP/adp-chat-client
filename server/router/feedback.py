@@ -15,7 +15,7 @@ from core.chat import CoreChat
 from core.conversation import CoreConversation
 from core.chat import CoreMessage
 from app_factory import TAgenticApp
-app = TAgenticApp.get_app()
+app: TAgenticApp = TAgenticApp.get_app()
 
 class TCADPFeedbackRateApi(HTTPMethodView):
     @login_required
@@ -27,17 +27,10 @@ class TCADPFeedbackRateApi(HTTPMethodView):
         args = parser.parse_args(request)
 
         application_id = await CoreConversation.get_application_id(request.ctx.db, request.ctx.account_id, args['ConversationId'])
-        app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==application_id][0]
+        vendor_app = app.get_vendor_app(application_id)
 
-        action = "RateMsgRecord"
-        payload = {
-            "RecordId": args['RecordId'],
-            "Score": args['Score'],
-            "BotAppKey": app_key,
-   
-        }
-        resp = await tc_request(action, payload)
-        return json(resp)
-        # return json({"request_id": resp['Response']['RequestId']})
+        await vendor_app.rate(request.ctx.db, request.ctx.account_id, args['ConversationId'], args['RecordId'], args['Score'])
+
+        return json({})
 
 app.add_route(TCADPFeedbackRateApi.as_view(), "/feedback/rate")

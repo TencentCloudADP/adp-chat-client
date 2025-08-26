@@ -15,7 +15,7 @@ from core.chat import CoreChat
 from core.share import CoreShareConversation
 from core.chat import CoreMessage, CoreConversation
 from app_factory import TAgenticApp
-app = TAgenticApp.get_app()
+app: TAgenticApp = TAgenticApp.get_app()
 
 
 class ShareCreateApi(HTTPMethodView):
@@ -29,10 +29,19 @@ class ShareCreateApi(HTTPMethodView):
         # print(args['records'])
 
         application_id = await CoreConversation.get_application_id(request.ctx.db, request.ctx.account_id, args['ConversationId'])
-        app_key = [app['AppKey'] for app in request.ctx.apps_info if app['AppBizId']==application_id][0]
+        vendor_app = app.get_vendor_app(application_id)
 
-        # messages = await CoreMessage.list(request.ctx.db, args['ConversationId'])
-        records = await CoreMessage.list_from_remote(request.ctx.db, app_key, args['ConversationId'])
+        # 分页加载所有消息，合并
+        records = []
+        last_record_id = None
+        while True:
+            _records = await vendor_app.get_messages(request.ctx.db, request.ctx.account_id, args['ConversationId'], 10, last_record_id=last_record_id)
+            records = _records + records
+            if len(_records) > 0:
+                last_record_id = _records[0]['RecordId']
+            else:
+                break
+
         records = [record for record in records if record["RecordId"] in args["RecordIds"]]
 
         shared = await CoreShareConversation.create(request.ctx.db, request.ctx.account_id, args["ConversationId"], args["ApplicationId"], records)

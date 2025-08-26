@@ -248,7 +248,24 @@ class MessageInterface:
         """
         raise NotImplementedError("Subclasses must implement this method")
 
-class BaseVendor(ChatInterface, MessageInterface, ApplicationInterface):
+class FeedbackInterface:
+    async def rate(self, db: AsyncSession, account_id: str, conversation_id: str, record_id: str, score: int, comment: str = None) -> None:
+        """异步反馈消息评分
+        
+        Args:
+            db (AsyncSession): SQLAlchemy db连接对象
+            account_id (str): 账户唯一标识符
+            conversation_id (str): 对话唯一标识
+            record_id (str): 消息记录唯一标识
+            score (int): 评分值，-1: 差评，1: 好评
+            comment (str): 反馈评论
+            
+        Returns:
+            None
+        """
+        raise NotImplementedError("Subclasses must implement this method")
+
+class BaseVendor(ChatInterface, MessageInterface, FeedbackInterface, ApplicationInterface):
     """厂商基类，实现具体的厂商接口需要从该类继承
     """
     def __init__(self, config: dict = {}, application_id: str = ''):

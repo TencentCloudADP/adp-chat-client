@@ -167,6 +167,16 @@ class TCADP(BaseVendor):
             except Exception as e:
                 logging.error(f'failed to summarize conversation title. error: {e}')
 
+    # FeedbackInterface
+    async def rate(self, db: AsyncSession, account_id: str, conversation_id: str, record_id: str, score: int, comment: str = None) -> None:
+        action = "RateMsgRecord"
+        payload = {
+            "RecordId": record_id,
+            "Score": 1 if score==1 else 2,
+            "BotAppKey": self.config['AppKey'],
+        }
+        resp = await tc_request(action, payload)
+
 
 def get_class():
     return TCADP
