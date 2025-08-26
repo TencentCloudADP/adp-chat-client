@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Protocol, List, Dict, Optional, TypedDict, Union, Any
 from pydantic import BaseModel
+from sanic.request.types import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from model.chat import ChatRecord, ChatConversation
 
@@ -248,6 +249,21 @@ class MessageInterface:
         """
         raise NotImplementedError("Subclasses must implement this method")
 
+class FileInterface:
+    async def upload(self, db: AsyncSession, request: Request, account_id: str) -> str:
+        """异步上传文件
+        
+        Args:
+            db (AsyncSession): SQLAlchemy db连接对象
+            request (Request): 请求对象（流式读取：await request.stream.read()）
+            account_id (str): 账户唯一标识符
+            type (str, optional): 文件类型
+            
+        Returns:
+            url (str): 文件Url
+        """
+        raise NotImplementedError("Subclasses must implement this method")
+
 class FeedbackInterface:
     async def rate(self, db: AsyncSession, account_id: str, conversation_id: str, record_id: str, score: int, comment: str = None) -> None:
         """异步反馈消息评分
@@ -265,7 +281,7 @@ class FeedbackInterface:
         """
         raise NotImplementedError("Subclasses must implement this method")
 
-class BaseVendor(ChatInterface, MessageInterface, FeedbackInterface, ApplicationInterface):
+class BaseVendor(ChatInterface, MessageInterface, FileInterface, FeedbackInterface, ApplicationInterface):
     """厂商基类，实现具体的厂商接口需要从该类继承
     """
     def __init__(self, config: dict = {}, application_id: str = ''):

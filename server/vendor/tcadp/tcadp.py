@@ -5,10 +5,12 @@ from pydantic import BaseModel
 from typing import Any, Optional, cast
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
+from sanic.request.types import Request
 import asyncio
 import aiohttp
 import json
 from util.tca import tc_request
+from util.warehouse import AsyncWareHouseS3
 
 from util.helper import to_message, convert_dict_keys_to_pascal
 from util.json_format import custom_dumps
@@ -166,6 +168,35 @@ class TCADP(BaseVendor):
                 yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=False)
             except Exception as e:
                 logging.error(f'failed to summarize conversation title. error: {e}')
+
+    # FileInterface:
+    async def upload(self, db: AsyncSession, request: Request, account_id: str) -> str:
+        action = "DescribeStorageCredential"
+        payload = {
+            "BotBizId": self.config['BotBizId'],
+            "FileType": 'png',
+            "IsPublic": True,
+            "TypeKey": 'realtime',
+        }
+        resp = await tc_request(self.tc_config(), action, payload)
+        resp = resp['Response']
+        if 'Error' in resp:
+            logging.error(resp)
+            raise Exception(resp['Error']['Message'])
+        cos = AsyncWareHouseS3(secretId=resp['Credentials']['TmpSecretId'], secretKey=resp['Credentials']['TmpSecretKey'], tmpToken=resp['Credentials']['Token'], region=resp['Region'], bucket=resp['Bucket'])
+
+        async with cos.put_multipart(resp['UploadPath']) as uploader:
+            while True:
+                body = await request.stream.read()
+                if body is None:
+                    break
+                # result += body.decode("utf-8")
+                print(f'upload: {len(body)}')
+                # print(f'upload: {body}')
+                await uploader.write(body)
+
+        url = cos.get_full_url(resp['UploadPath'])
+        return url
 
     # FeedbackInterface
     async def rate(self, db: AsyncSession, account_id: str, conversation_id: str, record_id: str, score: int, comment: str = None) -> None:
