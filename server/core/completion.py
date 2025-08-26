@@ -8,6 +8,7 @@ import logging
 class CoreCompletion:
     def __init__(
         self,
+        service_config: dict,
         model: str = "deepseek-v3-0324",
         system_prompt: Optional[str] = None,
         max_history: int = 10,
@@ -22,6 +23,7 @@ class CoreCompletion:
             max_history: 最大历史对话记录数
             timeout: 请求超时时间(秒)
         """
+        self.service_config = service_config
         self.model = model
         self.timeout = timeout
         self.max_history = max_history
@@ -70,7 +72,7 @@ class CoreCompletion:
                 "Stream": True,
             }
             assistant_reply = ''
-            async for data in tc_request_sse(action, payload, service = "lkeap"):
+            async for data in tc_request_sse(self.service_config, action, payload, service = "lkeap"):
                 try:
                     message = json.loads(data)
                 except:

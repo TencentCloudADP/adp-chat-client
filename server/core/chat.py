@@ -13,7 +13,6 @@ from util.tca import tc_request
 from util.json_format import custom_dumps
 from config import tagentic_config
 from core.conversation import CoreConversation
-from core.completion import CoreCompletion
 from model.chat import ChatRecord, ChatConversation
 from vendor.interface import BaseVendor, ApplicationInfo, ConversationCallback
 

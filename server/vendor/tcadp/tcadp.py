@@ -13,7 +13,7 @@ from util.tca import tc_request
 from util.helper import to_message, convert_dict_keys_to_pascal
 from util.json_format import custom_dumps
 from config import tagentic_config
-from core.chat import CoreMessage, CoreConversation, CoreCompletion, CoreChat
+from core.completion import CoreCompletion
 from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, ConversationCallback, MessageType
 
 class TCADP(BaseVendor):
@@ -29,7 +29,7 @@ class TCADP(BaseVendor):
         payload = {
             "AppKey": self.config['AppKey'],
         }
-        resp = await tc_request(action, payload)
+        resp = await tc_request(self.tc_config(), action, payload)
         if 'Error' in resp['Response']:
             logging.error(resp)
             raise Exception(resp['Response']['Error'])
@@ -41,7 +41,7 @@ class TCADP(BaseVendor):
         payload = {
             "AppBizId": BotBizId,
         }
-        resp = await tc_request(action, payload)
+        resp = await tc_request(self.tc_config(), action, payload)
         if 'Error' in resp['Response']:
             logging.error(resp)
             return ApplicationInfo(
@@ -68,7 +68,7 @@ class TCADP(BaseVendor):
         }
         if last_record_id is not None:
             payload['LastRecordId'] = last_record_id
-        resp = await tc_request(action, payload)
+        resp = await tc_request(self.tc_config(), action, payload)
         if 'Error' in resp['Response']:
             raise Exception(resp['Response']['Error'])
         # records = [MsgRecord(**msg) for msg in resp['Response']['Records']]
@@ -98,7 +98,7 @@ class TCADP(BaseVendor):
                 "Content-Type": "application/json",
             }
             
-            async with session.post(self.config['SseURL'], headers=headers, data=json.dumps(param)) as resp:
+            async with session.post(self.tc_config()['sse'], headers=headers, data=json.dumps(param)) as resp:
                 if resp.status != 200:
                     logging.error(f"Failed to chat: {resp}")
                     raise(Exception())
@@ -160,7 +160,7 @@ class TCADP(BaseVendor):
                 # 生成标题
                 summarize = None
                 if is_new_conversation:
-                    completion = CoreCompletion(system_prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n\n请直接输出提炼结果，不要解释。')
+                    completion = CoreCompletion(self.tc_config(), system_prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n\n请直接输出提炼结果，不要解释。')
                     summarize = await completion.chat(f'user: {query}\n\nassistance:')
                 conversation = await conversation_cb.update(conversation_id=conversation_id, title=summarize) # 更新会话
                 yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=False)
@@ -175,8 +175,43 @@ class TCADP(BaseVendor):
             "Score": 1 if score==1 else 2,
             "BotAppKey": self.config['AppKey'],
         }
-        resp = await tc_request(action, payload)
+        resp = await tc_request(self.tc_config(), action, payload)
+    
+    def tc_config(self):
+        international = False
+        if 'International' in self.config:
+            international = self.config['International']
+        return service_configs['International'] if international else service_configs['China']
 
+
+service_configs = {
+    'International': {
+        'lke': {
+            'host': 'lke.intl.tencentcloudapi.com',
+            'region': 'ap-jakarta',
+            "version": "2023-11-30"
+        },
+        'lkeap': {
+            'host': 'lkeap.intl.tencentcloudapi.com',
+            'region': 'ap-jakarta',
+            "version": "2024-05-22"
+        },
+        'sse': 'https://wss.lke.tencentcloud.com/v1/qbot/chat/sse'
+    },
+    'China': {
+        'lke': {
+            'host': 'lke.tencentcloudapi.com',
+            'region': 'ap-guangzhou',
+            "version": "2023-11-30"
+        },
+        'lkeap': {
+            'host': 'lkeap.tencentcloudapi.com',
+            'region': 'ap-guangzhou',
+            "version": "2024-05-22"
+        },
+        'sse': 'https://wss.lke.cloud.tencent.com/v1/qbot/chat/sse'
+    }
+}
 
 def get_class():
     return TCADP

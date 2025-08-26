@@ -26,13 +26,3 @@ class TCADPConfig(BaseSettings):
         description="Tencent secret key, you can obtain it from https://console.cloud.tencent.com/cam/capi",
         default="",
     )
-
-    TC_TCADP_HOST: str = Field(
-        description="host of TCADP API service",
-        default="",
-    )
-
-    TC_TCADP_REGION: str = Field(
-        description="region of TCADP API service",
-        default="",
-    )

@@ -12,7 +12,6 @@ from util.tca import tc_request
 
 from util.helper import to_message
 from config import tagentic_config
-from core.chat import CoreMessage, CoreConversation, CoreCompletion, CoreChat
 from model.chat import ChatConversation
 from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, _TokenStat, ConversationCallback, MessageType
 

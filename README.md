@@ -42,7 +42,7 @@ APP_CONFIGS='[
         "ApplicationId":"对话应用唯一Id，在本系统内唯一标识一个对话应用，推荐使用厂商的appid，或者使用uuidgen命令生成一个随机的uuid",
         "Comment": "注释",
         "AppKey": "",
-        "SseURL": "https://wss.lke.cloud.tencent.com/v1/qbot/chat/sse"
+        "International": false
     }
 ]'
 ```

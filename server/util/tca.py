@@ -58,21 +58,14 @@ def asr_url(engine_model_type="16k_zh", voice_format=1):
 def sign(key, msg):
     return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).digest()
 
-def tc_request_prepare(action: str, payload: dict = {}, service = "lke") -> dict:
+def tc_request_prepare(config: dict, action: str, payload: dict = {}, service = "lke") -> dict:
     secret_id = tagentic_config.TC_SECRET_ID
     secret_key = tagentic_config.TC_SECRET_KEY
     token = ""
 
-    host = tagentic_config.TC_TCADP_HOST
-    if service=='lkeap':
-        # hmm...
-        host = host.replace('lke', 'lkeap')
-    region = tagentic_config.TC_TCADP_REGION
-    versions = {
-        "lke": "2023-11-30",
-        "lkeap": "2024-05-22",
-    }
-    version = versions[service]
+    host = config[service]['host']
+    version = config[service]['version']
+    region = config[service]['region']
     algorithm = "TC3-HMAC-SHA256"
     timestamp = int(time.time())
     date = datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d")
@@ -127,16 +120,16 @@ def tc_request_prepare(action: str, payload: dict = {}, service = "lke") -> dict
         headers["X-TC-Token"] = token
     return headers, host
 
-async def tc_request(action: str, payload: dict = {}, service = "lke") -> str:
+async def tc_request(config: dict, action: str, payload: dict = {}, service = "lke") -> str:
     payload = json.dumps(payload)
-    headers, host = tc_request_prepare(action, payload, service)
+    headers, host = tc_request_prepare(config, action, payload, service)
     async with aiohttp.ClientSession() as session:
         async with session.post(f'https://{host}/', headers=headers, data=payload) as resp:
             return await resp.json()
 
-async def tc_request_sse(action: str, payload: dict = {}, service = "lke"):
+async def tc_request_sse(config: dict, action: str, payload: dict = {}, service = "lke"):
     payload = json.dumps(payload)
-    headers, host = tc_request_prepare(action, payload, service)
+    headers, host = tc_request_prepare(config, action, payload, service)
     async with aiohttp.ClientSession() as session:
         async with session.post(f'https://{host}/', headers=headers, data=payload) as resp:
             try:

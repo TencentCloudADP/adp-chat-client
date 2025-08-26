@@ -31,19 +31,19 @@ cp server/.env.example deploy/default/.env
 You need to fill in the following credentials and application keys based on your Tencent Cloud account and ADP platform information:
 
 ```
-# Tencent Cloud account secret: https://console.cloud.tencent.com/cam/capi
+# Tencent Cloud account secret: https://console.tencentcloud.com/cam/capi
 TC_SECRET_APPID=
 TC_SECRET_ID=
 TC_SECRET_KEY=
 
-# TCADP platform agent app key: https://lke.cloud.tencent.com/
+# TCADP platform agent app key: https://lke.tencentcloud.com/
 APP_CONFIGS='[
     {
         "Vendor":"Tencent",
         "ApplicationId":"The unique ID of the bot. It is recommended to use the vendor's appid or generate a random UUID using the 'uuidgen' command",
         "Comment": "Some comments",
         "AppKey": "",
-        "SseURL": "https://wss.lke.tencentcloud.com/v1/qbot/chat/sse"
+        "International": true
     }
 ]'
 ```
