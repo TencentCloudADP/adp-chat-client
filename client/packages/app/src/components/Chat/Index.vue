@@ -1,9 +1,14 @@
 <template>
-    <div v-if="!props.draggable" id="chat-content" class="chat-box">
+    <div id="chat-content" class="chat-box">
         <TChat ref="chatRef" style="height: 100%" :clear-history="chatList.length > 0 && !isStreamLoad"
             @scroll="handleChatScroll" @clear="clearConfirm">
-            <template v-for="(item, index) in chatList" :key="index">
-                <ChatItem :item="item" :index="index" :loading="loading" :isStreamLoad="isStreamLoad" />
+            <template v-if="chatList.length <= 0">
+                <AppType :getDefaultQuestion="getDefaultQuestion" />
+            </template>
+            <template v-else>
+                <!-- TODO: 1. 开始对话后不显示type切换 2. template-->
+                <ChatItem v-for="(item, index) in chatList" :item="item" :index="index" :loading="loading"
+                    :isStreamLoad="isStreamLoad" />
             </template>
             <template #footer>
                 <Sender :inputValue="inputValue" :modelOptions="modelOptions" :selectModel="selectModel"
@@ -14,29 +19,12 @@
         </TChat>
         <BackToBottom v-show="isShowToBottom" :backToBottom="backToBottom" />
     </div>
-    <div v-else id="chat-content" class="chat-box">
-        <t-dialog visible :footer="false" :closeBtn="false" header="AI助手" mode="modeless" draggable>
-            <template #body>
-                <TChat ref="chatRef" style="height: 600px" :clear-history="chatList.length > 0 && !isStreamLoad"
-                    @scroll="handleChatScroll" @clear="clearConfirm">
-                    <template v-for="(item, index) in chatList" :key="index">
-                        <ChatItem :item="item" :index="index" :loading="loading" :isStreamLoad="isStreamLoad" />
-                    </template>
-                    <template #footer>
-                        <Sender :inputValue="inputValue" :modelOptions="modelOptions" :selectModel="selectModel"
-                            :isDeepThinking="isDeepThinking" :isStreamLoad="isStreamLoad" :handleInput="handleInput"
-                            :onStop="onStop" :inputEnter="inputEnter" :handleModelChange="handleModelChange"
-                            :toggleDeepThinking="toggleDeepThinking" />
-                    </template>
-                </TChat>
-                <BackToBottom v-show="isShowToBottom" :backToBottom="backToBottom" />
-            </template>
-        </t-dialog>
-    </div>
 </template>
 <script setup lang="tsx">
 import { ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import AppType from '@/components/Chat/AppType.vue';
+
 // 模拟 SSE 推理数据
 import { fetchSSE, MockSSEResponse } from '@/model/sseRequest-reasoning'
 // 模型数据
@@ -83,6 +71,10 @@ const backToBottom = () => {
 
 // 输入框内容
 const inputValue = ref('')
+
+const getDefaultQuestion = (value: string) => {
+    inputValue.value = value
+}
 
 // 当前选中的模型
 const selectModel = ref(defaultModel)

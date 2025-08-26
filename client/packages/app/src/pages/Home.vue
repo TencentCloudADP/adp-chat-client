@@ -4,9 +4,11 @@ import MainLayout from '@/layout/MainLayout.vue'
 import SideLayout from '@/layout/SideLayout.vue'
 import { onMounted } from 'vue'
 import { fetchUserInfo } from '@/service/user';
+import { initApplication } from '@/stores/apps';
 
-onMounted(() => {
+onMounted(async () => {
     fetchUserInfo();
+    initApplication();
 });
 
 </script>
