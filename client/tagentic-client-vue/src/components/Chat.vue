@@ -544,7 +544,7 @@ const handleFile = async (file: any, _: any[]) => {
 
   const options = {
   } as AxiosRequestConfig
-  const res = await api.post(`/file/upload?ApplicationId=${currentApplicationId.value}`, file, options)
+  const res = await api.post(`/file/upload?ApplicationId=${currentApplicationId.value}&Type=${file.type}`, file, options)
   if ('Url' in res.data) {
     const url = res.data['Url']
     fileList.value?.push({
