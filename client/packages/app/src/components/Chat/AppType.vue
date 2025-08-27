@@ -3,7 +3,7 @@
  * 智能体选择组件
  * 功能：提供智能体选择下拉框，并展示当前智能体的欢迎语和推荐问题
  */
-import { onMounted, computed, ref } from 'vue';
+import {  computed, ref } from 'vue';
 import { useAppsStore } from '@/stores/apps';
 
 // 组件Props定义
@@ -31,25 +31,18 @@ const appsStore = useAppsStore();
 
 // 计算属性：应用列表
 const applications = computed(() => appsStore.applications);
-// 计算属性：当前选中的智能体
-const currentApplication = computed(() => appsStore.currentApplication);
 // 计算属性：当前选中的智能体ID
 const currentApplicationId = computed(() => appsStore.currentApplicationId);
 
 // 用户选择的推荐问题
 const checkQuestion = ref('');
 
-
-onMounted(async () => {
-});
-
 /**
  * 切换智能体
  * @param {string} value - 智能体的value值
  */
 const handleChangeApps = (value: string) => {
-  let curApp = applications.value.find((application) => application['value'] == value)
-  console.log('handleChangeApps', value, curApp)
+  let curApp = applications.value.find((application) => application['ApplicationId'] == value)
   if (curApp) {
     appsStore.setCurrentApplication(curApp);
   }
@@ -76,14 +69,14 @@ const handleChooseQuestion = (value:string) => {
       @change="handleChangeApps">
       <template #valueDisplay="{value,onClose}">
         <div class="apps-options_item">
-          <t-avatar :image="appsStore.currentApplicationAvatar" />
+          <t-avatar v-if="appsStore.currentApplicationAvatar" :image="appsStore.currentApplicationAvatar" />
           <label>{{ appsStore.currentApplicationName }}</label>
         </div>
       </template>
-      <t-option v-for="app in applications" :key="app.value" :value="app.value" :label="app.label">
+      <t-option v-for="app in applications" :key="app.ApplicationId" :value="app.ApplicationId" :label="app.Name">
         <div class="apps-options_item">
-          <t-avatar :image="app.detail.BaseConfig?.Avatar" />
-          <label>{{ app.label }}</label>
+          <t-avatar v-if="app.Avatar" :image="app.Avatar" />
+          <label>{{ app.Name }}</label>
         </div>
       </t-option>
     </t-select>
@@ -101,13 +94,8 @@ const handleChooseQuestion = (value:string) => {
 </template>
 
 <style scoped>
-.collapse-btn {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  z-index: 10;
-}
 
+/* app展示内容详情 */
 .app-detail-container {
   display: flex;
   flex-direction: column;

@@ -6,7 +6,6 @@
                 <AppType :getDefaultQuestion="getDefaultQuestion" />
             </template>
             <template v-else>
-                <!-- TODO: 1. 开始对话后不显示type切换 2. template-->
                 <ChatItem v-for="(item, index) in chatList" :item="item" :index="index" :loading="loading"
                     :isStreamLoad="isStreamLoad" />
             </template>
