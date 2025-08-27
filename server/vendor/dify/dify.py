@@ -5,9 +5,11 @@ from pydantic import BaseModel
 from typing import Any, Optional, cast
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
+from sanic.request.types import Request
 import asyncio
 import aiohttp
 import json
+import uuid
 from util.tca import tc_request
 
 from util.helper import to_message
@@ -126,6 +128,25 @@ class Dify(BaseVendor):
 
             conversation = await conversation_cb.update(conversation_id=conversation_id) # 更新会话
             yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=False)
+
+    # FileInterface:
+    async def upload(self, db: AsyncSession, request: Request, account_id: str, mime_type: str) -> str:
+        async with aiohttp.ClientSession() as session:
+            headers = {
+                "Authorization": f"Bearer {self.config['APIKey']}",
+            }
+            
+            multipart_data = aiohttp.MultipartWriter('form-data')
+            part = multipart_data.append(request.stream)
+            part.set_content_disposition('form-data', name='file', filename=f'{uuid.uuid4()}.{mime_type.split("/")[-1]}')
+            part.headers[aiohttp.hdrs.CONTENT_TYPE] = mime_type
+            # set user id
+            part = multipart_data.append(str(account_id))
+            part.set_content_disposition('form-data', name='user')
+            async with session.post(f'{self.config["BaseURL"]}/files/upload', headers=headers, data=multipart_data) as resp:
+                resp = await resp.json()
+                # TODO: protocol need to support file id
+                return resp['id']
 
     def to_msg_record(self, msg: dict, is_from_self: bool = False, is_final: bool = True) -> MsgRecord:
         token_stat = None

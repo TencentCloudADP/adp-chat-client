@@ -251,14 +251,14 @@ class MessageInterface:
         raise NotImplementedError("Subclasses must implement this method")
 
 class FileInterface:
-    async def upload(self, db: AsyncSession, request: Request, account_id: str) -> str:
+    async def upload(self, db: AsyncSession, request: Request, account_id: str, mime_type: str) -> str:
         """异步上传文件
         
         Args:
             db (AsyncSession): SQLAlchemy db连接对象
             request (Request): 请求对象（流式读取：await request.stream.read()）
             account_id (str): 账户唯一标识符
-            type (str, optional): 文件类型
+            mime_type (str, optional): 文件类型
             
         Returns:
             url (str): 文件Url

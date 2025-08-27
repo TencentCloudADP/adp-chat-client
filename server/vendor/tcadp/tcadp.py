@@ -170,11 +170,11 @@ class TCADP(BaseVendor):
                 logging.error(f'failed to summarize conversation title. error: {e}')
 
     # FileInterface:
-    async def upload(self, db: AsyncSession, request: Request, account_id: str) -> str:
+    async def upload(self, db: AsyncSession, request: Request, account_id: str, mime_type: str) -> str:
         action = "DescribeStorageCredential"
         payload = {
             "BotBizId": self.config['BotBizId'],
-            "FileType": 'png',
+            "FileType": mime_type.split("/")[-1],
             "IsPublic": True,
             "TypeKey": 'realtime',
         }
