@@ -1,18 +1,14 @@
+import logging
+
 from sanic import json
 from sanic.views import HTTPMethodView
 from sanic_restful_api import reqparse
 from sanic.request.types import Request
 from sanic.response import ResponseStream
 from sanic.exceptions import SanicException
-from sqlalchemy import select
-import logging
-import asyncio
 
-from config import tagentic_config
-from util.tca import tc_request
 from router import login_required, check_login
-from model import Account
-from core.chat import CoreChat, CoreMessage
+from core.chat import CoreChat
 from core.conversation import CoreConversation
 from core.share import CoreShareConversation
 from app_factory import TAgenticApp
@@ -36,9 +32,18 @@ class ChatMessageApi(HTTPMethodView):
         print('application_id: ', application_id, vendor_app)
 
         async def streaming_fn(response):
-            async for data in CoreChat.message(vendor_app, request.ctx.db, request.ctx.account_id, args['Query'], args['ConversationId'], args['SearchNetwork'], args['CustomVariables']):
+            async for data in CoreChat.message(
+                vendor_app,
+                request.ctx.db,
+                request.ctx.account_id,
+                args['Query'],
+                args['ConversationId'],
+                args['SearchNetwork'],
+                args['CustomVariables']
+            ):
                 await response.write(data)
         return ResponseStream(streaming_fn, content_type='text/event-stream; charset=utf-8')
+
 
 class ChatMessageListApi(HTTPMethodView):
     async def get(self, request: Request):
@@ -50,10 +55,20 @@ class ChatMessageListApi(HTTPMethodView):
 
         if args["ConversationId"] is not None:
             check_login(request)
-            application_id = await CoreConversation.get_application_id(request.ctx.db, request.ctx.account_id, args['ConversationId'])
+            application_id = await CoreConversation.get_application_id(
+                request.ctx.db,
+                request.ctx.account_id,
+                args['ConversationId']
+            )
             vendor_app = app.get_vendor_app(application_id)
 
-            messages = await vendor_app.get_messages(request.ctx.db, request.ctx.account_id, args['ConversationId'], 4, args['LastRecordId'])
+            messages = await vendor_app.get_messages(
+                request.ctx.db,
+                request.ctx.account_id,
+                args['ConversationId'],
+                4,
+                args['LastRecordId']
+            )
             resp = {
                 'Response': {
                     'ApplicationId': application_id,
@@ -71,15 +86,15 @@ class ChatMessageListApi(HTTPMethodView):
                 result = conversation.to_dict()
             return json({"Response": result})
 
-        raise SanicException(f'ConversationId or ShareId is required')
+        raise SanicException('ConversationId or ShareId is required')
+
 
 class ChatConversationListApi(HTTPMethodView):
     @login_required
     async def get(self, request: Request):
-        parser = reqparse.RequestParser()
-        args = parser.parse_args(request)
         conversations = await CoreConversation.list(request.ctx.db, request.ctx.account_id)
         return json([conversation.to_dict() for conversation in conversations])
+
 
 app.add_route(ChatMessageApi.as_view(), "/chat/message")
 app.add_route(ChatMessageListApi.as_view(), "/chat/messages")

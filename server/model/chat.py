@@ -1,10 +1,6 @@
-import enum
-import json
-from typing import Optional, cast
-from sqlalchemy import func, INTEGER, Column, ForeignKey, String, Text, JSON, DateTime, text
-from sqlalchemy.orm import Mapped, mapped_column, reconstructor, DeclarativeBase, relationship
+from sqlalchemy import func, Column, String, Text, JSON, DateTime, text
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import UUID
-from sqlalchemy.orm import DeclarativeBase
 from model.base import Base
 
 
@@ -17,6 +13,7 @@ class ChatRecord(Base):
     FromRole = Column(String(255), nullable=False)
     CreatedAt = Column(DateTime, nullable=False, server_default=func.current_timestamp())
 
+
 class ChatConversation(Base):
     __tablename__ = "chat_conversation"
 
@@ -27,6 +24,7 @@ class ChatConversation(Base):
     LastActiveAt = Column(DateTime, nullable=False, server_default=func.current_timestamp())
     CreatedAt = Column(DateTime, nullable=False, server_default=func.current_timestamp())
 
+
 class SharedConversation(Base):
     __tablename__ = "shared_conversation"
 
@@ -36,4 +34,3 @@ class SharedConversation(Base):
     ParentConversationId = Column(UUID(), nullable=False)
     CreatedAt = Column(DateTime, nullable=False, server_default=func.current_timestamp())
     Records = Column(JSON(64), nullable=False)
-

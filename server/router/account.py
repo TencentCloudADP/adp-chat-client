@@ -2,11 +2,7 @@ from sanic import json, redirect
 from sanic.views import HTTPMethodView
 from sanic_restful_api import reqparse
 from sanic.request.types import Request
-from sqlalchemy import select
-import logging
-
 from util.helper import get_remote_ip, get_path_base
-from model import Account
 from core.account import CoreAccount, CoreAccountProvider
 from config import tagentic_config
 from app_factory import TAgenticApp
@@ -27,6 +23,7 @@ class CreateAccountApi(HTTPMethodView):
 
         return json(account.to_dict())
 
+
 class CustomerAccountApi(HTTPMethodView):
     async def get(self, request: Request):
         parser = reqparse.RequestParser()
@@ -37,7 +34,9 @@ class CustomerAccountApi(HTTPMethodView):
         parser.add_argument("Code", type=str, required=False, location="args")
         args = parser.parse_args(request)
 
-        account = await CoreAccount.customer_auth(request.ctx.db, args["CustomerId"], args["Name"], args["Timestamp"], args["ExtraInfo"], args["Code"])
+        account = await CoreAccount.customer_auth(
+            request.ctx.db, args["CustomerId"], args["Name"], args["Timestamp"], args["ExtraInfo"], args["Code"]
+        )
         token = await CoreAccount.login(request.ctx.db, account, get_remote_ip(request))
 
         response = redirect(get_path_base())
@@ -50,14 +49,13 @@ class CustomerAccountApi(HTTPMethodView):
         )
         return response
 
+
 class AccountProviderListApi(HTTPMethodView):
     async def get(self, request: Request):
-        parser = reqparse.RequestParser()
-        args = parser.parse_args(request)
-
-        providers = CoreAccountProvider.getProviders()
+        providers = CoreAccountProvider.get_providers()
 
         return json({"Providers": providers})
+
 
 app.add_route(AccountProviderListApi.as_view(), "/account/providers")
 # app.add_route(CreateAccountApi.as_view(), "/account/create")

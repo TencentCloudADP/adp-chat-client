@@ -1,10 +1,12 @@
 import enum
-import json
-from typing import Optional, cast
-from sqlalchemy import func, INTEGER, Column, ForeignKey, String, DateTime, JSON, Text, text, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column, reconstructor, DeclarativeBase
+from typing import Optional
+
+from sqlalchemy import func, Column, String, DateTime, Text, text, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import UUID
+
 from model.base import Base
+
 
 class AccountRole(enum.StrEnum):
     ADMIN = "admin"
@@ -67,6 +69,7 @@ class Account(Base):
     def is_admin(self):
         return AccountRole.is_admin(self.Role)
 
+
 class AccountThirdParty(Base):
     __tablename__ = "account_third_party"
     __table_args__ = (
@@ -81,4 +84,3 @@ class AccountThirdParty(Base):
     Token = Column(String(255), nullable=True)
     CreatedAt = Column(DateTime, nullable=False, server_default=func.current_timestamp())
     UpdatedAt = Column(DateTime, nullable=False, server_default=func.current_timestamp())
-

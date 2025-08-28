@@ -1,21 +1,13 @@
-from datetime import UTC, datetime, timedelta
-from enum import Enum
 import logging
-from pydantic import BaseModel
-from typing import Any, Optional, cast
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
 from sanic.request.types import Request
 import asyncio
 import aiohttp
 import json
 import uuid
-from util.tca import tc_request
-
 from util.helper import to_message
-from config import tagentic_config
-from model.chat import ChatConversation
 from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, _TokenStat, ConversationCallback, MessageType
+
 
 async def request(url: str, authorization: str, payload: dict = {}, method = "get") -> str:
     headers = {
@@ -33,13 +25,14 @@ async def request(url: str, authorization: str, payload: dict = {}, method = "ge
             async with session.post(url, headers=headers, data=payload) as resp:
                 return await resp.json()
 
+
 class Dify(BaseVendor):
-    
+
     # ApplicationInterface
     @classmethod
     def get_vendor(self) -> str:
         return 'Dify'
-    
+
     # ApplicationInterface
     async def get_info(self) -> ApplicationInfo:
         resp = await request(f'{self.config['BaseURL']}/site', self.config['APIKey'], method='get')
@@ -52,7 +45,13 @@ class Dify(BaseVendor):
         )
 
     # MessageInterface
-    async def get_messages(self, db: AsyncSession, account_id: str, conversation_id: str, limit: int, last_record_id: str = None) -> list[MsgRecord]:
+    async def get_messages(
+        self,
+        db: AsyncSession,
+        account_id: str,
+        conversation_id: str,
+        limit: int, last_record_id: str = None
+    ) -> list[MsgRecord]:
         payload = {
             "limit": limit,
             "user": account_id,
@@ -66,20 +65,30 @@ class Dify(BaseVendor):
         for msg in resp['data']:
             records.append(self.to_msg_record(msg, is_from_self=True))
             records.append(self.to_msg_record(msg))
-        
+
         # if 'Error' in resp['Response']:
         #     raise Exception(resp['Response']['Error'])
         return records
 
     # ChatInterface
-    async def chat(self, db: AsyncSession, account_id: str, query: str, conversation_id: str, is_new_conversation: bool, conversation_cb: ConversationCallback, search_network = True, custom_variables = {}):
+    async def chat(
+        self,
+        db: AsyncSession,
+        account_id: str,
+        query: str,
+        conversation_id: str,
+        is_new_conversation: bool,
+        conversation_cb: ConversationCallback,
+        search_network = True,
+        custom_variables = {}
+    ):
         async with aiohttp.ClientSession() as session:
             param = {
                 "query": query,
                 "conversation_id": conversation_id,
                 "user": account_id,
                 "inputs": custom_variables,
-                "response_mode" : "streaming",
+                "response_mode": "streaming",
                 "files": [],
             }
             # print(param)
@@ -88,17 +97,17 @@ class Dify(BaseVendor):
                 "Accept": "text/event-stream",
                 "Content-Type": "application/json",
             }
-            
-            async with session.post(f'{self.config["BaseURL"]}/chat-messages', headers=headers, data=json.dumps(param)) as resp:
+
+            async with session.post(
+                f'{self.config["BaseURL"]}/chat-messages',
+                headers=headers,
+                data=json.dumps(param)
+            ) as resp:
                 if resp.status != 200:
                     logging.error(f"Failed to chat: {resp}")
-                    raise(Exception())
+                    raise Exception(f"Failed to chat: {resp}")
 
                 # 逐行读取事件流
-                last_event_type = None
-                last_message_test = ''
-                last_message_id = ''
-                last_from_role = ''
                 try:
                     while True:
                         raw_line = await resp.content.readline()
@@ -113,20 +122,28 @@ class Dify(BaseVendor):
                             if is_new_conversation:
                                 if data['event'] == 'message':
                                     is_new_conversation = False
-                                    conversation = await conversation_cb.create(conversation_id=data['conversation_id']) # 创建会话
-                                    yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=True)
-                                
+                                    conversation = await conversation_cb.create(
+                                        conversation_id=data['conversation_id']
+                                    )  # 创建会话
+                                    yield to_message(
+                                        MessageType.CONVERSATION, conversation=conversation, is_new_conversation=True
+                                    )
+
                             if data['event'] == 'message':
-                                yield to_message(MessageType.REPLY, record=self.to_msg_record(data, is_final=False), incremental=True)
+                                yield to_message(
+                                    MessageType.REPLY, record=self.to_msg_record(data, is_final=False), incremental=True
+                                )
                             elif data['event'] == 'message_end':
-                                yield to_message(MessageType.REPLY, record=self.to_msg_record(data), incremental=True)
+                                yield to_message(
+                                    MessageType.REPLY, record=self.to_msg_record(data), incremental=True
+                                )
 
                 except asyncio.CancelledError:
                     logging.info("forward_request: cancelled")
                     resp.close()
-            logging.info(f"forward_request: done")
+            logging.info("forward_request: done")
 
-            conversation = await conversation_cb.update(conversation_id=conversation_id) # 更新会话
+            conversation = await conversation_cb.update(conversation_id=conversation_id)  # 更新会话
             yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=False)
 
     # FileInterface:
@@ -135,15 +152,19 @@ class Dify(BaseVendor):
             headers = {
                 "Authorization": f"Bearer {self.config['APIKey']}",
             }
-            
+
             multipart_data = aiohttp.MultipartWriter('form-data')
             part = multipart_data.append(request.stream)
-            part.set_content_disposition('form-data', name='file', filename=f'{uuid.uuid4()}.{mime_type.split("/")[-1]}')
+            part.set_content_disposition(
+                'form-data', name='file', filename=f'{uuid.uuid4()}.{mime_type.split("/")[-1]}'
+            )
             part.headers[aiohttp.hdrs.CONTENT_TYPE] = mime_type
             # set user id
             part = multipart_data.append(str(account_id))
             part.set_content_disposition('form-data', name='user')
-            async with session.post(f'{self.config["BaseURL"]}/files/upload', headers=headers, data=multipart_data) as resp:
+            async with session.post(
+                f'{self.config["BaseURL"]}/files/upload', headers=headers, data=multipart_data
+            ) as resp:
                 resp = await resp.json()
                 # TODO: protocol need to support file id
                 return resp['id']
@@ -166,6 +187,7 @@ class Dify(BaseVendor):
             Timestamp = msg['created_at'],
             TokenStat = token_stat,
         )
+
 
 def get_class():
     return Dify

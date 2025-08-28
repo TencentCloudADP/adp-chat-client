@@ -1,6 +1,6 @@
-import aiohttp
 import aioboto3
 from botocore.client import Config
+
 
 class AsyncWareHouseS3():
     def __init__(self, secretId, secretKey, tmpToken, region, bucket):
@@ -11,7 +11,9 @@ class AsyncWareHouseS3():
             's3ep_full': f'http://{bucket}.cos.{region}.myqcloud.com',
             's3bucket': bucket,
         }
-        self.session = aioboto3.Session(aws_access_key_id=secretId, aws_secret_access_key=secretKey, aws_session_token=tmpToken )
+        self.session = aioboto3.Session(
+            aws_access_key_id=secretId, aws_secret_access_key=secretKey, aws_session_token=tmpToken
+        )
 
     async def list(self, prefix=''):
         cos_config = Config(s3={'addressing_style': 'virtual'})
@@ -26,10 +28,10 @@ class AsyncWareHouseS3():
         async with self.session.resource('s3', endpoint_url=self.dict['s3ep'], config=cos_config) as s3:
             obj = await s3.Object(self.dict['s3bucket'], path)
             await obj.put(Body=body)
-    
+
     def get_full_url(self, path):
         return self.dict['s3ep_full'] + path
-    
+
     def put_multipart(self, path):
         path = self.pure_path(path)
         return MultipartUploader(
@@ -59,6 +61,7 @@ class AsyncWareHouseS3():
     def get_base_path(self):
         return 's3a://{}'.format(self.dict['s3bucket'])
 
+
 class MultipartUploader:
     def __init__(self, session, s3_config, path):
         self.session = session
@@ -76,7 +79,7 @@ class MultipartUploader:
         obj = await self.s3.Object(self.dict['s3bucket'], self.path)
         self.mp = await obj.initiate_multipart_upload(Bucket=self.dict['s3bucket'], Key=self.path)
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         try:
             if exc_type is not None:
@@ -84,11 +87,11 @@ class MultipartUploader:
                 if self.mp:
                     await self.mp.abort()
                 return
-                
+
             # Upload any remaining data
             if len(self.buf) > 0:
                 await self._upload_part()
-                
+
             # Complete the multipart upload
             if self.mp and self.parts:
                 await self.mp.complete(MultipartUpload={'Parts': self.parts})
@@ -99,13 +102,13 @@ class MultipartUploader:
 
     async def write(self, data):
         self.buf += data
-        if len(self.buf) >= 1024*1024:  # 1MB threshold
+        if len(self.buf) >= 1024 * 1024:  # 1MB threshold
             await self._upload_part()
 
     async def _upload_part(self):
         if len(self.buf) == 0:
             return
-            
+
         part = await self.mp.Part(self.part_number)
         upload_result = await part.upload(Body=self.buf)
         self.parts.append({

@@ -1,10 +1,5 @@
-from datetime import UTC, datetime, timedelta
-from enum import Enum
 import logging
-from pydantic import BaseModel
-from typing import Any, Optional, cast
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
 from sanic.request.types import Request
 import asyncio
 import aiohttp
@@ -13,10 +8,9 @@ from util.tca import tc_request
 from util.warehouse import AsyncWareHouseS3
 
 from util.helper import to_message, convert_dict_keys_to_pascal
-from util.json_format import custom_dumps
-from config import tagentic_config
 from core.completion import CoreCompletion
 from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, ConversationCallback, MessageType
+
 
 class TCADP(BaseVendor):
 
@@ -24,7 +18,7 @@ class TCADP(BaseVendor):
     @classmethod
     def get_vendor(self) -> str:
         return 'Tencent'
-    
+
     # ApplicationInterface
     async def get_info(self) -> ApplicationInfo:
         action = "DescribeRobotBizIDByAppKey"
@@ -35,7 +29,7 @@ class TCADP(BaseVendor):
         if 'Error' in resp['Response']:
             logging.error(resp)
             raise Exception(resp['Response']['Error'])
-        
+
         BotBizId = resp['Response']['BotBizId']
         self.config['BotBizId'] = BotBizId
 
@@ -60,7 +54,13 @@ class TCADP(BaseVendor):
             )
 
     # MessageInterface
-    async def get_messages(self, db: AsyncSession, account_id: str, conversation_id: str, limit: int, last_record_id: str = None) -> list[MsgRecord]:
+    async def get_messages(
+        self,
+        db: AsyncSession,
+        account_id: str,
+        conversation_id: str,
+        limit: int, last_record_id: str = None
+    ) -> list[MsgRecord]:
         action = "GetMsgRecord"
         payload = {
             "Type": 5,
@@ -77,11 +77,20 @@ class TCADP(BaseVendor):
         return records
         # return resp['Response']['Records']
 
-
     # ChatInterface
-    async def chat(self, db: AsyncSession, account_id: str, query: str, conversation_id: str, is_new_conversation: bool, conversation_cb: ConversationCallback, search_network = True, custom_variables = {}):
+    async def chat(
+        self,
+        db: AsyncSession,
+        account_id: str,
+        query: str,
+        conversation_id: str,
+        is_new_conversation: bool,
+        conversation_cb: ConversationCallback,
+        search_network = True,
+        custom_variables = {}
+    ):
         if is_new_conversation:
-            conversation = await conversation_cb.create() # 创建会话
+            conversation = await conversation_cb.create()  # 创建会话
             yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=True)
             conversation_id = str(conversation.Id)
         async with aiohttp.ClientSession() as session:
@@ -93,23 +102,19 @@ class TCADP(BaseVendor):
                 "visitor_biz_id": account_id,
                 "search_network": "enable" if search_network else "disable",
                 "custom_variables": custom_variables,
-                "incremental" : incremental,
+                "incremental": incremental,
             }
             headers = {
                 "Accept": "text/event-stream",
                 "Content-Type": "application/json",
             }
-            
+
             async with session.post(self.tc_config()['sse'], headers=headers, data=json.dumps(param)) as resp:
                 if resp.status != 200:
                     logging.error(f"Failed to chat: {resp}")
-                    raise(Exception())
+                    raise Exception(f"SSE error: {resp.status}")
 
                 # 逐行读取事件流
-                last_event_type = None
-                last_message_test = ''
-                last_message_id = ''
-                last_from_role = ''
                 try:
                     while True:
                         raw_line = await resp.content.readline()
@@ -128,7 +133,9 @@ class TCADP(BaseVendor):
                                 logging.info(f"Unknown message type: {data['type']}")
                                 continue
 
-                            if msg_type in {MessageType.REPLY, MessageType.THOUGHT, MessageType.REFERENCE, MessageType.TOKEN_STAT}:
+                            if msg_type in {
+                                MessageType.REPLY, MessageType.THOUGHT, MessageType.REFERENCE, MessageType.TOKEN_STAT
+                            }:
                                 payload = convert_dict_keys_to_pascal(data['payload'])
                                 if msg_type == MessageType.REPLY:
                                     pass
@@ -139,7 +146,7 @@ class TCADP(BaseVendor):
                                 elif msg_type == MessageType.TOKEN_STAT:
                                     payload = {'TokenStat': payload, **payload}
                                 record = MsgRecord.model_validate(payload)
-                                
+
                                 yield to_message(msg_type, record=record, incremental=incremental)
                             elif msg_type in {MessageType.ERROR}:
                                 if 'payload' in data:
@@ -156,15 +163,19 @@ class TCADP(BaseVendor):
                 except asyncio.CancelledError:
                     logging.info("forward_request: cancelled")
                     resp.close()
-            logging.info(f"forward_request: done")
+            logging.info("forward_request: done")
 
             try:
                 # 生成标题
                 summarize = None
                 if is_new_conversation:
-                    completion = CoreCompletion(self.tc_config(), system_prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n\n请直接输出提炼结果，不要解释。')
+                    prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n请直接输出提炼结果，不要解释。'
+                    completion = CoreCompletion(
+                        self.tc_config(),
+                        system_prompt = prompt
+                    )
                     summarize = await completion.chat(f'user: {query}\n\nassistance:')
-                conversation = await conversation_cb.update(conversation_id=conversation_id, title=summarize) # 更新会话
+                conversation = await conversation_cb.update(conversation_id=conversation_id, title=summarize)  # 更新会话
                 yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=False)
             except Exception as e:
                 logging.error(f'failed to summarize conversation title. error: {e}')
@@ -183,7 +194,13 @@ class TCADP(BaseVendor):
         if 'Error' in resp:
             logging.error(resp)
             raise Exception(resp['Error']['Message'])
-        cos = AsyncWareHouseS3(secretId=resp['Credentials']['TmpSecretId'], secretKey=resp['Credentials']['TmpSecretKey'], tmpToken=resp['Credentials']['Token'], region=resp['Region'], bucket=resp['Bucket'])
+        cos = AsyncWareHouseS3(
+            secretId=resp['Credentials']['TmpSecretId'],
+            secretKey=resp['Credentials']['TmpSecretKey'],
+            tmpToken=resp['Credentials']['Token'],
+            region=resp['Region'],
+            bucket=resp['Bucket']
+        )
 
         async with cos.put_multipart(resp['UploadPath']) as uploader:
             while True:
@@ -199,15 +216,22 @@ class TCADP(BaseVendor):
         return url
 
     # FeedbackInterface
-    async def rate(self, db: AsyncSession, account_id: str, conversation_id: str, record_id: str, score: int, comment: str = None) -> None:
+    async def rate(
+        self,
+        db: AsyncSession,
+        account_id: str,
+        conversation_id: str,
+        record_id: str, score: int,
+        comment: str = None
+    ) -> None:
         action = "RateMsgRecord"
         payload = {
             "RecordId": record_id,
-            "Score": 1 if score==1 else 2,
+            "Score": 1 if score == 1 else 2,
             "BotAppKey": self.config['AppKey'],
         }
-        resp = await tc_request(self.tc_config(), action, payload)
-    
+        await tc_request(self.tc_config(), action, payload)
+
     def tc_config(self):
         international = False
         if 'International' in self.config:
@@ -243,6 +267,7 @@ service_configs = {
         'sse': 'https://wss.lke.cloud.tencent.com/v1/qbot/chat/sse'
     }
 }
+
 
 def get_class():
     return TCADP

@@ -1,18 +1,17 @@
-# -*- coding: utf-8 -*-
-import os
+import asyncio
+import logging
 import hashlib
 import hmac
 import base64
 import uuid
 from urllib.parse import quote
-from random import randint, randrange
+from random import randint
 import json
-import sys
 import time
 from datetime import datetime
+
 import aiohttp
-import asyncio
-import logging
+
 from config import tagentic_config
 
 
@@ -22,6 +21,7 @@ def asr_sign(msg):
     s = base64.b64encode(hmacstr)
     s = s.decode('utf-8')
     return s
+
 
 def asr_query_string(param):
     signstr = "asr.cloud.tencent.com/asr/v2/"
@@ -36,6 +36,7 @@ def asr_query_string(param):
         signstr += f'{str(k)}={str(v)}&'
     signstr = signstr[:-1]
     return signstr
+
 
 def asr_url(engine_model_type="16k_zh", voice_format=1):
     # https://cloud.tencent.com/document/api/1093/48982
@@ -55,10 +56,12 @@ def asr_url(engine_model_type="16k_zh", voice_format=1):
     url = f'wss://{url}&signature={sign}'
     return url
 
+
 def sign(key, msg):
     return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).digest()
 
-def tc_request_prepare(config: dict, action: str, payload: dict = {}, service = "lke") -> dict:
+
+def tc_request_prepare(config: dict, action: str, payload: str, service = "lke") -> dict:
     secret_id = tagentic_config.TC_SECRET_ID
     secret_key = tagentic_config.TC_SECRET_KEY
     token = ""
@@ -120,14 +123,20 @@ def tc_request_prepare(config: dict, action: str, payload: dict = {}, service = 
         headers["X-TC-Token"] = token
     return headers, host
 
-async def tc_request(config: dict, action: str, payload: dict = {}, service = "lke") -> str:
+
+async def tc_request(config: dict, action: str, payload: dict = None, service = "lke") -> str:
+    if payload is None:
+        payload = {}
     payload = json.dumps(payload)
     headers, host = tc_request_prepare(config, action, payload, service)
     async with aiohttp.ClientSession() as session:
         async with session.post(f'https://{host}/', headers=headers, data=payload) as resp:
             return await resp.json()
 
-async def tc_request_sse(config: dict, action: str, payload: dict = {}, service = "lke"):
+
+async def tc_request_sse(config: dict, action: str, payload: dict = None, service = "lke"):
+    if payload is None:
+        payload = {}
     payload = json.dumps(payload)
     headers, host = tc_request_prepare(config, action, payload, service)
     async with aiohttp.ClientSession() as session:

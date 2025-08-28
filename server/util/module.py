@@ -3,14 +3,12 @@ from importlib import import_module, util
 from inspect import getmembers
 from pathlib import Path
 from types import ModuleType
-from typing import Union
 import pkgutil
 import logging
-
 from sanic.blueprints import Blueprint
 
+
 def autodiscover(app, module_names: list[ModuleType], recursive: bool = False):
-    mod = app.__module__
     blueprints = set()
     _imported = set()
 
@@ -41,6 +39,7 @@ def autodiscover(app, module_names: list[ModuleType], recursive: bool = False):
         print(f'[autodiscover] registering blueprint {bp}')
         app.blueprint(bp)
 
+
 def autodiscover_vendor():
     import vendor
     vendors = {}
@@ -51,5 +50,5 @@ def autodiscover_vendor():
             logging.info(f'loading vendor class: {name}')
             cls = module.get_class()
             vendors[cls.get_vendor()] = cls
-    
+
     return vendors

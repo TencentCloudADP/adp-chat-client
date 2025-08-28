@@ -11,6 +11,7 @@ import router
 import middleware
 from vendor.interface import BaseVendor
 
+
 class TAgenticApp(Sanic):
     vendors = {}
     apps = {}
@@ -18,7 +19,10 @@ class TAgenticApp(Sanic):
     def __init__(self, *args, **kwargs):
         super().__init__(dumps=custom_dumps, *args, **kwargs)
         self.config.update(tagentic_config.model_dump())
-        logging.basicConfig(level=logging.getLevelNamesMapping()[self.config.LOG_LEVEL], format='%(asctime)s - %(levelname)s - %(message)s')
+        logging.basicConfig(
+            level=logging.getLevelNamesMapping()[self.config.LOG_LEVEL],
+            format='%(asctime)s - %(levelname)s - %(message)s'
+        )
 
         # 厂商类注册
         self.vendors.update(autodiscover_vendor())
@@ -29,13 +33,14 @@ class TAgenticApp(Sanic):
         for app_config in apps:
             if app_config['Vendor'] in self.vendors.keys():
                 application_id = app_config['ApplicationId']
-                self.apps[application_id] = ( self.vendors[app_config['Vendor']](app_config, application_id) )
+                self.apps[application_id] = self.vendors[app_config['Vendor']](app_config, application_id)
         logging.info(f'apps: {self.apps}')
-    
+
     def get_vendor_app(self, application_id: str) -> BaseVendor:
         if application_id in self.apps.keys():
             return self.apps[application_id]
         raise Exception(f'application_id {application_id} not found')
+
 
 def create_app_with_configs() -> TAgenticApp:
     """
@@ -44,6 +49,7 @@ def create_app_with_configs() -> TAgenticApp:
     tagentic_app = TAgenticApp(__name__)
 
     return tagentic_app
+
 
 def create_app() -> TAgenticApp:
     # Set server timezone to UTC. Time display will format in client side with customer's timezone
@@ -56,6 +62,7 @@ def create_app() -> TAgenticApp:
     end_time = time.perf_counter()
     logging.info(f"Finished create_app ({(end_time - start_time) * 1000:.2f} ms)")
     return app
+
 
 def initialize_middleware(app: TAgenticApp):
     """

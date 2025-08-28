@@ -2,11 +2,7 @@ from sanic import json
 from sanic.views import HTTPMethodView
 from sanic_restful_api import reqparse
 from sanic.request.types import Request
-from sqlalchemy import select
-import logging
-
 from util.helper import get_remote_ip
-from model import Account
 from core.account import CoreAccount
 from config import tagentic_config
 from app_factory import TAgenticApp

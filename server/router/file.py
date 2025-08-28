@@ -19,7 +19,8 @@ class FileUploadApi(HTTPMethodView):
         application_id = args['ApplicationId']
         vendor_app = app.get_vendor_app(application_id)
 
-        Url = await vendor_app.upload(request.ctx.db, request, request.ctx.account_id, args['Type'])
-        return json({"Url": Url})
+        url = await vendor_app.upload(request.ctx.db, request, request.ctx.account_id, args['Type'])
+        return json({"Url": url})
+
 
 app.add_route(FileUploadApi.as_view(), "/file/upload")

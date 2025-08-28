@@ -2,6 +2,7 @@ from functools import wraps
 from core.error.account import AccountUnauthorized
 from core.session import SessionToken
 
+
 def check_login(request):
     auth = request.headers.get("Authorization")
     if auth is None:
@@ -13,6 +14,7 @@ def check_login(request):
     token = SessionToken.check(auth_token)
     request.ctx.account_id = token['AccountId']
 
+
 def login_required(view):
     @wraps(view)
     async def decorated(*args, **kwargs):
@@ -23,4 +25,3 @@ def login_required(view):
         return await view(*args, **kwargs)
 
     return decorated
-

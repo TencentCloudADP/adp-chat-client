@@ -1,14 +1,10 @@
-from pydantic import BaseModel
-from typing import Any, Optional, cast
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from config import tagentic_config
 import jwt
 
 from core.error.account import (
-    AccountAuthenticationError,
     AccountUnauthorized,
 )
+
 
 class SessionToken:
     @staticmethod

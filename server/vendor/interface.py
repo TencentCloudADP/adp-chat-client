@@ -1,9 +1,10 @@
 from enum import Enum
-from typing import Protocol, List, Dict, Optional, TypedDict, Union, Any
+from typing import Protocol, List, Dict, Optional, Any
 from pydantic import BaseModel
 from sanic.request.types import Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from model.chat import ChatRecord, ChatConversation
+from model.chat import ChatConversation
+
 
 class ApplicationInfo(BaseModel):
     ApplicationId: str
@@ -11,6 +12,7 @@ class ApplicationInfo(BaseModel):
     Avatar: Optional[str] = None
     Greeting: Optional[str] = None
     OpeningQuestions: List[str] = []
+
 
 class _Debugging(BaseModel):
     CustomVariables: Optional[List[Any]] = None
@@ -22,6 +24,7 @@ class _Debugging(BaseModel):
     Agent: Optional[Dict[str, str]] = None
     Content: Optional[str] = None
 
+
 class _Procedure(BaseModel):
     Count: Optional[int] = None
     Debugging: Optional[_Debugging] = None
@@ -29,6 +32,7 @@ class _Procedure(BaseModel):
     ResourceStatus: Optional[int] = None
     Status: Optional[str] = None
     Title: Optional[str] = None
+
 
 class _TokenStat(BaseModel):
     FreeCount: Optional[int] = None
@@ -44,6 +48,7 @@ class _TokenStat(BaseModel):
     TraceId: Optional[str] = None
     UsedCount: Optional[int] = None
 
+
 class _WorkFlow(BaseModel):
     WorkflowReleaseTime: Optional[str] = None
     WorkflowRunId: Optional[str] = None
@@ -52,8 +57,10 @@ class _WorkFlow(BaseModel):
     WorkflowId: Optional[str] = None
     WorkflowName: Optional[str] = None
 
+
 class _ExtraInfo(BaseModel):
     EChartsInfo: Optional[List[Any]] = None
+
 
 class _DebuggingThought(BaseModel):
     Content: Optional[str] = None
@@ -65,6 +72,7 @@ class _DebuggingThought(BaseModel):
     DisplayThought: Optional[str] = None
     DisplayType: Optional[int] = None
     DisplayUrl: Optional[str] = None
+
 
 class _ProcedureThought(BaseModel):
     Index: Optional[int] = None
@@ -84,6 +92,7 @@ class _ProcedureThought(BaseModel):
     NodeName: Optional[str] = None
     StartTime: Optional[str] = None
 
+
 class _AgentThought(BaseModel):
     Files: Optional[List[Any]] = None
     IsWorkflow: Optional[bool] = None
@@ -94,6 +103,7 @@ class _AgentThought(BaseModel):
     SessionId: Optional[str] = None
     TraceId: Optional[str] = None
     WorkflowName: Optional[str] = None
+
 
 class MsgRecord(BaseModel):
     Content: Optional[str] = None
@@ -125,9 +135,10 @@ class MsgRecord(BaseModel):
     AgentThought: Optional[_AgentThought] = None
     References: Optional[List[Any]] = None
 
+
 class MessageType(Enum):
     """消息类型枚举，用于标识消息的性质 / Message type enum for categorizing message purposes
-    
+
     Attributes:
         REPLY: 回复消息 / Reply message (direct response to user)
         THOUGHT: 思考过程消息 / Thought process message
@@ -136,10 +147,10 @@ class MessageType(Enum):
         ERROR: 错误消息 / Error notification
         CONVERSATION: 会话级别消息 / Conversation-level notification
     """
-    
+
     REPLY = 'reply'
     """回复消息（直接返回给用户的内容） / Reply message (direct response to user)"""
-    
+
     THOUGHT = 'thought'
     """思考过程消息（展示在"思考中"的内容） / Thought process message (showing intermediate reasoning)"""
 
@@ -148,7 +159,7 @@ class MessageType(Enum):
 
     TOKEN_STAT = 'token_stat'
     """Token统计消息（显示Token使用情况） / Token usage statistics (showing consumption)"""
-    
+
     ERROR = 'error'
     """错误消息（错误提示） / Error notification (error message)"""
 
@@ -158,16 +169,27 @@ class MessageType(Enum):
     def __str__(self):
         return self.value
 
+
 class ConversationCallback(Protocol):
-    async def create(self, title: str = None, vendor_conversation_id: str = None) -> ChatConversation:
-        """更新会话回调函数，参数：
+    async def create(
+        self,
+        title: str = None,
+        vendor_conversation_id: str = None
+    ) -> ChatConversation:
+        """创建会话回调函数，参数：
         - title: str                   # 会话标题(选填)
         - vendor_conversation_id: str  # 供应商会话ID(选填)
         return: ChatConversation       # 返回会话对象
         """
         pass
-    async def update(self, conversation_id: str = None, title: str = None, vendor_conversation_id: str = None) -> ChatConversation:
-        """创建会话回调函数，参数：
+
+    async def update(
+        self,
+        conversation_id: str = None,
+        title: str = None,
+        vendor_conversation_id: str = None
+    ) -> ChatConversation:
+        """更新会话回调函数，参数：
         - conversation_id: str         # 会话ID
         - title: str                   # 会话标题(选填)
         - vendor_conversation_id: str  # 供应商会话ID(选填)
@@ -175,15 +197,16 @@ class ConversationCallback(Protocol):
         """
         pass
 
+
 class ApplicationInterface:
     """应用相关接口"""
-    
+
     @classmethod
     def get_vendor(cls) -> str:
         """获取应用配置标识
-        
+
         当.env中APP_CONFIGS的Vendor字段与此方法返回值一致时，匹配该厂商接口
-        
+
         Returns:
             str: 例如："TCADP"
         """
@@ -191,20 +214,31 @@ class ApplicationInterface:
 
     async def get_info(self) -> ApplicationInfo:
         """异步获取应用信息
-        
+
         该方法返回应用的核心元数据，参考数据结构ApplicationInfo
-        
+
         Returns:
             ApplicationInfo: 包含应用信息的结构化对象
-            
+
         Raises:
             RuntimeError: 当应用信息不可获取时抛出
             NotImplementedError: 必须由子类实现具体逻辑
         """
         raise NotImplementedError("Subclasses must implement this method")
 
+
 class ChatInterface:
-    async def chat(self, db: AsyncSession, account_id: str, query: str, conversation_id: str, is_new_conversation: bool, conversation_cb: ConversationCallback, search_network = True, custom_variables = {}):
+    async def chat(
+        self,
+        db: AsyncSession,
+        account_id: str,
+        query: str,
+        conversation_id: str,
+        is_new_conversation: bool,
+        conversation_cb: ConversationCallback,
+        search_network = True,
+        custom_variables = {}
+    ):
         """执行聊天对话处理（异步方法）
 
         核心聊天交互接口，处理用户查询并实时返回对话结果。
@@ -230,8 +264,15 @@ class ChatInterface:
         """
         raise NotImplementedError("Subclasses must implement this method")
 
+
 class MessageInterface:
-    async def get_messages(self, db: AsyncSession, account_id: str, conversation_id: str, limit: int, last_record_id: str = None) -> list[MsgRecord]:
+    async def get_messages(
+        self,
+        db: AsyncSession,
+        account_id: str,
+        conversation_id: str,
+        limit: int, last_record_id: str = None
+    ) -> list[MsgRecord]:
         """异步获取指定对话的消息记录
 
         通过厂商接口，或本系统数据库查询特定会话的消息记录，支持通过last_record_id分页查询
@@ -250,25 +291,34 @@ class MessageInterface:
         """
         raise NotImplementedError("Subclasses must implement this method")
 
+
 class FileInterface:
     async def upload(self, db: AsyncSession, request: Request, account_id: str, mime_type: str) -> str:
         """异步上传文件
-        
+
         Args:
             db (AsyncSession): SQLAlchemy db连接对象
             request (Request): 请求对象（流式读取：await request.stream.read()）
             account_id (str): 账户唯一标识符
             mime_type (str, optional): 文件类型
-            
+
         Returns:
             url (str): 文件Url
         """
         raise NotImplementedError("Subclasses must implement this method")
 
+
 class FeedbackInterface:
-    async def rate(self, db: AsyncSession, account_id: str, conversation_id: str, record_id: str, score: int, comment: str = None) -> None:
+    async def rate(
+        self,
+        db: AsyncSession,
+        account_id: str,
+        conversation_id: str,
+        record_id: str, score: int,
+        comment: str = None
+    ) -> None:
         """异步反馈消息评分
-        
+
         Args:
             db (AsyncSession): SQLAlchemy db连接对象
             account_id (str): 账户唯一标识符
@@ -276,11 +326,12 @@ class FeedbackInterface:
             record_id (str): 消息记录唯一标识
             score (int): 评分值，0: 撤销，1: 赞，2: 踩
             comment (str): 反馈评论
-            
+
         Returns:
             None
         """
         raise NotImplementedError("Subclasses must implement this method")
+
 
 class BaseVendor(ChatInterface, MessageInterface, FileInterface, FeedbackInterface, ApplicationInterface):
     """厂商基类，实现具体的厂商接口需要从该类继承

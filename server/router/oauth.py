@@ -1,14 +1,11 @@
-from sanic import json, redirect
+from sanic import redirect
 from sanic.views import HTTPMethodView
 from sanic_restful_api import reqparse
 from sanic.request.types import Request
-from sqlalchemy import select
-import logging
 
 from util.helper import get_remote_ip, get_path_base
-from model import Account
 from core.oauth import CoreOAuth
-from core.account import CoreAccount, CoreAccountProvider
+from core.account import CoreAccount
 from config import tagentic_config
 from app_factory import TAgenticApp
 app = TAgenticApp.get_app()
@@ -32,5 +29,6 @@ class OAuthCallbackApi(HTTPMethodView):
             secure=False,
         )
         return response
+
 
 app.add_route(OAuthCallbackApi.as_view(), "/oauth/callback/<provider>")

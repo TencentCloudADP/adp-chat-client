@@ -7,7 +7,7 @@ if __name__ == '__main__':
 
         _, sessionmaker = create_db_engine(app)
         db = sessionmaker()
-        account = await CoreAccount.create_account(db, email=args.u, password=args.p)
+        await CoreAccount.create_account(db, email=args.u, password=args.p)
         await db.close()
 
     app = create_app()

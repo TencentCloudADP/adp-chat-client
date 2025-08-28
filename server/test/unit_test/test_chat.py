@@ -1,6 +1,5 @@
 import json
 import pytest
-from sanic import response
 
 
 @pytest.mark.asyncio

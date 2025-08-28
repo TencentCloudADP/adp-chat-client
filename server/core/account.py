@@ -1,61 +1,67 @@
 from datetime import UTC, datetime, timedelta
 import logging
-from pydantic import BaseModel
-from typing import Any, Optional, cast
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from typing import Optional
 import secrets
 import binascii
 import hmac
 import hashlib
 import time
 
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
 from config import tagentic_config
 from core.error.account import (
     AccountAuthenticationError,
-    AccountUnauthorized,
     CustomerAccountSign,
 )
 from core.session import SessionToken
 from model.account import Account, AccountThirdParty, AccountRole
 from util.password import hash, compare
 
+
 class CoreAccountProvider:
     providers = []
 
     @staticmethod
-    def addProvider(name: str, url: str) -> None:
+    def add_provider(name: str, url: str) -> None:
         CoreAccountProvider.providers.append({'name': name, 'url': url})
 
     @staticmethod
-    def getProviders():
+    def get_providers():
         return CoreAccountProvider.providers
+
 
 class CoreAccount:
     @staticmethod
-    async def find(db: AsyncSession, email: Optional[str] = None, provider: Optional[str] = None, open_id: Optional[str] = None) -> Account:
-        account_third_party = (await db.execute(
-            select(AccountThirdParty)
-                .where(AccountThirdParty.Provider == provider, AccountThirdParty.OpenId == open_id)
-                .limit(1)
+    async def find(
+        db: AsyncSession, email: Optional[str] = None, provider: Optional[str] = None, open_id: Optional[str] = None
+    ) -> Account:
+        account_third_party = (
+            await db.execute(
+                select(AccountThirdParty)
+                    .where(AccountThirdParty.Provider == provider, AccountThirdParty.OpenId == open_id)
+                    .limit(1)
             )
         ).scalar()
         account = None
 
         if account_third_party:
-            account = (await db.execute(
-                select(Account)
-                    .where(Account.Id==account_third_party.AccountId)
-                    .limit(1)
+            account = (
+                await db.execute(
+                    select(Account)
+                        .where(Account.Id == account_third_party.AccountId)
+                        .limit(1)
                 )
             ).scalar()
             return account
 
         if email is not None:
-            account = (await db.execute(
-                select(Account)
-                    .where(Account.Email==email)
-                    .limit(1)
+            account = (
+                await db.execute(
+                    select(Account)
+                        .where(Account.Email == email)
+                        .limit(1)
                 )
             ).scalar()
         return account
@@ -90,7 +96,7 @@ class CoreAccount:
         await db.commit()
 
         return access_token
-    
+
     @staticmethod
     async def register(
         db: AsyncSession,
@@ -104,7 +110,9 @@ class CoreAccount:
     ) -> str:
         account = await CoreAccount.create_account(db, name=name, email=email, password=password, extra_info=extra_info)
         if provider is not None and open_id is not None:
-            await CoreAccount.link_or_update_account(db, account, provider, open_id, name=name, extra_info=extra_info, token=token)
+            await CoreAccount.link_or_update_account(
+                db, account, provider, open_id, name=name, extra_info=extra_info, token=token
+            )
 
         await db.commit()
 
@@ -180,10 +188,11 @@ class CoreAccount:
     ) -> None:
         """link account with oauth provider"""
 
-        account_third_party = (await db.execute(
-            select(AccountThirdParty)
-                .where(AccountThirdParty.Provider == provider, AccountThirdParty.OpenId == open_id)
-                .limit(1)
+        account_third_party = (
+            await db.execute(
+                select(AccountThirdParty)
+                    .where(AccountThirdParty.Provider == provider, AccountThirdParty.OpenId == open_id)
+                    .limit(1)
             )
         ).scalar()
 
@@ -192,7 +201,7 @@ class CoreAccount:
                 AccountId=account.Id, Provider=provider, OpenId=open_id, Token=token
             )
             db.add(account_third_party)
-        
+
         account_third_party.Token = token
         account.UpdatedAt = datetime.now(UTC).replace(tzinfo=None)
         if name is not None:
@@ -202,30 +211,38 @@ class CoreAccount:
 
         await db.commit()
 
-
     @staticmethod
-    async def customer_auth(db: AsyncSession, customer_id: Optional[str], name: Optional[str], timestamp: Optional[int], extra_info: Optional[str], code: Optional[str]) -> None:
+    async def customer_auth(
+        db: AsyncSession,
+        customer_id: Optional[str],
+        name: Optional[str],
+        timestamp: Optional[int],
+        extra_info: Optional[str],
+        code: Optional[str]
+    ) -> None:
         provider = 'customer'
 
         # 注意：需要对传入信息进行验证！避免被恶意批量注册
         # 验证可以采取以下任意方法：
         # 1. 离线验证，通过传入的code进行签名，通过加密算法确保只有拥有SECRET_KEY的服务器可以生成该签名
         # 2. 在线验证，通过传入的code，发起与客户账户系统后端服务器进行交互，确保该code由可信的服务生成
-        
+
         # 离线验证
         # SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, customer_id + name + str(timestamp)))
         msg = f'{customer_id}{name}{extra_info}{timestamp}'
-        ts  = int(time.time())
+        ts = int(time.time())
         if abs(timestamp - ts) > 60:
             err_msg = f'timestamp diff too much (abs({timestamp} - {ts}) = {abs(timestamp - ts)}) > 60'
             logging.error(f'[customer_auth] {err_msg}')
             raise CustomerAccountSign(err_msg)
-        sign = hmac.new(tagentic_config.CUSTOMER_ACCOUNT_SECRET_KEY.encode("utf-8"), msg.encode("utf-8"), hashlib.sha256).hexdigest()
+        sign = hmac.new(
+            tagentic_config.CUSTOMER_ACCOUNT_SECRET_KEY.encode("utf-8"), msg.encode("utf-8"), hashlib.sha256
+        ).hexdigest()
         if sign != code:
-            err_msg = f'sign mismatch'
+            err_msg = 'sign mismatch'
             logging.error(f'[customer_auth] {err_msg} ({sign} != {code}) msg={msg}')
             raise CustomerAccountSign(err_msg)
-        
+
         # 在线验证
         # 参考core/oauth.py: CoreOAuth.callback()
 
@@ -233,8 +250,12 @@ class CoreAccount:
             name = f'{provider}_{customer_id}'
         account = await CoreAccount.find(db, provider=provider, open_id=customer_id)
         if account is None:
-            account = await CoreAccount.register(db, provider=provider, open_id=customer_id, extra_info=extra_info, name=name)
+            account = await CoreAccount.register(
+                db, provider=provider, open_id=customer_id, extra_info=extra_info, name=name
+            )
         else:
-            await CoreAccount.link_or_update_account(db, account, provider=provider, open_id=customer_id, extra_info=extra_info, name=name)
-        
+            await CoreAccount.link_or_update_account(
+                db, account, provider=provider, open_id=customer_id, extra_info=extra_info, name=name
+            )
+
         return account
