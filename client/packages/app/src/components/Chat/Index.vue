@@ -223,6 +223,24 @@ const inputEnter = function () {
         return
     }
     if (!inputValue.value) return
+     // 用户消息
+    const params:Record = {
+        RecordId: 'placeholder-user',
+        Content: inputValue.value,
+        IsLlmGenerated: false,
+    }
+    chatList.value.push(params)
+   
+    // 空消息占位（AI回复）
+    const params2:Record = {
+        RecordId: 'placeholder-agent',
+        Content: '',
+        IsLlmGenerated: true
+    }
+    chatList.value.push(params2)
+     nextTick(() => {
+        backToBottom()
+    })
     handleSendData()
     inputValue.value = ''
 }
@@ -259,8 +277,7 @@ const handleSendData = async () => {
             }, options)
         },
         {
-            success(result) {
-                loading.value = false
+            success (result){
                 if (result.type === 'conversation') {
                     //  创建新的对话，重新调用chatlist接口更新列表，根据record的LastActiveAt更新列表排序
                     fetchChatList()
@@ -270,12 +287,26 @@ const handleSendData = async () => {
                         router.push({ name: 'Home', query: { conversationId: result.data.Id } })
                     }
                 } else {
-                    const lastIndex = chatList.value.length - 1
-                    if (lastIndex >= 0 && chatList.value[lastIndex].RecordId == result.data.RecordId) {
-                        mergeRecord(chatList.value[lastIndex], result.data, result.type)
-                    } else {
-                        chatList.value.push(result.data)
+                    let record: Record = result.data ;
+                    record.IsLlmGenerated = (record.RelatedRecordId !== '')
+                    if (result.type == 'reply' && !record.IsLlmGenerated) {
+                        const index = chatList.value.findIndex(item => item.RecordId === 'placeholder-user');
+                        if (index !== -1) {
+                            chatList.value.splice(index, 1, record);
+                        }
+                    }else{
+                        const lastIndex = chatList.value.length - 1
+                        if (chatList.value[lastIndex].RecordId == 'placeholder-agent') {
+                            chatList.value[lastIndex].RecordId = record.RecordId
+                        }
+                        if (lastIndex >= 0 && chatList.value[lastIndex].RecordId == record.RecordId) {
+                            mergeRecord(chatList.value[lastIndex], record, result.type)
+                        } else {
+                            chatList.value.push(record)
+                        }
                     }
+                    
+                    loading.value = false
                 }
                 nextTick(() => {
                     backToBottom()

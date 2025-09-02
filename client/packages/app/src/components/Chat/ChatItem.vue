@@ -56,8 +56,8 @@ const renderReasoningContent = (reasoningContent: string) => (
 </script>
 
 <template>
-    <TChatItem :name="item.FromName" :role="item.IsLlmGenerated ? 'assistant' : 'user'"
-        :variant="item.IsLlmGenerated ? undefined : 'base' " :text-loading="index === 0 && loading"
+    <TChatItem animation="moving" :name="item.FromName" :role="item.IsLlmGenerated ? 'assistant' : 'user'"
+        :variant="item.IsLlmGenerated ? undefined : 'base' " :text-loading="isLastMsg && loading"
         :content="item.Content" :reasoning="{
             collapsed: isLastMsg && !isStreamLoad,
             expandIconPlacement: 'right',
