@@ -1,8 +1,7 @@
 <script setup lang="tsx">
 import { useI18n } from 'vue-i18n';
-import type { ChatItem as ChatItemModel } from '@/model/chat'
+import type { Record } from '@/model/chat'
 import { formatDisplayTime } from '@/utils/date'
-import { useUserStore } from '@/stores/user'
 import {
     ChatAction as TChatAction,
     ChatContent as TChatContent,
@@ -11,12 +10,11 @@ import {
 } from '@tdesign-vue-next/chat'
 
 const { t } = useI18n();
-const userStore = useUserStore()
-
 
 defineProps<{
-    item: ChatItemModel;
+    item: Record;
     index: number;
+    isLastMsg?:boolean;
     loading: boolean;
     isStreamLoad: boolean;
 }>();
@@ -27,11 +25,13 @@ defineProps<{
  * @param {object} item - 当前消息项
  * @returns {JSX.Element} 返回对应的头部组件
  */
-const renderHeader = (flag: boolean, item: ChatItemModel) => {
+const renderHeader = (flag: boolean, item: Record) => {
     if (flag) {
         return <TChatLoading text={t('思考中') + '...'} />
     }
-    const endText = item.duration ? `${t('已深度思考')}(${t('用时')} ${item.duration}${t('秒')})` : t('已深度思考')
+    const endText = t('已深度思考')
+    //  TODO: 深度思考时间需要显示
+    // const endText = item.duration ? `${t('已深度思考')}(${t('用时')} ${item.duration}${t('秒')})` : t('已深度思考')
     return (
         <div style="display:flex;align-items:center" >
             <t-icon
@@ -56,22 +56,24 @@ const renderReasoningContent = (reasoningContent: string) => (
 </script>
 
 <template>
-    <TChatItem :name="item.role === 'user' ? userStore.name : item.name" :role="item.role"
-        :variant="item.role === 'user' ? 'base' : undefined" :text-loading="index === 0 && loading"
-        :content="item.content" :reasoning="{
-            collapsed: index === 0 && !isStreamLoad,
+    <TChatItem :name="item.FromName" :role="item.IsLlmGenerated ? 'assistant' : 'user'"
+        :variant="item.IsLlmGenerated ? undefined : 'base' " :text-loading="index === 0 && loading"
+        :content="item.Content" :reasoning="{
+            collapsed: isLastMsg && !isStreamLoad,
             expandIconPlacement: 'right',
             collapsePanelProps: {
-                header: renderHeader(index === 0 && isStreamLoad && !item.content, item),
-                content: renderReasoningContent(item.reasoning ?? ''),
+                header: renderHeader(index === 0 && isStreamLoad && !item.Content, item),
+                // TODO: 思考过程没有联调
+                content: renderReasoningContent(item.Reasons?.join() ?? ''),
             },
         }">
-        <template #datetime>{{ formatDisplayTime(item.datetime) }}</template>
-        <template #avatar>
-            <t-avatar v-if="item.role === 'user'" size="medium"> {{ userStore.avatarName }} </t-avatar>
-            <t-avatar v-else :image="item.avatar" size="medium" />
+        <template  #datetime>
+            <span v-if="item.Timestamp">{{ formatDisplayTime(item.Timestamp * 1000) }}</span>
         </template>
-        <template #actions v-if="!isStreamLoad || index !== 0">
+        <template #avatar>
+            <t-avatar  :image="item.FromAvatar" size="medium" />
+        </template>
+        <template #actions v-if="!isStreamLoad || !isLastMsg">
             <TChatAction :operation-btn="['good', 'bad', 'replay', 'copy']" />
         </template>
     </TChatItem>

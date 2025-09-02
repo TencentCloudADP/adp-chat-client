@@ -62,7 +62,7 @@ export const getApplications = async () => {
 }
 
 // 加载应用列表并设置默认智能体
-export const initApplication = async () => {
+export const fetchApplicationInfo = async () => {
   await getApplications();
   const appsStore = useAppsStore()
   if (!appsStore.currentApplication && appsStore.applications.length > 0) {

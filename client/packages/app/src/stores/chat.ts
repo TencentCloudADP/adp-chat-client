@@ -1,41 +1,51 @@
 import { defineStore } from 'pinia'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted,computed } from 'vue'
+import type { ChatConversation } from '@/model/chat'
 import { useEventBus } from './eventBus'
+import { handleLoadConversations } from '@/service/chat'
 const eventBus = useEventBus()
 
 export const useChatStore = defineStore('chat', () => {
-  const activeId = ref('')
-  let cleanupFn: () => void
+  const conversations = ref([] as ChatConversation[])
+  const currentConversation = ref<ChatConversation>({
+      Id: "",
+      AccountId: "",
+      Title: "",
+      LastActiveAt: 0,
+      CreatedAt: 0
+  });
+  const currentConversationId = computed(() => currentConversation.value?.Id)
 
-  const init = () => {
-    const activeGroupHandler = (id: string) => {
-      setActiveId('')
-    }
-    eventBus.on('group.activeId', activeGroupHandler)
-    return () => {
-      eventBus.off('group.activeId', activeGroupHandler)
-    }
+
+  const setCurrentConversation = (detail: ChatConversation) => {
+    currentConversation.value = detail
   }
-
-  const setActiveId = (id: string) => {
-    activeId.value = id
-    id && eventBus.emit('chat.activeId', id)
+  const setConversations = (chats: ChatConversation[]) => {
+    conversations.value = chats
   }
 
   onMounted(() => {
     console.log('chat.onMounted')
-    cleanupFn = init()
   })
 
   onUnmounted(() => {
-    if (cleanupFn) {
-      cleanupFn()
-      console.log('取消事件监听')
-    }
   })
 
   return {
-    activeId,
-    setActiveId,
+    currentConversationId,
+    currentConversation,
+    setCurrentConversation,
+    conversations,
+    setConversations
   }
 })
+
+export const fetchChatList = async (Id?:string) =>{
+  const ChatConversation = await handleLoadConversations();
+  const chatStore = useChatStore();
+  chatStore.setConversations(ChatConversation);
+  if(Id){
+    let _currentConversation = ChatConversation.find((item) => item['Id'] == Id)
+    _currentConversation && chatStore.setCurrentConversation(_currentConversation)
+  }
+}

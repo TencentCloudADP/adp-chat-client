@@ -1,14 +1,23 @@
+<!--
+  聊天主界面组件
+  @description 用于展示聊天内容、发送消息和加载历史记录
+-->
 <template>
+    <!-- 聊天内容容器 -->
     <div id="chat-content" class="chat-box">
-        <TChat ref="chatRef" style="height: 100%" :clear-history="chatList.length > 0 && !isStreamLoad"
+        <!-- 聊天组件 -->
+        <TChat ref="chatRef" :reverse="false" style="height: 100%" :clear-history="chatList.length > 0 && !isStreamLoad"
             @scroll="handleChatScroll" @clear="clearConfirm">
-            <template v-if="chatList.length <= 0">
+            <!-- 默认问题提示 -->
+            <template v-if="chatList.length <= 0 && !messageLoading">
                 <AppType :getDefaultQuestion="getDefaultQuestion" />
             </template>
+            <!-- 聊天消息列表 -->
             <template v-else>
-                <ChatItem v-for="(item, index) in chatList" :item="item" :index="index" :loading="loading"
+                <ChatItem v-for="(item, index) in chatList" :isLastMsg="index === (chatList.length - 1)" :item="item" :index="index" :loading="loading"
                     :isStreamLoad="isStreamLoad" />
             </template>
+            <!-- 底部发送区域 -->
             <template #footer>
                 <Sender :inputValue="inputValue" :modelOptions="modelOptions" :selectModel="selectModel"
                     :isDeepThinking="isDeepThinking" :isStreamLoad="isStreamLoad" :handleInput="handleInput"
@@ -16,46 +25,108 @@
                     :toggleDeepThinking="toggleDeepThinking" />
             </template>
         </TChat>
-        <BackToBottom v-show="isShowToBottom" :backToBottom="backToBottom" />
+        <!-- 回到底部按钮 -->
+        <BackToBottom v-show="isShowToBottom && !isStreamLoad" :backToBottom="backToBottom" />
     </div>
 </template>
+
 <script setup lang="tsx">
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { storeToRefs } from 'pinia'
-import AppType from '@/components/Chat/AppType.vue';
-
-// 模拟 SSE 推理数据
-import { fetchSSE, MockSSEResponse } from '@/model/sseRequest-reasoning'
-// 模型数据
-import { modelOptions, defaultModel } from '@/model/models'
-
-import { chatMockData, mockSSEResponseData } from '@/model/chat'
-import { useChatStore } from '@/stores/chat'
-
+import type { AxiosRequestConfig } from 'axios'
+import AppType from '@/components/Chat/AppType.vue'
 import { Chat as TChat } from '@tdesign-vue-next/chat'
 import { LoadingPlugin } from 'tdesign-vue-next'
+import { fetchSSE } from '@/model/sseRequest-reasoning'
+import { mergeRecord } from '@/utils/util'
+// 模型数据
+import { modelOptions, defaultModel } from '@/model/models'
+import type { Record } from '@/model/chat'
+import { handleLoadConversationDetail, handleSendConversation } from '@/service/chat'
+import { useChatStore, fetchChatList } from '@/stores/chat'
+import { useAppsStore } from '@/stores/apps'
+
 import Sender from './Sender.vue'
 import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
+import {  useRouter } from 'vue-router'
+const router = useRouter()
 
 const chatStore = useChatStore()
-const { activeId: chatId } = storeToRefs(chatStore)
+const appsStore = useAppsStore()
+const { currentConversationId: chatId } = storeToRefs(chatStore)
+const { currentApplicationId } = storeToRefs(appsStore)
 
-const loadingHistory = ref(false)
+// 是否正在创建新对话
+const skipUpdateOnce = ref(false)
 
-// SSE 请求取消对象
-const fetchCancel = ref<any>(null)
-// 聊天加载状态
+
+/**
+ * 聊天加载状态
+ * @type {Ref<boolean>}
+ */
 const loading = ref(false)
-// 是否流式加载中
+/**
+ * 消息加载状态
+ * @type {Ref<boolean>}
+ */
+const messageLoading = ref(false)
+/**
+ * 是否流式加载中
+ * @type {Ref<boolean>}
+ */
 const isStreamLoad = ref(false)
 
-// 聊天组件引用
+let abort = null as AbortController | null
+
+/**
+ * 聊天组件引用
+ * @type {Ref<{ scrollToBottom?: (options?: { behavior?: string }) => void } | null>}
+ */
 const chatRef = ref<{ scrollToBottom?: (options?: { behavior?: string }) => void } | null>(null)
-// 是否显示回到底部按钮
+/**
+ * 是否显示回到底部按钮
+ * @type {Ref<boolean>}
+ */
 const isShowToBottom = ref(false)
 
-// 滚动到底部方法
+/**
+ * 加载聊天会话详情
+ * @param {string} chatId - 会话ID
+ * @returns {Promise<void>}
+ */
+const handleGetConversationDetail = async (chatId: string) => {
+    if (!chatId) return
+    const loadingInstance = LoadingPlugin({
+        attach: '#chat-content',
+        size: 'medium',
+        showOverlay: false,
+    })
+    messageLoading.value = true
+    try{
+        let LastRecordId = chatList.value.length > 0 ? chatList.value[0].RecordId : ''
+        const ChatConversation = await handleLoadConversationDetail({
+            ConversationId: chatId,
+            ShareId: '',
+            LastRecordId: LastRecordId
+        })
+        messageLoading.value = false
+        chatList.value = [...ChatConversation?.Response.Records, ...chatList.value]
+        loadingInstance.hide()
+        nextTick(() => {
+            // 仅首次加载滚动到最底部
+            !LastRecordId && backToBottom()
+        })
+    }catch(err){
+        loadingInstance.hide()
+    }
+    
+}
+
+/**
+ * 滚动到底部
+ * @returns {void}
+ */
 const backToBottom = () => {
     if (!(chatRef.value && chatRef.value.scrollToBottom)) return
     chatRef.value.scrollToBottom({
@@ -63,139 +134,189 @@ const backToBottom = () => {
     })
 }
 
-// 输入框内容
+/**
+ * 输入框内容
+ * @type {Ref<string>}
+ */
 const inputValue = ref('')
 
+/**
+ * 设置默认问题
+ * @param {string} value - 默认问题内容
+ * @returns {void}
+ */
 const getDefaultQuestion = (value: string) => {
     inputValue.value = value
 }
 
-// 当前选中的模型
+/**
+ * 当前选中的模型
+ * @type {Ref<any>}
+ */
 const selectModel = ref(defaultModel)
+/**
+ * 切换模型
+ * @param {any} option - 模型选项
+ * @returns {void}
+ */
 const handleModelChange = (option: any) => {
     selectModel.value = option
 }
-// 深度思考按钮选中状态
+/**
+ * 深度思考按钮选中状态
+ * @type {Ref<boolean>}
+ */
 const isDeepThinking = ref(true)
 
+/**
+ * 切换深度思考状态
+ * @returns {void}
+ */
 const toggleDeepThinking = () => {
     isDeepThinking.value = !isDeepThinking.value
 }
 
-// 聊天消息列表（倒序渲染）
-const chatList = ref([...(chatMockData[chatId.value] || [])])
-// 清空聊天
+/**
+ * 聊天消息列表（倒序渲染）
+ * @type {Ref<Record[]>}
+ */
+const chatList = ref<Record[]>([])
+/**
+ * 清空聊天
+ * @returns {void}
+ */
 const clearConfirm = function () {
     chatList.value = []
 }
 
-// 停止流式推理
+/**
+ * 停止流式推理
+ * @returns {void}
+ */
 const onStop = function () {
-    if (fetchCancel.value) {
-        fetchCancel.value.controller.close()
-        loading.value = false
-        isStreamLoad.value = false
+    abort?.abort()
+    abort = null
+}
+
+/**
+ * 聊天滚动事件
+ * @param {{ e: Event }} param0 - 滚动事件对象
+ * @returns {void}
+ */
+const handleChatScroll = function ({ e }: { e: Event }) {
+    if(messageLoading.value) return;
+    const scrollTop = (e.target as HTMLElement).scrollTop
+    const clientHeight = (e.target as HTMLElement).clientHeight
+    const scrollHeight = (e.target as HTMLElement).scrollHeight
+    isShowToBottom.value = clientHeight + scrollTop < scrollHeight
+    if (scrollTop === 0) {
+        handleGetConversationDetail(chatId.value)
     }
 }
 
-// 聊天滚动事件，判断是否显示回到底部按钮
-const handleChatScroll = function ({ e }: { e: Event }) {
-    const scrollTop = (e.target as HTMLElement).scrollTop
-    isShowToBottom.value = scrollTop < 0
-}
-
-// 发送消息
+/**
+ * 发送消息
+ * @returns {void}
+ */
 const inputEnter = function () {
-    console.log('inputEnter', inputValue.value)
     if (isStreamLoad.value) {
         return
     }
     if (!inputValue.value) return
-    // 用户消息
-    const params = {
-        avatar: 'https://tdesign.gtimg.com/site/avatar.jpg',
-        name: '自己',
-        datetime: new Date().toISOString(),
-        content: inputValue.value,
-        role: 'user' as 'user',
-    }
-    chatList.value.unshift(params)
-    // 空消息占位（AI回复）
-    const params2 = {
-        avatar: 'https://tdesign.gtimg.com/site/chat-avatar.png',
-        name: 'TDesignAI',
-        datetime: new Date().toISOString(),
-        content: '',
-        reasoning: '',
-        role: 'assistant' as 'assistant',
-    }
-    chatList.value.unshift(params2)
-    handleData()
+    handleSendData()
     inputValue.value = ''
 }
 
+/**
+ * 处理输入内容
+ * @param {string} value - 输入内容
+ * @returns {void}
+ */
 const handleInput = (value: string) => {
     inputValue.value = value
 }
 
-const handleData = async () => {
+/**
+ * 处理发送逻辑
+ * @returns {Promise<void>}
+ */
+const handleSendData = async () => {
+    abort = new AbortController()
     loading.value = true
     isStreamLoad.value = true
-    const lastItem = chatList.value[0]
-    const mockResponse = new MockSSEResponse({ ...mockSSEResponseData })
-    fetchCancel.value = mockResponse
     await fetchSSE(
         () => {
-            return mockResponse.getResponse()
+            const options = {
+                responseType: 'stream',
+                adapter: 'fetch',
+                timeout: 1000 * 600,
+                signal: abort?.signal
+            } as AxiosRequestConfig
+            return handleSendConversation({
+                Query: inputValue.value,
+                ConversationId: chatId.value, //   id为空创建新对话
+                ApplicationId: currentApplicationId.value,
+            }, options)
         },
         {
             success(result) {
-                console.log('success', result)
                 loading.value = false
-                lastItem.reasoning += result.delta.reasoning_content
-                lastItem.content += result.delta.content
+                if (result.type === 'conversation') {
+                    //  创建新的对话，重新调用chatlist接口更新列表，根据record的LastActiveAt更新列表排序
+                    fetchChatList()
+                    if (result.data.IsNewConversation) {
+                        skipUpdateOnce.value = true
+                        chatStore.setCurrentConversation(result.data)
+                        router.push({ name: 'Home', query: { conversationId: result.data.Id } })
+                    }
+                } else {
+                    const lastIndex = chatList.value.length - 1
+                    if (lastIndex >= 0 && chatList.value[lastIndex].RecordId == result.data.RecordId) {
+                        mergeRecord(chatList.value[lastIndex], result.data, result.type)
+                    } else {
+                        chatList.value.push(result.data)
+                    }
+                }
+                nextTick(() => {
+                    backToBottom()
+                })
             },
             complete(isOk, msg) {
-                if (!isOk) {
-                    lastItem.role = 'error'
-                    lastItem.content = msg ?? ''
-                    lastItem.reasoning = msg ?? ''
+                if (isOk) {
+                    isStreamLoad.value = false
+                    loading.value = false
+                    nextTick(() => {
+                        backToBottom()
+                    })
                 }
-                // 显示用时xx秒，业务侧需要自行处理
-                lastItem.duration = 20
-                // 控制终止按钮
+            },
+            fail(msg) {
+                console.error('fail',msg)
                 isStreamLoad.value = false
                 loading.value = false
-            },
+            }
         },
     )
 }
 
+// 监听chatId变化
 watch(
     chatId,
     (newId) => {
-        if (newId) {
-            // 加载对应 mock 聊天记录
-            console.log('加载聊天记录', newId)
-            loadingHistory.value = true
-            chatList.value = []
-            const loadingInstance = LoadingPlugin({
-                attach: '#chat-content',
-                size: 'medium',
-                showOverlay: false,
-            })
-            setTimeout(() => {
-                // 模拟加载完成
-                chatList.value = [...(chatMockData[newId] || [])]
-                loadingHistory.value = false
-                loadingInstance.hide()
-                console.log('聊天记录加载完成', newId)
-            }, 2000)
+        // sse新建对话中不处理变化
+        if (skipUpdateOnce.value) {
+            skipUpdateOnce.value = false
+            return
         }
+        // 切换到新的对话,停止上一次对话内容
+        onStop();
+        chatList.value = [];
+        handleGetConversationDetail(newId)
     },
     { immediate: true },
 )
 </script>
+
 <style scoped>
 .chat-box {
     height: 100%;

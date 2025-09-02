@@ -1,14 +1,25 @@
+<!--
+  聊天列表组件
+  @description 用于展示和管理用户的聊天会话列表，支持新建、切换和操作会话
+-->
 <script setup lang="tsx">
-import { ref } from 'vue';
-import { useChatStore } from '@/stores/chat';
-import { mockChatList } from '@/model/chat';
+import { computed} from 'vue';
+import moment from 'moment';
 import { useI18n } from 'vue-i18n';
+import { useChatStore } from '@/stores/chat';
+import { useRouter } from 'vue-router';
+import type { ChatConversation } from '@/model/chat'
+const router = useRouter();
 const { t } = useI18n();
-
+/**
+ * 聊天状态管理
+ * @type {Store}
+ */
 const chatStore = useChatStore();
-
-const chatList = mockChatList;
-
+/**
+ * 操作选项配置
+ * @type {Array<{content: string, value: number, prefixIcon?: Function, theme?: string}>}
+ */
 const options = [
     {
         content: t('移动到分组'),
@@ -37,30 +48,104 @@ const options = [
         prefixIcon: () => <t-icon name="delete" />,
     },
 ];
+/**
+ * 当前选中的会话ID
+ * @type {ComputedRef<string>}
+ */
+const currentConversationId = computed(() => chatStore.currentConversationId);
+/**
+ * 会话列表
+ * @type {ComputedRef<ChatConversation[]>}
+ */
+const conversations = computed(() => chatStore.conversations)
 
-const hoverId = ref('');
+/**
+ * 会话历史分类项接口
+ * @interface ConversationHistoryItem
+ * @property {string} time - 分类时间标签（如"今天"、"最近"）
+ * @property {ChatConversation[]} data - 该分类下的会话列表
+ */
+interface ConversationHistoryItem {
+  time: string
+  data: ChatConversation[]
+}
 
-const handleClick = (id: string) => {
-    chatStore.setActiveId(id);
+const conversationsHistoryList = computed<ConversationHistoryItem[]>(() => {
+  const now = moment();
+  const isToday = (timestamp: number) => moment(timestamp * 1000).isSame(now, 'day');
+  
+  const { today, history } = conversations.value.reduce(
+    (acc, chat) => {
+      isToday(chat.LastActiveAt) ? acc.today.push(chat) : acc.history.push(chat);
+      return acc;
+    },
+    { today: [] as ChatConversation[], history: [] as ChatConversation[] }
+  );
+  return [
+    { time: t('今天'), data: today.sort((a,b) => b.LastActiveAt - a.LastActiveAt) },
+    { time: t('最近'), data: history.sort((a,b) => b.LastActiveAt - a.LastActiveAt) }
+  ];
+}); 
+
+/**
+ * 点击会话项的处理函数
+ * @param {ChatConversation} detail - 会话详情
+ */
+const handleClick = (detail: ChatConversation) => {
+    chatStore.setCurrentConversation(detail);
+    router.push({name: 'Home', query:{ conversationId: detail.Id}});
 };
+
+/**
+ * 创建新会话的处理函数
+ */
+const handleCreateNewChat = () => {
+    router.push({name: 'Home'})
+    chatStore.setCurrentConversation({
+      Id: "",
+      AccountId: "",
+      Title: "",
+      LastActiveAt: 0,
+      CreatedAt: 0
+    });
+}
 </script>
 
 <template>
+    <!-- 会话列表容器 -->
     <div class="history-list">
-        <div class="history-header">{{ t('聊天') }}</div>
-        <div v-for="item in chatList" :key="item.id" class="history-item"
-            :class="{ active: chatStore.activeId === item.id, hover: hoverId === item.id }"
-            @click="handleClick(item.id)" @mouseenter="hoverId = item.id" @mouseleave="hoverId = ''">
-            <div class="history-title">{{ item.title }}</div>
-            <div class="history-dropdown" @click.stop="">
-                <t-dropdown :id="`history-dropdown-${item.id}`" :options="options" placement="bottom"
-                    :attach="`history-dropdown-${item.id}`" maxColumnWidth="200">
-                    <t-button variant="text" shape="square" size="small">
-                        <t-icon name="ellipsis" />
-                    </t-button>
-                </t-dropdown>
-            </div>
+        <div class="history-header">
+             <!-- 列表头部 -->
+            <span>{{ t('对话') }}</span>
+            <t-popup :content="t('新建对话')" trigger="hover">
+                <t-button variant="text" shape="square" size="small" @click="handleCreateNewChat">
+                    <t-icon name="plus" />
+                </t-button>
+            </t-popup>
         </div>
+        <!-- TODO: 增加时间分类 -->
+        <!-- 会话项列表 -->
+         <div v-for="(list,index) in conversationsHistoryList" :key="index">
+            <div class="history-header">
+             <!-- 列表头部 -->
+            <span class="history-header__time">{{ list.time }}</span>
+        </div>
+            <div v-for="item in list.data" :key="item.Id" class="history-item"
+                :class="{ active: currentConversationId === item.Id}"
+                @click="handleClick(item)" >
+                <div class="history-title">{{ item.Title }}</div>
+                <!-- 操作下拉菜单 -->
+                <div class="history-dropdown" @click.stop="">
+                    <t-dropdown :id="`history-dropdown-${item.Id}`" :options="options" placement="bottom"
+                        :attach="`history-dropdown-${item.Id}`" maxColumnWidth="200">
+                        <t-button variant="text" shape="square" size="small">
+                            <t-icon name="ellipsis" />
+                        </t-button>
+                    </t-dropdown>
+                </div>
+            </div>
+         </div>
+        
     </div>
 </template>
 
@@ -76,8 +161,14 @@ const handleClick = (id: string) => {
     font-size: var(--td-font-size-mark-small);
     color: var(--td-text-color-primary);
     padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-l);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
-
+.history-header__time{
+    color: var(--td-text-color-secondary);
+    font-weight: 600;
+}
 .history-item {
     cursor: pointer;
     padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-l);
@@ -89,9 +180,6 @@ const handleClick = (id: string) => {
     align-items: center;
 }
 
-.history-item.hover {
-    background: var(--td-bg-color-container-hover);
-}
 
 .history-item.active {
     background: var(--td-brand-color-light);
@@ -102,14 +190,29 @@ const handleClick = (id: string) => {
     visibility: hidden;
 }
 
-.history-item.hover .history-dropdown {
-    visibility: visible;
-}
 
 .history-title {
     max-width: 80%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.history-dropdown {
+    visibility: hidden;
+}
+
+.history-item:hover .history-dropdown {
+    visibility: visible;
+}
+
+.history-title__time{
+    font-size: var(--td-font-size-link-small)
 }
 </style>

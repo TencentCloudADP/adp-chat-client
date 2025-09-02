@@ -4,6 +4,8 @@
  */
 import { httpService } from './httpService'
 import type { Application } from '@/model/application'
+import  { t } from '@/i18n'
+
 
 /**
  * 加载应用列表
@@ -19,7 +21,7 @@ export const handleLoadApplication = async () => {
     } = await httpService.get('/application/list')
     return response
   } catch (error) {
-    console.error('获取应用列表失败:', error)
-    throw new Error('获取应用列表失败')
+    console.error(t('获取应用列表失败:'), error)
+    throw new Error(t('获取应用列表失败'))
   }
 }

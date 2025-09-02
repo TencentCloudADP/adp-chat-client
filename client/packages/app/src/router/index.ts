@@ -10,7 +10,7 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes: [
     {
-      path: '/',
+      path: '/:conversationId?',
       name: 'Home',
       component: () => import('@/pages/Home.vue'),
     },
@@ -24,6 +24,7 @@ const router = createRouter({
 
 router.beforeEach(
   (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    console.log('router',to)
     if (to.name !== 'login' && !isLoggedIn()) {
       next({ name: 'login' })
     } else if (to.name === 'login' && isLoggedIn()) {
