@@ -205,6 +205,11 @@ const renderRecord = (record: Record) => {
     ))
   }
   const collapse = ref(!isThinking)
+  const contentTag = ( content == '' ?
+      <Bubble variant="borderless" loading={true} />
+    :
+      <div class="content" innerHTML={content} />
+  )
 
   return <Typography>
     { thinkContent !== undefined ?
@@ -226,16 +231,12 @@ const renderRecord = (record: Record) => {
               content={thinkContent}
             />
             }
-            <div class="content" innerHTML={content} />
+            {contentTag}
           </Space>
         }
       />
     :
-      ( content == '' ?
-          <Bubble variant="borderless" loading={true} />
-        :
-          <div class="content" innerHTML={content} />
-      )
+      contentTag
     }
     {hasReferences && !(record.IsFinal===false) && <div class="reference">
       参考来源：
