@@ -1,4 +1,4 @@
-.PHONY: client server docs deploy
+.PHONY: client server docs deploy build
 
 -include Makefile.local
 
@@ -30,21 +30,35 @@ test_server:
 
 # ----------------- pack -----------------
 
-pack:
-	rm -rf build
-	mkdir build
-	rsync -avL --exclude='__pycache__' --exclude='.*' server/ build/server/
+build_server:
+	-mkdir build
+	rsync -avr --exclude='__pycache__' --exclude='.*' server/ build/server/
 
-	cd build && docker build -t tagentic-system-client -f ../docker/Dockerfile .
+build_client:
+	-mkdir build
+	rsync -avr --exclude='node_modules' --exclude='.*' client/ build/client/
+	docker run -v ./build:/build/ -w /build node:22-bullseye-slim sh -c "cd client && npm i && npm run build"
 
+build:
+	-mkdir build
+	make build_client
+	make build_server
+
+clean:
 	rm -rf build
+
+pack: build
+	-mkdir build/docker
+	# 通过rsync -L把符号链接替换为实际文件
+	rsync -avL --exclude='__pycache__' --exclude='.*' build/server/ build/docker/server/
+	cd build && docker build -t adp-chat-client -f ../docker/Dockerfile .
 
 push_image:
-	docker tag tagentic-system-client mirrors.tencent.com/ti-machine-learning/tagentic-system-client:0.0.2
-	docker push mirrors.tencent.com/ti-machine-learning/tagentic-system-client:0.0.2
+	docker tag adp-chat-client mirrors.tencent.com/ti-machine-learning/adp-chat-client:0.0.2
+	docker push mirrors.tencent.com/ti-machine-learning/adp-chat-client:0.0.2
 
 pull_image:
-	docker pull mirrors.tencent.com/ti-machine-learning/tagentic-system-client:0.0.2
+	docker pull mirrors.tencent.com/ti-machine-learning/adp-chat-client:0.0.2
 
 # ----------------- deploy -----------------
 

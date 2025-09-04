@@ -41,9 +41,9 @@ select_instance() {
 stop_instance() {
     local INSTANCE="$1"
     echo "Stopping $INSTANCE..."
-	docker rm -f tagentic-db-$INSTANCE
-	docker rm -f tagentic-server-$INSTANCE
-	docker network rm tagentic-network-$INSTANCE
+	docker rm -f adp-chat-client-db-$INSTANCE
+	docker rm -f adp-chat-client-$INSTANCE
+	docker network rm adp-chat-client-network-$INSTANCE
 }
 
 ### 封装 deploy 逻辑
@@ -52,9 +52,9 @@ deploy_instance() {
     echo "Deploying $INSTANCE..."
     cd $INSTANCE_DIR/$INSTANCE
     source .env
-    docker network create tagentic-network-$INSTANCE
-    docker run --name tagentic-db-$INSTANCE -d -e POSTGRES_PASSWORD=$PGSQL_PASSWORD -v ./volume/db:/var/lib/postgresql/data --network tagentic-network-$INSTANCE postgres
-    docker run --name tagentic-server-$INSTANCE -d -p $SERVER_HTTP_PORT:8000 -v ./.env:/app/.env --network tagentic-network-$INSTANCE tagentic-system-client
+    docker network create adp-chat-client-network-$INSTANCE
+    docker run --name adp-chat-client-db-$INSTANCE -d -e POSTGRES_PASSWORD=$PGSQL_PASSWORD -v ./volume/db:/var/lib/postgresql/data --network adp-chat-client-network-$INSTANCE postgres
+    docker run --name adp-chat-client-$INSTANCE -d -p $SERVER_HTTP_PORT:8000 -v ./.env:/app/.env --network adp-chat-client-network-$INSTANCE adp-chat-client
 }
 
 ### 封装 debug 逻辑
@@ -63,24 +63,24 @@ debug_instance() {
     echo "Deploying $INSTANCE..."
     cd $INSTANCE_DIR/$INSTANCE
     source .env
-    docker network create tagentic-network-$INSTANCE
-    docker run --name tagentic-db-$INSTANCE -d -e POSTGRES_PASSWORD=$PGSQL_PASSWORD -v ./volume/db:/var/lib/postgresql/data --network tagentic-network-$INSTANCE postgres
+    docker network create adp-chat-client-network-$INSTANCE
+    docker run --name adp-chat-client-db-$INSTANCE -d -e POSTGRES_PASSWORD=$PGSQL_PASSWORD -v ./volume/db:/var/lib/postgresql/data --network adp-chat-client-network-$INSTANCE postgres
     cd -
 
 	cp $INSTANCE_DIR/$INSTANCE/.env server/
-	docker run --name tagentic-server-$INSTANCE -d -p $SERVER_HTTP_PORT:8000 -v ./server/:/app/ --network tagentic-network-$INSTANCE tagentic-system-client
+	docker run --name adp-chat-client-$INSTANCE -d -p $SERVER_HTTP_PORT:8000 -v ./server/:/app/ --network adp-chat-client-network-$INSTANCE adp-chat-client
 }
 
 ### 封装 login 逻辑
 login() {
     local INSTANCE="$1"
-	docker exec -it tagentic-server-$INSTANCE bash
+	docker exec -it adp-chat-client-$INSTANCE bash
 }
 
 ### 封装 logs 逻辑
 show_logs() {
     local INSTANCE="$1"
-    docker logs -f tagentic-server-$INSTANCE
+    docker logs -f adp-chat-client-$INSTANCE
 }
 
 ### 主逻辑

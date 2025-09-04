@@ -2,7 +2,7 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY server .
+COPY docker/server .
 
 ENV PIP_INDEX_URL=https://mirrors.tencent.com/pypi/simple/
 
