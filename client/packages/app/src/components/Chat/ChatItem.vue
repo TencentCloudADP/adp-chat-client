@@ -14,7 +14,7 @@ const { t } = useI18n();
 defineProps<{
     item: Record;
     index: number;
-    isLastMsg?:boolean;
+    isLastMsg?: boolean;
     loading: boolean;
     isStreamLoad: boolean;
 }>();
@@ -27,11 +27,11 @@ defineProps<{
  */
 const renderHeader = (flag: boolean, item: Record) => {
     if (flag) {
-        return <TChatLoading text={t('思考中') + '...'} />
+        return <TChatLoading text={t('conversation.thinking') + '...'} />
     }
-    const endText = t('已深度思考')
+    const endText = t('conversation.deepThinkingFinished')
     //  TODO: 深度思考时间需要显示
-    // const endText = item.duration ? `${t('已深度思考')}(${t('用时')} ${item.duration}${t('秒')})` : t('已深度思考')
+    // const endText = item.duration ? `${t('conversation.deepThinkingFinished')}(${t('conversation.duration')} ${item.duration}${t('common.s')})` : t('已深度思考')
     return (
         <div style="display:flex;align-items:center" >
             <t-icon
@@ -57,8 +57,8 @@ const renderReasoningContent = (reasoningContent: string) => (
 
 <template>
     <TChatItem animation="moving" :name="item.FromName" :role="item.IsLlmGenerated ? 'assistant' : 'user'"
-        :variant="item.IsLlmGenerated ? undefined : 'base' " :text-loading="isLastMsg && loading"
-        :content="item.Content" :reasoning="{
+        :variant="item.IsLlmGenerated ? undefined : 'base'" :text-loading="isLastMsg && loading" :content="item.Content"
+        :reasoning="{
             collapsed: isLastMsg && !isStreamLoad,
             expandIconPlacement: 'right',
             collapsePanelProps: {
@@ -67,11 +67,11 @@ const renderReasoningContent = (reasoningContent: string) => (
                 content: renderReasoningContent(item.Reasons?.join() ?? ''),
             },
         }">
-        <template  #datetime>
+        <template #datetime>
             <span v-if="item.Timestamp">{{ formatDisplayTime(item.Timestamp * 1000) }}</span>
         </template>
         <template #avatar>
-            <t-avatar  :image="item.FromAvatar" size="medium" />
+            <t-avatar :image="item.FromAvatar" size="medium" />
         </template>
         <template #actions v-if="!isStreamLoad || !isLastMsg">
             <TChatAction :operation-btn="['good', 'bad', 'replay', 'copy']" />

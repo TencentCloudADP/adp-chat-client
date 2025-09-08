@@ -10,17 +10,17 @@ const groupList = mockGroupList;
 
 const options = [
     {
-        content: t('编辑名称'),
+        content: t('operation.editName'),
         value: 1,
         prefixIcon: () => <t-icon name="edit-2" />,
     },
     {
-        content: t('置顶'),
+        content: t('operation.pin'),
         value: 2,
         prefixIcon: () => <t-icon name="pin" />,
     },
     {
-        content: t('删除'),
+        content: t('operation.delete'),
         value: 3,
         theme: 'error',
         prefixIcon: () => <t-icon name="delete" />,
@@ -37,8 +37,8 @@ const handleClick = (id: string) => {
 <template>
     <div class="group-list">
         <div class="group-header">
-            <span>{{ $t('分组') }}</span>
-            <t-popup :content="$t('新建分组')" trigger="hover">
+            <span>{{ $t('group.group') }}</span>
+            <t-popup :content="$t('group.createGroup')" trigger="hover">
                 <t-button variant="text" shape="square" size="small">
                     <t-icon name="plus" />
                 </t-button>

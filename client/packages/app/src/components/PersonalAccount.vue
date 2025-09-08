@@ -19,13 +19,13 @@ const handleLogout = () => {
                 <t-dropdown-item>
                     <div class="operations-dropdown-container-item">
                         <t-icon name="user-circle"></t-icon>
-                        {{ $t('个人中心') }}
+                        {{ $t('header.personalCenter') }}
                     </div>
                 </t-dropdown-item>
                 <t-dropdown-item @click="handleLogout">
                     <div class="operations-dropdown-container-item">
                         <t-icon name="poweroff"></t-icon>
-                        {{ $t('退出登录') }}
+                        {{ $t('account.logout') }}
                     </div>
                 </t-dropdown-item>
             </t-dropdown-menu>

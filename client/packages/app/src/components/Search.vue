@@ -12,7 +12,8 @@ const changeSearchFocus = (value: boolean) => {
 </script>
 
 <template>
-    <t-input :placeholder="$t('搜索')" @blur="changeSearchFocus(false)" @focus="changeSearchFocus(true)" borderless>
+    <t-input :placeholder="$t('operation.search')" @blur="changeSearchFocus(false)" @focus="changeSearchFocus(true)"
+        borderless>
         <template #prefix-icon>
             <t-icon class="icon" name="search" size="16" />
         </template>

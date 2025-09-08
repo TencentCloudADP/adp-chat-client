@@ -15,7 +15,7 @@ const toggleTheme = () => {
 
 <template>
     <!-- 主题切换按钮，带提示气泡 -->
-    <t-tooltip placement="bottom" :content="$t('切换主题')">
+    <t-tooltip placement="bottom" :content="$t('header.switchTheme')">
         <t-button theme="default" shape="square" variant="text" @click="toggleTheme">
             <!-- 根据当前主题显示不同图标 -->
             <t-icon :name="ui.theme === 'light' ? 'mode-light' : 'moon'" />

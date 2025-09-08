@@ -10,7 +10,7 @@ import Settings from '@/components/Settings.vue';
 
 <template>
     <div class="header-content">
-        <LogoArea :title="$t('智能体开发平台')" />
+        <LogoArea :title="$t('project.projectName')" />
         <div class="header-actions">
             <CodeBase url="https://github.com/Tencent/tdesign-vue-next" />
             <DocumentHelper url="https://tdesign.tencent.com/vue-next/docs/vue/quick-start" />

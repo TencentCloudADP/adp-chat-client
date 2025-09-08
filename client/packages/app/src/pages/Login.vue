@@ -1,24 +1,25 @@
 <template>
   <div class="login-container">
     <t-card class="login-card">
-      <div class="login-title">{{ $t('登录智能体开发平台') }}</div>
+      <div class="login-title">{{ $t('account.loginToAdp') }}</div>
       <t-form class="login-form" layout="vertical" :label-width="0" @submit="onSubmit">
         <t-form-item>
-          <t-input v-model="username" :placeholder="$t('请输入账户名')" clearable disabled>
+          <t-input v-model="username" :placeholder="$t('account.inputAccountName')" clearable disabled>
             <template #prefix-icon>
               <t-icon name="user" />
             </template>
           </t-input>
         </t-form-item>
         <t-form-item>
-          <t-input v-model="password" type="password" :placeholder="$t('请输入密码')" clearable disabled>
+          <t-input v-model="password" type="password" :placeholder="$t('account.inputPassword')" clearable disabled>
             <template #prefix-icon>
               <t-icon name="lock-on" />
             </template>
           </t-input>
         </t-form-item>
         <t-form-item>
-          <t-button theme="primary" type="submit" block :disabled="!username || !password">{{ $t('登录') }}</t-button>
+          <t-button theme="primary" type="submit" block :disabled="!username || !password">{{ $t('account.login')
+            }}</t-button>
         </t-form-item>
 
         <t-form-item class="form-item-clear" v-if="oauthProviders.length > 0">

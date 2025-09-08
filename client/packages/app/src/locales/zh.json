@@ -1,30 +1,47 @@
 {
-  "智能体开发平台": "智能体开发平台",
-  "代码仓库": "代码仓库",
-  "帮助文档": "帮助文档",
-  "个人中心": "个人中心",
-  "退出登录": "退出登录",
-  "切换主题": "切换主题",
-  "系统设置": "系统设置",
-  "搜索": "搜索",
-  "分组": "分组",
-  "新建分组": "新建分组",
-  "编辑名称": "编辑名称",
-  "置顶": "置顶",
-  "删除": "删除",
-  "移动到分组": "移动到分组",
-  "分享": "分享",
-  "聊天": "聊天",
-  "思考中": "思考中",
-  "已深度思考": "已深度思考",
-  "用时": "用时",
-  "秒": "秒",
-  "今天": "今天",
-  "有问题，尽管问，shift+enter换行，enter发送消息": "有问题，尽管问，shift+enter换行，enter发送消息",
-  "深度思考": "深度思考",
-  "登录智能体开发平台": "登录智能体开发平台",
-  "请输入账户名": "请输入账户名",
-  "请输入密码": "请输入密码",
-  "登录": "登录",
-  "账号或密码错误": "账号或密码错误"
+  "project": {
+    "projectName": "智能体开发平台"
+  },
+  "header": {
+    "codeRepository": "代码仓库",
+    "documentation": "帮助文档",
+    "personalCenter": "个人中心",
+    "switchTheme": "切换主题",
+    "systemSettings": "系统设置"
+  },
+  "account": {
+    "login": "登录",
+    "logout": "退出登录",
+    "loginToAdp": "登录智能体开发平台",
+    "inputAccountName": "请输入账户名",
+    "inputPassword": "请输入密码"
+  },
+  "operation": {
+    "search": "搜索",
+    "editName": "编辑名称",
+    "pin": "置顶",
+    "delete": "删除",
+    "share": "分享"
+  },
+  "conversation": {
+    "conversation": "对话",
+    "createConversation": "新建对话",
+    "thinking": "思考中",
+    "deepThinkingFinished": "已深度思考",
+    "duration": "用时",
+    "input": {
+      "placeholder": "有问题，尽管问，shift+enter换行，enter发送消息",
+      "deepThinking": "深度思考"
+    }
+  },
+  "group": {
+    "group": "分组",
+    "createGroup": "新建分组",
+    "moveToGroup": "移动到分组"
+  },
+  "common": {
+    "today": "今天",
+    "recent": "最近",
+    "s": "秒"
+  }
 }

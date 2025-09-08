@@ -3,7 +3,7 @@
   @description 用于展示和管理用户的聊天会话列表，支持新建、切换和操作会话
 -->
 <script setup lang="tsx">
-import { computed} from 'vue';
+import { computed } from 'vue';
 import moment from 'moment';
 import { useI18n } from 'vue-i18n';
 import { useChatStore } from '@/stores/chat';
@@ -22,27 +22,27 @@ const chatStore = useChatStore();
  */
 const options = [
     {
-        content: t('移动到分组'),
+        content: t('group.moveToGroup'),
         value: 1,
         prefixIcon: () => <t-icon name="folder-move" />,
     },
     {
-        content: t('编辑名称'),
+        content: t('operation.editName'),
         value: 2,
         prefixIcon: () => <t-icon name="edit-2" />,
     },
     {
-        content: t('分享'),
+        content: t('operation.share'),
         value: 3,
         prefixIcon: () => <t-icon name="share-1" />,
     },
     {
-        content: t('置顶'),
+        content: t('operation.pin'),
         value: 4,
         prefixIcon: () => <t-icon name="pin" />,
     },
     {
-        content: t('删除'),
+        content: t('operation.delete'),
         value: 5,
         theme: 'error',
         prefixIcon: () => <t-icon name="delete" />,
@@ -66,26 +66,26 @@ const conversations = computed(() => chatStore.conversations)
  * @property {ChatConversation[]} data - 该分类下的会话列表
  */
 interface ConversationHistoryItem {
-  time: string
-  data: ChatConversation[]
+    time: string
+    data: ChatConversation[]
 }
 
 const conversationsHistoryList = computed<ConversationHistoryItem[]>(() => {
-  const now = moment();
-  const isToday = (timestamp: number) => moment(timestamp * 1000).isSame(now, 'day');
-  
-  const { today, history } = conversations.value.reduce(
-    (acc, chat) => {
-      isToday(chat.LastActiveAt) ? acc.today.push(chat) : acc.history.push(chat);
-      return acc;
-    },
-    { today: [] as ChatConversation[], history: [] as ChatConversation[] }
-  );
-  return [
-    { time: t('今天'), data: today.sort((a,b) => b.LastActiveAt - a.LastActiveAt) },
-    { time: t('最近'), data: history.sort((a,b) => b.LastActiveAt - a.LastActiveAt) }
-  ];
-}); 
+    const now = moment();
+    const isToday = (timestamp: number) => moment(timestamp * 1000).isSame(now, 'day');
+
+    const { today, history } = conversations.value.reduce(
+        (acc, chat) => {
+            isToday(chat.LastActiveAt) ? acc.today.push(chat) : acc.history.push(chat);
+            return acc;
+        },
+        { today: [] as ChatConversation[], history: [] as ChatConversation[] }
+    );
+    return [
+        { time: t('common.today'), data: today.sort((a, b) => b.LastActiveAt - a.LastActiveAt) },
+        { time: t('common.recent'), data: history.sort((a, b) => b.LastActiveAt - a.LastActiveAt) }
+    ];
+});
 
 /**
  * 点击会话项的处理函数
@@ -93,20 +93,20 @@ const conversationsHistoryList = computed<ConversationHistoryItem[]>(() => {
  */
 const handleClick = (detail: ChatConversation) => {
     chatStore.setCurrentConversation(detail);
-    router.push({name: 'Home', query:{ conversationId: detail.Id}});
+    router.push({ name: 'Home', query: { conversationId: detail.Id } });
 };
 
 /**
  * 创建新会话的处理函数
  */
 const handleCreateNewChat = () => {
-    router.push({name: 'Home'})
+    router.push({ name: 'Home' })
     chatStore.setCurrentConversation({
-      Id: "",
-      AccountId: "",
-      Title: "",
-      LastActiveAt: 0,
-      CreatedAt: 0
+        Id: "",
+        AccountId: "",
+        Title: "",
+        LastActiveAt: 0,
+        CreatedAt: 0
     });
 }
 </script>
@@ -115,9 +115,9 @@ const handleCreateNewChat = () => {
     <!-- 会话列表容器 -->
     <div class="history-list">
         <div class="history-header">
-             <!-- 列表头部 -->
-            <span>{{ t('对话') }}</span>
-            <t-popup :content="t('新建对话')" trigger="hover">
+            <!-- 列表头部 -->
+            <span>{{ t('conversation.conversation') }}</span>
+            <t-popup :content="t('conversation.createConversation')" trigger="hover">
                 <t-button variant="text" shape="square" size="small" @click="handleCreateNewChat">
                     <t-icon name="plus" />
                 </t-button>
@@ -125,14 +125,13 @@ const handleCreateNewChat = () => {
         </div>
         <!-- TODO: 增加时间分类 -->
         <!-- 会话项列表 -->
-         <div v-for="(list,index) in conversationsHistoryList" :key="index">
+        <div v-for="(list, index) in conversationsHistoryList" :key="index">
             <div class="history-header">
-             <!-- 列表头部 -->
-            <span class="history-header__time">{{ list.time }}</span>
-        </div>
+                <!-- 列表头部 -->
+                <span class="history-header__time">{{ list.time }}</span>
+            </div>
             <div v-for="item in list.data" :key="item.Id" class="history-item"
-                :class="{ active: currentConversationId === item.Id}"
-                @click="handleClick(item)" >
+                :class="{ active: currentConversationId === item.Id }" @click="handleClick(item)">
                 <div class="history-title">{{ item.Title }}</div>
                 <!-- 操作下拉菜单 -->
                 <div class="history-dropdown" @click.stop="">
@@ -144,8 +143,8 @@ const handleCreateNewChat = () => {
                     </t-dropdown>
                 </div>
             </div>
-         </div>
-        
+        </div>
+
     </div>
 </template>
 
@@ -165,10 +164,12 @@ const handleCreateNewChat = () => {
     justify-content: space-between;
     align-items: center;
 }
-.history-header__time{
+
+.history-header__time {
     color: var(--td-text-color-secondary);
     font-weight: 600;
 }
+
 .history-item {
     cursor: pointer;
     padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-l);
@@ -212,7 +213,7 @@ const handleCreateNewChat = () => {
     visibility: visible;
 }
 
-.history-title__time{
+.history-title__time {
     font-size: var(--td-font-size-link-small)
 }
 </style>

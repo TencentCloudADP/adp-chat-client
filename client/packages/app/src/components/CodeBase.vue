@@ -10,7 +10,7 @@ const navToCodeBase = () => {
 </script>
 
 <template>
-    <t-tooltip placement="bottom" :content="$t('代码仓库')">
+    <t-tooltip placement="bottom" :content="$t('header.codeRepository')">
         <t-button theme="default" shape="square" variant="text" @click="navToCodeBase">
             <t-icon name="logo-github" />
         </t-button>

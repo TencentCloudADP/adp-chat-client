@@ -18,7 +18,7 @@ defineProps<{
 
 <template>
     <TChatSender :value="inputValue" :loading="isStreamLoad" :textarea-props="{
-        placeholder: $t('有问题，尽管问，shift+enter换行，enter发送消息'),
+        placeholder: $t('conversation.input.placeholder'),
         autosize: { minRows: 2, maxRows: 2 },
     }" @stop="onStop" @send="inputEnter" @change="handleInput">
         <!-- 输入区前缀：模型选择与深度思考按钮 -->
@@ -33,7 +33,7 @@ defineProps<{
                 <t-button :theme="isDeepThinking ? 'primary' : 'default'" shape="round"
                     :variant="isDeepThinking ? 'base' : 'outline'" @click="toggleDeepThinking">
                     <template #icon><t-icon name="system-sum"></t-icon></template>
-                    {{ $t('深度思考') }}
+                    {{ $t('conversation.input.deepThinking') }}
                 </t-button>
             </div>
         </template>
