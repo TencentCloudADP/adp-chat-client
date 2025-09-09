@@ -44,6 +44,7 @@
     "recent": "最近",
     "s": "秒",
     "copySuccess": "已复制到剪贴板",
-    "copyFailed": "复制失败，请重试"
+    "copyFailed": "复制失败，请重试",
+    "aiWarning": "该回答由AI助手生成，请谨慎识别"
   }
 }

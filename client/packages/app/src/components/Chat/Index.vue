@@ -25,7 +25,7 @@
                     :toggleDeepThinking="toggleDeepThinking" />
                 <!-- 提示文字 -->
                 <div class="ai-warning">
-                    该回答由AI助手生成，请谨慎识别。
+                    {{ $t('common.aiWarning') }}
                 </div>
             </template>
         </TChat>
