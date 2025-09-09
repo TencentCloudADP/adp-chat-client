@@ -14,8 +14,8 @@
             </template>
             <!-- 聊天消息列表 -->
             <template v-else>
-                <ChatItem v-for="(item, index) in chatList" :isLastMsg="index === (chatList.length - 1)" :item="item" :index="index" :loading="loading"
-                    :isStreamLoad="isStreamLoad" />
+                <ChatItem v-for="(item, index) in chatList" :isLastMsg="index === (chatList.length - 1)" :item="item"
+                    :index="index" :loading="loading" :isStreamLoad="isStreamLoad" />
             </template>
             <!-- 底部发送区域 -->
             <template #footer>
@@ -23,6 +23,10 @@
                     :isDeepThinking="isDeepThinking" :isStreamLoad="isStreamLoad" :handleInput="handleInput"
                     :onStop="onStop" :inputEnter="inputEnter" :handleModelChange="handleModelChange"
                     :toggleDeepThinking="toggleDeepThinking" />
+                <!-- 提示文字 -->
+                <div class="ai-warning">
+                    该回答由AI助手生成，请谨慎识别。
+                </div>
             </template>
         </TChat>
         <!-- 回到底部按钮 -->
@@ -49,7 +53,7 @@ import { useAppsStore } from '@/stores/apps'
 import Sender from './Sender.vue'
 import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
-import {  useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 const router = useRouter()
 
 const chatStore = useChatStore()
@@ -103,7 +107,7 @@ const handleGetConversationDetail = async (chatId: string) => {
         showOverlay: false,
     })
     messageLoading.value = true
-    try{
+    try {
         let LastRecordId = chatList.value.length > 0 ? chatList.value[0].RecordId : ''
         const ChatConversation = await handleLoadConversationDetail({
             ConversationId: chatId,
@@ -117,10 +121,10 @@ const handleGetConversationDetail = async (chatId: string) => {
             // 仅首次加载滚动到最底部
             !LastRecordId && backToBottom()
         })
-    }catch(err){
+    } catch (err) {
         loadingInstance.hide()
     }
-    
+
 }
 
 /**
@@ -204,7 +208,7 @@ const onStop = function () {
  * @returns {void}
  */
 const handleChatScroll = function ({ e }: { e: Event }) {
-    if(messageLoading.value) return;
+    if (messageLoading.value) return;
     const scrollTop = (e.target as HTMLElement).scrollTop
     const clientHeight = (e.target as HTMLElement).clientHeight
     const scrollHeight = (e.target as HTMLElement).scrollHeight
@@ -223,22 +227,22 @@ const inputEnter = function () {
         return
     }
     if (!inputValue.value) return
-     // 用户消息
-    const params:Record = {
+    // 用户消息
+    const params: Record = {
         RecordId: 'placeholder-user',
         Content: inputValue.value,
         IsLlmGenerated: false,
     }
     chatList.value.push(params)
-   
+
     // 空消息占位（AI回复）
-    const params2:Record = {
+    const params2: Record = {
         RecordId: 'placeholder-agent',
         Content: '',
         IsLlmGenerated: true
     }
     chatList.value.push(params2)
-     nextTick(() => {
+    nextTick(() => {
         backToBottom()
     })
     handleSendData()
@@ -277,7 +281,7 @@ const handleSendData = async () => {
             }, options)
         },
         {
-            success (result){
+            success(result) {
                 if (result.type === 'conversation') {
                     //  创建新的对话，重新调用chatlist接口更新列表，根据record的LastActiveAt更新列表排序
                     fetchChatList()
@@ -287,14 +291,14 @@ const handleSendData = async () => {
                         router.push({ name: 'Home', query: { conversationId: result.data.Id } })
                     }
                 } else {
-                    let record: Record = result.data ;
+                    let record: Record = result.data;
                     record.IsLlmGenerated = (record.RelatedRecordId !== '')
                     if (result.type == 'reply' && !record.IsLlmGenerated) {
                         const index = chatList.value.findIndex(item => item.RecordId === 'placeholder-user');
                         if (index !== -1) {
                             chatList.value.splice(index, 1, record);
                         }
-                    }else{
+                    } else {
                         const lastIndex = chatList.value.length - 1
                         if (chatList.value[lastIndex].RecordId == 'placeholder-agent') {
                             chatList.value[lastIndex].RecordId = record.RecordId
@@ -305,7 +309,7 @@ const handleSendData = async () => {
                             chatList.value.push(record)
                         }
                     }
-                    
+
                     loading.value = false
                 }
                 nextTick(() => {
@@ -322,7 +326,7 @@ const handleSendData = async () => {
                 }
             },
             fail(msg) {
-                console.error('fail',msg)
+                console.error('fail', msg)
                 isStreamLoad.value = false
                 loading.value = false
             }
@@ -352,5 +356,13 @@ watch(
 .chat-box {
     height: 100%;
     position: relative;
+}
+
+.ai-warning {
+    text-align: center;
+    color: var(--td-text-color-placeholder);
+    font-size: var(--td-font-size-body-small);
+    margin-top: var(--td-comp-margin-s);
+    padding: var(--td-comp-paddingTB-xs) var(--td-comp-paddingLR-s);
 }
 </style>
