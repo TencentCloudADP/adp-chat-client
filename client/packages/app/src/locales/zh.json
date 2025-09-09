@@ -42,6 +42,8 @@
   "common": {
     "today": "今天",
     "recent": "最近",
-    "s": "秒"
+    "s": "秒",
+    "copySuccess": "已复制到剪贴板",
+    "copyFailed": "复制失败，请重试"
   }
 }

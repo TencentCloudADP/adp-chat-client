@@ -42,6 +42,8 @@
   "common": {
     "today": "Today",
     "recent": "Recent",
-    "s": "S"
+    "s": "S",
+    "copySuccess": "Copy successful",
+    "copyFailed": "Copy failed, please try again"
   }
 }

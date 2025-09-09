@@ -8,8 +8,20 @@ import {
     ChatItem as TChatItem,
     ChatLoading as TChatLoading,
 } from '@tdesign-vue-next/chat'
+import { MessagePlugin } from 'tdesign-vue-next';
+import { copy } from '@/utils/clipboard';
 
 const { t } = useI18n();
+
+async function copyContent(content: string): Promise<void> {
+    try {
+        await copy(content || '')
+        MessagePlugin.success(t('common.copySuccess'))
+    } catch (err) {
+        MessagePlugin.error(t('common.copyFailed'))
+    }
+}
+
 
 defineProps<{
     item: Record;
@@ -57,8 +69,7 @@ const renderReasoningContent = (reasoningContent: string) => (
 
 <template>
     <TChatItem animation="moving" :name="item.FromName" :role="item.IsLlmGenerated ? 'assistant' : 'user'"
-        :variant="item.IsLlmGenerated ? undefined : 'base'" :text-loading="isLastMsg && loading" :content="item.Content"
-        :reasoning="{
+        :variant="item.IsLlmGenerated ? undefined : 'base'" :text-loading="isLastMsg && loading" :reasoning="{
             collapsed: isLastMsg && !isStreamLoad,
             expandIconPlacement: 'right',
             collapsePanelProps: {
@@ -66,12 +77,20 @@ const renderReasoningContent = (reasoningContent: string) => (
                 // TODO: 思考过程没有联调
                 content: renderReasoningContent(item.Reasons?.join() ?? ''),
             },
-        }">
+        }
+            ">
         <template #datetime>
             <span v-if="item.Timestamp">{{ formatDisplayTime(item.Timestamp * 1000) }}</span>
         </template>
         <template #avatar>
             <t-avatar :image="item.FromAvatar" size="medium" />
+        </template>
+        <template #content>
+            <div v-if="!item.IsLlmGenerated" class="user-message">
+                <TChatContent :content="item.Content" />
+                <t-icon name="copy" class="copy-icon" @click="() => copyContent(item.Content || '')" />
+            </div>
+            <TChatContent v-else :content="item.Content" />
         </template>
         <template #actions v-if="!isStreamLoad || !isLastMsg">
             <TChatAction :operation-btn="['good', 'bad', 'replay', 'copy']" />
@@ -79,4 +98,19 @@ const renderReasoningContent = (reasoningContent: string) => (
     </TChatItem>
 </template>
 
-<style scoped></style>
+<style scoped>
+.copy-icon {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    cursor: pointer;
+    margin-left: 8px;
+}
+
+.copy-icon:hover {
+    color: var(--td-brand-color);
+}
+
+.user-message:hover .copy-icon {
+    opacity: 1;
+}
+</style>
