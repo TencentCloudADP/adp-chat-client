@@ -12,7 +12,7 @@ const uiStore = useUiStore();
         :show-overlay="false" :footer="false">
         <div class="drawer-content">
             <Search />
-            <GroupList />
+            <!-- <GroupList /> -->
             <HistoryList />
         </div>
     </t-drawer>
