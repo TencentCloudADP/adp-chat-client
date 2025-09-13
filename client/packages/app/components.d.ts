@@ -28,6 +28,7 @@ declare module 'vue' {
     TAvatar: typeof import('tdesign-vue-next')['Avatar']
     TButton: typeof import('tdesign-vue-next')['Button']
     TCard: typeof import('tdesign-vue-next')['Card']
+    TChat: typeof import('tdesign-vue-next')['Chat']
     TCheckTag: typeof import('tdesign-vue-next')['CheckTag']
     TConfigProvider: typeof import('tdesign-vue-next')['ConfigProvider']
     TContent: typeof import('tdesign-vue-next')['Content']

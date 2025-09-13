@@ -8,6 +8,8 @@ export const useUiStore = defineStore('ui', () => {
   const theme = ref<'light' | 'dark' | null>('light')
   const language = ref<LanguageType>('zh')
   const drawerVisible = ref<boolean>(false)
+  const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
+  const isMobile = ref<boolean>(width < 768)
 
   const setTheme = (newTheme: 'light' | 'dark' | null) => {
     theme.value = newTheme
@@ -30,6 +32,7 @@ export const useUiStore = defineStore('ui', () => {
   }
 
   return {
+    isMobile,
     theme,
     language,
     drawerVisible,

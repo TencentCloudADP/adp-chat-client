@@ -22,7 +22,17 @@
     "editName": "Edit Name",
     "pin": "Pin",
     "delete": "Delete",
-    "share": "Share"
+    "share": "Share",
+    "cancelShare": "cancle share",
+    "good":"good",
+    "bad":"bad",
+    "replay":"replay",
+    "copy":"copy",
+    "copyUrl":"copy url",
+    "copySuccess":"copy success",
+    "copyError":"copy fail",
+    "thxForGood":"thanks",
+    "thxForBad":"thanks"
   },
   "conversation": {
     "conversation": "Conversation",

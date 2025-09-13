@@ -6,5 +6,5 @@
 // biome-ignore lint: disable
 export {}
 declare global {
-
+  const MessagePlugin: typeof import('tdesign-vue-next')['MessagePlugin']
 }

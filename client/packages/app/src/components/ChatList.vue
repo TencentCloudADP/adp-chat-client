@@ -92,6 +92,7 @@ const conversationsHistoryList = computed<ConversationHistoryItem[]>(() => {
  * @param {ChatConversation} detail - 会话详情
  */
 const handleClick = (detail: ChatConversation) => {
+    console.log('setCurrentConversation',detail)
     chatStore.setCurrentConversation(detail);
     router.push({ name: 'Home', query: { conversationId: detail.Id } });
 };
@@ -106,7 +107,8 @@ const handleCreateNewChat = () => {
         AccountId: "",
         Title: "",
         LastActiveAt: 0,
-        CreatedAt: 0
+        CreatedAt: 0,
+        ApplicationId:""
     });
 }
 </script>
@@ -126,23 +128,26 @@ const handleCreateNewChat = () => {
         <!-- TODO: 增加时间分类 -->
         <!-- 会话项列表 -->
         <div v-for="(list, index) in conversationsHistoryList" :key="index">
-            <div class="history-header">
-                <!-- 列表头部 -->
-                <span class="history-header__time">{{ list.time }}</span>
-            </div>
-            <div v-for="item in list.data" :key="item.Id" class="history-item"
-                :class="{ active: currentConversationId === item.Id }" @click="handleClick(item)">
-                <div class="history-title">{{ item.Title }}</div>
-                <!-- 操作下拉菜单 -->
-                <!-- <div class="history-dropdown" @click.stop="">
-                    <t-dropdown :id="`history-dropdown-${item.Id}`" :options="options" placement="bottom"
-                        :attach="`history-dropdown-${item.Id}`" maxColumnWidth="200">
-                        <t-button variant="text" shape="square" size="small">
-                            <t-icon name="ellipsis" />
-                        </t-button>
-                    </t-dropdown>
-                </div> -->
-            </div>
+            <block v-if="list.data.length > 0 ">
+                <div class="history-header">
+                    <!-- 列表头部 -->
+                    <span class="history-header__time">{{ list.time }}</span>
+                </div>
+                <div v-for="item in list.data" :key="item.Id" class="history-item"
+                    :class="{ active: currentConversationId === item.Id }" @click="handleClick(item)">
+                    <div class="history-title">{{ item.Title }}</div>
+                    <!-- 操作下拉菜单 -->
+                    <!-- <div class="history-dropdown" @click.stop="">
+                        <t-dropdown :id="`history-dropdown-${item.Id}`" :options="options" placement="bottom"
+                            :attach="`history-dropdown-${item.Id}`" maxColumnWidth="200">
+                            <t-button variant="text" shape="square" size="small">
+                                <t-icon name="ellipsis" />
+                            </t-button>
+                        </t-dropdown>
+                    </div> -->
+                </div>
+            </block>
+            
         </div>
 
     </div>

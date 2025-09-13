@@ -1,5 +1,6 @@
 import type { Record } from '@/model/chat'
 
+
 export function mergeRecord(record: Record, delta: Record, msg_type: string) {
   const incremental = delta.Incremental
   record.RecordId = delta.RecordId

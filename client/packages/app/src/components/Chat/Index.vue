@@ -14,11 +14,34 @@
             </template>
             <!-- 聊天消息列表 -->
             <template v-else>
-                <ChatItem v-for="(item, index) in chatList" :isLastMsg="index === (chatList.length - 1)" :item="item"
-                    :index="index" :loading="loading" :isStreamLoad="isStreamLoad" />
+                <div class="content">
+                    <div class="chat-item__content" v-for="(item, index) in chatList">
+                        <Checkbox :checked="selectedIds?.includes(item.RecordId)" v-if="isSelecting" @change="(e) => onSelectIds(item.RecordId, e)" />
+                        <div style="width: 100%">
+                            <ChatItem :isLastMsg="index === (chatList.length - 1)" :item="item" :index="index"
+                                :loading="loading" :isStreamLoad="isStreamLoad" :onResend="onResend"
+                                :onShare="onShare" />
+                        </div>
+                    </div>
+                </div>
             </template>
             <!-- 底部发送区域 -->
             <template #footer>
+                <Drawer class="share-setting-container" :footer="false" size="small" placement="bottom"
+                    :showOverlay="false" :preventScrollThrough="false" :visible="isSelecting" @close="handleCloseShare">
+                    <div class="share-setting-content">
+                        <div class="icon__share-copy" :class="{disabled: selectedIds.length <= 0}">
+                            <span> <t-icon @click="handleCopyShare" name="link-1"></t-icon> </span>
+                            <span>{{ $t('operation.copyUrl') }}</span>
+                        </div>
+                        <div class="icon__share-close">
+                            <span>
+                                <t-icon @click="handleCloseShare" name="close"></t-icon>
+                            </span>
+                            <span>{{ $t('operation.cancelShare') }}</span>
+                        </div>
+                    </div>
+                </Drawer>
                 <Sender :inputValue="inputValue" :modelOptions="modelOptions" :selectModel="selectModel"
                     :isDeepThinking="isDeepThinking" :isStreamLoad="isStreamLoad" :handleInput="handleInput"
                     :onStop="onStop" :inputEnter="inputEnter" :handleModelChange="handleModelChange"
@@ -40,15 +63,16 @@ import { storeToRefs } from 'pinia'
 import type { AxiosRequestConfig } from 'axios'
 import AppType from '@/components/Chat/AppType.vue'
 import { Chat as TChat } from '@tdesign-vue-next/chat'
-import { LoadingPlugin } from 'tdesign-vue-next'
+import { LoadingPlugin, Drawer, Checkbox } from 'tdesign-vue-next'
 import { fetchSSE } from '@/model/sseRequest-reasoning'
 import { mergeRecord } from '@/utils/util'
 // 模型数据
 import { modelOptions, defaultModel } from '@/model/models'
 import type { Record } from '@/model/chat'
-import { handleLoadConversationDetail, handleSendConversation } from '@/service/chat'
+import { handleLoadConversationDetail, handleSendConversation, handleGetShareId } from '@/service/chat'
 import { useChatStore, fetchChatList } from '@/stores/chat'
 import { useAppsStore } from '@/stores/apps'
+import { copy } from '@/utils/clipboard';
 
 import Sender from './Sender.vue'
 import BackToBottom from './BackToBottom.vue'
@@ -63,7 +87,8 @@ const { currentApplicationId } = storeToRefs(appsStore)
 
 // 是否正在创建新对话
 const skipUpdateOnce = ref(false)
-
+const isSelecting = ref(false)
+const selectedIds = ref<string[]>([])
 
 /**
  * 聊天加载状态
@@ -124,7 +149,6 @@ const handleGetConversationDetail = async (chatId: string) => {
     } catch (err) {
         loadingInstance.hide()
     }
-
 }
 
 /**
@@ -222,21 +246,23 @@ const handleChatScroll = function ({ e }: { e: Event }) {
  * 发送消息
  * @returns {void}
  */
-const inputEnter = function () {
+const inputEnter = function (queryVal = inputValue.value) {
     if (isStreamLoad.value) {
         return
     }
-    if (!inputValue.value) return
+    if (!queryVal) return
     // 用户消息
     const params: Record = {
+        RelatedRecordId:"",
         RecordId: 'placeholder-user',
-        Content: inputValue.value,
+        Content: queryVal,
         IsLlmGenerated: false,
     }
     chatList.value.push(params)
 
     // 空消息占位（AI回复）
     const params2: Record = {
+        RelatedRecordId:"",
         RecordId: 'placeholder-agent',
         Content: '',
         IsLlmGenerated: true
@@ -245,10 +271,58 @@ const inputEnter = function () {
     nextTick(() => {
         backToBottom()
     })
-    handleSendData()
+    handleSendData(queryVal)
     inputValue.value = ''
 }
 
+const onResend = (RelatedRecordId: string | undefined) => {
+    if (!RelatedRecordId) return;
+    const related = chatList.value.filter((record) => record.RecordId == RelatedRecordId)
+    if (related.length == 0) {
+        return
+    }
+    inputEnter(related[0].Content)
+}
+
+const handleCloseShare = () => {
+    isSelecting.value = false
+    selectedIds.value = []
+}
+const onShare = async (RecordIds: string[]) => {
+    isSelecting.value = true
+    selectedIds.value = [...new Set([...selectedIds.value, ...RecordIds])]
+}
+
+const handleCopyShare = async () => {
+    console.log('onSelectIds', selectedIds.value)
+    if(selectedIds.value.length <= 0) return;
+    try {
+        const res = await handleGetShareId({
+            ConversationId: chatId.value,
+            ApplicationId: currentApplicationId.value,
+            RecordIds: selectedIds.value,
+        })
+        console.log('share', res.ShareId)
+        if (res.ShareId) {
+            const baseUrl = window.location.href.split('#')[0]
+            const url = `${baseUrl}#/share?ShareId=${res.ShareId}`
+            copy(url);
+        }
+    } catch (e) {
+        console.log('share error', e)
+    }
+}
+
+const onSelectIds = (RecordId: string | undefined, checked: boolean) => {
+    console.log('onSelectIds', RecordId, 'e', checked)
+    if (!RecordId) return
+    if (checked) {
+        selectedIds.value.push(RecordId)
+    } else {
+        let newArray = selectedIds.value.filter(item => item !== RecordId);
+        selectedIds.value = [...newArray]
+    }
+}
 /**
  * 处理输入内容
  * @param {string} value - 输入内容
@@ -262,7 +336,8 @@ const handleInput = (value: string) => {
  * 处理发送逻辑
  * @returns {Promise<void>}
  */
-const handleSendData = async () => {
+const handleSendData = async (queryVal = inputValue.value) => {
+    console.log('chatId', chatId.value, currentApplicationId.value)
     abort = new AbortController()
     loading.value = true
     isStreamLoad.value = true
@@ -275,7 +350,7 @@ const handleSendData = async () => {
                 signal: abort?.signal
             } as AxiosRequestConfig
             return handleSendConversation({
-                Query: inputValue.value,
+                Query: queryVal,
                 ConversationId: chatId.value, //   id为空创建新对话
                 ApplicationId: currentApplicationId.value,
             }, options)
@@ -284,7 +359,7 @@ const handleSendData = async () => {
             success(result) {
                 if (result.type === 'conversation') {
                     //  创建新的对话，重新调用chatlist接口更新列表，根据record的LastActiveAt更新列表排序
-                    fetchChatList()
+                    fetchChatList(result.data.Id)
                     if (result.data.IsNewConversation) {
                         skipUpdateOnce.value = true
                         chatStore.setCurrentConversation(result.data)
@@ -358,11 +433,58 @@ watch(
     position: relative;
 }
 
+.chat-item__content {
+    display: flex;
+    align-items: self-start;
+}
+
 .ai-warning {
     text-align: center;
     color: var(--td-text-color-placeholder);
     font-size: var(--td-font-size-body-small);
     margin-top: var(--td-comp-margin-s);
     padding: var(--td-comp-paddingTB-xs) var(--td-comp-paddingLR-s);
+}
+
+.share-setting-content {
+    display: flex;
+    justify-content: center;
+}
+
+.icon__share-copy,
+.icon__share-close {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.icon__share-copy.disabled{
+    cursor: not-allowed;
+    background: var(--td-font-white-1);
+}
+
+.icon__share-copy span:nth-child(1),
+.icon__share-close span:nth-child(1) {
+    margin-bottom: 4px;
+    background: var(--td-font-white-1);
+    border-radius: 100%;
+    width: var(--td-font-size-display-medium);
+    height: var(--td-font-size-display-medium);
+    line-height: var(--td-font-size-display-medium);
+    text-align: center;
+    margin: var(--td-size-2) var(--td-size-7);
+}
+
+.icon__share-copy span:nth-child(1):hover,
+.icon__share-close span:nth-child(1):hover {
+    background: var(--td-bg-color-secondarycomponent-hover);
+}
+</style>
+
+<style>
+.share-setting-container .t-drawer__content-wrapper {
+    height: 120px !important;
+    background-color: var(--td-bg-color-secondarycontainer);
 }
 </style>

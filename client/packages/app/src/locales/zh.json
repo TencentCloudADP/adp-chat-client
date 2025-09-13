@@ -22,7 +22,17 @@
     "editName": "编辑名称",
     "pin": "置顶",
     "delete": "删除",
-    "share": "分享"
+    "share": "分享",
+    "cancelShare": "取消分享",
+    "good":"点赞",
+    "bad":"点踩",
+    "replay":"重新生成",
+    "copy":"复制",
+    "copyUrl":"复制链接",
+    "copySuccess":"复制成功",
+    "copyError":"复制失败",
+    "thxForGood":"谢谢你的认可，我们会继续优化进步",
+    "thxForBad":"谢谢你的反馈，我们会继续优化进步"
   },
   "conversation": {
     "conversation": "对话",

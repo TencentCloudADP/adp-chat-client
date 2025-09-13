@@ -4,10 +4,11 @@ export interface ChatConversation {
   Title: string
   LastActiveAt: number
   CreatedAt: number
+  ApplicationId: string
 }
 
 export interface ChatConversationProps {
-  ConversationId: string,
+  ConversationId?: string,
   ShareId?: string,
   LastRecordId?: string,
 }
@@ -144,9 +145,9 @@ export interface Record {
   OptionCards?: string[];
   QuoteInfos?: QuoteInfo[];
   Reasons?: any[];
-  RecordId?: string;
+  RecordId: string;
   References?: Reference[];
-  RelatedRecordId?: string;
+  RelatedRecordId: string;
   ReplyMethod?: number;
   Score?: ScoreValue;
   SessionId?: string;
