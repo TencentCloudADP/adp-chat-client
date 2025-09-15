@@ -9,12 +9,13 @@
         <TChat ref="chatRef" :reverse="false" style="height: 100%" :clear-history="false" @scroll="handleChatScroll"
             @clear="clearConfirm">
             <!-- 默认问题提示 -->
-            <template v-if="chatList.length <= 0 && !messageLoading">
+            <template v-if="chatList.length <= 0 && !messageLoading && !chatId">
                 <AppType :getDefaultQuestion="getDefaultQuestion" />
             </template>
             <!-- 聊天消息列表 -->
             <template v-else>
                 <div class="content">
+                    {{ chatId }}
                     <div class="chat-item__content" v-for="(item, index) in chatList">
                         <Checkbox :checked="selectedIds?.includes(item.RecordId)" v-if="isSelecting"
                             @change="(e) => onSelectIds(item.RecordId, e)" />
@@ -45,7 +46,7 @@
                         </div>
                     </div>
                 </Drawer>
-                <Sender :inputValue="inputValue" :modelOptions="modelOptions" :selectModel="selectModel"
+                <Sender v-if="!isSelecting" :inputValue="inputValue" :modelOptions="modelOptions" :selectModel="selectModel"
                     :isDeepThinking="isDeepThinking" :isStreamLoad="isStreamLoad" :handleInput="handleInput"
                     :onStop="onStop" :inputEnter="inputEnter" :handleModelChange="handleModelChange"
                     :toggleDeepThinking="toggleDeepThinking" />
@@ -61,7 +62,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick,computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { AxiosRequestConfig } from 'axios'
 import AppType from '@/components/Chat/AppType.vue'
@@ -85,7 +86,7 @@ const router = useRouter()
 
 const chatStore = useChatStore()
 const appsStore = useAppsStore()
-const { currentConversationId: chatId } = storeToRefs(chatStore)
+const chatId = computed(() => chatStore.currentConversationId);
 const { currentApplicationId } = storeToRefs(appsStore)
 
 // 是否正在创建新对话
@@ -128,6 +129,7 @@ const isShowToBottom = ref(false)
  * @returns {Promise<void>}
  */
 const handleGetConversationDetail = async (chatId: string) => {
+    chatList.value = []
     if (!chatId) return
     const loadingInstance = LoadingPlugin({
         attach: '#chat-content',
@@ -218,6 +220,7 @@ const chatList = ref<Record[]>([])
  */
 const clearConfirm = function () {
     chatList.value = []
+    chatList.value.length = 0; 
 }
 
 /**
@@ -292,8 +295,9 @@ const handleCloseShare = () => {
     selectedIds.value = []
 }
 const onShare = async (RecordIds: string[]) => {
+    let _selectedList = chatList.value.filter(item => RecordIds.includes(item?.RelatedRecordId) || RecordIds.includes(item?.RecordId)).map( i => i.RecordId)
     isSelecting.value = true
-    selectedIds.value = [...new Set([...selectedIds.value, ...RecordIds])]
+    selectedIds.value = [...new Set([...selectedIds.value, ..._selectedList])]
 }
 
 const handleCopyShare = async () => {
@@ -307,7 +311,7 @@ const handleCopyShare = async () => {
         if (res.ShareId) {
             const baseUrl = window.location.href.split('#')[0]
             const url = `${baseUrl}#/share?ShareId=${res.ShareId}`
-            copy(url);
+            copy(url,url);
         }
     } catch (e) {
         console.log('share error', e)
@@ -412,14 +416,14 @@ const handleSendData = async (queryVal = inputValue.value) => {
 watch(
     chatId,
     (newId) => {
+        console.log('newId',skipUpdateOnce.value,'messageLoading',messageLoading.value,'newId',newId)
         // sse新建对话中不处理变化
         if (skipUpdateOnce.value) {
             skipUpdateOnce.value = false
             return
         }
-        // 切换到新的对话,停止上一次对话内容
         onStop();
-        chatList.value = [];
+        clearConfirm()
         handleGetConversationDetail(newId)
     },
     { immediate: true },
@@ -461,13 +465,13 @@ watch(
 
 .icon__share-copy.disabled {
     cursor: not-allowed;
-    background: var(--td-font-white-1);
+    opacity: 0.8;
 }
 
 .icon__share-copy span:nth-child(1),
 .icon__share-close span:nth-child(1) {
     margin-bottom: 4px;
-    background: var(--td-font-white-1);
+    background: var(--td-bg-color-secondarycontainer-hover);
     border-radius: 100%;
     width: var(--td-font-size-display-medium);
     height: var(--td-font-size-display-medium);
@@ -478,7 +482,7 @@ watch(
 
 .icon__share-copy span:nth-child(1):hover,
 .icon__share-close span:nth-child(1):hover {
-    background: var(--td-bg-color-secondarycomponent-hover);
+    background: var(--td-bg-color-secondarycontainer-active);
 }
 </style>
 

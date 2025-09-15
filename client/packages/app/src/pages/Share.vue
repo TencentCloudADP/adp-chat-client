@@ -88,6 +88,7 @@ onMounted(async () => {
 <style scoped>
 /* 分享页面容器样式 */
 .share-container {
-  margin: 0 10%;
+  padding: 0 10%;
+  background-color: var(--td-bg-color-container);
 }
 </style>

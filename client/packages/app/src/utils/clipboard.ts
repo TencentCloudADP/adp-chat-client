@@ -1,10 +1,21 @@
 import { MessagePlugin } from 'tdesign-vue-next';
 import  { t } from '@/i18n'
+import { storeToRefs } from 'pinia';
+import { useUiStore } from '@/stores/ui';
+const uiStore = useUiStore();
+const { isMobile } = storeToRefs(uiStore);
 
 /**
  * @description 复制文字内容到剪切板
  */
-export const copy = function (text: string) {
+export const copy = function (rowText: string ,mdText:string ) {
+  let text = ''
+  if(isMobile){
+    text = rowText?.replace(/\n{3,}/g, '\n\n');
+  }else{
+    text = mdText
+  }
+  if(!text) return;
   const fallbackCopyToClipboard = (text: string) => {
     var textarea = document.createElement('textarea');
     document.body.appendChild(textarea);

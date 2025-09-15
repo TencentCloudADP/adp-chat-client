@@ -5,10 +5,17 @@
 <script setup lang="tsx">
 import { computed } from 'vue';
 import moment from 'moment';
+import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n';
 import { useChatStore } from '@/stores/chat';
+import { useAppsStore } from '@/stores/apps'
+
 import { useRouter } from 'vue-router';
 import type { ChatConversation } from '@/model/chat'
+const appsStore = useAppsStore()
+
+const { currentApplicationId } = storeToRefs(appsStore)
+
 const router = useRouter();
 const { t } = useI18n();
 /**
@@ -92,7 +99,6 @@ const conversationsHistoryList = computed<ConversationHistoryItem[]>(() => {
  * @param {ChatConversation} detail - 会话详情
  */
 const handleClick = (detail: ChatConversation) => {
-    console.log('setCurrentConversation',detail)
     chatStore.setCurrentConversation(detail);
     router.push({ name: 'Home', query: { conversationId: detail.Id } });
 };
@@ -108,7 +114,7 @@ const handleCreateNewChat = () => {
         Title: "",
         LastActiveAt: 0,
         CreatedAt: 0,
-        ApplicationId:""
+        ApplicationId:currentApplicationId.value || ''
     });
 }
 </script>

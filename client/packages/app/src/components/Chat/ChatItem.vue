@@ -18,7 +18,6 @@ import {
 import { handleRate } from '@/service/chat';
 // 状态管理
 import { useChatStore } from '@/stores/chat';
-import { useUiStore } from '@/stores/ui';
 // TDesign UI 组件
 import { MessagePlugin, Tooltip, Divider } from 'tdesign-vue-next';
 import { storeToRefs } from 'pinia';
@@ -27,8 +26,6 @@ import { copy } from '@/utils/clipboard';
 
 const { t } = useI18n();
 const chatStore = useChatStore();
-const uiStore = useUiStore();
-const { isMobile } = storeToRefs(uiStore);
 const { currentConversationId: chatId } = storeToRefs(chatStore);
 
 /**
@@ -64,24 +61,18 @@ const record = ref(item);
  * @returns {Promise<void>}
  */
 async function copyContent(event: any, content: string | undefined, type: string): Promise<void> {
-    let text: string | undefined = "";
+    let rowtext: string | undefined = "";
     const container = event?.e.target as HTMLElement;
-    if (!isMobile.value) {
-        text = content;
-    } else {
-        // 移动端去除 markdown 格式
-        switch (type) {
-            case 'user':
-                text = container?.closest('.t-chat__content')?.querySelector('.t-chat__text')?.textContent;
-                text = text?.replace(/\n{3,}/g, '\n\n');
-                break;
-            case 'assistant':
-                text = container?.closest('.t-chat__content')?.querySelector('.t-chat__text__content')?.textContent;
-                text = text?.replace(/\n{3,}/g, '\n\n');
-                break;
-        }
+
+    switch (type) {
+        case 'user':
+            rowtext = container?.closest('.t-chat__content')?.querySelector('.t-chat__text')?.textContent;
+            break;
+        case 'assistant':
+            rowtext = container?.closest('.t-chat__content')?.querySelector('.t-chat__text__content')?.textContent;
+            break;
     }
-    text && await copy(text);
+    content && rowtext && await copy(rowtext,content);
 }
 
 /**
@@ -129,15 +120,8 @@ const renderHeader = (flag: boolean, item: Record) => {
     }
     const endText = t('conversation.deepThinkingFinished');
     return (
-        <div style="display:flex;align-items:center">
-            <t-icon
-                name="check-circle"
-                style={{
-                    color: 'var(--td-success-color-5)',
-                    fontSize: '20px',
-                    marginRight: '8px',
-                }}
-            />
+        <div class="flex">
+            <t-icon name="check-circle" class="check-circle" />
             <span>{endText}</span>
         </div>
     );
@@ -229,6 +213,10 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
 </template>
 
 <style scoped>
+.flex{
+display:flex;
+align-items:center;
+}
 /* 用户消息的复制和分享图标样式 */
 .user-message .copy-icon,
 .user-message .share-icon {
@@ -249,6 +237,11 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
     border: 0;
     cursor: pointer;
 }
+.check-circle{
+    color: var(--td-success-color-5);
+    font-size: 20px;
+    margin-right: 8px;
+}
 
 .icon.disabled {
     opacity: 0.25;
@@ -256,12 +249,13 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
 }
 
 .icon.active {
-    color: red;
+    color: var(--td-brand-color);
 }
 
 /* 用户消息图标悬停效果 */
 .user-message .copy-icon:hover,
-.user-message .share-icon:hover {
+.user-message .share-icon:hover,
+.icon:hover {
     color: var(--td-brand-color);
 }
 

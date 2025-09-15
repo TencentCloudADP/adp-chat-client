@@ -38,7 +38,6 @@ export const useChatStore = defineStore('chat', () => {
    * @param {ChatConversation} detail - 会话详情
    */
   const setCurrentConversation = (detail: ChatConversation) => {
-    console.log('setCurrentConversation', detail)
     currentConversation.value = detail
     // 切换对话后，切换默认 appid
     const appsStore = useAppsStore()
