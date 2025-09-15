@@ -16,7 +16,8 @@
             <template v-else>
                 <div class="content">
                     <div class="chat-item__content" v-for="(item, index) in chatList">
-                        <Checkbox :checked="selectedIds?.includes(item.RecordId)" v-if="isSelecting" @change="(e) => onSelectIds(item.RecordId, e)" />
+                        <Checkbox :checked="selectedIds?.includes(item.RecordId)" v-if="isSelecting"
+                            @change="(e) => onSelectIds(item.RecordId, e)" />
                         <div style="width: 100%">
                             <ChatItem :isLastMsg="index === (chatList.length - 1)" :item="item" :index="index"
                                 :loading="loading" :isStreamLoad="isStreamLoad" :onResend="onResend"
@@ -28,15 +29,17 @@
             <!-- 底部发送区域 -->
             <template #footer>
                 <Drawer class="share-setting-container" :footer="false" size="small" placement="bottom"
-                    :showOverlay="false" :preventScrollThrough="false" :visible="isSelecting" @close="handleCloseShare">
+                    :showOverlay="false" :preventScrollThrough="false" :visible="isSelecting"
+                    @close="handleCloseShare()">
                     <div class="share-setting-content">
-                        <div class="icon__share-copy" :class="{disabled: selectedIds.length <= 0}">
-                            <span> <t-icon @click="handleCopyShare" name="link-1"></t-icon> </span>
+                        <div class="icon__share-copy" :class="{ disabled: selectedIds.length <= 0 }"
+                            @click="handleCopyShare()">
+                            <span> <t-icon name="link-1"></t-icon> </span>
                             <span>{{ $t('operation.copyUrl') }}</span>
                         </div>
-                        <div class="icon__share-close">
+                        <div class="icon__share-close" @click="handleCloseShare()">
                             <span>
-                                <t-icon @click="handleCloseShare" name="close"></t-icon>
+                                <t-icon name="close"></t-icon>
                             </span>
                             <span>{{ $t('operation.cancelShare') }}</span>
                         </div>
@@ -253,7 +256,7 @@ const inputEnter = function (queryVal = inputValue.value) {
     if (!queryVal) return
     // 用户消息
     const params: Record = {
-        RelatedRecordId:"",
+        RelatedRecordId: "",
         RecordId: 'placeholder-user',
         Content: queryVal,
         IsLlmGenerated: false,
@@ -262,7 +265,7 @@ const inputEnter = function (queryVal = inputValue.value) {
 
     // 空消息占位（AI回复）
     const params2: Record = {
-        RelatedRecordId:"",
+        RelatedRecordId: "",
         RecordId: 'placeholder-agent',
         Content: '',
         IsLlmGenerated: true
@@ -294,15 +297,13 @@ const onShare = async (RecordIds: string[]) => {
 }
 
 const handleCopyShare = async () => {
-    console.log('onSelectIds', selectedIds.value)
-    if(selectedIds.value.length <= 0) return;
+    if (selectedIds.value.length <= 0) return;
     try {
         const res = await handleGetShareId({
             ConversationId: chatId.value,
             ApplicationId: currentApplicationId.value,
             RecordIds: selectedIds.value,
         })
-        console.log('share', res.ShareId)
         if (res.ShareId) {
             const baseUrl = window.location.href.split('#')[0]
             const url = `${baseUrl}#/share?ShareId=${res.ShareId}`
@@ -314,7 +315,6 @@ const handleCopyShare = async () => {
 }
 
 const onSelectIds = (RecordId: string | undefined, checked: boolean) => {
-    console.log('onSelectIds', RecordId, 'e', checked)
     if (!RecordId) return
     if (checked) {
         selectedIds.value.push(RecordId)
@@ -337,7 +337,6 @@ const handleInput = (value: string) => {
  * @returns {Promise<void>}
  */
 const handleSendData = async (queryVal = inputValue.value) => {
-    console.log('chatId', chatId.value, currentApplicationId.value)
     abort = new AbortController()
     loading.value = true
     isStreamLoad.value = true
@@ -459,7 +458,8 @@ watch(
     align-items: center;
     justify-content: center;
 }
-.icon__share-copy.disabled{
+
+.icon__share-copy.disabled {
     cursor: not-allowed;
     background: var(--td-font-white-1);
 }
