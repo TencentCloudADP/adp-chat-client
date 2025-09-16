@@ -1,3 +1,4 @@
+# flake8: noqa: E501
 import logging
 from typing import Optional
 from urllib.parse import quote
@@ -51,7 +52,7 @@ class CoreOAuth:
                     name = resp['login']
                     id = str(resp['id'])
         elif provider == 'ms_entra_id':
-            access_token_api = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
+            access_token_api = f'https://login.microsoftonline.com/{tagentic_config.OAUTH_MICROSOFT_ENTRA_ENDPOINT}/oauth2/v2.0/token'
             user_api = 'https://graph.microsoft.com/v1.0/me'
             async with aiohttp.ClientSession() as session:
                 callback = f'{tagentic_config.SERVICE_API_URL}/oauth/callback/ms_entra_id'
@@ -78,7 +79,7 @@ class CoreOAuth:
                 }
                 async with session.get(user_api, headers=headers) as resp:
                     resp = await resp.json()
-                    logging.info(resp)
+                    # logging.info(resp)
                     if 'displayName' not in resp or 'id' not in resp:
                         logging.error(resp)
                         raise AccountAuthenticationError()
@@ -118,7 +119,7 @@ def oauth_init(app, loop):
         CoreAccountProvider.add_provider(
             'Microsoft Entra ID',
             (
-                f'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?'
+                f'https://login.microsoftonline.com/{tagentic_config.OAUTH_MICROSOFT_ENTRA_ENDPOINT}/oauth2/v2.0/authorize?'
                 f'client_id={tagentic_config.OAUTH_MICROSOFT_ENTRA_CLIENT_ID}&'
                 f'redirect_uri={callback}&scope=user.read&response_type=code'
             )
