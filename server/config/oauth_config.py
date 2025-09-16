@@ -19,6 +19,11 @@ class OAuthConfig(BaseSettings):
         default="",
     )
 
+    OAUTH_MICROSOFT_ENTRA_ENDPOINT: str = Field(
+        description="OAuth with Microsoft Entra ID, endpoint (optional, if you have a tenant id), see: https://learn.microsoft.com/en-us/entra/identity-platform/authentication-national-cloud",
+        default="common",
+    )
+
     OAUTH_MICROSOFT_ENTRA_CLIENT_ID: str = Field(
         description="OAuth with Microsoft Entra ID, client id, you can obtain it from https://entra.microsoft.com",
         default="",

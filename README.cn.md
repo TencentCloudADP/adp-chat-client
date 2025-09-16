@@ -161,6 +161,8 @@ OAUTH_GITHUB_SECRET=
 # you can obtain it from https://entra.microsoft.com
 OAUTH_MICROSOFT_ENTRA_CLIENT_ID=
 OAUTH_MICROSOFT_ENTRA_SECRET=
+# Endpoint (optional, if you have a tenant id, default: common), see: https://learn.microsoft.com/en-us/entra/identity-platform/authentication-national-cloud
+OAUTH_MICROSOFT_ENTRA_ENDPOINT=common
 ```
 > 📝 **注意**：创建Microsoft Entra ID OAuth应用时，callback URL填写：SERVICE_API_URL+/oauth/callback/ms_entra_id，例如：http://localhost:8000/oauth/callback/ms_entra_id
 
