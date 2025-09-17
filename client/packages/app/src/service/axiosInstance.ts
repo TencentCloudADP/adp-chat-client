@@ -2,7 +2,28 @@ import axios from 'axios'
 
 // 根据环境动态设置baseURL
 const isDev = import.meta.env.DEV
-const baseURL = isDev ? '/api' : ''
+
+// 开发环境使用/api代理，生产环境使用相对路径
+let baseURL: string
+if (isDev) {
+  baseURL = '/api'
+} else {
+  // 获取当前页面的路径
+  const currentPath = window.location.pathname
+  // 找到/static的位置，计算需要返回的层级
+  const staticIndex = currentPath.indexOf('/static')
+  if (staticIndex !== -1) {
+    // 计算从当前路径到/static前的路径需要多少层../
+    const pathAfterStatic = currentPath.substring(staticIndex + '/static'.length)
+    const pathSegments = pathAfterStatic.split('/').filter((segment) => segment.length > 0)
+    // 需要返回的层级数 = 路径段数 + 1（因为/static本身也算一级）
+    const levelsToGoUp = pathSegments.length + 1
+    baseURL = '../'.repeat(levelsToGoUp)
+  } else {
+    // 如果没找到/static，使用安全的默认值
+    baseURL = './'
+  }
+}
 
 // 创建axios实例
 const instance = axios.create({
@@ -32,7 +53,11 @@ instance.interceptors.response.use(
   },
   async (error) => {
     // 如果是stream响应
-    if (error.response && error.response.config && error.response.config.responseType === 'stream') {
+    if (
+      error.response &&
+      error.response.config &&
+      error.response.config.responseType === 'stream'
+    ) {
       try {
         // 将流转换为文本
         const data = await new Response(error.response.data).text()
@@ -45,7 +70,8 @@ instance.interceptors.response.use(
       } catch (e) {
         console.error('stream转换失败:', e)
       }
-    }else if (error.response) { // 对响应错误做点什么
+    } else if (error.response) {
+      // 对响应错误做点什么
       // 服务器返回了错误状态码
       console.error('API Error:', error.response.status, error.response.data)
     } else {
