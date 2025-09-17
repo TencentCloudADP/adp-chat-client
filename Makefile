@@ -1,4 +1,5 @@
 .PHONY: client server docs deploy build
+PYTHON := $(if $(shell command -v python 2>/dev/null),python,python3)
 
 -include Makefile.local
 
@@ -8,7 +9,7 @@ init_client:
 	cd client && npm install
 
 client:
-	cd client/tagentic-client-vue && npm run build
+	cd client/packages/app0 && npm run build
 
 test_client:
 	cd client && npm run test --ws
@@ -16,7 +17,10 @@ test_client:
 # ----------------- server -----------------
 
 init_server:
-	cd server; python3 -m venv server/.venv
+	@$(PYTHON) -c "import sys; exit(print('\033[31mError: Python 3.12.0 or higher required\033[0m') or 1 if sys.version_info < (3, 12, 0) else 0)"
+	@echo use $(PYTHON); $(PYTHON) --version
+	@cd server; $(PYTHON) -m venv .venv
+	@source server/.venv/bin/activate; echo use venv; $(PYTHON) --version
 	source server/.venv/bin/activate; cd server; pip install -r requirements.txt
 
 requirements:

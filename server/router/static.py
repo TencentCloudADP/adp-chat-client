@@ -9,6 +9,8 @@ static file server
 """
 app.static('/static/app/index', './static/app/index.html', name='index')
 app.static('/static/app', './static/app', name='dir')
+app.static('/static/app0/index', './static/app0/index.html', name='index0')
+app.static('/static/app0', './static/app0', name='dir0')
 
 
 @app.get('/')

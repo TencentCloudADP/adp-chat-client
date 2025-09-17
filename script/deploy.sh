@@ -68,7 +68,7 @@ debug_instance() {
     cd -
 
 	cp $INSTANCE_DIR/$INSTANCE/.env server/
-	docker run --name adp-chat-client-$INSTANCE -d -p $SERVER_HTTP_PORT:8000 -v ./server/:/app/ --network adp-chat-client-network-$INSTANCE adp-chat-client
+	docker run --name adp-chat-client-$INSTANCE -d -p $SERVER_HTTP_PORT:8000 -v ./server/:/app/ -v ./client/:/client/ --network adp-chat-client-network-$INSTANCE adp-chat-client
 }
 
 ### 封装 login 逻辑
