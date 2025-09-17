@@ -5,6 +5,7 @@ from sanic.request.types import Request
 from util.helper import get_remote_ip, get_path_base
 from core.account import CoreAccount, CoreAccountProvider
 from config import tagentic_config
+from router import login_required
 from app_factory import TAgenticApp
 app = TAgenticApp.get_app()
 
@@ -57,6 +58,18 @@ class AccountProviderListApi(HTTPMethodView):
         return json({"Providers": providers})
 
 
+class AccountInfoApi(HTTPMethodView):
+    @login_required
+    async def get(self, request: Request):
+        account = await CoreAccount.get(request.ctx.db, request.ctx.account_id)
+
+        account.Password = None
+        account.PasswordSalt = None
+
+        return json({"Info": account.to_dict()})
+
+
 app.add_route(AccountProviderListApi.as_view(), "/account/providers")
 # app.add_route(CreateAccountApi.as_view(), "/account/create")
 app.add_route(CustomerAccountApi.as_view(), "/account/customer")
+app.add_route(AccountInfoApi.as_view(), "/account/info")

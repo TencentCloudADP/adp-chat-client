@@ -75,6 +75,14 @@ class CoreAccount:
         return accounts
 
     @staticmethod
+    async def get(db: AsyncSession, account_id: str) -> Account:
+        account = (await db.execute(
+            select(Account)
+                .where(Account.Id == account_id)
+        )).scalar()
+        return account
+
+    @staticmethod
     async def authenticate(db: AsyncSession, email: str, password: str) -> Account:
         account = await CoreAccount.find(db, email=email)
         if not account:
