@@ -16,8 +16,8 @@ if (isDev) {
     // 计算从当前路径到/static前的路径需要多少层../
     const pathAfterStatic = currentPath.substring(staticIndex + '/static'.length)
     const pathSegments = pathAfterStatic.split('/').filter((segment) => segment.length > 0)
-    // 需要返回的层级数 = 路径段数 + 1（因为/static本身也算一级）
-    const levelsToGoUp = pathSegments.length + 1
+    // 需要返回的层级数 = 路径段数
+    const levelsToGoUp = pathSegments.length
     baseURL = '../'.repeat(levelsToGoUp)
   } else {
     // 如果没找到/static，使用安全的默认值
