@@ -1,28 +1,27 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
 import { generateAvatarName } from '@/utils/display'
+import { t } from '@/i18n'
 
-export const useUserStore = defineStore('user', () => {
-  const name = ref('游客')
-  const avatarUrl = ref('https://tdesign.gtimg.com/site/chat-avatar.png')
+// 使用Options API语法，Pinia会自动处理state重置
+export const useUserStore = defineStore('user', {
+  state: () => ({
+    name: t('account.defaultName'),
+    avatarUrl: '',
+  }),
 
-  const avatarName = computed(() => generateAvatarName(name.value))
+  getters: {
+    avatarName: (state) => generateAvatarName(state.name),
+  },
 
-  function setUserInfo(newName: string, newAvatarUrl: string) {
-    name.value = newName
-    avatarUrl.value = newAvatarUrl
-  }
+  actions: {
+    setUserInfo(newName: string, newAvatarUrl: string) {
+      this.name = newName
+      this.avatarUrl = newAvatarUrl
+    },
 
-  function clearUserInfo() {
-    name.value = '游客'
-    avatarUrl.value = 'https://tdesign.gtimg.com/site/chat-avatar.png'
-  }
-
-  return {
-    name,
-    avatarUrl,
-    avatarName,
-    setUserInfo,
-    clearUserInfo,
-  }
+    // Pinia会自动将state重置为初始值
+    clearUserInfo() {
+      this.$reset()
+    },
+  },
 })

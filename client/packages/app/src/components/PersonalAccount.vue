@@ -32,7 +32,8 @@ const handleLogout = () => {
         </template>
         <t-button theme="default" variant="text">
             <template #icon>
-                <t-avatar size="small" style="margin-right: var(--td-comp-margin-xs);">{{ userStore.avatarName
+                <t-avatar v-if="userStore.avatarUrl" size="small" :image="userStore.avatarUrl" class="avatar-margin" />
+                <t-avatar v-else size="small" class="avatar-margin">{{ userStore.avatarName
                 }}</t-avatar>
             </template>
             {{ userStore.name }}
@@ -50,6 +51,10 @@ const handleLogout = () => {
 
 :deep(.t-icon) {
     font-size: 18px;
+    margin-right: var(--td-comp-margin-xs);
+}
+
+.avatar-margin {
     margin-right: var(--td-comp-margin-xs);
 }
 </style>

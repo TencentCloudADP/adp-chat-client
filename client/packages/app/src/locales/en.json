@@ -14,7 +14,8 @@
     "logout": "Logout",
     "loginToAdp": "Login to Agent Development Platform",
     "inputAccountName": "Please enter your account name",
-    "inputPassword": "Please enter your password"
+    "inputPassword": "Please enter your password",
+    "defaultName": "Guest"
   },
   "operation": {
     "search": "Search",
