@@ -48,14 +48,9 @@ APP_CONFIGS='[
 ]'
 ```
 
-4. Pull or Build docker image
+4. Build docker image
 ```bash
-# Pull the image (if you don't have permission, use the build method instead)  
-sudo make pull_image  
-
 # Build  
-# 1. Complete all steps in the [Development Guide - Frontend] section of this document 
-# 2. Build the image:
 sudo make pack  
 ```
 
