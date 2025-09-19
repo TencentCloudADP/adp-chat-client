@@ -6,8 +6,8 @@
     <!-- 聊天内容容器 -->
     <div id="chat-content" class="chat-box">
         <!-- 聊天组件 -->
-        <TChat ref="chatRef" :reverse="false" style="height: 100%" :clear-history="chatList.length > 0 && !isStreamLoad"
-            @scroll="handleChatScroll" @clear="clearConfirm">
+        <TChat ref="chatRef" :reverse="false" style="height: 100%" :clear-history="false" @scroll="handleChatScroll"
+            @clear="clearConfirm">
             <!-- 默认问题提示 -->
             <template v-if="chatList.length <= 0 && !messageLoading">
                 <AppType :getDefaultQuestion="getDefaultQuestion" />

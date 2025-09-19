@@ -11,7 +11,7 @@ const uiStore = useUiStore();
     <t-drawer :visible="uiStore.drawerVisible" placement="left" mode="push" size="small" show-in-attached-element
         :show-overlay="false" :footer="false">
         <div class="drawer-content">
-            <Search />
+            <!-- <Search /> -->
             <!-- <GroupList /> -->
             <HistoryList />
         </div>

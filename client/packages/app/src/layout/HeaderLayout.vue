@@ -12,12 +12,12 @@ import Settings from '@/components/Settings.vue';
     <div class="header-content">
         <LogoArea :title="$t('project.projectName')" />
         <div class="header-actions">
-            <CodeBase url="https://github.com/Tencent/tdesign-vue-next" />
-            <DocumentHelper url="https://tdesign.tencent.com/vue-next/docs/vue/quick-start" />
-            <PersonalAccount />
+            <!-- <CodeBase url="https://github.com/Tencent/tdesign-vue-next" />
+            <DocumentHelper url="https://tdesign.tencent.com/vue-next/docs/vue/quick-start" /> -->
             <ThemeSwitcher />
             <LanguageSelector />
-            <Settings />
+            <PersonalAccount />
+            <!-- <Settings /> -->
         </div>
     </div>
 </template>

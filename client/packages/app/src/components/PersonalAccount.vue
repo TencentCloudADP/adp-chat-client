@@ -16,12 +16,12 @@ const handleLogout = () => {
     <t-dropdown maxColumnWidth="200" placement="bottom">
         <template #dropdown>
             <t-dropdown-menu>
-                <t-dropdown-item>
+                <!-- <t-dropdown-item>
                     <div class="operations-dropdown-container-item">
                         <t-icon name="user-circle"></t-icon>
                         {{ $t('header.personalCenter') }}
                     </div>
-                </t-dropdown-item>
+                </t-dropdown-item> -->
                 <t-dropdown-item @click="handleLogout">
                     <div class="operations-dropdown-container-item">
                         <t-icon name="poweroff"></t-icon>
@@ -34,7 +34,7 @@ const handleLogout = () => {
             <template #icon>
                 <t-avatar v-if="userStore.avatarUrl" size="small" :image="userStore.avatarUrl" class="avatar-margin" />
                 <t-avatar v-else size="small" class="avatar-margin">{{ userStore.avatarName
-                }}</t-avatar>
+                    }}</t-avatar>
             </template>
             {{ userStore.name }}
             <template #suffix><t-icon name="chevron-down" /></template>

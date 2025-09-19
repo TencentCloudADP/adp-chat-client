@@ -134,14 +134,14 @@ const handleCreateNewChat = () => {
                 :class="{ active: currentConversationId === item.Id }" @click="handleClick(item)">
                 <div class="history-title">{{ item.Title }}</div>
                 <!-- 操作下拉菜单 -->
-                <div class="history-dropdown" @click.stop="">
+                <!-- <div class="history-dropdown" @click.stop="">
                     <t-dropdown :id="`history-dropdown-${item.Id}`" :options="options" placement="bottom"
                         :attach="`history-dropdown-${item.Id}`" maxColumnWidth="200">
                         <t-button variant="text" shape="square" size="small">
                             <t-icon name="ellipsis" />
                         </t-button>
                     </t-dropdown>
-                </div>
+                </div> -->
             </div>
         </div>
 
