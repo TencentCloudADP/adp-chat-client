@@ -710,9 +710,11 @@ const onResize = () => {
   <a-layout-header id="chat-header">
     <slot name="header"></slot>
 
-    <a-select v-model:value="currentApplicationId" style="width: 200px; margin: 0 auto" id="agent-select" :disabled="!!conversationId || !!shareId">
-      <a-select-option v-for="application in applications" :value="application['ApplicationId']">{{application['Name']}}</a-select-option>
-    </a-select>
+    <div style="width: 200px; margin: 0 auto">
+      <a-select v-if="applications.length > 1" v-model:value="currentApplicationId" style="width: 100%;" id="agent-select" :disabled="!!conversationId || !!shareId">
+        <a-select-option v-for="application in applications" :value="application['ApplicationId']">{{application['Name']}}</a-select-option>
+      </a-select>
+    </div>
 
     <plus-square-outlined v-if="!shareId" class="chat-header-btn" @click="handleCreateConversation" />
   </a-layout-header>
@@ -787,6 +789,9 @@ const onResize = () => {
           </a-upload>
         </template>
       </sender>
+      <div style="text-align: center; color: gray; font-size: small;">
+        该回答由AI助手生成，请谨慎识别
+      </div>
     </flex>
   </a-layout-content>
 </template>
