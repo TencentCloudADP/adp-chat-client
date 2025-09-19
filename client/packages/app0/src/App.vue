@@ -26,7 +26,7 @@ const checkLogin = async () => {
 
 watch(()=>bus.value.get('login-state-changed'), (_accessToken) => {
   if (_accessToken == null) {
-    let path = window.location.pathname.split('/static/app/index')[0]
+    let path = window.location.pathname.split('/static/app')[0]
     if (path == '') {
       path = '/'
     }
