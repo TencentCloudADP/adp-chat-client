@@ -1,8 +1,9 @@
 <script setup lang="tsx">
-import { theme } from 'ant-design-vue';
-import { Conversations } from 'ant-design-x-vue';
-import type { ConversationsProps } from 'ant-design-x-vue';
-import { computed, ref, reactive, onBeforeMount, onMounted, onUnmounted, watch } from 'vue';
+import { theme } from 'ant-design-vue'
+import { Conversations } from 'ant-design-x-vue'
+import type { ConversationsProps } from 'ant-design-x-vue'
+import { Modal } from 'ant-design-vue'
+import { computed, ref, reactive, onBeforeMount, onMounted, onUnmounted, watch } from 'vue'
 import Chat from './Chat.vue'
 import {api, chunkSplitter} from '@/util/api'
 import type { AxiosRequestConfig } from 'axios'
@@ -10,8 +11,11 @@ import { dateFormat, dateGroup } from '@/util/dateFormat'
 import {
   MenuUnfoldOutlined,
   MenuFoldOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EllipsisOutlined,
 } from '@ant-design/icons-vue'
-import type { ChatConversation } from '@/model/conversation';
+import type { ChatConversation } from '@/model/conversation'
 
 defineOptions({ name: 'AXConversationsBasic' });
 
@@ -103,17 +107,68 @@ const groupable: ConversationsProps['groupable'] = {
 const converdationItems = computed(() =>
   conversations.value.map((conversation) => ({
     key: conversation['Id'] || '',
-    label: <div class="item-box"><span class="conversation-title">{conversation['Title']}</span><div class="item-space" /><span class="item-end">{dateFormat(new Date(conversation['LastActiveAt']*1000), 'HH:mm')}</span></div>,
+    label: <div class="item-box">
+      <span class="conversation-title">{conversation['Title']}</span><div class="item-space" /><span class="item-end">{dateFormat(new Date(conversation['LastActiveAt']*1000), 'HH:mm')}</span></div>,
     disabled: false,
     group: dateGroup(conversation['LastActiveAt']),
   }))
 )
+
+const menuConfig: ConversationsProps['menu'] = (conversation) => ({
+  items: [
+    // {
+    //   label: '重命名',
+    //   key: 'rename',
+    //   icon: <EditOutlined />,
+    // },
+    {
+      label: '删除',
+      key: 'delete',
+      icon: <DeleteOutlined />,
+      danger: true,
+    },
+  ],
+  onClick: (menuInfo) => {
+    menuInfo.domEvent.stopPropagation()
+    console.log(`Click ${conversation.key} - ${menuInfo.key}`)
+    if (menuInfo.key === 'rename') {
+      // 执行重命名逻辑
+    } else if (menuInfo.key === 'delete') {
+      // 执行删除逻辑
+      Modal.confirm({
+        title: '确认删除?',
+        content: '删除后不可恢复，确认删除吗？',
+        async onOk() {
+          const post_body = {
+            ConversationId: conversation.key,
+          }
+          const options = {
+          } as AxiosRequestConfig
+          try {
+            const res = await api.post('/chat/conversation/delete', post_body, options)
+            // console.log(res)
+            if (conversationId.value === conversation.key) {
+              conversationId.value = undefined
+            }
+            await handleUpdate()
+          } catch (e) {
+            console.log(e)
+          }
+        },
+        // eslint-disable-next-line @typescript-eslint/no-empty-function
+        onCancel() {},
+      })
+    }
+  },
+});
+
 </script>
 
 <template>
   <a-layout-sider id="conversion-panel" width="256" collapsedWidth="0" v-model:collapsed="collapsed" :trigger="null" collapsible>
     <Flex vertical id="conversion-panel-flex">
       <Conversations
+          :menu="menuConfig"
           :items="converdationItems"
           :groupable="groupable"
           :active-key="conversationId"
@@ -197,6 +252,7 @@ const converdationItems = computed(() =>
   margin: 0;
   overflow: scroll;
   padding: 6px;
+  user-select: none;
 }
 #logout {
   margin: 15px;
