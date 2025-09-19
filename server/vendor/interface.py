@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Protocol, List, Dict, Optional, Any
+from typing import Protocol, List, Dict, Optional, Any, Union
 from pydantic import BaseModel
 from sanic.request.types import Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,7 +50,7 @@ class _TokenStat(BaseModel):
 
 
 class _WorkFlow(BaseModel):
-    WorkflowReleaseTime: Optional[str] = None
+    WorkflowReleaseTime: Optional[Union[str, int]] = None
     WorkflowRunId: Optional[str] = None
     OptionCards: Optional[List[Any]] = None
     Outputs: Optional[List[Any]] = None
