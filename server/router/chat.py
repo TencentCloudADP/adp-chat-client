@@ -96,6 +96,18 @@ class ChatConversationListApi(HTTPMethodView):
         return json([conversation.to_dict() for conversation in conversations])
 
 
+class ChatConversationDeleteApi(HTTPMethodView):
+    @login_required
+    async def post(self, request: Request):
+        parser = reqparse.RequestParser()
+        parser.add_argument("ConversationId", type=str, required=True, location="json")
+        args = parser.parse_args(request)
+
+        await CoreConversation.delete(request.ctx.db, request.ctx.account_id, args["ConversationId"])
+        return json({"Success": 1})
+
+
 app.add_route(ChatMessageApi.as_view(), "/chat/message")
 app.add_route(ChatMessageListApi.as_view(), "/chat/messages")
 app.add_route(ChatConversationListApi.as_view(), "/chat/conversations")
+app.add_route(ChatConversationDeleteApi.as_view(), "/chat/conversation/delete")

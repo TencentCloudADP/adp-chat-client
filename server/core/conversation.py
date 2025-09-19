@@ -13,6 +13,17 @@ class CoreConversation:
         return conversations
 
     @staticmethod
+    async def delete(db: AsyncSession, account_id: str, conversation_id: str):
+        conversation = (await db.execute(select(ChatConversation).where(
+            ChatConversation.AccountId == account_id,
+            ChatConversation.Id == conversation_id
+        ).limit(1))).scalar()
+        if conversation is None:
+            raise Exception("conversation not found")
+        await db.delete(conversation)
+        await db.commit()
+
+    @staticmethod
     async def get_application_id(db: AsyncSession, account_id: str, conversation_id: str) -> str:
         conversation = (await db.execute(select(ChatConversation).where(
             ChatConversation.AccountId == account_id,
