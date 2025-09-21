@@ -15,7 +15,6 @@
             <!-- 聊天消息列表 -->
             <template v-else>
                 <div class="content">
-                    {{ chatId }}
                     <div class="chat-item__content" v-for="(item, index) in chatList">
                         <Checkbox :checked="selectedIds?.includes(item.RecordId)" v-if="isSelecting"
                             @change="(e) => onSelectIds(item.RecordId, e)" />
@@ -87,10 +86,9 @@ const router = useRouter()
 const chatStore = useChatStore()
 const appsStore = useAppsStore()
 const chatId = computed(() => chatStore.currentConversationId);
+const isChatting = computed(() => chatStore.isChatting);
 const { currentApplicationId } = storeToRefs(appsStore)
 
-// 是否正在创建新对话
-const skipUpdateOnce = ref(false)
 const isSelecting = ref(false)
 const selectedIds = ref<string[]>([])
 
@@ -364,7 +362,7 @@ const handleSendData = async (queryVal = inputValue.value) => {
                     //  创建新的对话，重新调用chatlist接口更新列表，根据record的LastActiveAt更新列表排序
                     fetchChatList(result.data.Id)
                     if (result.data.IsNewConversation) {
-                        skipUpdateOnce.value = true
+                        chatStore.setIsChatting(true)
                         chatStore.setCurrentConversation(result.data)
                         router.push({ name: 'Home', query: { conversationId: result.data.Id } })
                     }
@@ -398,6 +396,7 @@ const handleSendData = async (queryVal = inputValue.value) => {
                 if (isOk) {
                     isStreamLoad.value = false
                     loading.value = false
+                    chatStore.setIsChatting(false)
                     nextTick(() => {
                         backToBottom()
                     })
@@ -416,10 +415,9 @@ const handleSendData = async (queryVal = inputValue.value) => {
 watch(
     chatId,
     (newId) => {
-        console.log('newId',skipUpdateOnce.value,'messageLoading',messageLoading.value,'newId',newId)
+        console.log('newId',isChatting.value,'messageLoading',messageLoading.value,'newId',newId)
         // sse新建对话中不处理变化
-        if (skipUpdateOnce.value) {
-            skipUpdateOnce.value = false
+        if (isChatting.value) {
             return
         }
         onStop();

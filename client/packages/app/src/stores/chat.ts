@@ -13,7 +13,11 @@ export const useChatStore = defineStore('chat', () => {
    * @type {Ref<ChatConversation[]>}
    */
   const conversations = ref([] as ChatConversation[])
-
+   /**
+   * 是否正在对话聊天过程中
+   * @type {Ref<ChatConversation[]>}
+   */
+  const isChatting = ref(false);
   /**
    * 当前选中的聊天会话
    * @type {Ref<ChatConversation>}
@@ -56,6 +60,14 @@ export const useChatStore = defineStore('chat', () => {
     conversations.value = chats
   }
 
+   /**
+   * 设置聊天状态
+   * @param {boolean} flag - 是否正在对话中
+   */
+  const setIsChatting = (flag: boolean) => {
+    isChatting.value = flag
+  }
+
   onMounted(() => {
     console.log('chat.onMounted')
   })
@@ -64,6 +76,8 @@ export const useChatStore = defineStore('chat', () => {
   })
 
   return {
+    isChatting,
+    setIsChatting,
     currentConversationId,
     currentConversation,
     setCurrentConversation,

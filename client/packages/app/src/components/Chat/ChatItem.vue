@@ -114,14 +114,14 @@ const share = async (record: Record) => {
  * @param {Record} item - 当前消息项
  * @returns {JSX.Element} - 返回对应的头部组件
  */
-const renderHeader = (flag: boolean, item: Record) => {
+const renderHeader = (flag: boolean) => {
     if (flag) {
         return <TChatLoading text={t('conversation.thinking') + '...'} />;
     }
     const endText = t('conversation.deepThinkingFinished');
     return (
         <div class="flex">
-            <t-icon name="check-circle" class="check-circle" />
+            {/* <t-icon name="check-circle" class="check-circle" /> */}
             <span>{endText}</span>
         </div>
     );
@@ -133,7 +133,7 @@ const renderHeader = (flag: boolean, item: Record) => {
  * @returns {JSX.Element | null} - 返回渲染的推理内容或 null
  */
 const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
-    if (!reasoningContent) return null;
+    if (!reasoningContent) return <div></div>;
     return (
         <div>
             {reasoningContent.Procedures?.map((procedure, index) => (
@@ -156,7 +156,7 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
             collapsed: isLastMsg && !isStreamLoad,
             expandIconPlacement: 'right',
             collapsePanelProps: {
-                header: renderHeader(index === 0 && isStreamLoad && !item.Content, item),
+                header: renderHeader(index === 0 && isStreamLoad && !item.Content),
                 content: renderReasoningContent(item.AgentThought),
             },
         }"

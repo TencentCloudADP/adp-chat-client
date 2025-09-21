@@ -11,6 +11,7 @@ declare module 'vue' {
     AppType: typeof import('./src/components/Chat/AppType.vue')['default']
     BackToBottom: typeof import('./src/components/Chat/BackToBottom.vue')['default']
     ChatItem: typeof import('./src/components/Chat/ChatItem.vue')['default']
+    ChatItemBack: typeof import('./src/components/Chat/chatItemBack.vue')['default']
     ChatList: typeof import('./src/components/ChatList.vue')['default']
     CodeBase: typeof import('./src/components/CodeBase.vue')['default']
     DocumentHelper: typeof import('./src/components/DocumentHelper.vue')['default']
