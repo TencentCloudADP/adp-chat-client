@@ -311,8 +311,8 @@ const items = computed(():BubbleListProps['items'] =>
     items.push({
       key: record['RecordId'] || '',
       // loading: record['Content']=='',
-      variant: record['IsLlmGenerated'] ? 'borderless' : 'filled',
-      role: record['IsLlmGenerated'] ? 'agent' : 'user',
+      variant: record['IsFromSelf'] ? 'filled' : 'borderless',
+      role: record['IsFromSelf'] ? 'user' : 'agent',
       content: record,
       footer: renderFooter,
       avatar: isSelection.value ? <Checkbox class="select-checkbox" value={record['RecordId']} onChange={handleSelectChange}></Checkbox> : <></>,
@@ -421,13 +421,13 @@ const handleSend = async (_lastQuery = null as null|string) => {
   const record0: Record = {
     RecordId: 'placeholder-user',
     Content: _query,
-    IsLlmGenerated: false,
+    IsFromSelf: true,
   }
   messages.value.push(record0)
   const record1: Record = {
     RecordId: 'placeholder-agent',
     Content: '',
-    IsLlmGenerated: true,
+    IsFromSelf: false,
   }
   messages.value.push(record1)
 
@@ -471,9 +471,7 @@ const handleSend = async (_lastQuery = null as null|string) => {
           continue
         }
         // user query will be inserted locally
-        // TODO: 临时使用record.RelatedRecordId是否存在来判断是不是用户发的消息，后续在ADP后端修复后需要替换成IsFromSelf
-        record.IsLlmGenerated = (record.RelatedRecordId !== '')
-        if (msg_type == 'reply' && !record.IsLlmGenerated) {
+        if (msg_type == 'reply' && record.IsFromSelf) {
           // replace RecordId
           for (let item of messages.value) {
             if (item.RecordId == 'placeholder-user') {
