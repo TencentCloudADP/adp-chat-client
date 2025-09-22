@@ -66,13 +66,13 @@ async function copyContent(event: any, content: string | undefined, type: string
 
     switch (type) {
         case 'user':
-            rowtext = container?.closest('.t-chat__content')?.querySelector('.t-chat__text')?.textContent;
+            rowtext = container?.closest('.t-chat__content')?.querySelector('.t-chat__text')?.textContent || undefined;
             break;
         case 'assistant':
-            rowtext = container?.closest('.t-chat__content')?.querySelector('.t-chat__text__content')?.textContent;
+            rowtext = container?.closest('.t-chat__content')?.querySelector('.t-chat__text__content')?.textContent || undefined;
             break;
     }
-    content && rowtext && await copy(rowtext,content);
+    content && rowtext && await copy(rowtext, content);
 }
 
 /**
@@ -146,21 +146,15 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
 
 <template>
     <!-- 聊天项组件 -->
-    <TChatItem
-        animation="moving"
-        :name="item.FromName"
-        :role="item.IsLlmGenerated ? 'assistant' : 'user'"
-        :variant="item.IsLlmGenerated ? undefined : 'base'"
-        :text-loading="isLastMsg && loading"
-        :reasoning="{
+    <TChatItem animation="moving" :name="item.FromName" :role="item.IsLlmGenerated ? 'assistant' : 'user'"
+        :variant="item.IsLlmGenerated ? undefined : 'base'" :text-loading="isLastMsg && loading" :reasoning="{
             collapsed: isLastMsg && !isStreamLoad,
             expandIconPlacement: 'right',
             collapsePanelProps: {
                 header: renderHeader(index === 0 && isStreamLoad && !item.Content),
                 content: renderReasoningContent(item.AgentThought),
             },
-        }"
-    >
+        }">
         <!-- 时间戳插槽 -->
         <template #datetime>
             <span v-if="item.Timestamp">{{ formatDisplayTime(item.Timestamp * 1000) }}</span>
@@ -186,20 +180,12 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
                 </Tooltip>
                 <Divider layout="vertical"></Divider>
                 <Tooltip :content="t('operation.good')" destroyOnClose showArrow theme="default">
-                    <t-icon
-                        class="icon"
-                        :class="{ active: record.Score === ScoreValue.Like }"
-                        name="thumb-up-2"
-                        @click="rate(item, ScoreValue.Like)"
-                    />
+                    <t-icon class="icon" :class="{ active: record.Score === ScoreValue.Like }" name="thumb-up-2"
+                        @click="rate(item, ScoreValue.Like)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.bad')" destroyOnClose showArrow theme="default">
-                    <t-icon
-                        class="icon"
-                        :class="{ active: record.Score === ScoreValue.Dislike }"
-                        name="thumb-down-1"
-                        @click="rate(item, ScoreValue.Dislike)"
-                    />
+                    <t-icon class="icon" :class="{ active: record.Score === ScoreValue.Dislike }" name="thumb-down-1"
+                        @click="rate(item, ScoreValue.Dislike)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.copy')" destroyOnClose showArrow theme="default">
                     <t-icon class="icon" name="copy" @click="(e: any) => copyContent(e, item.Content, 'assistant')" />
@@ -213,10 +199,11 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
 </template>
 
 <style scoped>
-.flex{
-display:flex;
-align-items:center;
+.flex {
+    display: flex;
+    align-items: center;
 }
+
 /* 用户消息的复制和分享图标样式 */
 .user-message .copy-icon,
 .user-message .share-icon {
@@ -237,7 +224,8 @@ align-items:center;
     border: 0;
     cursor: pointer;
 }
-.check-circle{
+
+.check-circle {
     color: var(--td-success-color-5);
     font-size: 20px;
     margin-right: 8px;
