@@ -6,16 +6,36 @@ const uiStore = useUiStore();
 const { isMobile } = storeToRefs(uiStore);
 
 /**
- * @description 复制文字内容到剪切板
+ * 复制文字内容到剪切板
+ * @description 支持现代Clipboard API和降级方案，自动处理移动端和桌面端的文本格式
+ * @param {string} rowText - 原始文本内容（用于移动端）
+ * @param {string} mdText - Markdown格式文本（用于桌面端）
+ * @returns {void}
+ * @example
+ * // 复制纯文本到剪贴板
+ * copy('Hello World', '**Hello World**')
+ * 
+ * // 在移动端会复制"Hello World"，在桌面端会复制"**Hello World**"
+ * copy('原始文本', 'Markdown格式文本')
  */
-export const copy = function (rowText: string ,mdText:string ) {
-  let text = ''
+export const copy = function (rowText?: string ,mdText?:string ) {
+  let text ;
   if(isMobile){
-    text = rowText?.replace(/\n{3,}/g, '\n\n');
+    if(rowText){
+      text = rowText?.replace(/\n{3,}/g, '\n\n');
+    }else{
+      text = mdText
+    }
   }else{
     text = mdText
   }
   if(!text) return;
+  
+  /**
+   * 降级复制方案：使用textarea元素实现复制功能
+   * @param {string} text - 要复制的文本内容
+   * @returns {void}
+   */
   const fallbackCopyToClipboard = (text: string) => {
     var textarea = document.createElement('textarea');
     document.body.appendChild(textarea);
@@ -54,6 +74,7 @@ export const copy = function (rowText: string ,mdText:string ) {
       document.body.removeChild(textarea);
     }
   }
+
   try {
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text).then(res => {
@@ -72,5 +93,4 @@ export const copy = function (rowText: string ,mdText:string ) {
   } catch (err) {
     console.error('复制失败:', err);
   }
-
-};
+}

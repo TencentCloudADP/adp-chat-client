@@ -42,7 +42,6 @@ export const fetchSSE = async (fetchFn: FetchFn, options: FetchSSEOptions): Prom
       let msg_body = line.substring(line.indexOf(':') + 1).trim()
       let msg_map = JSON.parse(msg_body)
       const msg_type = msg_map['Type']
-      console.log('fetchSSE', msg_type, msg_body)
       if (msg_type == 'conversation') {
         // 对话控制消息，新的对话，或者更新现有对话（标题、最后活跃时间等）
         let record: Record = msg_map['Payload']

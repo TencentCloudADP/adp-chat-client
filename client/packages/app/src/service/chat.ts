@@ -87,3 +87,13 @@ export const handleGetShareId = async (params: object) => {
     throw new Error(t('获取聊天信息失败'))
   }
 }
+
+export const handleGetAsrUrl = async () => {
+  try {
+    const response: any = await httpService.get('/helper/asr/url')
+    return response
+  } catch (error) {
+    console.error(t('获取聊天信息失败:'), error)
+    throw new Error(t('获取聊天信息失败'))
+  }
+}

@@ -23,6 +23,8 @@ import { MessagePlugin, Tooltip, Divider } from 'tdesign-vue-next';
 import { storeToRefs } from 'pinia';
 // 工具函数
 import { copy } from '@/utils/clipboard';
+import MdContent from '../Common/MdContent.vue';
+
 
 const { t } = useI18n();
 const chatStore = useChatStore();
@@ -61,18 +63,18 @@ const record = ref(item);
  * @returns {Promise<void>}
  */
 async function copyContent(event: any, content: string | undefined, type: string): Promise<void> {
-    let rowtext: string | undefined = "";
+    let rowtext: string | undefined ;
     const container = event?.e.target as HTMLElement;
-
     switch (type) {
         case 'user':
-            rowtext = container?.closest('.t-chat__content')?.querySelector('.t-chat__text')?.textContent || undefined;
+            rowtext = container?.closest('.t-chat__content')?.querySelector('.md-content')?.textContent || undefined;
             break;
         case 'assistant':
-            rowtext = container?.closest('.t-chat__content')?.querySelector('.t-chat__text__content')?.textContent || undefined;
+            rowtext = container?.closest('.t-chat__content')?.querySelector('.md-content')?.textContent || undefined;
             break;
     }
-    content && rowtext && await copy(rowtext, content);
+    console.log('rowtext',rowtext)
+    await copy(rowtext, content);
 }
 
 /**
@@ -137,10 +139,12 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
     return (
         <div>
             {reasoningContent.Procedures?.map((procedure, index) => (
-                <TChatContent key={index} content={procedure.Debugging?.DisplayContent || procedure.Debugging?.Content || ''} role="user" />
+                <MdContent key={index} content={procedure.Debugging?.DisplayContent || procedure.Debugging?.Content || ''} role="user" />
             ))}
         </div>
     );
+                // <TChatContent key={index} content={procedure.Debugging?.DisplayContent || procedure.Debugging?.Content || ''} role="user" />
+
 };
 </script>
 
@@ -166,11 +170,21 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
         <!-- 内容插槽 -->
         <template #content>
             <div v-if="!item.IsLlmGenerated" class="user-message">
-                <TChatContent :content="item.Content" />
+                <!-- <TChatContent :content="item.Content" /> -->
+                <MdContent :content="item.Content" role="user"/>
                 <t-icon name="copy" class="copy-icon" @click="(e: any) => copyContent(e, item.Content, 'user')" />
                 <t-icon class="share-icon" name="share" @click="share(item)" />
             </div>
-            <TChatContent v-else :content="item.Content" />
+            <!-- <TChatContent v-else :content="item.Content" /> -->
+            <MdContent v-else :content="item.Content" />
+            <div class="references-container" v-if="item.References && item.References.length > 0 && !(item.IsFinal===false)">
+                <span class="title">参考来源：</span>
+                <ol>
+                    <li v-for="(reference,index) in item.References">
+                        <t-link theme="primary" >{{reference.Name}}</t-link>
+                    </li>
+                </ol>
+            </div>
         </template>
         <!-- 操作按钮插槽 -->
         <template #actions v-if="(!isStreamLoad || !isLastMsg) && showActions">
@@ -263,5 +277,11 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
     border-radius: var(--td-radius-medium);
     border: 1px solid var(--td-border-level-2-color);
     overflow: hidden;
+}
+.references-container{
+    margin: 0px 14px 20px 14px;
+}
+.references-container .title{
+    color:var(--td-text-color-secondary);
 }
 </style>

@@ -45,8 +45,8 @@
                         </div>
                     </div>
                 </Drawer>
-                <Sender v-if="!isSelecting" :inputValue="inputValue" :modelOptions="modelOptions" :selectModel="selectModel"
-                    :isDeepThinking="isDeepThinking" :isStreamLoad="isStreamLoad" :handleInput="handleInput"
+                <Sender ref="senderRef" v-if="!isSelecting"  :modelOptions="modelOptions" :selectModel="selectModel"
+                    :isDeepThinking="isDeepThinking" :isStreamLoad="isStreamLoad" 
                     :onStop="onStop" :inputEnter="inputEnter" :handleModelChange="handleModelChange"
                     :toggleDeepThinking="toggleDeepThinking" />
                 <!-- 提示文字 -->
@@ -72,6 +72,7 @@ import { mergeRecord } from '@/utils/util'
 // 模型数据
 import { modelOptions, defaultModel } from '@/model/models'
 import type { Record } from '@/model/chat'
+import  type { FileProps } from '@/model/file' ;
 import { handleLoadConversationDetail, handleSendConversation, handleGetShareId } from '@/service/chat'
 import { useChatStore, fetchChatList } from '@/stores/chat'
 import { useAppsStore } from '@/stores/apps'
@@ -83,14 +84,43 @@ import ChatItem from './ChatItem.vue'
 import { useRouter } from 'vue-router'
 const router = useRouter()
 
+/**
+ * 聊天存储实例
+ * @type {import('@/stores/chat').useChatStore}
+ */
 const chatStore = useChatStore()
+/**
+ * 应用存储实例
+ * @type {import('@/stores/apps').useAppsStore}
+ */
 const appsStore = useAppsStore()
+/**
+ * 当前会话ID
+ * @type {ComputedRef<string>}
+ */
 const chatId = computed(() => chatStore.currentConversationId);
+/**
+ * 是否正在聊天中
+ * @type {ComputedRef<boolean>}
+ */
 const isChatting = computed(() => chatStore.isChatting);
 const { currentApplicationId } = storeToRefs(appsStore)
 
+/**
+ * 是否处于选择分享状态
+ * @type {Ref<boolean>}
+ */
 const isSelecting = ref(false)
+/**
+ * 选中的消息ID列表
+ * @type {Ref<string[]>}
+ */
 const selectedIds = ref<string[]>([])
+/**
+ * 发送组件引用
+ * @type {Ref<InstanceType<typeof Sender> | null>}
+ */
+const senderRef = ref<InstanceType<typeof Sender> | null>(null)
 
 /**
  * 聊天加载状态
@@ -108,6 +138,10 @@ const messageLoading = ref(false)
  */
 const isStreamLoad = ref(false)
 
+/**
+ * 中止控制器，用于取消请求
+ * @type {AbortController | null}
+ */
 let abort = null as AbortController | null
 
 /**
@@ -127,7 +161,6 @@ const isShowToBottom = ref(false)
  * @returns {Promise<void>}
  */
 const handleGetConversationDetail = async (chatId: string) => {
-    chatList.value = []
     if (!chatId) return
     const loadingInstance = LoadingPlugin({
         attach: '#chat-content',
@@ -166,18 +199,12 @@ const backToBottom = () => {
 }
 
 /**
- * 输入框内容
- * @type {Ref<string>}
- */
-const inputValue = ref('')
-
-/**
  * 设置默认问题
  * @param {string} value - 默认问题内容
  * @returns {void}
  */
 const getDefaultQuestion = (value: string) => {
-    inputValue.value = value
+    senderRef.value && senderRef.value.changeInputVal(value)
 }
 
 /**
@@ -248,18 +275,30 @@ const handleChatScroll = function ({ e }: { e: Event }) {
 
 /**
  * 发送消息
+ * @param {string} [queryVal] - 消息内容
+ * @param {FileProps[]} [fileList] - 文件列表
  * @returns {void}
  */
-const inputEnter = function (queryVal = inputValue.value) {
+const inputEnter = function (queryVal: string | undefined,fileList?: FileProps[]) {
     if (isStreamLoad.value) {
         return
     }
     if (!queryVal) return
+    let _query = `` ;
+    {
+        for (const file of fileList || []) {
+            if (file.status == 'done') {
+                _query += `![](${file.url})\\n\\n`
+            }
+        }
+    }
+    _query += queryVal;
+    console.log('queryVal',queryVal,_query,'fileList',fileList)
     // 用户消息
     const params: Record = {
         RelatedRecordId: "",
         RecordId: 'placeholder-user',
-        Content: queryVal,
+        Content: _query,
         IsLlmGenerated: false,
     }
     chatList.value.push(params)
@@ -275,29 +314,48 @@ const inputEnter = function (queryVal = inputValue.value) {
     nextTick(() => {
         backToBottom()
     })
-    handleSendData(queryVal)
-    inputValue.value = ''
+    handleSendData(_query)
+    senderRef.value && senderRef.value.changeInputVal('')
 }
 
+/**
+ * 重新发送消息
+ * @param {string} [RelatedRecordId] - 关联记录ID
+ * @returns {void}
+ */
 const onResend = (RelatedRecordId: string | undefined) => {
     if (!RelatedRecordId) return;
-    const related = chatList.value.filter((record) => record.RecordId == RelatedRecordId)
+    const related = chatList.value.filter((record: Record) => record.RecordId == RelatedRecordId)
     if (related.length == 0) {
         return
     }
     inputEnter(related[0].Content)
 }
 
+/**
+ * 关闭分享设置
+ * @returns {void}
+ */
 const handleCloseShare = () => {
     isSelecting.value = false
     selectedIds.value = []
 }
+
+/**
+ * 打开分享设置
+ * @param {string[]} RecordIds - 记录ID列表
+ * @returns {Promise<void>}
+ */
 const onShare = async (RecordIds: string[]) => {
     let _selectedList = chatList.value.filter(item => RecordIds.includes(item?.RelatedRecordId) || RecordIds.includes(item?.RecordId)).map( i => i.RecordId)
     isSelecting.value = true
     selectedIds.value = [...new Set([...selectedIds.value, ..._selectedList])]
 }
 
+/**
+ * 复制分享链接
+ * @returns {Promise<void>}
+ */
 const handleCopyShare = async () => {
     if (selectedIds.value.length <= 0) return;
     try {
@@ -316,6 +374,12 @@ const handleCopyShare = async () => {
     }
 }
 
+/**
+ * 选择/取消选择消息ID
+ * @param {string} [RecordId] - 记录ID
+ * @param {boolean} checked - 是否选中
+ * @returns {void}
+ */
 const onSelectIds = (RecordId: string | undefined, checked: boolean) => {
     if (!RecordId) return
     if (checked) {
@@ -325,20 +389,13 @@ const onSelectIds = (RecordId: string | undefined, checked: boolean) => {
         selectedIds.value = [...newArray]
     }
 }
-/**
- * 处理输入内容
- * @param {string} value - 输入内容
- * @returns {void}
- */
-const handleInput = (value: string) => {
-    inputValue.value = value
-}
 
 /**
  * 处理发送逻辑
+ * @param {string} queryVal - 查询内容
  * @returns {Promise<void>}
  */
-const handleSendData = async (queryVal = inputValue.value) => {
+const handleSendData = async (queryVal: string) => {
     abort = new AbortController()
     loading.value = true
     isStreamLoad.value = true
