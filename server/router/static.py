@@ -21,4 +21,4 @@ async def handler(request):
     path = get_path_base()
     if path.endswith('/'):
         path = path[:-1]
-    return response.redirect(f'{path}/static/app/index')
+    return response.redirect(f'{path}/static/app0/index')
