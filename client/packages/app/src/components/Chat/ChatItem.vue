@@ -153,7 +153,7 @@ const renderReasoning = (content: AgentThought | undefined) => {
     }else{
         return {
             collapsed: isLastMsg && !isStreamLoad,
-            expandIconPlacement: 'right',
+            expandIconPlacement: 'right' as const,
             collapsePanelProps: {
                 header: renderHeader(index === 0 && isStreamLoad && !item.Content),
                 content: renderReasoningContent(item.AgentThought),

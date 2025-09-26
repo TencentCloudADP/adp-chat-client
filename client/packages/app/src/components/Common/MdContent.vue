@@ -24,7 +24,6 @@ const mdIt = MarkdownIt({
 }).use(katex).use(markdownItHighlightjs);
 
 const renderedMarkdown = computed(() => {
-//   window.MathJax.startup.defaultReady();
   return content && mdIt.render(content);
   
 });

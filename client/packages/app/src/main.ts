@@ -10,8 +10,6 @@ import { createPinia } from 'pinia'
 
 import App from '@/App.vue'
 import router from '@/router'
-// import "@/utils/mathjax";
-// import "mathjax/es5/tex-svg"; 
 import i18n, { t } from '@/i18n'
 
 const app = createApp(App)

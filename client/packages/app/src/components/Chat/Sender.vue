@@ -210,8 +210,8 @@ defineExpose({
             <div>
                 <div v-for="(img, index) in fileList" class="img-item-container">
                     <t-image fit="contain" :src="img.url" :style="{ width: '70px', height: '70px' }" />
-                    <span class="delete-container" @click="handleDeleteFile">
-                        <t-icon name="delete"></t-icon>
+                    <span class="delete-container" >
+                        <t-icon name="delete" @click="handleDeleteFile"></t-icon>
                     </span>
                 </div>
             </div>
