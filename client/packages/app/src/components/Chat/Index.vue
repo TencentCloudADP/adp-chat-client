@@ -288,7 +288,7 @@ const inputEnter = function (queryVal: string | undefined,fileList?: FileProps[]
     {
         for (const file of fileList || []) {
             if (file.status == 'done') {
-                _query += `![](${file.url})\\n\\n`
+                _query += `![](${file.url})`
             }
         }
     }
