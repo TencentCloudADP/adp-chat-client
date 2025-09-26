@@ -1,5 +1,5 @@
 <template>
-    <div :class="['markdown-body','md-content-container', role]">
+    <div :class="['markdown-body',theme,'md-content-container', role]" >
       <div class="md-content" v-html="renderedMarkdown"></div>
     </div>
 </template>
@@ -8,12 +8,16 @@
 
 <script setup lang="ts">
 import { ref, computed } from "vue";
+import { storeToRefs } from 'pinia'
+import { useUiStore } from '@/stores/ui'
 import MarkdownIt from 'markdown-it';
 import { katex } from "@mdit/plugin-katex"; 
 import markdownItHighlightjs from 'markdown-it-highlightjs';
 import 'katex/dist/katex.min.css';
-import 'github-markdown-css';
-import 'highlight.js/styles/github-dark.css';
+import './github-markdown.css';
+import 'highlight.js/styles/default.css';
+const uiStore = useUiStore()
+const { theme } = storeToRefs(uiStore)
 
 
 const { content,role} = defineProps<{
