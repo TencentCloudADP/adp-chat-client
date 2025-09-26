@@ -10,7 +10,13 @@
 
 ## docker快速部署
 
-1. 安装docker并设定镜像配置：
+1. 克隆源代码并进入目录
+```bash
+git clone https://github.com/TencentCloudADP/adp-chat-client.git
+cd adp-chat-client
+```
+
+2. 安装docker并设定镜像配置：
 > 适用于 Ubuntu Server 24.04：
 ``` bash
 bash script/init_env_ubuntu.sh
@@ -20,12 +26,12 @@ bash script/init_env_ubuntu.sh
 bash script/init_env_tencentos.sh
 ```
 
-2. 复制```.env.example```文件到deploy文件夹
+3. 复制```.env.example```文件到deploy文件夹
 ``` bash
 cp server/.env.example deploy/default/.env
 ```
 
-3. 修改```deploy/default/.env```文件中的配置项
+4. 修改```deploy/default/.env```文件中的配置项
 
 您需要根据您的腾讯云账户和 ADP 平台的相关信息，填入以下密钥和应用 Key：
 
@@ -47,13 +53,13 @@ APP_CONFIGS='[
 ]'
 ```
 
-4. 制作镜像
+5. 制作镜像
 ``` bash
 # 制作镜像
 sudo make pack
 ```
 
-5. 启动容器
+6. 启动容器
 ``` bash
 sudo make deploy
 ```
@@ -164,7 +170,7 @@ sudo make debug
 | :----------- | :-----------|
 | config      | 配置系统 |
 | core   | 核心逻辑，不与具体协议（如http或stdio）绑定 |
-| middleware | anic服务端的中间件 |
+| middleware | Sanic服务端的中间件 |
 | router | 对外暴露的http入口，一般是对core的包装 |
 | static | 静态文件 |
 | test | 测试 |

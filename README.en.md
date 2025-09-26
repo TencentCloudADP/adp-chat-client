@@ -11,7 +11,13 @@
 
 ## Docker
 
-1. Install Docker and configure settings:
+1. Clone the source code and enter the project directory
+```bash
+git clone https://github.com/TencentCloudADP/adp-chat-client.git
+cd adp-chat-client
+```
+
+2. Install Docker and configure settings:
 > For Ubuntu Server 24.04:
 ```bash
 bash script/init_env_ubuntu.sh
@@ -21,12 +27,12 @@ bash script/init_env_ubuntu.sh
 bash script/init_env_tencentos.sh
 ```
 
-2. Copy the ```.env.example``` file to the deploy folder
+3. Copy the ```.env.example``` file to the deploy folder
 ```bash
 cp server/.env.example deploy/default/.env
 ```
 
-3. Edit the ```deploy/default/.env``` file
+4. Edit the ```deploy/default/.env``` file
 
 You need to fill in the following credentials and application keys based on your Tencent Cloud account and ADP platform information:
 
@@ -48,13 +54,13 @@ APP_CONFIGS='[
 ]'
 ```
 
-4. Build docker image
+5. Build docker image
 ```bash
 # Build  
 sudo make pack  
 ```
 
-5. Start the container
+6. Start the container
 ```bash
 sudo make deploy
 ```
