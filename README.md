@@ -10,9 +10,10 @@
 
 ## docker快速部署
 
-1. 克隆源代码
+1. 克隆源代码并进入目录
 ```bash
-git clone https://github.com/TencentCloudADP/tcadp-system-client.git
+git clone https://github.com/TencentCloudADP/adp-chat-client.git
+cd adp-chat-client
 ```
 
 2. 安装docker并设定镜像配置：
@@ -169,7 +170,7 @@ sudo make debug
 | :----------- | :-----------|
 | config      | 配置系统 |
 | core   | 核心逻辑，不与具体协议（如http或stdio）绑定 |
-| middleware | anic服务端的中间件 |
+| middleware | Sanic服务端的中间件 |
 | router | 对外暴露的http入口，一般是对core的包装 |
 | static | 静态文件 |
 | test | 测试 |

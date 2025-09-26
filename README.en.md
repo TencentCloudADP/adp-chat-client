@@ -11,9 +11,10 @@
 
 ## Docker
 
-1. Clone the source code
+1. Clone the source code and enter the project directory
 ```bash
 git clone https://github.com/TencentCloudADP/adp-chat-client.git
+cd adp-chat-client
 ```
 
 2. Install Docker and configure settings:
