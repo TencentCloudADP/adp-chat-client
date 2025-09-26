@@ -27,7 +27,8 @@ const { content,role} = defineProps<{
 const mdIt = MarkdownIt({ 
     html: true, 
     breaks: true
-}).use(katex).use(markdownItHighlightjs);
+}).use(katex)
+.use(markdownItHighlightjs);
 
 const renderedMarkdown = computed(() => {
   return content && mdIt.render(content);
