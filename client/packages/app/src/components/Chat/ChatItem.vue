@@ -146,19 +146,27 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
                 // <TChatContent key={index} content={procedure.Debugging?.DisplayContent || procedure.Debugging?.Content || ''} role="user" />
 
 };
-</script>
 
-<template>
-    <!-- 聊天项组件 -->
-    <TChatItem animation="moving" :name="item.FromName" :role="item.IsLlmGenerated ? 'assistant' : 'user'"
-        :variant="item.IsLlmGenerated ? undefined : 'base'" :text-loading="isLastMsg && loading" :reasoning="{
+const renderReasoning = (content: AgentThought | undefined) => {
+    if(!content){
+        return false
+    }else{
+        return {
             collapsed: isLastMsg && !isStreamLoad,
             expandIconPlacement: 'right',
             collapsePanelProps: {
                 header: renderHeader(index === 0 && isStreamLoad && !item.Content),
                 content: renderReasoningContent(item.AgentThought),
-            },
-        }">
+            }
+        }
+    }
+}
+</script>
+
+<template>
+    <!-- 聊天项组件 -->
+    <TChatItem animation="moving" :name="item.FromName" :role="item.IsLlmGenerated ? 'assistant' : 'user'"
+        :variant="item.IsLlmGenerated ? undefined : 'base'" :text-loading="isLastMsg && loading" :reasoning="renderReasoning(item.AgentThought)">
         <!-- 时间戳插槽 -->
         <template #datetime>
             <span v-if="item.Timestamp">{{ formatDisplayTime(item.Timestamp * 1000) }}</span>
@@ -178,7 +186,7 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
             <!-- <TChatContent v-else :content="item.Content" /> -->
             <MdContent v-else :content="item.Content" />
             <div class="references-container" v-if="item.References && item.References.length > 0 && !(item.IsFinal===false)">
-                <span class="title">参考来源：</span>
+                <span class="title">{{ $t('sender.references') }}: </span>
                 <ol>
                     <li v-for="(reference,index) in item.References">
                         <t-link theme="primary" >{{reference.Name}}</t-link>

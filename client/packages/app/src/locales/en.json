@@ -60,6 +60,7 @@
   },
   "sender":{
     "startRecord":"click to start record",
-    "stopRecord":"click to stop record"
+    "stopRecord":"click to stop record",
+    "references":"References"
   }
 }

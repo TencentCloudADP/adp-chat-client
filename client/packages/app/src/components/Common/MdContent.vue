@@ -34,6 +34,9 @@ const renderedMarkdown = computed(() => {
 
 
 <style scoped>
+.md-content-container{
+    padding: 20px;
+}
 .md-content-container.user{
     background-color: var(--td-bg-color-secondarycontainer);
     border-radius: var(--td-radius-extraLarge);
