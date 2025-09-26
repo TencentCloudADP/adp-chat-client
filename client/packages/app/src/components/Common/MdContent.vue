@@ -1,5 +1,5 @@
 <template>
-    <div :class="['md-content-container', role]">
+    <div :class="['markdown-body','md-content-container', role]">
       <div class="md-content" v-html="renderedMarkdown"></div>
     </div>
 </template>
@@ -11,12 +11,14 @@ import { ref, computed } from "vue";
 import MarkdownIt from 'markdown-it';
 import { katex } from "@mdit/plugin-katex"; 
 import markdownItHighlightjs from 'markdown-it-highlightjs';
+import 'katex/dist/katex.min.css';
+import 'github-markdown-css';
 import 'highlight.js/styles/github-dark.css';
-import 'katex/dist/katex.min.css'
+
 
 const { content,role} = defineProps<{
     content: string | undefined ;
-    role?: string
+    role?: string   //  user/assistant/error/model-change/system
 }>();
 const mdIt = MarkdownIt({ 
     html: true, 
@@ -36,10 +38,14 @@ const renderedMarkdown = computed(() => {
 .md-content-container{
     padding: 20px;
 }
-.md-content-container.user{
+.md-content-container.user, .md-content-container.system{
     background-color: var(--td-bg-color-secondarycontainer);
     border-radius: var(--td-radius-extraLarge);
-    padding: 20px;
+}
+.md-content-container.system{
+    padding: 0px;
+    color: var(--td-text-color-secondary);
+    font: var(--td-font-body-medium);
 }
 
 </style>

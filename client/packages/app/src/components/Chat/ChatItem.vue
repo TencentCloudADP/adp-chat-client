@@ -139,11 +139,11 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
     return (
         <div>
             {reasoningContent.Procedures?.map((procedure, index) => (
-                <MdContent key={index} content={procedure.Debugging?.DisplayContent || procedure.Debugging?.Content || ''} role="user" />
+                <MdContent key={index} content={procedure.Debugging?.DisplayContent || procedure.Debugging?.Content || ''} role="system" />
             ))}
         </div>
     );
-                // <TChatContent key={index} content={procedure.Debugging?.DisplayContent || procedure.Debugging?.Content || ''} role="user" />
+                // <TChatContent key={index} content={procedure.Debugging?.DisplayContent || procedure.Debugging?.Content || ''} role="system" />
 
 };
 
@@ -189,7 +189,7 @@ const renderReasoning = (content: AgentThought | undefined) => {
                 <span class="title">{{ $t('sender.references') }}: </span>
                 <ol>
                     <li v-for="(reference,index) in item.References">
-                        <t-link theme="primary" >{{reference.Name}}</t-link>
+                        <t-link theme="primary" :href="reference.Url" target="_blank">{{reference.Name}}</t-link>
                     </li>
                 </ol>
             </div>

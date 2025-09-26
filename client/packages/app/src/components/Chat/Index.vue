@@ -56,7 +56,7 @@
             </template>
         </TChat>
         <!-- 回到底部按钮 -->
-        <BackToBottom v-show="isShowToBottom && !isStreamLoad" :backToBottom="backToBottom" />
+        <BackToBottom v-show="(isShowToBottom && !isStreamLoad) || hasUserScrolled" :backToBottom="handleClickBackToBottom" />
     </div>
 </template>
 
@@ -138,6 +138,9 @@ const messageLoading = ref(false)
  */
 const isStreamLoad = ref(false)
 
+const lastScrollTop = ref(0)
+const hasUserScrolled = ref(false)
+
 /**
  * 中止控制器，用于取消请求
  * @type {AbortController | null}
@@ -193,9 +196,15 @@ const handleGetConversationDetail = async (chatId: string) => {
  */
 const backToBottom = () => {
     if (!(chatRef.value && chatRef.value.scrollToBottom)) return
+    if(hasUserScrolled.value) return
     chatRef.value.scrollToBottom({
         behavior: 'smooth',
     })
+}
+
+const handleClickBackToBottom = () => {
+    hasUserScrolled.value = false;
+    backToBottom()
 }
 
 /**
@@ -267,10 +276,15 @@ const handleChatScroll = function ({ e }: { e: Event }) {
     const scrollTop = (e.target as HTMLElement).scrollTop
     const clientHeight = (e.target as HTMLElement).clientHeight
     const scrollHeight = (e.target as HTMLElement).scrollHeight
-    isShowToBottom.value = clientHeight + scrollTop < scrollHeight
+    isShowToBottom.value = clientHeight + scrollTop < scrollHeight - 2
     if (scrollTop === 0) {
         handleGetConversationDetail(chatId.value)
     }
+    console.log('handleChatScroll',lastScrollTop.value - scrollTop,isChatting.value)
+    if(lastScrollTop.value - scrollTop > 5 && isChatting.value){
+        hasUserScrolled.value = true
+    }
+    lastScrollTop.value = scrollTop
 }
 
 /**
@@ -399,6 +413,7 @@ const handleSendData = async (queryVal: string) => {
     abort = new AbortController()
     loading.value = true
     isStreamLoad.value = true
+    hasUserScrolled.value = false
     await fetchSSE(
         () => {
             const options = {
@@ -415,11 +430,11 @@ const handleSendData = async (queryVal: string) => {
         },
         {
             success(result) {
+                chatStore.setIsChatting(true)
                 if (result.type === 'conversation') {
                     //  创建新的对话，重新调用chatlist接口更新列表，根据record的LastActiveAt更新列表排序
                     fetchChatList(result.data.Id)
                     if (result.data.IsNewConversation) {
-                        chatStore.setIsChatting(true)
                         chatStore.setCurrentConversation(result.data)
                         router.push({ name: 'Home', query: { conversationId: result.data.Id } })
                     }
@@ -454,6 +469,7 @@ const handleSendData = async (queryVal: string) => {
                     isStreamLoad.value = false
                     loading.value = false
                     chatStore.setIsChatting(false)
+                    hasUserScrolled.value = false
                     nextTick(() => {
                         backToBottom()
                     })
