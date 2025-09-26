@@ -21,4 +21,8 @@ async def handler(request):
     path = get_path_base()
     if path.endswith('/'):
         path = path[:-1]
-    return response.redirect(f'{path}/static/app0/index')
+    referrer = request.headers.get("Referer")
+    app = 'static/app/index'
+    if referrer and referrer.endswith('static/app0/index'):
+        app = 'static/app0/index'
+    return response.redirect(f'{path}/{app}')
