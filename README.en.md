@@ -80,11 +80,28 @@ To use the system, enable the following services:
 
 ### OAuth
 
+### GitHub OAuth
+
 GitHub OAuth is supported by default. You can can configure it as needed:
 ```
+# you can obtain it from https://github.com/settings/developers
 OAUTH_GITHUB_CLIENT_ID=
 OAUTH_GITHUB_SECRET=
 ```
+> 📝 **Note**：When creating a GitHub OAuth application, fill in the callback URL as：SERVICE_API_URL+/oauth/callback/github, for example: http://localhost:8000/oauth/callback/github
+
+### Microsoft Entra ID OAuth
+
+Microsoft Entra ID OAuth is supported by default. You can can configure it as needed:
+```
+# you can obtain it from https://entra.microsoft.com
+OAUTH_MICROSOFT_ENTRA_CLIENT_ID=
+OAUTH_MICROSOFT_ENTRA_SECRET=
+```
+> 📝 **Note**：When creating a Microsoft Entra ID OAuth application, fill in the callback URL as：SERVICE_API_URL+/oauth/callback/ms_entra_id, for example: http://localhost:8000/oauth/callback/ms_entra_id
+
+### Other OAuth providers
+
 > OAuth protocol enables seamless authentication and authorization. Developers can customize authentication methods according to their requirements. If you need to use a different OAuth system, you can modify the `server/core/oauth.py` file to adapt to the specific protocol.
 
 ### URL Redirection

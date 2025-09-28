@@ -79,14 +79,29 @@ sudo make deploy
 
 ## 账户体系对接
 
-### OAuth
+### GitHub OAuth
 
-系统默认支持 GitHub OAuth 协议，开发者可以根据需要进行配置：
+默认支持 GitHub OAuth 协议，开发者可以根据需要进行配置：
 ```
+# you can obtain it from https://github.com/settings/developers
 OAUTH_GITHUB_CLIENT_ID=
 OAUTH_GITHUB_SECRET=
 ```
-> OAuth 协议可以帮助实现无缝的身份验证和授权，开发者可以根据业务需求定制自己的认证方式。如需使用其他 OAuth 系统，可以根据具体协议修改 `server/core/oauth.py` 文件以适配。
+> 📝 **注意**：创建GitHub OAuth应用时，callback URL填写：SERVICE_API_URL+/oauth/callback/github，例如：http://localhost:8000/oauth/callback/github
+
+### Microsoft Entra ID OAuth
+
+默认支持 Microsoft Entra ID OAuth 协议，开发者可以根据需要进行配置：
+```
+# you can obtain it from https://entra.microsoft.com
+OAUTH_MICROSOFT_ENTRA_CLIENT_ID=
+OAUTH_MICROSOFT_ENTRA_SECRET=
+```
+> 📝 **注意**：创建Microsoft Entra ID OAuth应用时，callback URL填写：SERVICE_API_URL+/oauth/callback/ms_entra_id，例如：http://localhost:8000/oauth/callback/ms_entra_id
+
+### 其他 OAuth
+
+OAuth 协议可以帮助实现无缝的身份验证和授权，开发者可以根据业务需求定制自己的认证方式。如需使用其他 OAuth 系统，可以根据具体协议修改 `server/core/oauth.py` 文件以适配。
 
 ### url跳转
 
