@@ -16,14 +16,14 @@ git clone https://github.com/TencentCloudADP/adp-chat-client.git
 cd adp-chat-client
 ```
 
-2. 安装docker并设定镜像配置：
-> 适用于 Ubuntu Server 24.04：
-``` bash
-bash script/init_env_ubuntu.sh
-```
+2. 安装docker并设定镜像配置（如果系统上已经装好docker，跳过）：
 > 适用于 TencentOS Server 4.4：
 ``` bash
 bash script/init_env_tencentos.sh
+```
+> 适用于 Ubuntu Server 24.04：
+``` bash
+bash script/init_env_ubuntu.sh
 ```
 
 3. 复制```.env.example```文件到deploy文件夹
@@ -45,12 +45,15 @@ TC_SECRET_KEY=
 APP_CONFIGS='[
     {
         "Vendor":"Tencent",
-        "ApplicationId":"对话应用唯一Id，在本系统内唯一标识一个对话应用，推荐使用厂商的appid，或者使用uuidgen命令生成一个随机的uuid",
+        "ApplicationId":"对话应用唯一Id，在本系统内唯一标识一个对话应用，推荐使用appid，或者使用uuidgen命令生成一个随机的uuid",
         "Comment": "注释",
         "AppKey": "",
         "International": false
     }
 ]'
+
+# JWT密钥，一个随机字符串，可以使用uuidgen命令生成
+SECRET_KEY=
 ```
 
 5. 制作镜像
@@ -104,7 +107,9 @@ OAUTH_GITHUB_SECRET=
 | ExtraInfo | 用户信息 |
 | Code | 签名，SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, CustomerId + Name + ExtraInfo + str(Timestamp))) |
 
-> 📝 **Note**：以上参数需要分别进行 url_encode，详细实现可以参考代码 `server/core/account.py` 内 CoreAccount.customer_auth 部分；生成url的方式可以参考 `server/test/unit_test/conftest.py`。
+> 📝 **注意**：
+> 1. 以上参数需要分别进行 url_encode，详细实现可以参考代码 `server/core/account.py` 内 CoreAccount.customer_auth 部分；生成url的方式可以参考 `server/test/unit_test/conftest.py`。
+> 2. 需要在.env文件中配置CUSTOMER_ACCOUNT_SECRET_KEY，一个随机字符串，可以使用uuidgen命令生成
 
 # 开发指南
 

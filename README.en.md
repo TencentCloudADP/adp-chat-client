@@ -17,14 +17,14 @@ git clone https://github.com/TencentCloudADP/adp-chat-client.git
 cd adp-chat-client
 ```
 
-2. Install Docker and configure settings:
-> For Ubuntu Server 24.04:
-```bash
-bash script/init_env_ubuntu.sh
-```
+2. Install docker (skip if docker is already installed on your system):
 > For TencentOS Server 4.4:
 ```bash
 bash script/init_env_tencentos.sh
+```
+> For Ubuntu Server 24.04:
+```bash
+bash script/init_env_ubuntu.sh
 ```
 
 3. Copy the ```.env.example``` file to the deploy folder
@@ -41,17 +41,19 @@ You need to fill in the following credentials and application keys based on your
 TC_SECRET_APPID=
 TC_SECRET_ID=
 TC_SECRET_KEY=
-
-# TCADP platform agent app key: https://lke.tencentcloud.com/
+# Tencent Cloud ADP platform agent app key: https://lke.tencentcloud.com/
 APP_CONFIGS='[
     {
         "Vendor":"Tencent",
-        "ApplicationId":"The unique ID of the bot. It is recommended to use the vendor's appid or generate a random UUID using the 'uuidgen' command",
-        "Comment": "Some comments",
+        "ApplicationId":"The unique ID of the chat application, used to uniquely identify a chat application in this system. Recommended to use appid or generate a random uuid using the uuidgen command",
+        "Comment": "Comment",
         "AppKey": "",
         "International": true
     }
 ]'
+
+# JWT secret key, a random string, can be generated using the uuidgen command
+SECRET_KEY=
 ```
 
 5. Build docker image
@@ -104,7 +106,9 @@ If you have an existing account system but do not implement a standard OAuth flo
 | ExtraInfo | User information |
 | Code | Signature, SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, CustomerId + Name + ExtraInfo + str(Timestamp))) |
 
-> 📝 **Note:** The parameters above must be URL-encoded, for more details you can refer to the CoreAccount.customer_auth part in `server/core/account.py` file, and `server/test/unit_test/conftest.py` file for URL generation method. 
+> 📝 **Note**:
+> 1. The parameters above must be URL-encoded, for more details you can refer to the CoreAccount.customer_auth part in `server/core/account.py` file, and `server/test/unit_test/conftest.py` file for URL generation method.
+> 2. Configure CUSTOMER_ACCOUNT_SECRET_KEY in the .env file, a random string that can be generated using the uuidgen command.
 
 # Development Guide
 
