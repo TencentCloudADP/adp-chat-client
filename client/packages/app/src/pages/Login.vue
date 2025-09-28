@@ -2,33 +2,33 @@
   <div class="login-container">
     <t-card class="login-card">
       <div class="login-title">{{ $t('account.loginToAdp') }}</div>
+
       <t-form class="login-form" layout="vertical" :label-width="0" @submit="onSubmit">
-        <t-form-item>
+        <!-- <t-form-item>
           <t-input v-model="username" :placeholder="$t('account.inputAccountName')" clearable disabled>
             <template #prefix-icon>
               <t-icon name="user" />
             </template>
-          </t-input>
-        </t-form-item>
-        <t-form-item>
-          <t-input v-model="password" type="password" :placeholder="$t('account.inputPassword')" clearable disabled>
-            <template #prefix-icon>
+</t-input>
+</t-form-item>
+<t-form-item>
+  <t-input v-model="password" type="password" :placeholder="$t('account.inputPassword')" clearable disabled>
+    <template #prefix-icon>
               <t-icon name="lock-on" />
             </template>
-          </t-input>
-        </t-form-item>
-        <t-form-item>
-          <t-button theme="primary" type="submit" block :disabled="!username || !password">{{ $t('account.login')
-            }}</t-button>
-        </t-form-item>
+  </t-input>
+</t-form-item>
+<t-form-item>
+  <t-button theme="primary" type="submit" block :disabled="!username || !password">{{ $t('account.login')
+    }}
+  </t-button>
+</t-form-item> -->
 
-        <t-form-item class="form-item-clear" v-if="oauthProviders.length > 0">
-          Or login with
-          <span v-for="provider, index in oauthProviders">
-            <a class="login-providers" :href="provider['url']">{{ provider['name'] }}</a>
-            <span v-if="index !== oauthProviders.length - 1">,</span>
-          </span>
-        </t-form-item>
+        <div class="oauth-buttons" v-if="oauthProviders.length > 0">
+          <div v-for="provider, index in oauthProviders" class="oauth-button-wrapper">
+            <t-button variant="outline" :href="provider['url']">{{ provider['name'] }}</t-button>
+          </div>
+        </div>
 
       </t-form>
     </t-card>
@@ -86,5 +86,20 @@ onMounted(async () => {
 
 .login-form {
   margin-top: var(--td-comp-margin-m);
+}
+
+.t-button {
+  min-width: 320px;
+  max-width: 640px;
+}
+
+.oauth-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.oauth-button-wrapper:not(:last-child) {
+  margin-bottom: var(--td-comp-margin-m);
 }
 </style>

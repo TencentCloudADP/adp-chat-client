@@ -12,7 +12,7 @@
   "account": {
     "login": "登录",
     "logout": "退出登录",
-    "loginToAdp": "登录Tencent Cloud ADP Chat Client",
+    "loginToAdp": "登录",
     "inputAccountName": "请输入账户名",
     "inputPassword": "请输入密码",
     "defaultName": "游客"
