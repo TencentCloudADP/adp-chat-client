@@ -1,6 +1,6 @@
 {
   "project": {
-    "projectName": "智能体开发平台"
+    "projectName": "Tencent Cloud ADP Chat Client"
   },
   "header": {
     "codeRepository": "代码仓库",
@@ -12,7 +12,7 @@
   "account": {
     "login": "登录",
     "logout": "退出登录",
-    "loginToAdp": "登录智能体开发平台",
+    "loginToAdp": "登录Tencent Cloud ADP Chat Client",
     "inputAccountName": "请输入账户名",
     "inputPassword": "请输入密码",
     "defaultName": "游客"
@@ -24,15 +24,15 @@
     "delete": "删除",
     "share": "分享",
     "cancelShare": "取消分享",
-    "good":"点赞",
-    "bad":"点踩",
-    "replay":"重新生成",
-    "copy":"复制",
-    "copyUrl":"复制链接",
-    "copySuccess":"复制成功",
-    "copyError":"复制失败",
-    "thxForGood":"谢谢你的认可，我们会继续优化进步",
-    "thxForBad":"谢谢你的反馈，我们会继续优化进步"
+    "good": "点赞",
+    "bad": "点踩",
+    "replay": "重新生成",
+    "copy": "复制",
+    "copyUrl": "复制链接",
+    "copySuccess": "复制成功",
+    "copyError": "复制失败",
+    "thxForGood": "谢谢你的认可，我们会继续优化进步",
+    "thxForBad": "谢谢你的反馈，我们会继续优化进步"
   },
   "conversation": {
     "conversation": "对话",
@@ -58,9 +58,9 @@
     "copyFailed": "复制失败，请重试",
     "aiWarning": "该回答由AI助手生成，请谨慎识别"
   },
-  "sender":{
-    "startRecord":"点击开始录音",
-    "stopRecord":"点击结束录音",
-    "references":"参考来源"
+  "sender": {
+    "startRecord": "点击开始录音",
+    "stopRecord": "点击结束录音",
+    "references": "参考来源"
   }
 }

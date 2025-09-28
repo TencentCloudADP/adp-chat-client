@@ -13,10 +13,11 @@ const getLogo = () => {
 
 <template>
     <div class="header-logo-container">
-        <img :src="getLogo()" alt="Logo" class="header-logo" />
-        <t-divider layout="vertical">
+        <!-- <img :src="getLogo()" alt="Logo" class="header-logo" /> -->
+        <!-- <t-divider layout="vertical">
             <span class="header-title">{{ title }}</span>
-        </t-divider>
+        </t-divider> -->
+        <span class="header-title">{{ title }}</span>
     </div>
 </template>
 

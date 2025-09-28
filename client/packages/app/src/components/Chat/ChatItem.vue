@@ -25,6 +25,8 @@ import { storeToRefs } from 'pinia';
 import { copy } from '@/utils/clipboard';
 import MdContent from '../Common/MdContent.vue';
 
+import { useUserStore } from '@/stores/user';
+const userStore = useUserStore();
 
 const { t } = useI18n();
 const chatStore = useChatStore();
@@ -63,7 +65,7 @@ const record = ref(item);
  * @returns {Promise<void>}
  */
 async function copyContent(event: any, content: string | undefined, type: string): Promise<void> {
-    let rowtext: string | undefined ;
+    let rowtext: string | undefined;
     const container = event?.e.target as HTMLElement;
     switch (type) {
         case 'user':
@@ -73,7 +75,7 @@ async function copyContent(event: any, content: string | undefined, type: string
             rowtext = container?.closest('.t-chat__content')?.querySelector('.md-content')?.textContent || undefined;
             break;
     }
-    console.log('rowtext',rowtext)
+    console.log('rowtext', rowtext)
     await copy(rowtext, content);
 }
 
@@ -143,14 +145,14 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
             ))}
         </div>
     );
-                // <TChatContent key={index} content={procedure.Debugging?.DisplayContent || procedure.Debugging?.Content || ''} role="system" />
+    // <TChatContent key={index} content={procedure.Debugging?.DisplayContent || procedure.Debugging?.Content || ''} role="system" />
 
 };
 
 const renderReasoning = (content: AgentThought | undefined) => {
-    if(!content){
+    if (!content) {
         return false
-    }else{
+    } else {
         return {
             collapsed: isLastMsg && !isStreamLoad,
             expandIconPlacement: 'right' as const,
@@ -165,31 +167,36 @@ const renderReasoning = (content: AgentThought | undefined) => {
 
 <template>
     <!-- 聊天项组件 -->
-    <TChatItem animation="moving" :name="item.FromName" :role="item.IsLlmGenerated ? 'assistant' : 'user'"
-        :variant="item.IsLlmGenerated ? undefined : 'base'" :text-loading="isLastMsg && loading" :reasoning="renderReasoning(item.AgentThought)">
+    <TChatItem animation="moving" :name="item.IsLlmGenerated ? item.FromName : userStore.name"
+        :role="item.IsLlmGenerated ? 'assistant' : 'user'" :variant="item.IsLlmGenerated ? undefined : 'base'"
+        :text-loading="isLastMsg && loading" :reasoning="renderReasoning(item.AgentThought)">
         <!-- 时间戳插槽 -->
         <template #datetime>
             <span v-if="item.Timestamp">{{ formatDisplayTime(item.Timestamp * 1000) }}</span>
         </template>
         <!-- 头像插槽 -->
         <template #avatar>
-            <t-avatar :image="item.FromAvatar" size="medium" />
+            <t-avatar v-if="item.IsLlmGenerated" :image="item.FromAvatar" size="medium" />
+            <t-avatar v-else-if="userStore.avatarUrl" :image="userStore.avatarUrl" size="medium">{{ userStore.avatarName
+            }}</t-avatar>
+            <t-avatar v-else size="medium">{{ userStore.avatarName }}</t-avatar>
         </template>
         <!-- 内容插槽 -->
         <template #content>
             <div v-if="!item.IsLlmGenerated" class="user-message">
                 <!-- <TChatContent :content="item.Content" /> -->
-                <MdContent :content="item.Content" role="user"/>
+                <MdContent :content="item.Content" role="user" />
                 <t-icon name="copy" class="copy-icon" @click="(e: any) => copyContent(e, item.Content, 'user')" />
                 <t-icon class="share-icon" name="share" @click="share(item)" />
             </div>
             <!-- <TChatContent v-else :content="item.Content" /> -->
             <MdContent v-else :content="item.Content" />
-            <div class="references-container" v-if="item.References && item.References.length > 0 && !(item.IsFinal===false)">
+            <div class="references-container"
+                v-if="item.References && item.References.length > 0 && !(item.IsFinal === false)">
                 <span class="title">{{ $t('sender.references') }}: </span>
                 <ol>
-                    <li v-for="(reference,index) in item.References">
-                        <t-link theme="primary" :href="reference.Url" target="_blank">{{reference.Name}}</t-link>
+                    <li v-for="(reference, index) in item.References">
+                        <t-link theme="primary" :href="reference.Url" target="_blank">{{ reference.Name }}</t-link>
                     </li>
                 </ol>
             </div>
@@ -286,10 +293,12 @@ const renderReasoning = (content: AgentThought | undefined) => {
     border: 1px solid var(--td-border-level-2-color);
     overflow: hidden;
 }
-.references-container{
+
+.references-container {
     margin: 0px 14px 20px 14px;
 }
-.references-container .title{
-    color:var(--td-text-color-secondary);
+
+.references-container .title {
+    color: var(--td-text-color-secondary);
 }
 </style>
