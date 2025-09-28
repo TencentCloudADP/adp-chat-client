@@ -77,6 +77,13 @@ login() {
 	docker exec -it adp-chat-client-$INSTANCE bash
 }
 
+### 封装 run 逻辑
+run() {
+    local INSTANCE="$1"
+    local CMD="$2"
+	docker exec -it adp-chat-client-$INSTANCE bash -c "LOG_LEVEL=WARN $(printf '%q ' $CMD)"
+}
+
 ### 封装 logs 逻辑
 show_logs() {
     local INSTANCE="$1"
@@ -85,6 +92,8 @@ show_logs() {
 
 ### 主逻辑
 main() {
+    local CMD="$2"
+
     # 选择实例
     select_instance
     if [ -z "$INSTANCE" ]; then
@@ -108,6 +117,9 @@ main() {
             ;;
         "login")
             login "$INSTANCE"
+            ;;
+        "run")
+            run "$INSTANCE" "$CMD"
             ;;
         "logs")
             show_logs "$INSTANCE"

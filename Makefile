@@ -83,3 +83,6 @@ logs:
 
 init_env:
 	sudo bash script/init_env.sh
+
+url:
+	@bash script/deploy.sh run "python main.py --generate-customer-account-url --uid 1 --username test"
