@@ -213,7 +213,7 @@ const handleClickBackToBottom = () => {
  * @returns {void}
  */
 const getDefaultQuestion = (value: string) => {
-    senderRef.value && senderRef.value.changeInputVal(value)
+    senderRef.value && senderRef.value.changeSenderVal(value,[])
 }
 
 /**
@@ -327,7 +327,7 @@ const inputEnter = function (queryVal: string | undefined,fileList?: FileProps[]
         backToBottom()
     })
     handleSendData(_query)
-    senderRef.value && senderRef.value.changeInputVal('')
+    senderRef.value && senderRef.value.changeSenderVal('',[])
 }
 
 /**

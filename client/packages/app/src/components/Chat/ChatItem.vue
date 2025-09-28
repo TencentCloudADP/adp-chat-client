@@ -67,14 +67,9 @@ const record = ref(item);
 async function copyContent(event: any, content: string | undefined, type: string): Promise<void> {
     let rowtext: string | undefined;
     const container = event?.e.target as HTMLElement;
-    switch (type) {
-        case 'user':
-            rowtext = container?.closest('.t-chat__content')?.querySelector('.md-content')?.textContent || undefined;
-            break;
-        case 'assistant':
-            rowtext = container?.closest('.t-chat__content')?.querySelector('.md-content')?.textContent || undefined;
-            break;
-    }
+    const markdownElements = container?.closest('.t-chat__content')?.querySelectorAll('.markdown-body');
+    rowtext = markdownElements && markdownElements.length > 0 ? markdownElements[markdownElements.length - 1]?.textContent || undefined : undefined;
+   
     console.log('rowtext', rowtext)
     await copy(rowtext, content);
 }
@@ -303,5 +298,10 @@ const renderReasoning = (content: AgentThought | undefined) => {
 
 .references-container .title {
     color: var(--td-text-color-secondary);
+}
+</style>
+<style>
+.t-chat__detail{
+    max-width: calc(100% - 36px);
 }
 </style>
