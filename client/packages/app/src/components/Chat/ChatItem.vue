@@ -86,8 +86,10 @@ async function copyContent(event: any, content: string | undefined, type: string
  * @returns {Promise<void>}
  */
 const rate = async (record: Record, score: ScoreValue) => {
+    const disabled = (record.Score != ScoreValue.Unknown && record.Score !== undefined)
+    if(disabled) return;
     try {
-        const _score: ScoreValue = score === record.Score ? 0 : score; // 如果已经存在赞踩状态，则取消状态
+        const _score = score;
         const msg = _score === ScoreValue.Like ? t('operation.thxForGood') : _score === ScoreValue.Dislike ? t('operation.thxForBad') : "";
         await handleRate({
             ConversationId: chatId.value,
@@ -209,11 +211,11 @@ const renderReasoning = (content: AgentThought | undefined) => {
                 </Tooltip>
                 <Divider layout="vertical"></Divider>
                 <Tooltip :content="t('operation.good')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon" :class="{ active: record.Score === ScoreValue.Like }" name="thumb-up-2"
+                    <t-icon class="icon" :class="{ active: record.Score === ScoreValue.Like,disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined} " name="thumb-up-2"
                         @click="rate(item, ScoreValue.Like)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.bad')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon" :class="{ active: record.Score === ScoreValue.Dislike }" name="thumb-down-1"
+                    <t-icon class="icon" :class="{ active: record.Score === ScoreValue.Dislike,disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined}" name="thumb-down-1"
                         @click="rate(item, ScoreValue.Dislike)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.copy')" destroyOnClose showArrow theme="default">
@@ -267,6 +269,7 @@ const renderReasoning = (content: AgentThought | undefined) => {
 
 .icon.active {
     color: var(--td-brand-color);
+    opacity: 1;
 }
 
 /* 用户消息图标悬停效果 */

@@ -81,4 +81,19 @@ instance.interceptors.response.use(
   },
 )
 
+// workaround for webkit bug 194379 (https://bugs.webkit.org/show_bug.cgi?id=194379)
+if (!(ReadableStream.prototype as any)[Symbol.asyncIterator]) {
+  (ReadableStream.prototype as any)[Symbol.asyncIterator] = async function* () {
+    const reader = this.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) return;
+        yield value;
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  };
+}
 export default instance

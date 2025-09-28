@@ -207,13 +207,11 @@ defineExpose({
         autosize: { minRows: 2, maxRows: 2 },
     }" @stop="onStop" @send="handleSend" @change="handleInput" @fileSelect="handleFileSelect">
         <template #inner-header>
-            <div>
-                <div v-for="(img, index) in fileList" class="img-item-container">
-                    <t-image fit="contain" :src="img.url" :style="{ width: '70px', height: '70px' }" />
-                    <span class="delete-container" >
-                        <t-icon name="delete" @click="handleDeleteFile"></t-icon>
-                    </span>
-                </div>
+            <div v-for="(img, index) in fileList" class="img-item-container">
+                <t-image fit="contain" :src="img.url" :style="{ width: '70px', height: '70px' }" />
+                <span class="delete-container" >
+                    <t-icon name="delete" @click="handleDeleteFile"></t-icon>
+                </span>
             </div>
         </template>
         <template #prefix>
