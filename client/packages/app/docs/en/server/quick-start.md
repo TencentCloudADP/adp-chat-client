@@ -1,1 +1,0 @@
-quick start for server
