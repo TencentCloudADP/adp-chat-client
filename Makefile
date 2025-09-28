@@ -9,7 +9,7 @@ init_client:
 	cd client && npm install
 
 client:
-	cd client/packages/app0 && npm run build
+	cd client/packages/app && npm run build
 
 test_client:
 	cd client && npm run test --ws
