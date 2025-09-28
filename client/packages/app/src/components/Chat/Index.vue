@@ -280,7 +280,6 @@ const handleChatScroll = function ({ e }: { e: Event }) {
     if (scrollTop === 0) {
         handleGetConversationDetail(chatId.value)
     }
-    console.log('handleChatScroll',lastScrollTop.value - scrollTop,isChatting.value)
     if(lastScrollTop.value - scrollTop > 5 && isChatting.value){
         hasUserScrolled.value = true
     }
@@ -307,7 +306,6 @@ const inputEnter = function (queryVal: string | undefined,fileList?: FileProps[]
         }
     }
     _query += queryVal;
-    console.log('queryVal',queryVal,_query,'fileList',fileList)
     // 用户消息
     const params: Record = {
         RelatedRecordId: "",
@@ -488,7 +486,6 @@ const handleSendData = async (queryVal: string) => {
 watch(
     chatId,
     (newId) => {
-        console.log('newId',isChatting.value,'messageLoading',messageLoading.value,'newId',newId)
         // sse新建对话中不处理变化
         if (isChatting.value) {
             return

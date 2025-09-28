@@ -650,6 +650,10 @@
   margin-top: 0;
   margin-bottom: var(--base-size-16);
 }
+.markdown-body.user p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
 
 .markdown-body blockquote>:first-child {
   margin-top: 0;
