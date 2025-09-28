@@ -6,7 +6,11 @@ export const isLoggedIn = () => {
 }
 
 export const logout = (callback?: () => void) => {
-  Cookies.remove('token')
+  let path = window.location.pathname.split('/static/app')[0]
+  if (path == '') {
+    path = '/'
+  }
+  Cookies.remove('token', { path: path })
   // 如果提供了回调函数，则执行
   if (callback) {
     callback()
