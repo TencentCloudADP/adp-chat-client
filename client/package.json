@@ -2,10 +2,9 @@
   "name": "adp-system-client",
   "private": true,
   "scripts": {
-    "build": "cd tagentic-client-vue && npm run build"
+    "build": "cd packages/app0 && npm run build"
   },
   "workspaces": [
-    "tagentic-client-vue",
     "packages/*"
   ]
 }
