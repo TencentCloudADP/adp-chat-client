@@ -56,6 +56,11 @@ APP_CONFIGS='[
 SECRET_KEY=
 ```
 
+> ⚠️ **注意**：
+> 1. APP_CONFIGS内容为JSON，注意遵循JSON规范，例如：最后一项末尾不能有逗号，不支持//注释
+> 2. Comment: 可以任意填写，方便自己定位对应的智能体应用
+> 3. International: 使用腾讯云国内站设为false(默认)，如果是在国际站开发的智能体应用，此处设为true
+
 5. 制作镜像
 ``` bash
 # 制作镜像
@@ -66,9 +71,30 @@ sudo make pack
 ``` bash
 sudo make deploy
 ```
-浏览器打开 http://localhost:8000 即可看到登录页面
 
 > ⚠️ **注意**：正式的生产系统需要通过自有域名申请 SSL 证书，并使用 nginx 进行反向代理等方式部署到 https 协议。如果仅基于 http 协议部署，某些功能（如语音识别、消息复制等）可能无法正常工作。
+
+7. 登录
+
+本系统支持和现有账户体系打通，此处演示基于[url跳转](#url跳转)的登录方式：
+
+``` bash
+sudo make url
+```
+
+上述命令可以获得登录url，在浏览器打开该url进行无感登录。
+
+如果配置了OAuth登录方式，可以在浏览器打开 http://localhost:8000 进行登录。
+
+8. 问题排查
+``` bash
+# 检查容器是否在运行，正常应该有2个容器：adp-chat-client-default, adp-chat-client-db-default
+sudo docker ps
+
+# 如果没有看到容器，意味着启动遇到问题，可以查看日志:
+sudo make logs
+```
+
 
 ## 服务开关
 
@@ -123,7 +149,7 @@ OAuth 协议可以帮助实现无缝的身份验证和授权，开发者可以�
 | Code | 签名，SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, CustomerId + Name + ExtraInfo + str(Timestamp))) |
 
 > 📝 **注意**：
-> 1. 以上参数需要分别进行 url_encode，详细实现可以参考代码 `server/core/account.py` 内 CoreAccount.customer_auth 部分；生成url的方式可以参考 `server/test/unit_test/conftest.py`。
+> 1. 以上参数需要分别进行 url_encode，详细实现可以参考代码 `server/core/account.py` 内 CoreAccount.customer_auth 部分；生成url的方式可以参考 `server/main.py`的generate_customer_account_url。
 > 2. 需要在.env文件中配置CUSTOMER_ACCOUNT_SECRET_KEY，一个随机字符串，可以使用uuidgen命令生成
 
 # 开发指南

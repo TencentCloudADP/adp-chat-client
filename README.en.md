@@ -56,6 +56,11 @@ APP_CONFIGS='[
 SECRET_KEY=
 ```
 
+⚠️ **Note**:
+1. The content of APP_CONFIGS is in JSON format. Please adhere to JSON specifications, e.g., the last item should not end with a comma, and // comments are not supported.
+2. Comment: Can be filled in freely for easy identification of the corresponding agent application.
+3. International: If the agent application is developed on the international site(https://lke.tencentcloud.com/), set this to true.
+
 5. Build docker image
 ```bash
 # Build  
@@ -69,6 +74,27 @@ sudo make deploy
 Open the browser and navigate to http://localhost:8000 to view the login page.
 
 > ⚠️ **Warning:** For production environment, you need to apply for an SSL certificate through your own domain and deploy it over HTTPS using nginx for reverse proxy or other methods. If deployed over HTTP, certain features (such as voice recognition, message copying, etc.) may not function properly.
+
+7. Login
+
+This system supports integration with existing account systems. Here, we demonstrate the [URL Redirection](#URL-Redirection) login method:
+
+``` bash
+sudo make url
+```
+
+The above command retrieves the login URL. Open this URL in the browser for login.
+
+If OAuth login is configured, you can log in by opening http://localhost:8000 in the browser.
+
+8. Troubleshooting
+``` bash
+# Check if the containers are running. Normally, there should be 2 containers: adp-chat-client-default, adp-chat-client-db-default
+sudo docker ps
+
+# If no containers are visible, it indicates a startup issue. You can check the logs:
+sudo make logs
+```
 
 ## Service Configuration
 
@@ -124,7 +150,7 @@ If you have an existing account system but do not implement a standard OAuth flo
 | Code | Signature, SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, CustomerId + Name + ExtraInfo + str(Timestamp))) |
 
 > 📝 **Note**:
-> 1. The parameters above must be URL-encoded, for more details you can refer to the CoreAccount.customer_auth part in `server/core/account.py` file, and `server/test/unit_test/conftest.py` file for URL generation method.
+> 1. The parameters above must be URL-encoded, for more details you can refer to the CoreAccount.customer_auth in `server/core/account.py` file, and generate_customer_account_url in `server/main.py` file for URL generation method.
 > 2. Configure CUSTOMER_ACCOUNT_SECRET_KEY in the .env file, a random string that can be generated using the uuidgen command.
 
 # Development Guide
