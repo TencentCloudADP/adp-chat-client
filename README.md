@@ -98,10 +98,10 @@ sudo make logs
 
 ## 服务开关
 
-为了正常使用本系统，需要开启以下服务：
+为了正常使用本系统，需要开启/配置以下服务：
 1. 对话标题：[知识引擎原子能力：后付费设置](https://console.cloud.tencent.com/lkeap/settings)，开启：原子能力_DeepSeek API-V3后付费
 2. 语音输入：[语音识别：设置](https://console.cloud.tencent.com/asr/settings)，开启：所需区域的实时语音识别
-
+3. 应用权限：请确保配置的SECRET_KEY账号拥有已添加的应用的权限，详情可参考[平台端用户权限说明](https://cloud.tencent.com/document/product/1759/122574)
 
 ## 账户体系对接
 
