@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Logo from '@/assets/img/TencentCloudADPChatClient.svg';
+import Logo from '@/assets/img/favicon.ico';
 
 defineProps<{
     title: string
@@ -14,10 +14,9 @@ const getLogo = () => {
 <template>
     <div class="header-logo-container">
         <img :src="getLogo()" alt="Logo" class="header-logo" />
-        <!-- <t-divider layout="vertical">
+        <t-divider layout="vertical">
             <span class="header-title">{{ title }}</span>
-        </t-divider> -->
-        <!-- <span class="header-title">{{ title }}</span> -->
+        </t-divider>
     </div>
 </template>
 
