@@ -5,8 +5,8 @@ import { uploadFile } from '@/service/upload';
 import WebRecorder from "@/utils/webRecorder"
 import type { FileProps } from '@/model/file';
 import { handleGetAsrUrl } from '@/service/chat';
-import { MessagePlugin, Tooltip, Divider } from 'tdesign-vue-next';
-import { base64ToFile } from '@/utils/upload';
+import { MessagePlugin } from 'tdesign-vue-next';
+
 /**
  * Sender组件属性定义
  * @typedef {Object} SenderProps
