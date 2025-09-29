@@ -12,7 +12,7 @@ export default defineConfig({
   },
   plugins: [
     vue(),
-    vueJsx({}),
+    vueJsx() as any,
     Components({
       resolvers: [
         AntDesignVueResolver({

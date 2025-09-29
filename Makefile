@@ -45,8 +45,8 @@ build_client:
 
 build:
 	-mkdir build
-	make build_client
 	make build_server
+	make build_client
 
 clean:
 	rm -rf build
