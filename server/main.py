@@ -19,8 +19,8 @@ if __name__ == '__main__':
         import hmac
         import hashlib
         from config import tagentic_config
-        GREEN = '\033[32m'
-        RESET = '\033[0m'
+        GREEN = '\033[32m'  # pylint: disable=invalid-name
+        RESET = '\033[0m'   # pylint: disable=invalid-name
 
         customer_id = args.uid
         name = args.username
