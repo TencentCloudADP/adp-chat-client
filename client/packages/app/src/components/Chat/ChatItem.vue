@@ -194,12 +194,12 @@ const renderReasoning = (content: AgentThought | undefined) => {
         <template #content>
             <div v-if="!item.IsLlmGenerated" class="user-message">
                 <!-- <TChatContent :content="item.Content" /> -->
-                <MdContent :content="item.Content" role="user" />
+                <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos"/>
                 <t-icon name="copy" class="copy-icon" @click="(e: any) => copyContent(e, item.Content, 'user')" />
                 <t-icon class="share-icon" name="share" @click="share(item)" />
             </div>
             <!-- <TChatContent v-else :content="item.Content" /> -->
-            <MdContent v-else :content="item.Content"  role="assistant"/>
+            <MdContent v-else :content="item.Content"  role="assistant" :quoteInfos="item.QuoteInfos"/>
             <div class="references-container"
                 v-if="item.References && item.References.length > 0 && !(item.IsFinal === false)">
                 <span class="title">{{ $t('sender.references') }}: </span>

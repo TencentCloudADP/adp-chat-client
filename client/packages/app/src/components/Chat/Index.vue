@@ -211,7 +211,7 @@ const handleGetConversationDetail = async (chatId: string, status?: { loaded: ()
  */
 const throttle = (fn: Function, delay: number) => {
     let lastCallTime = 0;
-    return function (...args: any[]) {
+    return function (this: any, ...args: any[]) {
         const now = Date.now();
         if (now - lastCallTime < delay) {
             return;
