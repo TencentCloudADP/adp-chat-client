@@ -101,7 +101,7 @@ sudo make logs
 To use the system, enable/configure the following services:
 1. Dialogue title generation: [Knowledge Engine Atomic Capability: Postpaid Settings](https://console.cloud.tencent.com/lkeap/settings), enable: Atomic Capability_DeepSeek API-V3 Postpaid
 2. Voice input: [Speech Recognition: Settings](https://console.cloud.tencent.com/asr/settings), enable: Real-time speech recognition for the required region.
-3. App Permission: Make sure the account associated with your TC_SECRET_ID/SECRET_KEY has permission to access the applications you’ve added. For details, see the [platform-side user permissions documentation](https://www.tencentcloud.com/document/product/1254/73347).
+3. App Permission: Make sure the account associated with your TC_SECRET_ID/TC_SECRET_KEY has permission to access the applications you’ve added. For details, see the [platform-side user permissions documentation](https://www.tencentcloud.com/document/product/1254/73347).
 
 ## Account System Integration
 
