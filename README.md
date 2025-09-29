@@ -12,8 +12,8 @@
 
 请确保机器满足最低要求：
 
-- CPU >= 1 Core
-- RAM >= 2 GiB
+- CPU >= 2 Core
+- RAM >= 4 GiB
 
 ## docker快速部署
 
@@ -165,15 +165,12 @@ OAuth 协议可以帮助实现无缝的身份验证和授权，开发者可以�
 
 ### 依赖
 
-1. node >= 18
-2. npm
+- node >= 20
 
 ``` bash
-# 适用于 Ubuntu Server 24.04
-sudo apt install nodejs npm
-
-# 适用于 TencentOS Server 4.4
-sudo dnf install -y nodejs npm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+source ~/.bashrc
+nvm install v22
 ```
 
 ### 调试
@@ -189,6 +186,10 @@ make client
 ```
 
 ## 后端
+
+### 依赖
+
+- python >= 3.12
 
 ### 调试
 

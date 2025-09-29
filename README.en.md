@@ -13,8 +13,8 @@
 
 Please ensure the machine meets the minimum requirements:
 
-- CPU >= 1 Core
-- RAM >= 2 GiB
+- CPU >= 2 Core
+- RAM >= 4 GiB
 
 ## Docker
 
@@ -167,15 +167,12 @@ If you have an existing account system but do not implement a standard OAuth flo
 
 ### Dependencies
 
-1. node >= 18
-2. npm
+- node >= 20
 
-```bash
-# For Ubuntu Server 24.04
-sudo apt install nodejs npm
-
-# For TencentOS Server 4.4
-sudo dnf install -y nodejs npm
+``` bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+source ~/.bashrc
+nvm install v22
 ```
 
 ### Debugging
@@ -191,6 +188,10 @@ make client
 ```
 
 ## Backend
+
+### Dependencies
+
+- python >= 3.12
 
 ### Debugging
 

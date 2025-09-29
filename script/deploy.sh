@@ -54,6 +54,7 @@ deploy_instance() {
     source .env
     docker network create adp-chat-client-network-$INSTANCE
     docker run --name adp-chat-client-db-$INSTANCE -d -e POSTGRES_PASSWORD=$PGSQL_PASSWORD -v ./volume/db:/var/lib/postgresql/data --network adp-chat-client-network-$INSTANCE postgres:17
+    sleep 5
     docker run --name adp-chat-client-$INSTANCE -d -p $SERVER_HTTP_PORT:8000 -v ./.env:/app/.env --network adp-chat-client-network-$INSTANCE adp-chat-client
 }
 

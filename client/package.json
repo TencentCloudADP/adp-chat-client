@@ -2,7 +2,7 @@
   "name": "adp-system-client",
   "private": true,
   "scripts": {
-    "build": "mkdir ../server/static; npm run build_app",
+    "build": "mkdir ../server/static; NODE_OPTIONS='--max-old-space-size=4096' npm run build_app",
     "build_app": "cd packages/app && npm run build && cd ../../../server/static && rm -f app && ln -s ../../client/packages/app/dist app",
     "build_app0": "cd packages/app0 && npm run build && cd ../../../server/static && rm -f app && ln -s ../../client/packages/app0/dist app"
   },
