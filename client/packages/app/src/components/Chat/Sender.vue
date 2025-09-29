@@ -47,6 +47,11 @@ const asrWebSocket = ref(null as WebSocket | null)
  * @type {import('vue').Ref<string>}
  */
 const inputValue = ref('')
+/**
+ * 开始语音时输入框内容
+ * @type {import('vue').Ref<string>}
+ */
+const inputValueBefore = ref('')
 
 /**
  * 处理输入内容变化
@@ -147,6 +152,7 @@ const startRecording = () => {
 const handleStartRecord = async () => {
     const res = await handleGetAsrUrl();
     recording.value = true;
+    inputValueBefore.value = inputValue.value
     const url = res.url
     asrWebSocket.value = new WebSocket(url)
     asrWebSocket.value.onopen = () => {
@@ -158,7 +164,7 @@ const handleStartRecord = async () => {
         }
         const msg = JSON.parse(event.data)
         if ('result' in msg) {
-            inputValue.value += msg['result']['voice_text_str']
+            inputValue.value = inputValueBefore.value + msg['result']['voice_text_str']
         }
         if ('message' in msg && 'code' in msg && msg['code'] != 0) {
             MessagePlugin.error(msg['message']);

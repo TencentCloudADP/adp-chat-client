@@ -75,6 +75,9 @@ const renderedMarkdown = computed(() => {
     background-color: var(--td-bg-color-secondarycontainer);
     border-radius: var(--td-radius-extraLarge);
 }
+.user .md-content{
+    padding: var(--td-comp-paddingTB-s);
+}
 .md-content-container.system{
     background-color: var(--td-bg-color-secondarycontainer);
     color: var(--td-text-color-secondary);

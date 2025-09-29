@@ -38,7 +38,6 @@ declare module 'vue' {
     TDropdownItem: typeof import('tdesign-vue-next')['DropdownItem']
     TDropdownMenu: typeof import('tdesign-vue-next')['DropdownMenu']
     TForm: typeof import('tdesign-vue-next')['Form']
-    TFormItem: typeof import('tdesign-vue-next')['FormItem']
     THeader: typeof import('tdesign-vue-next')['Header']
     ThemeSwitcher: typeof import('./src/components/ThemeSwitcher.vue')['default']
     TIcon: typeof import('tdesign-vue-next')['Icon']
@@ -50,6 +49,7 @@ declare module 'vue' {
     TOption: typeof import('tdesign-vue-next')['Option']
     TPopup: typeof import('tdesign-vue-next')['Popup']
     TSelect: typeof import('tdesign-vue-next')['Select']
+    TSkeleton: typeof import('tdesign-vue-next')['Skeleton']
     TSpace: typeof import('tdesign-vue-next')['Space']
     TTooltip: typeof import('tdesign-vue-next')['Tooltip']
   }

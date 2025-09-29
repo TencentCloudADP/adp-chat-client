@@ -139,8 +139,7 @@ export interface Record {
   FromName?: string;
   HasRead?: boolean;
   ImageUrls?: any[];
-  IsFromSelf?: boolean;
-  IsLlmGenerated?: boolean; //  false: user true: agent
+  IsFromSelf?: boolean; 
   IsFinal?: boolean;
   OptionCards?: string[];
   QuoteInfos?: QuoteInfo[];

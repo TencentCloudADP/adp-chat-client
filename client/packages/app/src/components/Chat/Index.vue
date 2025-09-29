@@ -17,11 +17,14 @@
                 <div class="content">
                     <InfiniteLoading :identifier="chatId"  direction="top" @infinite="infiniteHandler" >
                         <template #spinner>
-                            <div>
-                                <t-loading :text="`${$t('common.loading')}...`" size="small"></t-loading>
+                            <div >
+                                <t-loading  :text="`${$t('common.loading')}...`" size="small"></t-loading>
                             </div>
                         </template>
                         <template #no-more>
+                            <div></div>
+                        </template>
+                        <template #no-results>
                             <div></div>
                         </template>
                     </InfiniteLoading>
@@ -179,6 +182,10 @@ const isShowToBottom = ref(false)
  */
 const handleGetConversationDetail = async (chatId: string, status?: { loaded: () => void; complete: () => void }) => {
     if (!chatId) return
+    if(isChatting.value){
+        status && status.complete()
+        return;
+    }
     messageLoading.value = true
     try {
         let LastRecordId = chatList.value.length > 0 ? chatList.value[0].RecordId : ''
@@ -357,7 +364,7 @@ const inputEnter = function (queryVal: string | undefined, fileList?: FileProps[
         RelatedRecordId: "",
         RecordId: 'placeholder-user',
         Content: _query,
-        IsLlmGenerated: false,
+        IsFromSelf: true
     }
     chatList.value.push(params)
 
@@ -366,7 +373,7 @@ const inputEnter = function (queryVal: string | undefined, fileList?: FileProps[
         RelatedRecordId: "",
         RecordId: 'placeholder-agent',
         Content: '',
-        IsLlmGenerated: true
+        IsFromSelf: false
     }
     chatList.value.push(params2)
     nextTick(() => {
@@ -458,6 +465,7 @@ const handleSendData = async (queryVal: string) => {
     loading.value = true
     isStreamLoad.value = true
     hasUserScrolled.value = false
+    chatStore.setIsChatting(true)
     await fetchSSE(
         () => {
             const options = {
@@ -474,7 +482,7 @@ const handleSendData = async (queryVal: string) => {
         },
         {
             success(result) {
-                chatStore.setIsChatting(true)
+                console.log('result',result)
                 if (result.type === 'conversation') {
                     //  创建新的对话，重新调用chatlist接口更新列表，根据record的LastActiveAt更新列表排序
                     fetchChatList(result.data.Id)
@@ -484,8 +492,7 @@ const handleSendData = async (queryVal: string) => {
                     }
                 } else {
                     let record: Record = result.data;
-                    record.IsLlmGenerated = (record.RelatedRecordId !== '')
-                    if (result.type == 'reply' && !record.IsLlmGenerated) {
+                    if (result.type == 'reply' &&  record.IsFromSelf) {
                         const index = chatList.value.findIndex(item => item.RecordId === 'placeholder-user');
                         if (index !== -1) {
                             chatList.value.splice(index, 1, record);

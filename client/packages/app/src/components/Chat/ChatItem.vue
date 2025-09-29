@@ -6,6 +6,7 @@ import { ref } from 'vue';
 // 类型定义
 import type { Record, AgentThought } from '@/model/chat';
 import { ScoreValue } from '@/model/chat';
+import { useAppsStore } from '@/stores/apps';
 // 工具函数
 import { formatDisplayTime } from '@/utils/date';
 // TDesign Vue 组件
@@ -27,6 +28,9 @@ import MdContent from '../Common/MdContent.vue';
 
 import { useUserStore } from '@/stores/user';
 const userStore = useUserStore();
+const appsStore = useAppsStore();
+
+
 
 const { t } = useI18n();
 const chatStore = useChatStore();
@@ -116,13 +120,9 @@ const share = async (record: Record) => {
  * @returns {JSX.Element} - 返回对应的头部组件
  */
 const renderHeader = (flag: boolean) => {
-    if (flag) {
-        return <TChatLoading text={t('conversation.thinking') + '...'} />;
-    }
     const endText = t('conversation.deepThinkingFinished');
     return (
         <div class="flex">
-            {/* <t-icon name="check-circle" class="check-circle" /> */}
             <span>{endText}</span>
         </div>
     );
@@ -134,7 +134,7 @@ const renderHeader = (flag: boolean) => {
  * @returns {JSX.Element | null} - 返回渲染的推理内容或 null
  */
 const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
-    if (!reasoningContent) return <div></div>;
+    if (!reasoningContent) return <div>dasd</div>;
     return (
         <div>
             {reasoningContent.Procedures?.map((procedure, index) => (
@@ -146,29 +146,19 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
 
 };
 
-const renderReasoning = (content: AgentThought | undefined) => {
-    if(isStreamLoad && !item.Content){
-        return {
-            collapsed: isLastMsg && !isStreamLoad,
-            expandIconPlacement: 'right' as const,
-            collapsePanelProps: {
-                header: renderHeader(index === 0 && isStreamLoad && !item.Content),
-                content: renderReasoningContent(item.AgentThought),
-            }
-        }
+const renderReasoning = (item:Record) => {
+    
+    if(!item.AgentThought){
+        return false
     }else{
-        if (!content) {
-            return false
-        } else {
-            return {
+       return {
                 collapsed: isLastMsg && !isStreamLoad,
                 expandIconPlacement: 'right' as const,
                 collapsePanelProps: {
-                    header: renderHeader(index === 0 && isStreamLoad && !item.Content),
+                    header: renderHeader(isLastMsg && isStreamLoad && !item.Content && !(item.AgentThought && item.AgentThought.Procedures && item.AgentThought.Procedures.length > 0)),
                     content: renderReasoningContent(item.AgentThought),
                 }
             }
-        }
     }
     
 }
@@ -176,23 +166,30 @@ const renderReasoning = (content: AgentThought | undefined) => {
 
 <template>
     <!-- 聊天项组件 -->
-    <TChatItem  animation="moving" :name="item.IsLlmGenerated ? item.FromName : userStore.name"
-        :role="item.IsLlmGenerated ? 'assistant' : 'user'" :variant="item.IsLlmGenerated ? undefined : 'base'"
-        :text-loading="isLastMsg && loading" :reasoning="renderReasoning(item.AgentThought)">
+    <TChatItem  animation="skeleton" :name="!item.IsFromSelf ? appsStore.currentApplicationName : userStore.name"
+        :role="!item.IsFromSelf ? 'assistant' : 'user'" :variant="!item.IsFromSelf ? undefined : 'base'"
+        :text-loading="isLastMsg && loading" :reasoning="renderReasoning(item)">
         <!-- 时间戳插槽 -->
         <template #datetime>
             <span v-if="item.Timestamp">{{ formatDisplayTime(item.Timestamp * 1000) }}</span>
         </template>
         <!-- 头像插槽 -->
         <template #avatar>
-            <t-avatar v-if="item.IsLlmGenerated" :image="item.FromAvatar" size="medium" />
+            <t-avatar v-if="!item.IsFromSelf" :image="appsStore.currentApplicationAvatar" size="medium" />
             <t-avatar v-else-if="userStore.avatarUrl" :image="userStore.avatarUrl" size="medium">{{ userStore.avatarName
             }}</t-avatar>
             <t-avatar v-else size="medium">{{ userStore.avatarName }}</t-avatar>
         </template>
         <!-- 内容插槽 -->
         <template #content>
-            <div v-if="!item.IsLlmGenerated" class="user-message">
+            <!-- <div  v-if="false" class="loading-container"> -->
+            <div  v-if="isLastMsg && isStreamLoad && !item.Content && !item.AgentThought" class="loading-container">
+                <!-- <t-loading size="small"></t-loading> -->
+                 <t-skeleton></t-skeleton>
+            </div>
+            <div v-else>
+
+            <div v-if="item.IsFromSelf" class="user-message">
                 <!-- <TChatContent :content="item.Content" /> -->
                 <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos"/>
                 <t-icon name="copy" class="copy-icon" @click="(e: any) => copyContent(e, item.Content, 'user')" />
@@ -209,6 +206,8 @@ const renderReasoning = (content: AgentThought | undefined) => {
                     </li>
                 </ol>
             </div>
+            </div>
+
         </template>
         <!-- 操作按钮插槽 -->
         <template #actions v-if="(!isStreamLoad || !isLastMsg) && showActions">
@@ -311,5 +310,7 @@ const renderReasoning = (content: AgentThought | undefined) => {
 .references-container .title {
     color: var(--td-text-color-secondary);
 }
-
+.loading-container{
+    padding: 0 
+}
 </style>
