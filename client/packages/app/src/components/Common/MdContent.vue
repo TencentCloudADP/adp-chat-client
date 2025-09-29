@@ -26,7 +26,10 @@ const { content,role} = defineProps<{
 }>();
 const mdIt = MarkdownIt({ 
     html: true, 
-    breaks: true
+    breaks: true,
+    linkify: true,
+    typographer: true,
+    quotes: '""'  // 保持直引号
 }).use(katex)
 .use(markdownItHighlightjs);
 

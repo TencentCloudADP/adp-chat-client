@@ -147,9 +147,7 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
 };
 
 const renderReasoning = (content: AgentThought | undefined) => {
-    if (!content) {
-        return false
-    } else {
+    if(isStreamLoad && !item.Content){
         return {
             collapsed: isLastMsg && !isStreamLoad,
             expandIconPlacement: 'right' as const,
@@ -158,7 +156,21 @@ const renderReasoning = (content: AgentThought | undefined) => {
                 content: renderReasoningContent(item.AgentThought),
             }
         }
+    }else{
+        if (!content) {
+            return false
+        } else {
+            return {
+                collapsed: isLastMsg && !isStreamLoad,
+                expandIconPlacement: 'right' as const,
+                collapsePanelProps: {
+                    header: renderHeader(index === 0 && isStreamLoad && !item.Content),
+                    content: renderReasoningContent(item.AgentThought),
+                }
+            }
+        }
     }
+    
 }
 </script>
 
