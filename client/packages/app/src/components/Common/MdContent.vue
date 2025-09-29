@@ -26,7 +26,10 @@ const { content,role} = defineProps<{
 }>();
 const mdIt = MarkdownIt({ 
     html: true, 
-    breaks: true
+    breaks: true,
+    linkify: true,
+    typographer: true,
+    quotes: '""'  // 保持直引号
 }).use(katex)
 .use(markdownItHighlightjs);
 
@@ -41,21 +44,22 @@ const renderedMarkdown = computed(() => {
 
 <style scoped>
 .md-content-container{
-    padding: 20px;
+    padding: var(--td-comp-paddingTB-s);
 }
-.md-content-container.user, .md-content-container.system{
+.md-content-container.user{
     background-color: var(--td-bg-color-secondarycontainer);
     border-radius: var(--td-radius-extraLarge);
 }
 .md-content-container.system{
-    padding: 0px;
+    background-color: var(--td-bg-color-secondarycontainer);
     color: var(--td-text-color-secondary);
     font: var(--td-font-body-medium);
 }
-
-</style>
-<style>
-.md-content-container img{
+.md-content-container.assistant{
+    padding:var(--td-comp-paddingTB-s) var(--td-comp-paddingTB-m);
+    margin-left:var(--td-comp-margin-l);;
+}
+:deep(.md-content-container img){
     width: 150px;
     display: inline-block;
 }

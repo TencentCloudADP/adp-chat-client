@@ -59,6 +59,7 @@
     "vite-plugin-vue-devtools": "^7.7.7",
     "vitepress": "^1.6.4",
     "vitest": "^3.2.4",
+    "vue-infinite-loading": "^3.0.0-alpha.0-0",
     "vue-tsc": "^2.2.10"
   }
 }

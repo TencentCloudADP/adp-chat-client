@@ -67,14 +67,9 @@ const record = ref(item);
 async function copyContent(event: any, content: string | undefined, type: string): Promise<void> {
     let rowtext: string | undefined;
     const container = event?.e.target as HTMLElement;
-    switch (type) {
-        case 'user':
-            rowtext = container?.closest('.t-chat__content')?.querySelector('.md-content')?.textContent || undefined;
-            break;
-        case 'assistant':
-            rowtext = container?.closest('.t-chat__content')?.querySelector('.md-content')?.textContent || undefined;
-            break;
-    }
+    const markdownElements = container?.closest('.t-chat__content')?.querySelectorAll('.markdown-body');
+    rowtext = markdownElements && markdownElements.length > 0 ? markdownElements[markdownElements.length - 1]?.textContent || undefined : undefined;
+   
     console.log('rowtext', rowtext)
     await copy(rowtext, content);
 }
@@ -152,9 +147,7 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
 };
 
 const renderReasoning = (content: AgentThought | undefined) => {
-    if (!content) {
-        return false
-    } else {
+    if(isStreamLoad && !item.Content){
         return {
             collapsed: isLastMsg && !isStreamLoad,
             expandIconPlacement: 'right' as const,
@@ -163,13 +156,27 @@ const renderReasoning = (content: AgentThought | undefined) => {
                 content: renderReasoningContent(item.AgentThought),
             }
         }
+    }else{
+        if (!content) {
+            return false
+        } else {
+            return {
+                collapsed: isLastMsg && !isStreamLoad,
+                expandIconPlacement: 'right' as const,
+                collapsePanelProps: {
+                    header: renderHeader(index === 0 && isStreamLoad && !item.Content),
+                    content: renderReasoningContent(item.AgentThought),
+                }
+            }
+        }
     }
+    
 }
 </script>
 
 <template>
     <!-- 聊天项组件 -->
-    <TChatItem animation="moving" :name="item.IsLlmGenerated ? item.FromName : userStore.name"
+    <TChatItem  animation="moving" :name="item.IsLlmGenerated ? item.FromName : userStore.name"
         :role="item.IsLlmGenerated ? 'assistant' : 'user'" :variant="item.IsLlmGenerated ? undefined : 'base'"
         :text-loading="isLastMsg && loading" :reasoning="renderReasoning(item.AgentThought)">
         <!-- 时间戳插槽 -->
@@ -192,7 +199,7 @@ const renderReasoning = (content: AgentThought | undefined) => {
                 <t-icon class="share-icon" name="share" @click="share(item)" />
             </div>
             <!-- <TChatContent v-else :content="item.Content" /> -->
-            <MdContent v-else :content="item.Content" />
+            <MdContent v-else :content="item.Content"  role="assistant"/>
             <div class="references-container"
                 v-if="item.References && item.References.length > 0 && !(item.IsFinal === false)">
                 <span class="title">{{ $t('sender.references') }}: </span>
@@ -304,4 +311,5 @@ const renderReasoning = (content: AgentThought | undefined) => {
 .references-container .title {
     color: var(--td-text-color-secondary);
 }
+
 </style>

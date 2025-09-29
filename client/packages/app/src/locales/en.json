@@ -12,7 +12,7 @@
   "account": {
     "login": "Login",
     "logout": "Logout",
-    "loginToAdp": "Login to Tencent Cloud ADP Chat Client",
+    "loginToAdp": "Login",
     "inputAccountName": "Please enter your account name",
     "inputPassword": "Please enter your password",
     "defaultName": "Guest"
@@ -51,6 +51,7 @@
     "moveToGroup": "Move to Group"
   },
   "common": {
+    "loading":"loading",
     "today": "Today",
     "recent": "Recent",
     "s": "S",

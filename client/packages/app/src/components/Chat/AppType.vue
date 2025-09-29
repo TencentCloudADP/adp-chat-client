@@ -3,7 +3,7 @@
  * 智能体选择组件
  * 功能：提供智能体选择下拉框，并展示当前智能体的欢迎语和推荐问题
  */
-import {  computed, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useAppsStore } from '@/stores/apps';
 
 // 组件Props定义
@@ -52,11 +52,11 @@ const handleChangeApps = (value: string) => {
  * 选择推荐问题
  * @param {string} value - 推荐问题的内容
  */
-const handleChooseQuestion = (value:string) => {
-  if(value == checkQuestion.value){
+const handleChooseQuestion = (value: string) => {
+  if (value == checkQuestion.value) {
     checkQuestion.value = "";
     getDefaultQuestion && getDefaultQuestion("")
-  }else{
+  } else {
     checkQuestion.value = value;
     getDefaultQuestion && getDefaultQuestion(value)
   }
@@ -67,7 +67,7 @@ const handleChooseQuestion = (value:string) => {
   <flex class="greeting-panel">
     <t-select class="app-select" style="width: 300px" size="large" v-model="currentApplicationId" placeholder="请选择智能体"
       @change="handleChangeApps">
-      <template #valueDisplay="{value,onClose}">
+      <template #valueDisplay="{ value, onClose }">
         <div class="apps-options_item">
           <t-avatar v-if="appsStore.currentApplicationAvatar" :image="appsStore.currentApplicationAvatar" />
           <label>{{ appsStore.currentApplicationName }}</label>
@@ -81,12 +81,13 @@ const handleChooseQuestion = (value:string) => {
       </t-option>
     </t-select>
     <div v-if="currentApplicationId && showDetail" class="app-detail-container">
-      <div class="greet-desc">
+      <div class="greet-desc" v-if="appsStore.currentApplicationGreeting">
         “{{ appsStore.currentApplicationGreeting }}”
       </div>
       <t-space class="recommend-question-container"
         v-if="appsStore.currentApplicationOpeningQuestions && appsStore.currentApplicationOpeningQuestions.length > 0">
-        <t-check-tag :checked="question === checkQuestion" v-for="question in appsStore.currentApplicationOpeningQuestions" variant="outline" 
+        <t-check-tag :checked="question === checkQuestion"
+          v-for="question in appsStore.currentApplicationOpeningQuestions" variant="outline"
           @click="handleChooseQuestion(question)">{{ question }}</t-check-tag>
       </t-space>
     </div>
@@ -94,7 +95,6 @@ const handleChooseQuestion = (value:string) => {
 </template>
 
 <style scoped>
-
 /* app展示内容详情 */
 .app-detail-container {
   display: flex;
@@ -118,23 +118,21 @@ const handleChooseQuestion = (value:string) => {
   margin-top: var(--td-size-5)
 }
 
-.apps-options_item{
+.apps-options_item {
   padding: 4px 0;
   display: flex;
   align-items: center;
 }
-.apps-options_item label{
+
+.apps-options_item label {
   margin-left: 8px;
 }
-.recommend-question-container{
+
+.recommend-question-container {
   margin-top: var(--td-size-6)
 }
-
-</style>
-<style>
-.greeting-panel .t-input{
+:deep(.greeting-panel .t-input){
   border-radius: 50px;
   width: 300px;
 }
 </style>
-

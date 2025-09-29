@@ -5,7 +5,7 @@ import { uploadFile } from '@/service/upload';
 import WebRecorder from "@/utils/webRecorder"
 import type { FileProps } from '@/model/file';
 import { handleGetAsrUrl } from '@/service/chat';
-import { MessagePlugin, Tooltip, Divider } from 'tdesign-vue-next';
+import { MessagePlugin } from 'tdesign-vue-next';
 
 /**
  * Sender组件属性定义
@@ -74,18 +74,17 @@ const fileList = ref([] as FileProps[])
  * @param {any} res - 文件选择结果
  * @returns {Promise<void>}
  */
-const handleFileSelect = async function (res: any) {
-    console.log('handleFileSelect files', res, res)
-    const allowed = ['image/png','image/jpg','image/jpeg','image/bmp']
-    res.files.map(async (item: any) => {
+const handleFileSelect = async function (res: { files: File[]}) {
+    if(res.files && res.files.length <= 0) return;
+    const allowed = ['image/png', 'image/jpg', 'image/jpeg', 'image/bmp']
+    res.files.map(async (item: File) => {
         if (!allowed.includes(item.type)) {
             MessagePlugin.error(`暂不支持该类型文件（支持类型：jpg/png）`)
-            return 
+            return
         }
         const res = await uploadFile({
             file: item
         })
-        console.log('handleFileSelect files', res)
         if (res.Url) {
             fileList.value.push({
                 uid: res.Url,
@@ -145,7 +144,7 @@ const startRecording = () => {
  * 处理开始录音事件
  * @returns {Promise<void>}
  */
-const handleStartRecord = async() => {
+const handleStartRecord = async () => {
     const res = await handleGetAsrUrl();
     recording.value = true;
     const url = res.url
@@ -159,8 +158,7 @@ const handleStartRecord = async() => {
         }
         const msg = JSON.parse(event.data)
         if ('result' in msg) {
-            console.log('msg',msg)
-            inputValue.value  += msg['result']['voice_text_str']
+            inputValue.value += msg['result']['voice_text_str']
         }
         if ('message' in msg && 'code' in msg && msg['code'] != 0) {
             MessagePlugin.error(msg['message']);
@@ -189,15 +187,36 @@ const handleStopRecord = () => {
  * @param {string} value - 新的输入内容
  * @returns {void}
  */
-const changeInputVal = (value:string) => {
-    inputValue.value = value
+const changeSenderVal = (value: string, files: FileProps[]) => {
+    inputValue.value = value;
+    fileList.value = files;
 }
 
+const handlePaste = async (event: ClipboardEvent) => {
+    try {
+        const items = event.clipboardData?.items;
+        if (!items || items.length === 0) {
+          console.log('剪贴板中没有检测到内容', 'error');
+          return;
+        }
+        
+        // 查找所有图片项
+        const imageItems = Array.from(items).filter((item: DataTransferItem) => 
+          item.type.includes('image')
+        ).map((i: DataTransferItem) => i.getAsFile()).filter((file): file is File => file !== null);
+        handleFileSelect({
+                files: imageItems
+        })
+
+    } catch (error) {
+        console.error('粘贴图片出错:', error);
+    }
+};
 /**
  * 暴露给父组件的方法
  */
 defineExpose({
-  changeInputVal
+    changeSenderVal
 })
 </script>
 
@@ -205,25 +224,28 @@ defineExpose({
     <TChatSender :value="inputValue" :loading="isStreamLoad" :textarea-props="{
         placeholder: $t('conversation.input.placeholder'),
         autosize: { minRows: 2, maxRows: 2 },
-    }" @stop="onStop" @send="handleSend" @change="handleInput" @fileSelect="handleFileSelect">
+    }" @stop="onStop" @send="handleSend" @change="handleInput" @fileSelect="handleFileSelect" @paste="handlePaste">
         <template #inner-header>
-            <div v-for="(img, index) in fileList" class="img-item-container">
-                <t-image fit="contain" :src="img.url" :style="{ width: '70px', height: '70px' }" />
-                <span class="delete-container" >
-                    <t-icon name="delete" @click="handleDeleteFile"></t-icon>
-                </span>
+            <div v-if="fileList.length > 0" class="file-upload-container">
+                <div v-for="(img, index) in fileList" class="img-item-container">
+                    <t-image fit="contain" :src="img.url" :style="{ width: '70px', height: '70px' }" />
+                    <span class="delete-container">
+                        <t-icon name="delete" @click="handleDeleteFile"></t-icon>
+                    </span>
+                </div>
             </div>
+
         </template>
         <template #prefix>
             <t-tooltip v-if="!recording" :content="$t('sender.startRecord')">
-                <span  class="recording-icon" @click="handleStartRecord">
+                <span class="recording-icon" @click="handleStartRecord">
                     <t-icon size="large" name="microphone-filled"></t-icon>
                 </span>
             </t-tooltip>
-            
-            <t-tooltip  v-if="recording" :content="$t('sender.stopRecord')">
-                <span  class="recording-icon" @click="handleStopRecord">
-                    <t-icon size="large" name="chevron-right-rectangle-filled" ></t-icon>
+
+            <t-tooltip v-if="recording" :content="$t('sender.stopRecord')">
+                <span class="recording-icon" @click="handleStopRecord">
+                    <t-icon size="large" name="chevron-right-rectangle-filled"></t-icon>
                 </span>
             </t-tooltip>
         </template>
@@ -266,8 +288,19 @@ defineExpose({
     cursor: pointer;
 }
 
-.delete-container:hover, .recording-icon:hover{
+.delete-container:hover,
+.recording-icon:hover {
     cursor: pointer;
     color: var(--td-brand-color);
 }
+
+.file-upload-container {
+    padding-top: 8px;
+    padding-left: 10px;
+}
+/* TODO: 当前版本不支持，后续再开放 */
+:deep(.t-button:has(.t-icon-file-attachment)){
+     display: none;
+}
+
 </style>
