@@ -51,6 +51,7 @@
     "moveToGroup": "移动到分组"
   },
   "common": {
+    "loading":"加载中",
     "today": "今天",
     "recent": "最近",
     "s": "秒",

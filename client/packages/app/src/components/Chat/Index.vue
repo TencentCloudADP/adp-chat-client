@@ -15,7 +15,17 @@
             <!-- 聊天消息列表 -->
             <template v-else>
                 <div class="content">
-                    <div class="chat-item__content" v-for="(item, index) in chatList">
+                    <InfiniteLoading :identifier="chatId"  direction="top" @infinite="infiniteHandler" >
+                        <template #spinner>
+                            <div>
+                                <t-loading :text="`${$t('common.loading')}...`" size="small"></t-loading>
+                            </div>
+                        </template>
+                        <template #no-more>
+                            <div></div>
+                        </template>
+                    </InfiniteLoading>
+                    <div class="chat-item__content" v-for="(item, index) in chatList" :key="item.RecordId">
                         <Checkbox :checked="selectedIds?.includes(item.RecordId)" v-if="isSelecting"
                             @change="(e) => onSelectIds(item.RecordId, e)" />
                         <div style="width: 100%">
@@ -25,6 +35,7 @@
                         </div>
                     </div>
                 </div>
+
             </template>
             <!-- 底部发送区域 -->
             <template #footer>
@@ -61,18 +72,19 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, watch, nextTick,computed } from 'vue'
+import { ref, watch, nextTick, computed } from 'vue'
+import InfiniteLoading from 'vue-infinite-loading'
 import { storeToRefs } from 'pinia'
 import type { AxiosRequestConfig } from 'axios'
 import AppType from '@/components/Chat/AppType.vue'
 import { Chat as TChat } from '@tdesign-vue-next/chat'
-import { LoadingPlugin, Drawer, Checkbox } from 'tdesign-vue-next'
+import { Drawer, Checkbox } from 'tdesign-vue-next'
 import { fetchSSE } from '@/model/sseRequest-reasoning'
 import { mergeRecord } from '@/utils/util'
 // 模型数据
 import { modelOptions, defaultModel } from '@/model/models'
 import type { Record } from '@/model/chat'
-import  type { FileProps } from '@/model/file' ;
+import type { FileProps } from '@/model/file';
 import { handleLoadConversationDetail, handleSendConversation, handleGetShareId } from '@/service/chat'
 import { useChatStore, fetchChatList } from '@/stores/chat'
 import { useAppsStore } from '@/stores/apps'
@@ -111,6 +123,7 @@ const { currentApplicationId } = storeToRefs(appsStore)
  * @type {Ref<boolean>}
  */
 const isSelecting = ref(false)
+
 /**
  * 选中的消息ID列表
  * @type {Ref<string[]>}
@@ -161,15 +174,11 @@ const isShowToBottom = ref(false)
 /**
  * 加载聊天会话详情
  * @param {string} chatId - 会话ID
+ * @param {any} [status] - 可选状态参数
  * @returns {Promise<void>}
  */
-const handleGetConversationDetail = async (chatId: string) => {
+const handleGetConversationDetail = async (chatId: string, status?: { loaded: () => void; complete: () => void }) => {
     if (!chatId) return
-    const loadingInstance = LoadingPlugin({
-        attach: '#chat-content',
-        size: 'medium',
-        showOverlay: false,
-    })
     messageLoading.value = true
     try {
         let LastRecordId = chatList.value.length > 0 ? chatList.value[0].RecordId : ''
@@ -180,28 +189,54 @@ const handleGetConversationDetail = async (chatId: string) => {
         })
         messageLoading.value = false
         chatList.value = [...ChatConversation?.Response.Records, ...chatList.value]
-        loadingInstance.hide()
+        if (ChatConversation?.Response.Records.length > 0) {
+            status && status.loaded();
+        } else {
+            status && status.complete();
+        }
         nextTick(() => {
             // 仅首次加载滚动到最底部
             !LastRecordId && backToBottom()
         })
     } catch (err) {
-        loadingInstance.hide()
+        status && status.complete();
     }
 }
+
+/**
+ * 通用节流函数
+ * @param {Function} fn - 需要节流的函数
+ * @param {number} delay - 节流时间（毫秒）
+ * @returns {Function} - 节流后的函数
+ */
+const throttle = (fn: Function, delay: number) => {
+    let lastCallTime = 0;
+    return function (...args: any[]) {
+        const now = Date.now();
+        if (now - lastCallTime < delay) {
+            return;
+        }
+        lastCallTime = now;
+        return fn.apply(this, args);
+    };
+};
 
 /**
  * 滚动到底部
  * @returns {void}
  */
-const backToBottom = () => {
-    if (!(chatRef.value && chatRef.value.scrollToBottom)) return
-    if(hasUserScrolled.value) return
+const backToBottom = throttle(() => {
+    if (!(chatRef.value && chatRef.value.scrollToBottom)) return;
+    if (hasUserScrolled.value) return;
     chatRef.value.scrollToBottom({
         behavior: 'smooth',
-    })
-}
+    });
+}, 500);
 
+/**
+ * 点击回到底部按钮
+ * @returns {void}
+ */
 const handleClickBackToBottom = () => {
     hasUserScrolled.value = false;
     backToBottom()
@@ -213,7 +248,7 @@ const handleClickBackToBottom = () => {
  * @returns {void}
  */
 const getDefaultQuestion = (value: string) => {
-    senderRef.value && senderRef.value.changeSenderVal(value,[])
+    senderRef.value && senderRef.value.changeSenderVal(value, [])
 }
 
 /**
@@ -254,7 +289,7 @@ const chatList = ref<Record[]>([])
  */
 const clearConfirm = function () {
     chatList.value = []
-    chatList.value.length = 0; 
+    chatList.value.length = 0;
 }
 
 /**
@@ -267,6 +302,15 @@ const onStop = function () {
 }
 
 /**
+ * 无限加载处理函数
+ * @param {any} $state - 无限加载状态
+ * @returns {void}
+ */
+const infiniteHandler = function ($state: any) {
+    handleGetConversationDetail(chatId.value, $state)
+}
+
+/**
  * 聊天滚动事件
  * @param {{ e: Event }} param0 - 滚动事件对象
  * @returns {void}
@@ -276,12 +320,14 @@ const handleChatScroll = function ({ e }: { e: Event }) {
     const scrollTop = (e.target as HTMLElement).scrollTop
     const clientHeight = (e.target as HTMLElement).clientHeight
     const scrollHeight = (e.target as HTMLElement).scrollHeight
-    isShowToBottom.value = clientHeight + scrollTop < scrollHeight - 2
-    if (scrollTop === 0) {
-        handleGetConversationDetail(chatId.value)
-    }
-    if(lastScrollTop.value - scrollTop > 5 && isChatting.value){
+    const isToBottom = clientHeight + scrollTop < scrollHeight - 2
+    isShowToBottom.value = isToBottom
+
+    if (lastScrollTop.value - scrollTop > 4 && isChatting.value) {
         hasUserScrolled.value = true
+    }
+    if (!isToBottom) {
+        hasUserScrolled.value = false
     }
     lastScrollTop.value = scrollTop
 }
@@ -292,12 +338,12 @@ const handleChatScroll = function ({ e }: { e: Event }) {
  * @param {FileProps[]} [fileList] - 文件列表
  * @returns {void}
  */
-const inputEnter = function (queryVal: string | undefined,fileList?: FileProps[]) {
+const inputEnter = function (queryVal: string | undefined, fileList?: FileProps[]) {
     if (isStreamLoad.value) {
         return
     }
     if (!queryVal) return
-    let _query = `` ;
+    let _query = ``;
     {
         for (const file of fileList || []) {
             if (file.status == 'done') {
@@ -327,7 +373,7 @@ const inputEnter = function (queryVal: string | undefined,fileList?: FileProps[]
         backToBottom()
     })
     handleSendData(_query)
-    senderRef.value && senderRef.value.changeSenderVal('',[])
+    senderRef.value && senderRef.value.changeSenderVal('', [])
 }
 
 /**
@@ -359,7 +405,7 @@ const handleCloseShare = () => {
  * @returns {Promise<void>}
  */
 const onShare = async (RecordIds: string[]) => {
-    let _selectedList = chatList.value.filter(item => RecordIds.includes(item?.RelatedRecordId) || RecordIds.includes(item?.RecordId)).map( i => i.RecordId)
+    let _selectedList = chatList.value.filter(item => RecordIds.includes(item?.RelatedRecordId) || RecordIds.includes(item?.RecordId)).map(i => i.RecordId)
     isSelecting.value = true
     selectedIds.value = [...new Set([...selectedIds.value, ..._selectedList])]
 }
@@ -379,7 +425,7 @@ const handleCopyShare = async () => {
         if (res.ShareId) {
             const baseUrl = window.location.href.split('#')[0]
             const url = `${baseUrl}#/share?ShareId=${res.ShareId}`
-            copy(url,url);
+            copy(url, url);
         }
     } catch (e) {
         console.log('share error', e)
@@ -492,7 +538,6 @@ watch(
         }
         onStop();
         clearConfirm()
-        handleGetConversationDetail(newId)
     },
     { immediate: true },
 )

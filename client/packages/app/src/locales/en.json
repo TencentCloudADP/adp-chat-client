@@ -51,6 +51,7 @@
     "moveToGroup": "Move to Group"
   },
   "common": {
+    "loading":"loading",
     "today": "Today",
     "recent": "Recent",
     "s": "S",
