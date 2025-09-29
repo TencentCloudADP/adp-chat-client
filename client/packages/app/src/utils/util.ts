@@ -16,7 +16,7 @@ export function mergeRecord(record: Record, delta: Record, msg_type: string) {
     record.IsFinal = delta.IsFinal
     record.Score = delta.Score
     record.RelatedRecordId = delta.RelatedRecordId
-    record.IsLlmGenerated = delta.IsLlmGenerated
+    record.IsFromSelf = delta.IsFromSelf
     // TODO： FromAvatar在user时候没有获取到
     record.FromAvatar = delta.FromAvatar
     record.FromName = delta.FromName

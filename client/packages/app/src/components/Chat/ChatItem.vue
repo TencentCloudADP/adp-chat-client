@@ -6,6 +6,7 @@ import { ref } from 'vue';
 // 类型定义
 import type { Record, AgentThought } from '@/model/chat';
 import { ScoreValue } from '@/model/chat';
+import { useAppsStore } from '@/stores/apps';
 // 工具函数
 import { formatDisplayTime } from '@/utils/date';
 // TDesign Vue 组件
@@ -27,6 +28,9 @@ import MdContent from '../Common/MdContent.vue';
 
 import { useUserStore } from '@/stores/user';
 const userStore = useUserStore();
+const appsStore = useAppsStore();
+
+
 
 const { t } = useI18n();
 const chatStore = useChatStore();
@@ -122,7 +126,6 @@ const renderHeader = (flag: boolean) => {
     const endText = t('conversation.deepThinkingFinished');
     return (
         <div class="flex">
-            {/* <t-icon name="check-circle" class="check-circle" /> */}
             <span>{endText}</span>
         </div>
     );
@@ -147,37 +150,25 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
 };
 
 const renderReasoning = (content: AgentThought | undefined) => {
-    if(isStreamLoad && !item.Content){
+    if (!content) {
+        return false
+    } else {
         return {
-            collapsed: isLastMsg && !isStreamLoad,
-            expandIconPlacement: 'right' as const,
-            collapsePanelProps: {
-                header: renderHeader(index === 0 && isStreamLoad && !item.Content),
-                content: renderReasoningContent(item.AgentThought),
-            }
-        }
-    }else{
-        if (!content) {
-            return false
-        } else {
-            return {
                 collapsed: isLastMsg && !isStreamLoad,
                 expandIconPlacement: 'right' as const,
                 collapsePanelProps: {
-                    header: renderHeader(index === 0 && isStreamLoad && !item.Content),
-                    content: renderReasoningContent(item.AgentThought),
-                }
+                header: renderHeader(index === 0 && isStreamLoad && !item.Content && !(item.AgentThought && item.AgentThought.Procedures && item.AgentThought.Procedures.length > 0)),
+                content: renderReasoningContent(item.AgentThought),
             }
         }
     }
-    
 }
 </script>
 
 <template>
     <!-- 聊天项组件 -->
-    <TChatItem  animation="moving" :name="item.IsLlmGenerated ? item.FromName : userStore.name"
-        :role="item.IsLlmGenerated ? 'assistant' : 'user'" :variant="item.IsLlmGenerated ? undefined : 'base'"
+    <TChatItem  animation="moving" :name="!item.IsFromSelf ? appsStore.currentApplicationName : userStore.name"
+        :role="!item.IsFromSelf ? 'assistant' : 'user'" :variant="!item.IsFromSelf ? undefined : 'base'"
         :text-loading="isLastMsg && loading" :reasoning="renderReasoning(item.AgentThought)">
         <!-- 时间戳插槽 -->
         <template #datetime>
@@ -185,14 +176,14 @@ const renderReasoning = (content: AgentThought | undefined) => {
         </template>
         <!-- 头像插槽 -->
         <template #avatar>
-            <t-avatar v-if="item.IsLlmGenerated" :image="item.FromAvatar" size="medium" />
+            <t-avatar v-if="!item.IsFromSelf" :image="appsStore.currentApplicationAvatar" size="medium" />
             <t-avatar v-else-if="userStore.avatarUrl" :image="userStore.avatarUrl" size="medium">{{ userStore.avatarName
             }}</t-avatar>
             <t-avatar v-else size="medium">{{ userStore.avatarName }}</t-avatar>
         </template>
         <!-- 内容插槽 -->
         <template #content>
-            <div v-if="!item.IsLlmGenerated" class="user-message">
+            <div v-if="item.IsFromSelf" class="user-message">
                 <!-- <TChatContent :content="item.Content" /> -->
                 <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos"/>
                 <t-icon name="copy" class="copy-icon" @click="(e: any) => copyContent(e, item.Content, 'user')" />
