@@ -1,177 +1,171 @@
-# 关于
-**adp-chat-client** 是一个开源的AI智能体应用对话端。可以将 [腾讯云智能体开发平台（Tencent Cloud ADP）](https://cloud.tencent.com/product/tcadp) 开发的 AI 智能体应用快速部署为Web应用（或嵌入到小程序、Android、iOS 应用中）。支持实时对话、对话历史管理、语音输入、图片理解、第三方账户体系对接等功能。支持通过 Docker 快速部署。
+# About
 
-#### 目录
+**adp-chat-client** is an open sourced AI Agent application conversation interface. It allows developers to quickly deploy AI agent applications developed on the [Tencent Cloud Agent Development Platform (Tencent Cloud ADP)](https://cloud.tencent.com/product/tcadp) as web applications (or embed them into mini-programs, Android, and iOS apps). The client supports real-time conversations, conversation history management, voice input, image understanding, third-party account system integration, and more. It supports fast deployment via Docker.
 
-- [部署](#部署)
-- [开发指南](#开发指南)
+#### Table of Contents
 
-# 部署
+- [Deployment](#deployment)
+- [Development Guide](#development-guide)
 
-## 系统要求
+# Deployment
 
-请确保机器满足最低要求：
+## System Requirements
+
+Please ensure the machine meets the minimum requirements:
 
 - CPU >= 2 Core
 - RAM >= 4 GiB
 
-## docker快速部署
+## Docker
 
-1. 克隆源代码并进入目录
+1. Clone the source code and enter the project directory
 ```bash
 git clone https://github.com/TencentCloudADP/adp-chat-client.git
 cd adp-chat-client
 ```
 
-2. 安装docker并设定镜像配置（如果系统上已经装好docker，跳过）：
-> 适用于 TencentOS Server 4.4：
-``` bash
+2. Install docker (skip if docker is already installed on your system):
+> For TencentOS Server 4.4:
+```bash
 bash script/init_env_tencentos.sh
 ```
-> 适用于 Ubuntu Server 24.04：
-``` bash
+> For Ubuntu Server 24.04:
+```bash
 bash script/init_env_ubuntu.sh
 ```
 
-3. 复制```.env.example```文件到deploy文件夹
-``` bash
+3. Copy the ```.env.example``` file to the deploy folder
+```bash
 cp server/.env.example deploy/default/.env
 ```
 
-4. 修改```deploy/default/.env```文件中的配置项
+4. Edit the ```deploy/default/.env``` file
 
-您需要根据您的腾讯云账户和 ADP 平台的相关信息，填入以下密钥和应用 Key：
+You need to fill in the following credentials and application keys based on your Tencent Cloud account and ADP platform information:
 
 ```
-# 腾讯云账户密钥：https://console.cloud.tencent.com/cam/capi
+# Tencent Cloud account secret: https://console.tencentcloud.com/cam/capi
 TC_SECRET_APPID=
 TC_SECRET_ID=
 TC_SECRET_KEY=
-
-# ADP平台获取的智能体应用key：https://lke.cloud.tencent.com/
+# Tencent Cloud ADP platform agent app key: https://lke.tencentcloud.com/
 APP_CONFIGS='[
     {
         "Vendor":"Tencent",
-        "ApplicationId":"对话应用唯一Id，在本系统内唯一标识一个对话应用，推荐使用appid，或者使用uuidgen命令生成一个随机的uuid",
-        "Comment": "注释",
+        "ApplicationId":"The unique ID of the chat application, used to uniquely identify a chat application in this system. Recommended to use appid or generate a random uuid using the uuidgen command",
+        "Comment": "Comment",
         "AppKey": "",
-        "International": false
+        "International": true
     }
 ]'
 
-# JWT密钥，一个随机字符串，可以使用uuidgen命令生成
+# JWT secret key, a random string, can be generated using the uuidgen command
 SECRET_KEY=
 ```
 
-> ⚠️ **注意**：
-> 1. APP_CONFIGS内容为JSON，注意遵循JSON规范，例如：最后一项末尾不能有逗号，不支持//注释
-> 2. Comment: 可以任意填写，方便自己定位对应的智能体应用
-> 3. International: 使用腾讯云国内站设为false(默认)，如果是在国际站开发的智能体应用，此处设为true
+⚠️ **Note**:
+1. The content of APP_CONFIGS is in JSON format. Please adhere to JSON specifications, e.g., the last item should not end with a comma, and // comments are not supported.
+2. Comment: Can be filled in freely for easy identification of the corresponding agent application.
+3. International: If the agent application is developed on the international site(https://lke.tencentcloud.com/), set this to true.
 
-5. 制作镜像
-``` bash
-# 制作镜像
-sudo make pack
+5. Build docker image
+```bash
+# Build  
+sudo make pack  
 ```
 
-6. 启动容器
-``` bash
+6. Start the container
+```bash
 sudo make deploy
 ```
+Open the browser and navigate to http://localhost:8000 to view the login page.
 
-> ⚠️ **注意**：正式的生产系统需要通过自有域名申请 SSL 证书，并使用 nginx 进行反向代理等方式部署到 https 协议。如果仅基于 http 协议部署，某些功能（如语音识别、消息复制等）可能无法正常工作。
+> ⚠️ **Warning:** For production environment, you need to apply for an SSL certificate through your own domain and deploy it over HTTPS using nginx for reverse proxy or other methods. If deployed over HTTP, certain features (such as voice recognition, message copying, etc.) may not function properly.
 
-7. 登录
+7. Login
 
-本系统支持和现有账户体系打通，此处演示基于[url跳转](#url跳转)的登录方式：
+This system supports integration with existing account systems. Here, we demonstrate the [URL Redirection](#URL-Redirection) login method:
 
 ``` bash
 sudo make url
 ```
 
-上述命令可以获得登录url，在浏览器打开该url进行无感登录。
+The above command retrieves the login URL. Open this URL in the browser for login.
 
-如果配置了OAuth登录方式，可以在浏览器打开 http://localhost:8000 进行登录。
+If OAuth login is configured, you can log in by opening http://localhost:8000 in the browser.
 
-8. 问题排查
+8. Troubleshooting
 ``` bash
-# 检查容器是否在运行，正常应该有2个容器：adp-chat-client-default, adp-chat-client-db-default
+# Check if the containers are running. Normally, there should be 2 containers: adp-chat-client-default, adp-chat-client-db-default
 sudo docker ps
 
-# 如果没有看到容器，意味着启动遇到问题，可以查看日志:
+# If no containers are visible, it indicates a startup issue. You can check the logs:
 sudo make logs
 ```
 
-## 视频讲解
+## Service Configuration
 
-<video
-    src="https://yuanzinengli-1304234438.cos.ap-guangzhou.myqcloud.com/adp-chat-client.mp4" 
-    controls preload="metadata" 
-    width="50%" height="auto" 
-    style="object-fit: cover; border-radius: 8px;">
-</video>
+To use the system, enable/configure the following services:
+1. Dialogue title generation: [Knowledge Engine Atomic Capability: Postpaid Settings](https://console.cloud.tencent.com/lkeap/settings), enable: Atomic Capability_DeepSeek API-V3 Postpaid
+2. Voice input: [Speech Recognition: Settings](https://console.cloud.tencent.com/asr/settings), enable: Real-time speech recognition for the required region.
+3. App Permission: Make sure the account associated with your TC_SECRET_ID/TC_SECRET_KEY has permission to access the applications you’ve added. For details, see the [platform-side user permissions documentation](https://www.tencentcloud.com/document/product/1254/73347).
 
-## 服务开关
+## Account System Integration
 
-为了正常使用本系统，需要开启/配置以下服务：
-1. 对话标题：[知识引擎原子能力：后付费设置](https://console.cloud.tencent.com/lkeap/settings)，开启：原子能力_DeepSeek API-V3后付费
-2. 语音输入：[语音识别：设置](https://console.cloud.tencent.com/asr/settings)，开启：所需区域的实时语音识别
-3. 应用权限：请确保配置的 TC_SECRET_ID/TC_SECRET_KEY 所对应的账号拥有已添加的应用的权限，详情可参考[平台端用户权限说明](https://cloud.tencent.com/document/product/1759/122574)
-
-## 账户体系对接
+### OAuth
 
 ### GitHub OAuth
 
-默认支持 GitHub OAuth 协议，开发者可以根据需要进行配置：
+GitHub OAuth is supported by default. You can can configure it as needed:
 ```
 # you can obtain it from https://github.com/settings/developers
 OAUTH_GITHUB_CLIENT_ID=
 OAUTH_GITHUB_SECRET=
 ```
-> 📝 **注意**：创建GitHub OAuth应用时，callback URL填写：SERVICE_API_URL+/oauth/callback/github，例如：http://localhost:8000/oauth/callback/github
+> 📝 **Note**：When creating a GitHub OAuth application, fill in the callback URL as：SERVICE_API_URL+/oauth/callback/github, for example: http://localhost:8000/oauth/callback/github
 
 ### Microsoft Entra ID OAuth
 
-默认支持 Microsoft Entra ID OAuth 协议，开发者可以根据需要进行配置：
+Microsoft Entra ID OAuth is supported by default. You can can configure it as needed:
 ```
 # you can obtain it from https://entra.microsoft.com
 OAUTH_MICROSOFT_ENTRA_CLIENT_ID=
 OAUTH_MICROSOFT_ENTRA_SECRET=
 ```
-> 📝 **注意**：创建Microsoft Entra ID OAuth应用时，callback URL填写：SERVICE_API_URL+/oauth/callback/ms_entra_id，例如：http://localhost:8000/oauth/callback/ms_entra_id
+> 📝 **Note**：When creating a Microsoft Entra ID OAuth application, fill in the callback URL as：SERVICE_API_URL+/oauth/callback/ms_entra_id, for example: http://localhost:8000/oauth/callback/ms_entra_id
 
-### 其他 OAuth
+### Other OAuth providers
 
-OAuth 协议可以帮助实现无缝的身份验证和授权，开发者可以根据业务需求定制自己的认证方式。如需使用其他 OAuth 系统，可以根据具体协议修改 `server/core/oauth.py` 文件以适配。
+> OAuth protocol enables seamless authentication and authorization. Developers can customize authentication methods according to their requirements. If you need to use a different OAuth system, you can modify the `server/core/oauth.py` file to adapt to the specific protocol.
 
-### url跳转
+### URL Redirection
 
-如果您已经有自己的账户体系，但没有标准的OAuth，希望用更简单的方法对接，可以采用 url 跳转方式来实现系统对接。
+If you have an existing account system but do not implement a standard OAuth flow, you can integrate with the system using a URL redirect method for simpler integration.
 
-1. 【您现有的账户服务】：生成指向本系统的url，携带CustomerId、Name、ExtraInfo、Timestamp、签名等信息。
-2. 【用户】：用户点击该url，进行登录。
-3. 【本系统】：校验签名通过，自动创建、绑定账户，生成登录态，自动跳转到对话页面。
+1. **Your account service:** Generate a URL pointing to this system, carrying CustomerId, Name, Timestamp, ExtraInfo, Code, etc.
+2. **User:** Clicks the URL to login to their account.
+3. **This system:** Verifies the signature, auto-creates/binds the account, generates a login session, and redirects to the chat page.
 
-###### 详细参数：
+###### Parameter details:
 
-| 参数      | 描述 |
+| Parameter | Description |
 | :----------- | :-----------|
 | url | https://your-domain.com/account/customer?CustomerId=&Name=&Timestamp=&ExtraInfo=&Code= |
-| CustomerId | 您现有账户体系的uid |
-| Name | 您现有账户体系的username（可选）|
-| Timestamp | 当前时间戳 |
-| ExtraInfo | 用户信息 |
-| Code | 签名，SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, CustomerId + Name + ExtraInfo + str(Timestamp))) |
+| CustomerId | Your account system's uid |
+| Name | Your account system's username (optional) |
+| Timestamp | Current timestamp |
+| ExtraInfo | User information |
+| Code | Signature, SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, CustomerId + Name + ExtraInfo + str(Timestamp))) |
 
-> 📝 **注意**：
-> 1. 以上参数需要分别进行 url_encode，详细实现可以参考代码 `server/core/account.py` 内 CoreAccount.customer_auth 部分；生成url的方式可以参考 `server/main.py`的generate_customer_account_url。
-> 2. 需要在.env文件中配置CUSTOMER_ACCOUNT_SECRET_KEY，一个随机字符串，可以使用uuidgen命令生成
+> 📝 **Note**:
+> 1. The parameters above must be URL-encoded, for more details you can refer to the CoreAccount.customer_auth in `server/core/account.py` file, and generate_customer_account_url in `server/main.py` file for URL generation method.
+> 2. Configure CUSTOMER_ACCOUNT_SECRET_KEY in the .env file, a random string that can be generated using the uuidgen command.
 
-# 开发指南
+# Development Guide
 
-## 前端
+## Frontend
 
-### 依赖
+### Dependencies
 
 - node >= 20
 
@@ -181,42 +175,41 @@ source ~/.bashrc
 nvm install v22
 ```
 
-### 调试
+### Debugging
 
-#### 命令行
-``` bash
-# 初始化（仅首次运行）
+#### Command Line
+```bash
+# Initialize (only needed on the first run)
 make init_client
 
-# 打包
+# Build
 make client
-# 打包后编译结果会生成到server/static/app文件夹，启动服务端后即可在浏览器拉取访问
+# The build output will be generated in server/static/app. You can access it in the browser after starting the backend.
 ```
 
-## 后端
+## Backend
 
-### 依赖
+### Dependencies
 
 - python >= 3.12
 
-### 调试
+### Debugging
 
-#### 命令行
-
-``` bash
-# 1. 执行【部署】的所有步骤
-# 2. 复制刚刚编辑好的.env文件到server文件夹
+#### Command Line
+```bash
+# 1. Execute all the steps in [Deployment] section
+# 2. Copy the edited .env file to the server folder
 cp deploy/default/.env server/.env
 
-# 3. 以文件挂载方式启动server容器（无需重新打包）
+# 3. Start the server container in mount mode (no need to rebuild)
 sudo make debug
 ```
 
-#### vscode快捷调试
+#### VSCode Quick Debugging
 
-通过快捷命令（cmd+shift+p），输入`Preferences: Open Keyboard Shortcuts (JSON)`，添加如下配置，即可通过快捷键cmd+r快速启动命令，如对server进行单元测试。
+Use the shortcut command (cmd+shift+p), enter `Preferences: Open Keyboard Shortcuts (JSON)`, and add the following configuration to quickly launch commands via the shortcut cmd+r, such as running unit tests for the server.
 
-``` json
+```json
 {
     "key": "cmd+r",
     "command": "workbench.action.terminal.sendSequence",
@@ -226,17 +219,18 @@ sudo make debug
 },
 ```
 
-### 架构
+### Architecture
 
-| 组成部分      | 描述 |
+| Component | Description |
 | :----------- | :-----------|
-| config      | 配置系统 |
-| core   | 核心逻辑，不与具体协议（如http或stdio）绑定 |
-| middleware | Sanic服务端的中间件 |
-| router | 对外暴露的http入口，一般是对core的包装 |
-| static | 静态文件 |
-| test | 测试 |
-| util | 其他辅助类 |
+| config | Configuration system |
+| core | Core logic, not bound to specific protocols (e.g., HTTP or stdio) |
+| middleware | Middleware for the Sanic server |
+| model | ORM definitions for entities, e.g., Account |
+| router | Externally exposed HTTP endpoints, typically wrapping core logic |
+| static | Static files |
+| test | Testing |
+| util | Other utility classes |
 
 ## ⭐ Star History
 
