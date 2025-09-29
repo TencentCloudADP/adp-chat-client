@@ -41,7 +41,7 @@ TC_SECRET_APPID=
 TC_SECRET_ID=
 TC_SECRET_KEY=
 
-# TCADP平台获取的智能体应用key：https://lke.cloud.tencent.com/
+# ADP平台获取的智能体应用key：https://lke.cloud.tencent.com/
 APP_CONFIGS='[
     {
         "Vendor":"Tencent",
