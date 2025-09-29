@@ -199,7 +199,7 @@ const renderReasoning = (content: AgentThought | undefined) => {
                 <t-icon class="share-icon" name="share" @click="share(item)" />
             </div>
             <!-- <TChatContent v-else :content="item.Content" /> -->
-            <MdContent v-else :content="item.Content" />
+            <MdContent v-else :content="item.Content"  role="assistant"/>
             <div class="references-container"
                 v-if="item.References && item.References.length > 0 && !(item.IsFinal === false)">
                 <span class="title">{{ $t('sender.references') }}: </span>
@@ -311,9 +311,7 @@ const renderReasoning = (content: AgentThought | undefined) => {
 .references-container .title {
     color: var(--td-text-color-secondary);
 }
-</style>
-<style>
-.t-chat__detail{
-    max-width: calc(100% - 36px);
+:deep(.t-chat__detail) {
+    max-width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs) );
 }
 </style>

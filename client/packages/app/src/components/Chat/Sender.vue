@@ -298,11 +298,9 @@ defineExpose({
     padding-top: 8px;
     padding-left: 10px;
 }
-
-</style>
-<style>
 /* TODO: 当前版本不支持，后续再开放 */
-.t-button:has(.t-icon-file-attachment) {
-  display: none;
+:deep(.t-button:has(.t-icon-file-attachment)){
+     display: none;
 }
+
 </style>

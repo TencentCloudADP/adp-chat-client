@@ -597,10 +597,7 @@ watch(
 .icon__share-close span:nth-child(1):hover {
     background: var(--td-bg-color-secondarycontainer-active);
 }
-</style>
-
-<style>
-.share-setting-container .t-drawer__content-wrapper {
+:deep(.share-setting-container .t-drawer__content-wrapper){
     height: 120px !important;
     background-color: var(--td-bg-color-secondarycontainer);
 }

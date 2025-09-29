@@ -131,9 +131,7 @@ const handleChooseQuestion = (value: string) => {
 .recommend-question-container {
   margin-top: var(--td-size-6)
 }
-</style>
-<style>
-.greeting-panel .t-input {
+:deep(.greeting-panel .t-input){
   border-radius: 50px;
   width: 300px;
 }
