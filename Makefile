@@ -36,7 +36,6 @@ test_server:
 
 build_server:
 	-mkdir build
-	-mkdir server/static
 	rsync -avr --exclude='__pycache__' --exclude='.*' server/ build/server/
 
 build_client:
