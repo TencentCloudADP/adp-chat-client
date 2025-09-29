@@ -601,4 +601,8 @@ watch(
     height: 120px !important;
     background-color: var(--td-bg-color-secondarycontainer);
 }
+:deep(.assistant .t-chat__detail){
+    max-width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs) );
+    width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs) );
+}
 </style>

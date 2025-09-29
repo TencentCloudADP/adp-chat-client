@@ -176,7 +176,7 @@ const renderReasoning = (content: AgentThought | undefined) => {
 
 <template>
     <!-- 聊天项组件 -->
-    <TChatItem animation="moving" :name="item.IsLlmGenerated ? item.FromName : userStore.name"
+    <TChatItem  animation="moving" :name="item.IsLlmGenerated ? item.FromName : userStore.name"
         :role="item.IsLlmGenerated ? 'assistant' : 'user'" :variant="item.IsLlmGenerated ? undefined : 'base'"
         :text-loading="isLastMsg && loading" :reasoning="renderReasoning(item.AgentThought)">
         <!-- 时间戳插槽 -->
@@ -311,7 +311,5 @@ const renderReasoning = (content: AgentThought | undefined) => {
 .references-container .title {
     color: var(--td-text-color-secondary);
 }
-:deep(.t-chat__detail) {
-    max-width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs) );
-}
+
 </style>
