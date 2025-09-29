@@ -9,6 +9,13 @@
 
 # Deployment
 
+## System Requirements
+
+Please ensure the machine meets the minimum requirements:
+
+- CPU >= 1 Core
+- RAM >= 2 GiB
+
 ## Docker
 
 1. Clone the source code and enter the project directory
@@ -223,3 +230,7 @@ Use the shortcut command (cmd+shift+p), enter `Preferences: Open Keyboard Shortc
 | static | Static files |
 | test | Testing |
 | util | Other utility classes |
+
+## ⭐ Star History
+
+![Star History Chart](https://api.star-history.com/svg?repos=TencentCloudADP/adp-chat-client&type=Date)

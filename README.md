@@ -8,6 +8,13 @@
 
 # 部署
 
+## 系统要求
+
+请确保机器满足最低要求：
+
+- CPU >= 1 Core
+- RAM >= 2 GiB
+
 ## docker快速部署
 
 1. 克隆源代码并进入目录
@@ -221,3 +228,7 @@ sudo make debug
 | static | 静态文件 |
 | test | 测试 |
 | util | 其他辅助类 |
+
+## ⭐ Star History
+
+![Star History Chart](https://api.star-history.com/svg?repos=TencentCloudADP/adp-chat-client&type=Date)
