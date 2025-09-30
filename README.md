@@ -235,4 +235,4 @@ sudo make debug
 
 ## ⭐ Star History
 
-![Star History Chart](https://api.star-history.com/svg?repos=TencentCloudADP/adp-chat-client&type=Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=adp-chat-client/adp-chat-client,TencentCloudADP/adp-chat-client&type=Date)](https://www.star-history.com/#adp-chat-client/adp-chat-client&TencentCloudADP/adp-chat-client&Date)
