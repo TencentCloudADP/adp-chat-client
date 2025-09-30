@@ -31,6 +31,7 @@
 ## Docker快速部署
 
 1. 克隆源代码并进入目录
+
 ```bash
 git clone https://github.com/TencentCloudADP/adp-chat-client.git
 cd adp-chat-client
@@ -40,16 +41,16 @@ cd adp-chat-client
 
 > 适用于 TencentOS Server 4.4：
 
-``` bash
+```bash
 bash script/init_env_tencentos.sh
 ```
 > 适用于 Ubuntu Server 24.04：
 
-``` bash
+```bash
 bash script/init_env_ubuntu.sh
 ```
 
-3. 复制```.env.example```文件到deploy文件夹
+3. 复制`.env.example`文件到deploy文件夹
 
 ``` bash
 cp server/.env.example deploy/default/.env
@@ -59,13 +60,13 @@ cp server/.env.example deploy/default/.env
 
 您需要根据您的腾讯云账户和ADP平台的相关信息，填入以下密钥和应用Key：
 
-```
+```bash
 # 腾讯云账户密钥：https://console.cloud.tencent.com/cam/capi
 TC_SECRET_APPID=
 TC_SECRET_ID=
 TC_SECRET_KEY=
 
-# ADP平台获取的智能体应用key：https://lke.cloud.tencent.com/
+# ADP平台获取的智能体应用key：https://adp.cloud.tencent.com/
 APP_CONFIGS='[
     {
         "Vendor":"Tencent",
@@ -84,8 +85,10 @@ SECRET_KEY=
 > 1. APP_CONFIGS内容为JSON，注意遵循JSON规范，例如：最后一项末尾不能有逗号，不支持//注释
 > 2. Comment: 可以任意填写，方便自己定位对应的智能体应用
 > 3. International: 使用腾讯云国内站设为false(默认)，如果是在国际站开发的智能体应用，此处设为true
+> 5. ApplicationId: 进入任意ADP应用，在应用网址内查看appid。例如某个应用的链接为 `https://adp.cloud.tencent.com/adp/#/app/knowledge/app-config?appid=1959******8208&appType=knowledge_qa&spaceId=default_space`，则它的ApplicationId为1959******8208。
 
 5. 制作镜像
+
 ``` bash
 # 制作镜像
 sudo make pack
