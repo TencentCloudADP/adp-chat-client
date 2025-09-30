@@ -3,7 +3,7 @@
 [![微信社群](https://img.shields.io/badge/Community-WeChat-32CD32)](assets/wechat_qr.png)
 [![Discord 社群](https://img.shields.io/badge/Community-Discord-8A2BE2)](https://discord.gg/dwHuBUKkxw)
 
-[🔖 English](README.md) • [🚀 快速部署](#部署)
+[🔖 English](README.md) • [🚀 部署指南](#部署)
 
 # 关于
 
