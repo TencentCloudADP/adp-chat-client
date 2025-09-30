@@ -86,8 +86,8 @@ SECRET_KEY=
 
 5. Build docker image
 ```bash
-# Build  
-sudo make pack  
+# Build image (rerun after code changes, no need to repack if you only modify the .env file).
+sudo make pack
 ```
 
 6. Start the container
