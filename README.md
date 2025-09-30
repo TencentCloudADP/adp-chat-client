@@ -1,9 +1,13 @@
+<div align="center">
+
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
 [![GitHub](https://img.shields.io/badge/GitHub-Tencent-blue.svg)](https://github.com/TencentCloudADP/adp-chat-client)
 [![WeChat Community](https://img.shields.io/badge/Community-WeChat-32CD32)](assets/wechat_qr.png)
 [![Discord Community](https://img.shields.io/badge/Community-Discord-8A2BE2)](https://discord.gg/dwHuBUKkxw)
 
 [🔖 中文版](README.cn.md) • [🚀 Quickly Start Guide](#Docker)
+
+</div>
 
 # About
 
