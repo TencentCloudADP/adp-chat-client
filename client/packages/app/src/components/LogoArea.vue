@@ -24,6 +24,7 @@ const getLogo = () => {
 .header-logo-container {
     display: flex;
     align-items: center;
+    padding: 0 var(--td-comp-paddingLR-s);
 }
 
 .header-logo {

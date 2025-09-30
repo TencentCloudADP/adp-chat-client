@@ -1,0 +1,12 @@
+.t-drawer__header {
+  border-bottom: none !important;
+}
+
+.t-drawer__footer {
+  border-top: none !important;
+  background: var(--td-bg-color-secondarycontainer) !important;
+}
+
+.t-drawer__content-wrapper {
+  background: var(--td-bg-color-secondarycontainer) !important;
+}

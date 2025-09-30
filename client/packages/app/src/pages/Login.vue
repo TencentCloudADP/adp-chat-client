@@ -1,15 +1,17 @@
 <template>
-  <div class="login-container">
-    <t-card class="login-card">
-      <template #title>
-        <div class="login-title">{{ $t('account.welcome') }}👋</div>
-        <div class="login-title">{{ $t('account.systemName') }}</div>
-      </template>
-      <div v-for="provider, index in oauthProviders" class="oauth-button-wrapper">
-        <t-button variant="outline" size="large" :href="provider['url']">{{ provider['name'] }}</t-button>
-      </div>
-    </t-card>
-  </div>
+  <t-layout class="page-container">
+    <div class="login-container">
+      <t-card class="login-card">
+        <template #title>
+          <div class="login-title">{{ $t('account.welcome') }}👋</div>
+          <div class="login-title">{{ $t('account.systemName') }}</div>
+        </template>
+        <div v-for="provider, index in oauthProviders" class="oauth-button-wrapper">
+          <t-button variant="outline" size="large" :href="provider['url']">{{ provider['name'] }}</t-button>
+        </div>
+      </t-card>
+    </div>
+  </t-layout>
 </template>
 
 <script setup lang="ts">

@@ -26,9 +26,11 @@ declare module 'vue' {
     Sender: typeof import('./src/components/Chat/Sender.vue')['default']
     Settings: typeof import('./src/components/Settings.vue')['default']
     SidebarToggle: typeof import('./src/components/SidebarToggle.vue')['default']
+    TAside: typeof import('tdesign-vue-next')['Aside']
     TAvatar: typeof import('tdesign-vue-next')['Avatar']
     TButton: typeof import('tdesign-vue-next')['Button']
     TCard: typeof import('tdesign-vue-next')['Card']
+    TCheckbox: typeof import('tdesign-vue-next')['Checkbox']
     TCheckTag: typeof import('tdesign-vue-next')['CheckTag']
     TConfigProvider: typeof import('tdesign-vue-next')['ConfigProvider']
     TContent: typeof import('tdesign-vue-next')['Content']
@@ -37,6 +39,7 @@ declare module 'vue' {
     TDropdown: typeof import('tdesign-vue-next')['Dropdown']
     TDropdownItem: typeof import('tdesign-vue-next')['DropdownItem']
     TDropdownMenu: typeof import('tdesign-vue-next')['DropdownMenu']
+    TFooter: typeof import('tdesign-vue-next')['Footer']
     TForm: typeof import('tdesign-vue-next')['Form']
     THeader: typeof import('tdesign-vue-next')['Header']
     ThemeSwitcher: typeof import('./src/components/ThemeSwitcher.vue')['default']
@@ -52,5 +55,6 @@ declare module 'vue' {
     TSkeleton: typeof import('tdesign-vue-next')['Skeleton']
     TSpace: typeof import('tdesign-vue-next')['Space']
     TTooltip: typeof import('tdesign-vue-next')['Tooltip']
+    TUpload: typeof import('tdesign-vue-next')['Upload']
   }
 }
