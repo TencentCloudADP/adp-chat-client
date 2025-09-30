@@ -85,7 +85,7 @@ SECRET_KEY=
 > 1. APP_CONFIGS内容为JSON，注意遵循JSON规范，例如：最后一项末尾不能有逗号，不支持//注释
 > 2. Comment: 可以任意填写，方便自己定位对应的智能体应用
 > 3. International: 使用腾讯云国内站设为false(默认)，如果是在国际站开发的智能体应用，此处设为true
-> 5. ApplicationId: 进入任意ADP应用，在应用网址内查看appid。例如某个应用的链接为 `https://adp.cloud.tencent.com/adp/#/app/knowledge/app-config?appid=1959******8208&appType=knowledge_qa&spaceId=default_space`，则它的ApplicationId为1959******8208。
+> 4. ApplicationId: 进入任意ADP应用，在应用网址内查看appid。例如某个应用的链接为 `https://adp.cloud.tencent.com/adp/#/app/knowledge/app-config?appid=1959******8208&appType=knowledge_qa&spaceId=default_space`，则它的ApplicationId为1959******8208。
 
 5. 制作镜像
 
