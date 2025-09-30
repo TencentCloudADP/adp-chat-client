@@ -7,7 +7,7 @@
 
 # 关于
 
-**ADP-Chat-Client** 是一个开源的AI智能体应用对话端。可以将 [腾讯云智能体开发平台（Tencent Cloud ADP）](https://cloud.tencent.com/product/tcadp) 开发的 AI 智能体应用快速部署为Web应用（或嵌入到小程序、Android、iOS 应用中）。支持实时对话、对话历史管理、语音输入、图片理解、第三方账户体系对接等功能。支持通过 Docker 快速部署。
+**ADP-Chat-Client**是一个开源的AI智能体应用对话端。可以将[腾讯云智能体开发平台（Tencent Cloud ADP）](https://cloud.tencent.com/product/tcadp) 开发的AI智能体应用快速部署为Web应用（或嵌入到小程序、Android、iOS 应用中）。支持实时对话、对话历史管理、语音输入、图片理解、第三方账户体系对接等功能。支持通过Docker快速部署。
 
 #### 目录
 
@@ -31,24 +31,28 @@ git clone https://github.com/TencentCloudADP/adp-chat-client.git
 cd adp-chat-client
 ```
 
-2. 安装docker并设定镜像配置（如果系统上已经装好docker，跳过）：
+2. 安装Docker并设定镜像配置（如果系统上已经装好Docker，可跳过该步骤）：
+
 > 适用于 TencentOS Server 4.4：
+
 ``` bash
 bash script/init_env_tencentos.sh
 ```
 > 适用于 Ubuntu Server 24.04：
+
 ``` bash
 bash script/init_env_ubuntu.sh
 ```
 
 3. 复制```.env.example```文件到deploy文件夹
+
 ``` bash
 cp server/.env.example deploy/default/.env
 ```
 
 4. 修改```deploy/default/.env```文件中的配置项
 
-您需要根据您的腾讯云账户和 ADP 平台的相关信息，填入以下密钥和应用 Key：
+您需要根据您的腾讯云账户和ADP平台的相关信息，填入以下密钥和应用Key：
 
 ```
 # 腾讯云账户密钥：https://console.cloud.tencent.com/cam/capi
@@ -87,7 +91,7 @@ sudo make pack
 sudo make deploy
 ```
 
-> ⚠️ **注意**：正式的生产系统需要通过自有域名申请 SSL 证书，并使用 nginx 进行反向代理等方式部署到 https 协议。如果仅基于 http 协议部署，某些功能（如语音识别、消息复制等）可能无法正常工作。
+> ⚠️ **注意**：正式的生产系统需要通过自有域名申请SSL证书，并使用nginx进行反向代理等方式部署到https协议。如果仅基于http协议部署，某些功能（如语音识别、消息复制等）可能无法正常工作。
 
 7. 登录
 
@@ -128,7 +132,7 @@ sudo make logs
 
 ### GitHub OAuth
 
-默认支持 GitHub OAuth 协议，开发者可以根据需要进行配置：
+默认支持GitHub OAuth协议，开发者可以根据需要进行配置：
 ```
 # you can obtain it from https://github.com/settings/developers
 OAUTH_GITHUB_CLIENT_ID=
@@ -146,13 +150,13 @@ OAUTH_MICROSOFT_ENTRA_SECRET=
 ```
 > 📝 **注意**：创建Microsoft Entra ID OAuth应用时，callback URL填写：SERVICE_API_URL+/oauth/callback/ms_entra_id，例如：http://localhost:8000/oauth/callback/ms_entra_id
 
-### 其他 OAuth
+### 其它OAuth
 
-OAuth 协议可以帮助实现无缝的身份验证和授权，开发者可以根据业务需求定制自己的认证方式。如需使用其他 OAuth 系统，可以根据具体协议修改 `server/core/oauth.py` 文件以适配。
+OAuth协议可以帮助实现无缝的身份验证和授权，开发者可以根据业务需求定制自己的认证方式。如需使用其他OAuth系统，可以根据具体协议修改 `server/core/oauth.py` 文件以适配。
 
 ### url跳转
 
-如果您已经有自己的账户体系，但没有标准的OAuth，希望用更简单的方法对接，可以采用 url 跳转方式来实现系统对接。
+如果您已经有自己的账户体系，但没有标准的OAuth，希望用更简单的方法对接，可以采用url跳转方式来实现系统对接。
 
 1. 【您现有的账户服务】：生成指向本系统的url，携带CustomerId、Name、ExtraInfo、Timestamp、签名等信息。
 2. 【用户】：用户点击该url，进行登录。
@@ -170,8 +174,10 @@ OAuth 协议可以帮助实现无缝的身份验证和授权，开发者可以�
 | Code | 签名，SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, CustomerId + Name + ExtraInfo + str(Timestamp))) |
 
 > 📝 **注意**：
-> 1. 以上参数需要分别进行 url_encode，详细实现可以参考代码 `server/core/account.py` 内 CoreAccount.customer_auth 部分；生成url的方式可以参考 `server/main.py`的generate_customer_account_url。
-> 2. 需要在.env文件中配置CUSTOMER_ACCOUNT_SECRET_KEY，一个随机字符串，可以使用uuidgen命令生成
+
+> 1. 以上参数需要分别进行url_encode，详细实现可以参考代码 `server/core/account.py` 内 CoreAccount.customer_auth 部分；生成url的方式可以参考 `server/main.py`的generate_customer_account_url。
+
+> 2. 需要在.env文件中配置CUSTOMER_ACCOUNT_SECRET_KEY，一个随机字符串，可以使用uuidgen命令生成。
 
 # 开发指南
 
@@ -190,6 +196,7 @@ nvm install v22
 ### 调试
 
 #### 命令行
+
 ``` bash
 # 初始化（仅首次运行）
 make init_client
