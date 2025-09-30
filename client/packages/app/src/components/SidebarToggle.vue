@@ -8,7 +8,7 @@ const handleClick = () => {
     uiStore.toggleDrawer();
 };
 
-const iconName = computed(() => (uiStore.drawerVisible ? 'indent-right' : 'indent-left'));
+const iconName = computed(() => (uiStore.drawerVisible ? 'indent-left' : 'indent-right'));
 </script>
 
 <template>
