@@ -12,10 +12,11 @@
   "account": {
     "login": "Login",
     "logout": "Logout",
-    "loginToAdp": "Login",
     "inputAccountName": "Please enter your account name",
     "inputPassword": "Please enter your password",
-    "defaultName": "Guest"
+    "defaultName": "Guest",
+    "welcome": "Welcome",
+    "systemName": "ADP Chat Client"
   },
   "operation": {
     "search": "Search",
@@ -51,7 +52,7 @@
     "moveToGroup": "Move to Group"
   },
   "common": {
-    "loading":"loading",
+    "loading": "loading",
     "today": "Today",
     "recent": "Recent",
     "s": "S",

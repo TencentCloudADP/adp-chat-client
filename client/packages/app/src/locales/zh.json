@@ -12,10 +12,11 @@
   "account": {
     "login": "登录",
     "logout": "退出登录",
-    "loginToAdp": "登录",
     "inputAccountName": "请输入账户名",
     "inputPassword": "请输入密码",
-    "defaultName": "游客"
+    "defaultName": "游客",
+    "welcome": "欢迎登录",
+    "systemName": "ADP Chat Client"
   },
   "operation": {
     "search": "搜索",
@@ -51,7 +52,7 @@
     "moveToGroup": "移动到分组"
   },
   "common": {
-    "loading":"加载中",
+    "loading": "加载中",
     "today": "今天",
     "recent": "最近",
     "s": "秒",
