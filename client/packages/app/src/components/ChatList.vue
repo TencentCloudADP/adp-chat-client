@@ -114,7 +114,7 @@ const handleCreateNewChat = () => {
         Title: "",
         LastActiveAt: 0,
         CreatedAt: 0,
-        ApplicationId:currentApplicationId.value || ''
+        ApplicationId: currentApplicationId.value || ''
     });
 }
 </script>
@@ -134,7 +134,7 @@ const handleCreateNewChat = () => {
         <!-- TODO: 增加时间分类 -->
         <!-- 会话项列表 -->
         <div v-for="(list, index) in conversationsHistoryList" :key="index">
-            <block v-if="list.data.length > 0 ">
+            <block v-if="list.data.length > 0">
                 <div class="history-header">
                     <!-- 列表头部 -->
                     <span class="history-header__time">{{ list.time }}</span>
@@ -153,7 +153,7 @@ const handleCreateNewChat = () => {
                     </div> -->
                 </div>
             </block>
-            
+
         </div>
 
     </div>
@@ -162,15 +162,13 @@ const handleCreateNewChat = () => {
 <style scoped>
 .history-list {
     width: 100%;
-    background: var(--td-bg-color-container);
-    border-radius: var(--td-radius-default);
     padding: var(--td-comp-paddingTB-s) 0;
 }
 
 .history-header {
     font-size: var(--td-font-size-mark-small);
     color: var(--td-text-color-primary);
-    padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-l);
+    padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-s);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -183,7 +181,7 @@ const handleCreateNewChat = () => {
 
 .history-item {
     cursor: pointer;
-    padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-l);
+    padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-s);
     border-radius: var(--td-radius-default);
     transition: background 0.2s;
     color: var(--td-text-color-secondary);

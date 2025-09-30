@@ -26,27 +26,16 @@ onMounted(async () => {
 </script>
 
 <template>
-    <t-header>
-        <HeaderLayout />
-    </t-header>
-    <t-content>
-        <div class="content">
-            <t-card style="height: 100%;" :bordered="false">
-                <SideLayout />
-                <MainLayout />
-            </t-card>
-        </div>
-    </t-content>
+    <t-layout class="page-container">
+        <t-content class="content">
+            <SideLayout />
+            <MainLayout />
+        </t-content>
+    </t-layout>
 </template>
 
 <style scoped>
 .content {
-    height: calc(100vh - var(--td-comp-size-xxxl));
-    border: 1px solid var(--td-border-level-2-color);
-    border-radius: var(--td-radius-default);
-}
-
-:deep(.t-card__body) {
-    height: 100%;
+    height: 100vh;
 }
 </style>

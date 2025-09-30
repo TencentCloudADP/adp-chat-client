@@ -19,14 +19,12 @@ onMounted(() => {
 
 <template>
   <t-config-provider :global-config="tDesignLocale">
-    <t-layout class="page-container">
-      <RouterView />
-    </t-layout>
+    <RouterView />
   </t-config-provider>
 </template>
 
 <style scoped>
-.page-container{
-width: 100vw; 
+.page-container {
+  width: 100vw;
 }
 </style>
