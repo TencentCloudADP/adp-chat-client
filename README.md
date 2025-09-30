@@ -64,7 +64,7 @@ You need to fill in the following credentials and application keys based on your
 TC_SECRET_APPID=
 TC_SECRET_ID=
 TC_SECRET_KEY=
-# Tencent Cloud ADP platform agent app key: https://adp.cloud.tencent.com
+# Tencent Cloud ADP platform agent app key: https://adp.tencentcloud.com/
 APP_CONFIGS='[
     {
         "Vendor":"Tencent",
@@ -82,7 +82,7 @@ SECRET_KEY=
 > ⚠️ **Note**:
 > 1. The content of APP_CONFIGS is in JSON format. Please adhere to JSON specifications, e.g., the last item should not end with a comma, and // comments are not supported.
 > 2. Comment: Can be filled in freely for easy identification of the corresponding agent application.
-> 3. International: If the agent application is developed on the [ADP](https://adp.cloud.tencent.com/), set the value to true.
+> 3. International: If the agent application is developed on the [ADP](https://adp.tencentcloud.com/), set the value to true.
 > 4. ApplicationId: Access any ADP application and check the appid in the application URL. For example, if an application's link is `https://adp.tencentcloud.com/adp/#/app/knowledge/app-config?appid=197******768&appType=knowledge_qa&spaceId=default_space`, then its ApplicationId is 197******768.
 
 5. Build docker image
