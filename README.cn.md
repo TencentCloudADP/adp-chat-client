@@ -121,10 +121,7 @@ sudo make logs
 
 ## 视频讲解
 
-<video width="800" controls>
-  <source src="https://yuanzinengli-1304234438.cos.ap-guangzhou.myqcloud.com/adp-chat-client.mp4" type="video/mp4">
-</video>
-
+[🎥 观看演示视频](https://yuanzinengli-1304234438.cos.ap-guangzhou.myqcloud.com/adp-chat-client.mp4)
 
 ## 服务开关
 

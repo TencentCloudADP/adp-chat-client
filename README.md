@@ -121,9 +121,7 @@ sudo make logs
 
 ## Video Tutorial
 
-<video width="800" controls>
-  <source src="https://yuanzinengli-1304234438.cos.ap-guangzhou.myqcloud.com/adp-chat-client.mp4" type="video/mp4">
-</video>
+[📺 Video Tutorial](https://yuanzinengli-1304234438.cos.ap-guangzhou.myqcloud.com/adp-chat-client.mp4)
 
 ## Service Configuration
 
