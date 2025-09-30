@@ -90,7 +90,7 @@ SECRET_KEY=
 5. 制作镜像
 
 ``` bash
-# 制作镜像
+# 制作镜像（修改代码后需要重新运行，如果只是修改.env文件不需要重新pack）
 sudo make pack
 ```
 
