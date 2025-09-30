@@ -6,7 +6,7 @@ import SidebarToggle from '@/components/SidebarToggle.vue';
 
 <template>
     <div class="main-layout">
-        <Chat  />
+        <Chat />
         <!-- 收起/展开侧边栏按钮 -->
         <SidebarToggle />
     </div>
@@ -16,6 +16,6 @@ import SidebarToggle from '@/components/SidebarToggle.vue';
 .main-layout {
     height: 100%;
     position: relative;
-    padding: var(--td-comp-size-xxxl);
+    padding: 0 var(--td-comp-size-xxxl);
 }
 </style>
