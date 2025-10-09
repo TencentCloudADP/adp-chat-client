@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { useUiStore } from '@/stores/ui';
+import SidebarIcon from '@/assets/icons/sidebar.svg';
 
 const uiStore = useUiStore();
 
@@ -8,12 +8,11 @@ const handleClick = () => {
     uiStore.toggleDrawer();
 };
 
-const iconName = computed(() => (uiStore.drawerVisible ? 'indent-left' : 'indent-right'));
 </script>
 
 <template>
     <t-button variant="text" shape="square" @click="handleClick">
-        <template #icon><t-icon :name="iconName" /></template>
+        <template #icon><img :src="SidebarIcon" /></template>
     </t-button>
 </template>
 
