@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SidebarToggle from '@/components/SidebarToggle.vue';
 import HistoryList from '@/components/ChatList.vue';
 import LogoArea from '@/components/LogoArea.vue';
 import PersonalAccount from '@/components/PersonalAccount.vue';
@@ -13,6 +14,7 @@ const uiStore = useUiStore();
     <t-drawer :visible="uiStore.drawerVisible" placement="left" mode="push" size="400px" show-in-attached-element
         :show-overlay="false">
         <div class="drawer-content">
+            <SidebarToggle />
             <HistoryList />
         </div>
         <template #header>

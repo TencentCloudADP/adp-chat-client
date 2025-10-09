@@ -63,10 +63,6 @@
                     :isDeepThinking="isDeepThinking" :isStreamLoad="isStreamLoad" 
                     :onStop="onStop" :inputEnter="inputEnter" :handleModelChange="handleModelChange"
                     :toggleDeepThinking="toggleDeepThinking" />
-                <!-- 提示文字 -->
-                <div class="ai-warning">
-                    {{ $t('common.aiWarning') }}
-                </div>
             </template>
         </TChat>
         <!-- 回到底部按钮 -->
@@ -559,14 +555,6 @@ watch(
 .chat-item__content {
     display: flex;
     align-items: self-start;
-}
-
-.ai-warning {
-    text-align: center;
-    color: var(--td-text-color-placeholder);
-    font-size: var(--td-font-size-body-small);
-    margin-top: var(--td-comp-margin-s);
-    padding: var(--td-comp-paddingTB-xs) var(--td-comp-paddingLR-s);
 }
 
 .share-setting-content {

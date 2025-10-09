@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import Chat from '@/components/Chat/Index.vue';
 import SidebarToggle from '@/components/SidebarToggle.vue';
+import AIWarning from '@/components/AIWarning.vue';
 
 </script>
 
 <template>
-    <div class="main-layout">
-        <Chat />
-        <!-- 收起/展开侧边栏按钮 -->
-        <SidebarToggle />
-    </div>
+    <t-layout class="main-layout">
+        <t-header class="layout-header">
+            <SidebarToggle />
+        </t-header>
+        <t-content class="layout-content">
+            <Chat />
+        </t-content>
+        <t-footer class="layout-footer">
+            <AIWarning />
+        </t-footer>
+    </t-layout>
 </template>
 
 <style scoped>
