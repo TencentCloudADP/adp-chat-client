@@ -7,6 +7,8 @@ const config = {
   reactStrictMode: true,
   output: 'export',  // 启用静态导出用于 GitHub Pages
   trailingSlash: true,  // GitHub Pages 需要尾部斜杠
+  basePath: '/adp-chat-client',  // GitHub Pages 子路径
+  assetPrefix: '/adp-chat-client/',  // 静态资源前缀
   images: {
     unoptimized: true,  // 静态导出需要禁用图片优化
   },
