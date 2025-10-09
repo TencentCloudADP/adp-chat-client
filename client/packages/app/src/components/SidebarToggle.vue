@@ -12,16 +12,9 @@ const iconName = computed(() => (uiStore.drawerVisible ? 'indent-left' : 'indent
 </script>
 
 <template>
-    <t-button class="collapse-btn" variant="text" shape="square" @click="handleClick">
+    <t-button variant="text" shape="square" @click="handleClick">
         <template #icon><t-icon :name="iconName" /></template>
     </t-button>
 </template>
 
-<style scoped>
-.collapse-btn {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    z-index: 10;
-}
-</style>
+<style scoped></style>

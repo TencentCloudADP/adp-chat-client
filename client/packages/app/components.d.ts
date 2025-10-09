@@ -8,6 +8,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AIWarning: typeof import('./src/components/AIWarning.vue')['default']
     AppType: typeof import('./src/components/Chat/AppType.vue')['default']
     BackToBottom: typeof import('./src/components/Chat/BackToBottom.vue')['default']
     ChatItem: typeof import('./src/components/Chat/ChatItem.vue')['default']
