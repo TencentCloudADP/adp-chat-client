@@ -2,13 +2,16 @@
 import Chat from '@/components/Chat/Index.vue';
 import SidebarToggle from '@/components/SidebarToggle.vue';
 import AIWarning from '@/components/AIWarning.vue';
+import { useUiStore } from '@/stores/ui';
+
+const uiStore = useUiStore();
 
 </script>
 
 <template>
     <t-layout class="main-layout">
         <t-header class="layout-header">
-            <SidebarToggle />
+            <SidebarToggle v-if="!uiStore.drawerVisible"/>
         </t-header>
         <t-content class="layout-content">
             <Chat />
