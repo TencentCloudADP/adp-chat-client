@@ -1,9 +1,9 @@
 name: Deploy Docs to GitHub Pages
 
-# 触发条件：推送到 main 分支且 docs 目录有变更
+# 触发条件：推送到 gh-pages 分支且 docs 目录有变更
 on:
   push:
-    branches: [ main ]
+    branches: [ gh-pages ]
     paths: 
       - 'docs/**'
   # 也可以手动触发
