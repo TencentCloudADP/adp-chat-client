@@ -254,7 +254,3 @@ Use the shortcut command (cmd+shift+p), enter `Preferences: Open Keyboard Shortc
 | static | Static files |
 | test | Testing |
 | util | Other utility classes |
-
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=TencentCloudADP/adp-chat-client&type=Date)](https://www.star-history.com/#TencentCloudADP/adp-chat-client&Date)
