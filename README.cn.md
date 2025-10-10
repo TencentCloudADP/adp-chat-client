@@ -255,7 +255,3 @@ sudo make debug
 | static | 静态文件 |
 | test | 测试 |
 | util | 其他辅助类 |
-
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=TencentCloudADP/adp-chat-client&type=Date)](https://www.star-history.com/#TencentCloudADP/adp-chat-client&Date)
