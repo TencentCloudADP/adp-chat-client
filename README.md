@@ -122,7 +122,7 @@ sudo make logs
 
 ## Video Tutorial
 
-[📺 Video Tutorial](https://yuanzinengli-1304234438.cos.ap-guangzhou.myqcloud.com/adp-chat-client.mp4)
+[📺 Video Tutorial](https://pub-eada7a74aa3243c1a5c7b627deafeac9.r2.dev/adp-chat-client.mp4)
 
 ## Service Configuration
 
