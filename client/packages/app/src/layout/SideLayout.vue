@@ -34,7 +34,6 @@ const uiStore = useUiStore();
 .drawer-content {
     display: flex;
     flex-direction: column;
-    gap: var(--td-comp-paddingLR-m);
 }
 
 .drawer-footer {

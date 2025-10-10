@@ -162,7 +162,6 @@ const handleCreateNewChat = () => {
 <style scoped>
 .history-list {
     width: 100%;
-    padding: var(--td-comp-paddingTB-s) 0;
 }
 
 .history-header {
@@ -175,25 +174,25 @@ const handleCreateNewChat = () => {
 }
 
 .history-header__time {
-    color: var(--td-text-color-secondary);
-    font-weight: 600;
+    color: var(--td-text-color-placeholder);
+    font-size: var(--td-font-size-mark-small);
 }
 
 .history-item {
     cursor: pointer;
     padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-s);
-    border-radius: var(--td-radius-default);
+    border-radius: var(--td-radius-medium);
     transition: background 0.2s;
-    color: var(--td-text-color-secondary);
+    color: var(--td-text-color-primary);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    font-size: var(--td-font-size-body-medium);
 }
 
 
 .history-item.active {
-    background: var(--td-brand-color-light);
-    color: var(--td-brand-color);
+    background: var(--td-bg-color-container-active);
 }
 
 .history-dropdown {
