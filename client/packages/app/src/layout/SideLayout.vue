@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import SidebarToggle from '@/components/SidebarToggle.vue';
+import ApplicationList from '@/components/ApplicationList.vue';
 import HistoryList from '@/components/ChatList.vue';
 import LogoArea from '@/components/LogoArea.vue';
 import PersonalAccount from '@/components/PersonalAccount.vue';
@@ -11,14 +12,17 @@ const uiStore = useUiStore();
 </script>
 
 <template>
-    <t-drawer :visible="uiStore.drawerVisible" placement="left" mode="push" size="400px" show-in-attached-element
-        :show-overlay="false">
+    <t-drawer :visible="uiStore.drawerVisible" placement="left" mode="push" :show-overlay="false">
         <div class="drawer-content">
-            <SidebarToggle />
+            <div class="drawer-control">
+                <SidebarToggle />
+            </div>
+            <ApplicationList />
+            <t-divider />
             <HistoryList />
         </div>
         <template #header>
-            <LogoArea :title="$t('project.projectName')" />
+            <LogoArea />
         </template>
         <template #footer>
             <div class="drawer-footer">
@@ -34,6 +38,12 @@ const uiStore = useUiStore();
 .drawer-content {
     display: flex;
     flex-direction: column;
+}
+
+.drawer-control {
+    display: flex;
+    justify-content: flex-start;
+    padding: var(--td-size-4) 0;
 }
 
 .drawer-footer {

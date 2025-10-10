@@ -10,3 +10,8 @@
 .t-drawer__content-wrapper {
   background: var(--td-bg-color-secondarycontainer) !important;
 }
+
+.t-divider--horizontal {
+  margin: var(--td-comp-margin-l) 0 !important;
+  border-top: 1px solid var(--td-border-level-2-color) !important;
+}
