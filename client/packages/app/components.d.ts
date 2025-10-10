@@ -14,6 +14,7 @@ declare module 'vue' {
     ChatItem: typeof import('./src/components/Chat/ChatItem.vue')['default']
     ChatList: typeof import('./src/components/ChatList.vue')['default']
     CodeBase: typeof import('./src/components/CodeBase.vue')['default']
+    CustomizedIcon: typeof import('./src/components/CustomizedIcon.vue')['default']
     DocumentHelper: typeof import('./src/components/DocumentHelper.vue')['default']
     GroupList: typeof import('./src/components/GroupList.vue')['default']
     Index: typeof import('./src/components/Chat/Index.vue')['default']

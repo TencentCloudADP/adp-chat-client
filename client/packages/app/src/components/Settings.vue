@@ -10,7 +10,7 @@ const toggleSettingPanel = () => {
 <template>
     <t-tooltip placement="bottom" :content="$t('header.systemSettings')">
         <t-button theme="default" shape="square" variant="text" @click="toggleSettingPanel">
-            <t-icon name="setting" />
+            <t-icon name="setting-1" />
         </t-button>
     </t-tooltip>
 </template>
