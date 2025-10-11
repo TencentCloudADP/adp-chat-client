@@ -2,6 +2,7 @@
 import Chat from '@/components/Chat/Index.vue';
 import SidebarToggle from '@/components/SidebarToggle.vue';
 import AIWarning from '@/components/AIWarning.vue';
+import CreateConversation from '@/components/CreateConversation.vue';
 import { useUiStore } from '@/stores/ui';
 
 const uiStore = useUiStore();
@@ -11,7 +12,12 @@ const uiStore = useUiStore();
 <template>
     <t-layout class="main-layout">
         <t-header class="layout-header">
-            <SidebarToggle v-if="!uiStore.drawerVisible"/>
+            <div class="layout-header-left">
+                <SidebarToggle v-if="!uiStore.drawerVisible" />
+            </div>
+            <div class="layout-header-right">
+                <CreateConversation />
+            </div>
         </t-header>
         <t-content class="layout-content">
             <Chat />
