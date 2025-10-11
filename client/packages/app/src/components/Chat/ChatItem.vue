@@ -119,7 +119,7 @@ const share = async (record: Record) => {
  * @param {Record} item - 当前消息项
  * @returns {JSX.Element} - 返回对应的头部组件
  */
-const renderHeader = (flag: boolean) => {
+const renderHeader = () => {
     const endText = t('conversation.deepThinkingFinished');
     return (
         <div class="flex">
@@ -155,7 +155,7 @@ const renderReasoning = (item:Record) => {
                 collapsed: isLastMsg && !isStreamLoad,
                 expandIconPlacement: 'right' as const,
                 collapsePanelProps: {
-                    header: renderHeader(isLastMsg && isStreamLoad && !item.Content && !(item.AgentThought && item.AgentThought.Procedures && item.AgentThought.Procedures.length > 0)),
+                    header: renderHeader(),
                     content: renderReasoningContent(item.AgentThought),
                 }
             }
@@ -168,7 +168,7 @@ const renderReasoning = (item:Record) => {
     <!-- 聊天项组件 -->
     <TChatItem  animation="skeleton" :name="!item.IsFromSelf ? appsStore.currentApplicationName : userStore.name"
         :role="!item.IsFromSelf ? 'assistant' : 'user'" :variant="!item.IsFromSelf ? undefined : 'base'"
-        :text-loading="isLastMsg && loading" :reasoning="renderReasoning(item)">
+        :text-loading="false" :reasoning="renderReasoning(item)">
         <!-- 时间戳插槽 -->
         <template #datetime>
             <span v-if="item.Timestamp">{{ formatDisplayTime(item.Timestamp * 1000) }}</span>
@@ -182,10 +182,8 @@ const renderReasoning = (item:Record) => {
         </template>
         <!-- 内容插槽 -->
         <template #content>
-            <!-- <div  v-if="false" class="loading-container"> -->
             <div  v-if="isLastMsg && isStreamLoad && !item.Content && !item.AgentThought" class="loading-container">
-                <!-- <t-loading size="small"></t-loading> -->
-                 <t-skeleton></t-skeleton>
+                 <t-loading  :text="`${$t('common.thinking')}...`" size="small"></t-loading>
             </div>
             <div v-else>
 
