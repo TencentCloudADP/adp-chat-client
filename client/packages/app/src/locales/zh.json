@@ -57,12 +57,17 @@
   },
   "common": {
     "loading": "加载中",
+    "thinking": "思考中",
     "today": "今天",
     "recent": "最近",
     "s": "秒",
     "copySuccess": "已复制到剪贴板",
     "copyFailed": "复制失败，请重试",
-    "aiWarning": "该回答由AI助手生成，请谨慎识别",
+    "aiWarning": "AI内容仅供参考",
+    "comply":"请遵守",
+    "Service":"服务条款",
+    "Privacy":"隐私政策",
+    "and":"和",
     "more": "更多",
     "collapse": "收起"
   },

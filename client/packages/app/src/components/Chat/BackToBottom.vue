@@ -18,6 +18,6 @@ const props = defineProps<{
 .bottomBtn {
     position: absolute;
     left: 50%;
-    bottom: 30%;
+    bottom: 15%;
 }
 </style>

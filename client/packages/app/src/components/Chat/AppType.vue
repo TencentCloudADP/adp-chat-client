@@ -7,16 +7,7 @@ import { computed, ref } from 'vue';
 import { useAppsStore } from '@/stores/apps';
 
 // 组件Props定义
-const { showDetail, getDefaultQuestion } = defineProps({
-  /**
-   * 是否显示智能体详情（欢迎语和推荐问题）
-   * @type {boolean}
-   * @default true
-   */
-  showDetail: {
-    type: Boolean,
-    default: true
-  },
+const {  getDefaultQuestion } = defineProps({
   /**
    * 获取默认问题的回调函数
    * @type {Function}
@@ -29,24 +20,9 @@ const { showDetail, getDefaultQuestion } = defineProps({
 
 const appsStore = useAppsStore();
 
-// 计算属性：应用列表
-const applications = computed(() => appsStore.applications);
-// 计算属性：当前选中的智能体ID
-const currentApplicationId = computed(() => appsStore.currentApplicationId);
-
 // 用户选择的推荐问题
 const checkQuestion = ref('');
 
-/**
- * 切换智能体
- * @param {string} value - 智能体的value值
- */
-const handleChangeApps = (value: string) => {
-  let curApp = applications.value.find((application) => application['ApplicationId'] == value)
-  if (curApp) {
-    appsStore.setCurrentApplication(curApp);
-  }
-}
 
 /**
  * 选择推荐问题
@@ -65,32 +41,15 @@ const handleChooseQuestion = (value: string) => {
 
 <template>
   <flex class="greeting-panel">
-    <t-select class="app-select" style="width: 300px" size="large" v-model="currentApplicationId" placeholder="请选择智能体"
-      @change="handleChangeApps">
-      <template #valueDisplay="{ value, onClose }">
-        <div class="apps-options_item">
-          <t-avatar v-if="appsStore.currentApplicationAvatar" :image="appsStore.currentApplicationAvatar" />
-          <label>{{ appsStore.currentApplicationName }}</label>
-        </div>
-      </template>
-      <t-option v-for="app in applications" :key="app.ApplicationId" :value="app.ApplicationId" :label="app.Name">
-        <div class="apps-options_item">
-          <t-avatar v-if="app.Avatar" :image="app.Avatar" />
-          <label>{{ app.Name }}</label>
-        </div>
-      </t-option>
-    </t-select>
-    <div v-if="currentApplicationId && showDetail" class="app-detail-container">
-      <div class="greet-desc" v-if="appsStore.currentApplicationGreeting">
-        “{{ appsStore.currentApplicationGreeting }}”
-      </div>
-      <t-space class="recommend-question-container"
-        v-if="appsStore.currentApplicationOpeningQuestions && appsStore.currentApplicationOpeningQuestions.length > 0">
-        <t-check-tag :checked="question === checkQuestion"
-          v-for="question in appsStore.currentApplicationOpeningQuestions" variant="outline"
+    <t-avatar class="greet-avatar" size="64px" shape="round" :image="appsStore.currentApplicationAvatar"></t-avatar>
+    <span v-if="appsStore.currentApplicationName" class="greet-name">{{ appsStore.currentApplicationName}}</span>
+    <div class="greet-desc" v-if="appsStore.currentApplicationGreeting">
+        {{ appsStore.currentApplicationGreeting }}
+    </div>
+    <t-space gap="8" class="recommend-question-container" v-if="appsStore.currentApplicationOpeningQuestions && appsStore.currentApplicationOpeningQuestions.length > 0">
+        <t-check-tag  class="greet-tag" v-for="question in appsStore.currentApplicationOpeningQuestions" variant="outline"
           @click="handleChooseQuestion(question)">{{ question }}</t-check-tag>
       </t-space>
-    </div>
   </flex>
 </template>
 
@@ -103,36 +62,41 @@ const handleChooseQuestion = (value: string) => {
   justify-content: center;
   text-align: center;
 }
+.greet-name{
+  color: var(--td-text-color-primary);
+  font-size: var(--td-font-size-title-large);
+  font-weight: 500;
+  margin-top:16px;
+}
 
 .greeting-panel {
   display: flex;
+  height: 100%;
   flex-direction: column;
   align-items: center;
   justify-content: center;
 }
+.greet-avatar{
+  border-radius: var(--td-radius-large);
+}
 
 .greet-desc {
   color: var(--td-text-color-secondary);
-  font-size: var(--td-font-size-title-medium);
+  background-color: var(--td-bg-color-page);
+  font-size: var(--td-font-size-title-small);
   word-break: break-all;
-  margin-top: var(--td-size-5)
+  margin-top: var(--td-size-8);
+  padding:10px 12px;
+  border-radius: 6px;
 }
-
-.apps-options_item {
-  padding: 4px 0;
-  display: flex;
-  align-items: center;
+.greet-tag {
+  box-shadow: var(--td-shadow-2);
+  padding:8px 12px;
+  color:var(--td-brand-color);
+  font-weight:500;
 }
-
-.apps-options_item label {
-  margin-left: 8px;
-}
-
 .recommend-question-container {
   margin-top: var(--td-size-6)
 }
-:deep(.greeting-panel .t-input){
-  border-radius: 50px;
-  width: 300px;
-}
+
 </style>

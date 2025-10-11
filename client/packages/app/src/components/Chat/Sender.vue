@@ -227,10 +227,11 @@ defineExpose({
 </script>
 
 <template>
-    <TChatSender :value="inputValue" :loading="isStreamLoad" :textarea-props="{
+    <TChatSender class="sender-container" :value="inputValue" :loading="isStreamLoad" :textarea-props="{
         placeholder: $t('conversation.input.placeholder'),
-        autosize: { minRows: 2, maxRows: 2 },
-    }" @stop="onStop" @send="handleSend" @change="handleInput" @fileSelect="handleFileSelect" @paste="handlePaste">
+        autosize: { minRows: 1, maxRows: 2 },
+    }" 
+    @stop="onStop" @send="handleSend" @change="handleInput" @fileSelect="handleFileSelect" @paste="handlePaste">
         <template #inner-header>
             <div v-if="fileList.length > 0" class="file-upload-container">
                 <div v-for="(img, index) in fileList" class="img-item-container">
@@ -245,7 +246,7 @@ defineExpose({
         <template #prefix>
             <t-tooltip v-if="!recording" :content="$t('sender.startRecord')">
                 <span class="recording-icon" @click="handleStartRecord">
-                    <t-icon size="large" name="microphone-filled"></t-icon>
+                    <t-icon size="large" name="microphone-1"></t-icon>
                 </span>
             </t-tooltip>
 
@@ -308,5 +309,16 @@ defineExpose({
 :deep(.t-button:has(.t-icon-file-attachment)){
      display: none;
 }
-
+.sender-container{
+    width: 50%;
+    margin-left: 25%;
+}
+:deep(.t-chat-sender__textarea){
+    border-color: var(--td-brand-color);
+    background-color: var(--td-bg-color-container);
+    border-radius: 8px;
+}
+:deep(.t-chat-sender__footer){
+    padding:0px var(--td-comp-paddingLR-s);
+}
 </style>
