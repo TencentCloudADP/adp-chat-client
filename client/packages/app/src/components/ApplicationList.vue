@@ -10,21 +10,36 @@ const handleClick = (app: Application) => {
     appsStore.setCurrentApplication(app);
 };
 
-// 处理更多按钮点击
+// 添加展开状态控制
+const isExpanded = ref(false);
+
+// 修改计算显示的应用列表逻辑
+const displayedApps = computed(() => {
+    if (isExpanded.value) {
+        return appsStore.applications;
+    }
+    return appsStore.applications.slice(0, 4);
+});
+
+// 修改判断是否需要显示"更多"的逻辑
+const showMore = computed(() => {
+    return appsStore.applications.length > 4 && !isExpanded.value;
+});
+
+// 添加判断是否需要显示"收起"的逻辑
+const showCollapse = computed(() => {
+    return isExpanded.value;
+});
+
+// 修改更多按钮点击处理
 const handleMoreClick = () => {
-    // 这里可以添加显示所有应用的逻辑，比如弹出对话框或展开列表
-    console.log('点击了更多按钮，当前应用总数:', appsStore.applications.length);
+    isExpanded.value = true;
 };
 
-// 计算显示的应用列表（最多显示4个）
-const displayedApps = computed(() => {
-    return appsStore.applications.slice(0, 1);
-});
-
-// 判断是否需要显示"更多"
-const showMore = computed(() => {
-    return appsStore.applications.length > 1;
-});
+// 添加收起按钮点击处理
+const handleCollapseClick = () => {
+    isExpanded.value = false;
+};
 </script>
 
 <template>
@@ -39,6 +54,12 @@ const showMore = computed(() => {
         <div v-if="showMore" class="application-item" @click="handleMoreClick">
             <t-icon name="grid-view" size="20px" class="application-avatar" />
             <span class="application-name">{{ t('common.more') }}</span>
+        </div>
+
+        <!-- 显示收起选项 -->
+        <div v-if="showCollapse" class="application-item" @click="handleCollapseClick">
+            <t-icon name="chevron-up" size="20px" class="application-avatar" />
+            <span class="application-name">{{ t('common.collapse') }}</span>
         </div>
     </div>
 </template>
