@@ -5,7 +5,6 @@ import HistoryList from '@/components/ChatList.vue';
 import LogoArea from '@/components/LogoArea.vue';
 import PersonalAccount from '@/components/PersonalAccount.vue';
 import Settings from '@/components/Settings.vue';
-import ThemeSwitcher from '@/components/ThemeSwitcher.vue';
 import { useUiStore } from '@/stores/ui';
 
 const uiStore = useUiStore();
@@ -27,7 +26,6 @@ const uiStore = useUiStore();
         <template #footer>
             <div class="drawer-footer">
                 <PersonalAccount />
-                <ThemeSwitcher />
                 <Settings />
             </div>
         </template>

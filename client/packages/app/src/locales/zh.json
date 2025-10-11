@@ -9,6 +9,10 @@
     "switchTheme": "切换主题",
     "systemSettings": "系统设置"
   },
+  "sider": {
+    "switchTheme": "切换主题",
+    "selectLanguage": "选择语言"
+  },
   "account": {
     "login": "登录",
     "logout": "退出登录",
