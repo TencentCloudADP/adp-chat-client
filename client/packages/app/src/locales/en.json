@@ -9,6 +9,10 @@
     "switchTheme": "Switch Theme",
     "systemSettings": "Settings"
   },
+  "sider": {
+    "switchTheme": "Switch Theme",
+    "selectLanguage": "Select Language"
+  },
   "account": {
     "login": "Login",
     "logout": "Logout",
