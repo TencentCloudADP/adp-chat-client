@@ -24,17 +24,19 @@
   },
   "operation": {
     "search": "搜索",
+    "checkAll":"全选",
+    "shareFor":"分享为",
     "editName": "编辑名称",
     "pin": "置顶",
     "delete": "删除",
     "share": "分享",
-    "cancelShare": "取消分享",
+    "cancelShare": "取消",
     "good": "点赞",
     "bad": "点踩",
     "replay": "重新生成",
     "copy": "复制",
     "copyUrl": "复制链接",
-    "copySuccess": "复制成功",
+    "copySuccess": "复制链接成功，快前往分享吧",
     "copyError": "复制失败",
     "thxForGood": "谢谢你的认可，我们会继续优化进步",
     "thxForBad": "谢谢你的反馈，我们会继续优化进步"
@@ -75,6 +77,9 @@
     "startRecord": "点击开始录音",
     "uploadImg": "上传图片",
     "stopRecord": "点击结束录音",
-    "references": "参考来源"
+    "references": "参考来源",
+    "recordTooLong":"语音输入最长60s，已停止并转为文字",
+    "notSupport":"暂不支持该类型文件(支持类型：png、jpg)",
+    "answering":"回答中，请稍后操作或点击停止回答"
   }
 }

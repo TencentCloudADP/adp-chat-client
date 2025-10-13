@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n';
 import { ChatSender as TChatSender } from '@tdesign-vue-next/chat'
 import { uploadFile } from '@/service/upload';
 import WebRecorder from "@/utils/webRecorder"
 import type { FileProps } from '@/model/file';
 import { handleGetAsrUrl } from '@/service/chat';
 import { MessagePlugin } from 'tdesign-vue-next';
-import CustomizedIcon from '@/components/CustomizedIcon.vue';
 import RecordingIcon from '@/assets/icons/recording.svg';
+import SendIcon from '@/assets/icons/send.svg';
+import SendNormalIcon from '@/assets/icons/sendNormal.svg';
+import SendStopIcon from '@/assets/icons/sendStop.svg';
+import CustomizedIcon from '@/components/CustomizedIcon.vue';
+
+const { t } = useI18n();
 
 /**
  * Sender组件属性定义
@@ -38,6 +44,11 @@ const props = defineProps<{
  */
 const recorder = ref(null as WebRecorder | null)
 
+/**
+ * 录音超时时间，单位s
+ */
+const recordMaxTime = 60  ;
+const recordRef = ref<number | null>(null);
 /**
  * ASR WebSocket连接引用
  * @type {import('vue').Ref<WebSocket | null>}
@@ -83,18 +94,16 @@ const fileList = ref([] as FileProps[])
  * @returns {Promise<void>}
  */
 const handleFileSelect = async function (files: File[]) {
-    console.log('handleFileSelect',files)
     if(files && files.length <= 0) return;
     const allowed = ['image/png', 'image/jpg', 'image/jpeg', 'image/bmp']
     files.map(async (item: File) => {
         if (!allowed.includes(item.type)) {
-            MessagePlugin.error(`暂不支持该类型文件（支持类型：jpg/png）`)
+            MessagePlugin.error(t('sender.notSupport'))
             return
         }
         const res = await uploadFile({
             file: item
         })
-        console.log('handleFileSelect res',res)
         if (res.Url) {
             fileList.value.push({
                 uid: res.Url,
@@ -124,6 +133,10 @@ const handleDeleteFile = async function (index: number) {
  * @returns {Promise<void>}
  */
 const handleSend = async function (value: string) {
+    if(props.isStreamLoad){
+        MessagePlugin.warning(t('sender.answering'));
+        return 
+    }
     // 用户点击发送动作时结束录音
     handleStopRecord();
     props.inputEnter && props.inputEnter(value, fileList.value)
@@ -147,7 +160,6 @@ const startRecording = () => {
         recording.value = false
     }
     recorder.value.start()
-    console.log('[asr] start')
 }
 
 /**
@@ -161,7 +173,13 @@ const handleStartRecord = async () => {
     const url = res.url
     asrWebSocket.value = new WebSocket(url)
     asrWebSocket.value.onopen = () => {
-        startRecording()
+        startRecording();
+        recordRef.value = setTimeout(() => {
+            if(recording.value){
+                MessagePlugin.warning(t('sender.recordTooLong'));
+                handleStopRecord();
+            }
+        },recordMaxTime * 1000)
     }
     asrWebSocket.value.onmessage = (event) => {
         if (!recording.value) {
@@ -177,6 +195,8 @@ const handleStartRecord = async () => {
     }
     asrWebSocket.value.onclose = () => {
         recording.value = false
+        recordRef.value && clearTimeout(recordRef.value);
+        recordRef.value = null;
     }
 }
 
@@ -191,6 +211,10 @@ const handleStopRecord = () => {
     asrWebSocket.value?.close()
     asrWebSocket.value = null
     recording.value = false
+    if (recordRef.value) {
+        clearTimeout(recordRef.value)
+        recordRef.value = null
+    }
 }
 
 /**
@@ -230,7 +254,7 @@ defineExpose({
 </script>
 
 <template>
-    <TChatSender class="sender-container" :value="inputValue" :loading="isStreamLoad" :textarea-props="{
+    <TChatSender class="sender-container" :value="inputValue"  :textarea-props="{
         placeholder: $t('conversation.input.placeholder'),
         autosize: { minRows: 1, maxRows: 2 },
     }" 
@@ -244,14 +268,15 @@ defineExpose({
                     </span>
                 </div>
             </div>
-
         </template>
-        <template #suffix="{ renderPresets }">
-            <component :is="renderPresets([])" />
+        <template #suffix>
+            <CustomizedIcon v-if="isStreamLoad" showHoverbackground :svg="SendStopIcon" size="xl" />
+            <CustomizedIcon v-if="!isStreamLoad && inputValue" showHoverbackground :svg="SendIcon" size="xl" />
+            <CustomizedIcon v-if="!isStreamLoad && !inputValue"  :svg="SendNormalIcon" size="xl" />
         </template>
         <template #prefix>
             <div class="sender-control-container">
- <t-upload
+            <t-upload
                 ref="uploadRef1"
                 :max="10"
                 :multiple="true"

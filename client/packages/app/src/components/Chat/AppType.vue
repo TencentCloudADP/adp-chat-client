@@ -82,7 +82,7 @@ const handleChooseQuestion = (value: string) => {
 
 .greet-desc {
   color: var(--td-text-color-secondary);
-  background-color: rgb(from var(--td-bg-color-page) r g b / 40%) ;
+  background-color: var(--td-bg-color-container-hover) ;
   font-size: var(--td-font-size-title-small);
   word-break: break-all;
   margin-top: var(--td-size-8);
