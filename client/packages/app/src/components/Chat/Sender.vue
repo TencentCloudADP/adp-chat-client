@@ -6,6 +6,8 @@ import WebRecorder from "@/utils/webRecorder"
 import type { FileProps } from '@/model/file';
 import { handleGetAsrUrl } from '@/service/chat';
 import { MessagePlugin } from 'tdesign-vue-next';
+import CustomizedIcon from '@/components/CustomizedIcon.vue';
+import RecordingIcon from '@/assets/icons/recording.svg';
 
 /**
  * Sender组件属性定义
@@ -74,15 +76,17 @@ const recording = ref(false)
  */
 const fileList = ref([] as FileProps[])
 
+
 /**
  * 处理文件选择事件
  * @param {any} res - 文件选择结果
  * @returns {Promise<void>}
  */
-const handleFileSelect = async function (res: { files: File[]}) {
-    if(res.files && res.files.length <= 0) return;
+const handleFileSelect = async function (files: File[]) {
+    console.log('handleFileSelect',files)
+    if(files && files.length <= 0) return;
     const allowed = ['image/png', 'image/jpg', 'image/jpeg', 'image/bmp']
-    res.files.map(async (item: File) => {
+    files.map(async (item: File) => {
         if (!allowed.includes(item.type)) {
             MessagePlugin.error(`暂不支持该类型文件（支持类型：jpg/png）`)
             return
@@ -90,6 +94,7 @@ const handleFileSelect = async function (res: { files: File[]}) {
         const res = await uploadFile({
             file: item
         })
+        console.log('handleFileSelect res',res)
         if (res.Url) {
             fileList.value.push({
                 uid: res.Url,
@@ -210,9 +215,7 @@ const handlePaste = async (event: ClipboardEvent) => {
         const imageItems = Array.from(items).filter((item: DataTransferItem) => 
           item.type.includes('image')
         ).map((i: DataTransferItem) => i.getAsFile()).filter((file): file is File => file !== null);
-        handleFileSelect({
-                files: imageItems
-        })
+        handleFileSelect(imageItems)
 
     } catch (error) {
         console.error('粘贴图片出错:', error);
@@ -243,18 +246,43 @@ defineExpose({
             </div>
 
         </template>
+        <template #suffix="{ renderPresets }">
+            <component :is="renderPresets([])" />
+        </template>
         <template #prefix>
+            <div class="sender-control-container">
+ <t-upload
+                ref="uploadRef1"
+                :max="10"
+                :multiple="true"
+                :request-method="handleFileSelect"
+                accept="image/*"
+                :showThumbnail="false"
+                :showImageFileName="false"
+                :showUploadProgress="false"
+                tips=""
+            >
+                <t-tooltip  :content="$t('sender.uploadImg')">
+                    <span class="sender-icon  recording-icon" >
+                        <t-icon size="large" name="image"></t-icon>
+                    </span>
+                </t-tooltip>
+            </t-upload>
             <t-tooltip v-if="!recording" :content="$t('sender.startRecord')">
-                <span class="recording-icon" @click="handleStartRecord">
+                <span class="sender-icon  recording-icon" @click="handleStartRecord">
                     <t-icon size="large" name="microphone-1"></t-icon>
                 </span>
             </t-tooltip>
-
+                
+            
             <t-tooltip v-if="recording" :content="$t('sender.stopRecord')">
-                <span class="recording-icon" @click="handleStopRecord">
-                    <t-icon size="large" name="chevron-right-rectangle-filled"></t-icon>
+                <span class="sender-icon recording-icon" @click="handleStopRecord">
+                    <CustomizedIcon :svg="RecordingIcon" size="l" />
                 </span>
             </t-tooltip>
+
+            </div>
+                
         </template>
     </TChatSender>
 </template>
@@ -305,16 +333,23 @@ defineExpose({
     padding-top: 8px;
     padding-left: 10px;
 }
+.sender-icon {
+    margin-right: var(--td-comp-margin-m);
+    height: var(--td-size-7);
+}
+.sender-control-container{
+    display: flex;
+    align-items: center;
+}
 /* TODO: 当前版本不支持，后续再开放 */
 :deep(.t-button:has(.t-icon-file-attachment)){
      display: none;
 }
 .sender-container{
-    width: 50%;
-    margin-left: 25%;
+    width: 100%;
+    max-width: 800px;
 }
 :deep(.t-chat-sender__textarea){
-    border-color: var(--td-brand-color);
     background-color: var(--td-bg-color-container);
     border-radius: 8px;
 }

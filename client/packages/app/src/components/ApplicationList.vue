@@ -1,13 +1,27 @@
 <script setup lang="tsx">
 import { ref, computed } from 'vue';
 import { useAppsStore } from '@/stores/apps';
+import { useChatStore } from '@/stores/chat';
+import { useRouter } from 'vue-router';
 import type { Application } from '@/model/application'
 import { useI18n } from 'vue-i18n';
+const router = useRouter();
 const { t } = useI18n();
 const appsStore = useAppsStore();
+const chatStore = useChatStore();
+const maxAppLen = 4 ;
 
 const handleClick = (app: Application) => {
     appsStore.setCurrentApplication(app);
+    router.push({ name: 'Home' })
+    chatStore.setCurrentConversation({
+        Id: "",
+        AccountId: "",
+        Title: "",
+        LastActiveAt: 0,
+        CreatedAt: 0,
+        ApplicationId: app.ApplicationId
+    });
 };
 
 // 添加展开状态控制
@@ -18,12 +32,12 @@ const displayedApps = computed(() => {
     if (isExpanded.value) {
         return appsStore.applications;
     }
-    return appsStore.applications.slice(0, 4);
+    return appsStore.applications.slice(0, maxAppLen);
 });
 
 // 修改判断是否需要显示"更多"的逻辑
 const showMore = computed(() => {
-    return appsStore.applications.length > 4 && !isExpanded.value;
+    return appsStore.applications.length > maxAppLen && !isExpanded.value;
 });
 
 // 添加判断是否需要显示"收起"的逻辑

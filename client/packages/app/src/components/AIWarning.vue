@@ -7,9 +7,9 @@
     <div class="ai-warning">
         {{ $t('common.aiWarning') }},
         {{ $t('common.comply') }} 
-        <t-link theme="primary"> {{ $t('common.Service') }} </t-link>  
+        <t-link theme="primary" size="small"> {{ $t('common.Service') }} </t-link>  
         {{ $t('common.and') }} 
-        <t-link theme="primary"> {{ $t('common.Privacy') }} </t-link> 
+        <t-link theme="primary" size="small"> {{ $t('common.Privacy') }} </t-link> 
     </div>
 </template>
 

@@ -600,4 +600,17 @@ watch(
     max-width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs) );
     width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs) );
 }
+:deep(.t-chat__footer){
+    display: flex;
+    justify-content: center;
+    padding: 0 var(--td-comp-paddingLR-xl);
+}
+:deep(.t-chat__list){
+    padding: 0 var(--td-comp-paddingLR-xl);
+}
+:deep(.t-chat__list .content){
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
 </style>

@@ -73,6 +73,7 @@
   },
   "sender": {
     "startRecord": "点击开始录音",
+    "uploadImg": "上传图片",
     "stopRecord": "点击结束录音",
     "references": "参考来源"
   }

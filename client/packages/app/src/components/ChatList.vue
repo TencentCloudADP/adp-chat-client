@@ -122,15 +122,6 @@ const handleCreateNewChat = () => {
 <template>
     <!-- 会话列表容器 -->
     <div class="history-list">
-        <div class="history-header">
-            <!-- 列表头部 -->
-            <span>{{ t('conversation.conversation') }}</span>
-            <t-popup :content="t('conversation.createConversation')" trigger="hover">
-                <t-button variant="text" shape="square" size="small" @click="handleCreateNewChat">
-                    <t-icon name="plus" />
-                </t-button>
-            </t-popup>
-        </div>
         <!-- TODO: 增加时间分类 -->
         <!-- 会话项列表 -->
         <div v-for="(list, index) in conversationsHistoryList" :key="index">

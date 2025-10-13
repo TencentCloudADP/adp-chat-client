@@ -41,7 +41,7 @@ const handleChooseQuestion = (value: string) => {
 
 <template>
   <flex class="greeting-panel">
-    <t-avatar class="greet-avatar" size="64px" shape="round" :image="appsStore.currentApplicationAvatar"></t-avatar>
+    <t-avatar v-if="appsStore.currentApplicationAvatar" class="greet-avatar" size="64px" shape="round" :image="appsStore.currentApplicationAvatar"></t-avatar>
     <span v-if="appsStore.currentApplicationName" class="greet-name">{{ appsStore.currentApplicationName}}</span>
     <div class="greet-desc" v-if="appsStore.currentApplicationGreeting">
         {{ appsStore.currentApplicationGreeting }}
@@ -82,7 +82,7 @@ const handleChooseQuestion = (value: string) => {
 
 .greet-desc {
   color: var(--td-text-color-secondary);
-  background-color: var(--td-bg-color-page);
+  background-color: rgb(from var(--td-bg-color-page) r g b / 40%) ;
   font-size: var(--td-font-size-title-small);
   word-break: break-all;
   margin-top: var(--td-size-8);
