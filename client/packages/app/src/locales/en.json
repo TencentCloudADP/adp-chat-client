@@ -74,6 +74,7 @@
   "sender": {
     "startRecord": "click to start record",
     "stopRecord": "click to stop record",
-    "references": "References"
+    "references": "References",
+    "uploadImg": "upload image"
   }
 }

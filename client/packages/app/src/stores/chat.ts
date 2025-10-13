@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import type { ChatConversation } from '@/model/chat'
 import { handleLoadConversations } from '@/service/chat'
 import { useAppsStore } from '@/stores/apps'
+import type { Application } from '@/model/application'
 
 /**
  * 定义聊天相关的全局状态存储
@@ -30,6 +31,13 @@ export const useChatStore = defineStore('chat', () => {
     CreatedAt: 0,
     ApplicationId: ""
   })
+  const currentApplication = ref<Application>();
+  const currentApplicationId = computed(() => currentConversation.value?.ApplicationId)
+  const currentApplicationAvatar = computed(() => currentApplication.value?.Avatar)
+  const currentApplicationName = computed(() => currentApplication.value?.Name)
+  const currentApplicationGreeting = computed(() => currentApplication.value?.Greeting)
+  const currentApplicationOpeningQuestions = computed(() => currentApplication.value?.OpeningQuestions)
+
 
   /**
    * 当前会话的 ID（计算属性）
@@ -49,6 +57,7 @@ export const useChatStore = defineStore('chat', () => {
       console.log('_currentConversation', detail, appsStore.applications)
       let _currentApplication = appsStore.applications.find((item) => item['ApplicationId'] == detail["ApplicationId"])
       _currentApplication && appsStore.setCurrentApplication(_currentApplication)
+      _currentApplication && setCurrentApplication(_currentApplication)
     }
   }
 
@@ -60,6 +69,13 @@ export const useChatStore = defineStore('chat', () => {
     conversations.value = chats
   }
 
+  /**
+   * 设置当前应用
+   * @param {Application} newApp - 新的应用选项
+   */
+  const setCurrentApplication = (newApp: Application) => {
+    currentApplication.value = newApp;
+  }
    /**
    * 设置聊天状态
    * @param {boolean} flag - 是否正在对话中
@@ -78,11 +94,18 @@ export const useChatStore = defineStore('chat', () => {
   return {
     isChatting,
     setIsChatting,
+    currentApplication,
+    currentApplicationId,
+    currentApplicationAvatar,
+    currentApplicationName,
+    currentApplicationGreeting,
+    currentApplicationOpeningQuestions,
     currentConversationId,
     currentConversation,
     setCurrentConversation,
     conversations,
-    setConversations
+    setConversations,
+    setCurrentApplication
   }
 })
 

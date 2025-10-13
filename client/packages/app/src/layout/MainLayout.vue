@@ -1,36 +1,14 @@
 <script setup lang="ts">
 import Chat from '@/components/Chat/Index.vue';
-import { useI18n } from 'vue-i18n';
 import SidebarToggle from '@/components/SidebarToggle.vue';
 import AIWarning from '@/components/AIWarning.vue';
 import CreateConversation from '@/components/CreateConversation.vue';
 import { useUiStore } from '@/stores/ui';
 import { useAppsStore } from '@/stores/apps'
-import { useRouter } from 'vue-router';
-import { useChatStore } from '@/stores/chat';
 
-const router = useRouter();
-const { t } = useI18n();
 
 const uiStore = useUiStore();
-const chatStore = useChatStore();
 const appsStore = useAppsStore()
-
-
-/**
- * 创建新会话的处理函数
- */
-const handleCreateNewChat = () => {
-    router.push({ name: 'Home' })
-    chatStore.setCurrentConversation({
-        Id: "",
-        AccountId: "",
-        Title: "",
-        LastActiveAt: 0,
-        CreatedAt: 0,
-        ApplicationId: appsStore.currentApplicationId || '' //  TODO: 更改为当前对话的id
-    });
-}
 
 </script>
 
@@ -43,13 +21,11 @@ const handleCreateNewChat = () => {
                 
             </div>
             <div class="header-app-settings">
-                <t-icon name="sound" size="20px" />
-                <t-tooltip :content="$t('conversation.createConversation')" theme="primary">
-                    <t-icon name="chat" size="20px" @click="handleCreateNewChat" />
-                </t-tooltip>
-                <t-icon name="more" size="20px"  />
+                <!-- <t-icon name="sound" size="20px" /> -->
+                <CreateConversation />
+                <SidebarToggle v-if="!uiStore.drawerVisible"/>
+                <!-- <t-icon name="more" size="20px"  /> -->
             </div>
-            <SidebarToggle v-if="!uiStore.drawerVisible"/>
         </t-header>
         <t-content class="layout-content">
             <Chat />

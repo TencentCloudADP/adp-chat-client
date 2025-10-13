@@ -28,7 +28,6 @@ import MdContent from '../Common/MdContent.vue';
 
 import { useUserStore } from '@/stores/user';
 const userStore = useUserStore();
-const appsStore = useAppsStore();
 
 
 
@@ -166,7 +165,7 @@ const renderReasoning = (item:Record) => {
 
 <template>
     <!-- 聊天项组件 -->
-    <TChatItem  animation="skeleton" :name="!item.IsFromSelf ? appsStore.currentApplicationName : userStore.name"
+    <TChatItem  animation="skeleton" :name="!item.IsFromSelf ? chatStore.currentApplicationName : userStore.name"
         :role="!item.IsFromSelf ? 'assistant' : 'user'" :variant="!item.IsFromSelf ? undefined : 'base'"
         :text-loading="false" :reasoning="renderReasoning(item)">
         <!-- 时间戳插槽 -->
@@ -175,7 +174,7 @@ const renderReasoning = (item:Record) => {
         </template>
         <!-- 头像插槽 -->
         <template #avatar>
-            <t-avatar v-if="!item.IsFromSelf" :image="appsStore.currentApplicationAvatar" size="medium" />
+            <t-avatar v-if="!item.IsFromSelf" :image="chatStore.currentApplicationAvatar" size="medium" />
             <t-avatar v-else-if="userStore.avatarUrl" :image="userStore.avatarUrl" size="medium">{{ userStore.avatarName
             }}</t-avatar>
             <t-avatar v-else size="medium">{{ userStore.avatarName }}</t-avatar>
