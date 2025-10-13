@@ -10,9 +10,9 @@ const getLogo = () => {
 <template>
     <div class="header-logo-container">
         <img :src="getLogo()" alt="Logo" class="header-logo" />
-        <t-divider layout="vertical">
+        <!-- <t-divider layout="vertical">
             <span class="header-title">{{ $t('project.projectName') }}</span>
-        </t-divider>
+        </t-divider> -->
     </div>
 </template>
 
