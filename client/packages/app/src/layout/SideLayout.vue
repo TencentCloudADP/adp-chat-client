@@ -41,7 +41,6 @@ const uiStore = useUiStore();
 .drawer-control {
     display: flex;
     justify-content: flex-start;
-    padding: var(--td-size-4) 0;
 }
 
 .drawer-footer {

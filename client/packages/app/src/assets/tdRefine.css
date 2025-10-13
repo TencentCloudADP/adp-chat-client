@@ -15,3 +15,7 @@
   margin: var(--td-comp-margin-l) 0 !important;
   border-top: 1px solid var(--td-border-level-2-color) !important;
 }
+
+.t-drawer__body {
+  padding-top: 0 !important;
+}
