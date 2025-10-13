@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import HeaderLayout from '@/layout/HeaderLayout.vue'
 import MainLayout from '@/layout/MainLayout.vue'
 import SideLayout from '@/layout/SideLayout.vue'
 import { onMounted } from 'vue'
