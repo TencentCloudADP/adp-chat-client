@@ -5,6 +5,7 @@ const uiStore = useUiStore();
 interface Props {
     svg: string;
     size?: string;
+    showHoverbackground?:boolean
 }
 
 defineProps<Props>();
@@ -12,7 +13,7 @@ defineProps<Props>();
 </script>
 
 <template>
-    <img :src="svg" class="customeized-icon" :class="{ 'svg-dark-mode': uiStore.theme === 'dark', [size]: size }" />
+    <img :src="svg" class="customeized-icon" :class="{ 'hoverShadow': showHoverbackground,'svg-dark-mode': uiStore.theme === 'dark', [size]: size }" />
 </template>
 
 <style scoped>
@@ -22,5 +23,16 @@ defineProps<Props>();
 .customeized-icon.l{
     width: var(--td-size-7);
     height: var(--td-size-7);
+}
+.customeized-icon.xl{
+    width: var(--td-size-9);
+    height: var(--td-size-9);
+}
+.customeized-icon{
+    cursor: pointer;
+}
+.customeized-icon.hoverShadow:hover{
+    background-color: var(--td-bg-color-container-active);
+    border-radius: 2px;
 }
 </style>

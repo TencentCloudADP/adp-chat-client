@@ -42,24 +42,25 @@
             </template>
             <!-- 底部发送区域 -->
             <template #footer>
-                <Drawer class="share-setting-container" :footer="false" size="small" placement="bottom"
-                    :showOverlay="false" :preventScrollThrough="false" :visible="isSelecting"
-                    @close="handleCloseShare()">
+                <t-card v-if="isSelecting" size="small" class="share-setting-container"  shadow bodyClassName="share-setting-card">
                     <div class="share-setting-content">
-                        <div class="icon__share-copy" :class="{ disabled: selectedIds.length <= 0 }"
-                            @click="handleCopyShare()">
-                            <span> <t-icon name="link-1"></t-icon> </span>
-                            <span>{{ $t('operation.copyUrl') }}</span>
+                        <t-checkbox :indeterminate="selectedIds.length !== chatList.length && selectedIds.length !==0" :checked="checkall" @change="handleCheckAll">{{$t('operation.checkAll')}}</t-checkbox>
+                        <t-divider layout="vertical"></t-divider>
+                        <div>
+                            {{$t('operation.shareFor')}}
+                            <div class="icon__share-copy" :class="{ disabled: selectedIds.length <= 0 }"
+                                @click="handleCopyShare()">
+                                <span> <t-icon name="copy"></t-icon> </span>
+                                <span>{{ $t('operation.copyUrl') }}</span>
+                            </div>
                         </div>
+                        <t-divider layout="vertical"></t-divider>
                         <div class="icon__share-close" @click="handleCloseShare()">
-                            <span>
-                                <t-icon name="close"></t-icon>
-                            </span>
                             <span>{{ $t('operation.cancelShare') }}</span>
                         </div>
                     </div>
-                </Drawer>
-                <Sender ref="senderRef" v-if="!isSelecting"  :modelOptions="modelOptions" :selectModel="selectModel"
+                </t-card>
+                <Sender ref="senderRef"  :modelOptions="modelOptions" :selectModel="selectModel"
                     :isDeepThinking="isDeepThinking" :isStreamLoad="isStreamLoad" 
                     :onStop="onStop" :inputEnter="inputEnter" :handleModelChange="handleModelChange"
                     :toggleDeepThinking="toggleDeepThinking" />
@@ -77,7 +78,7 @@ import { storeToRefs } from 'pinia'
 import type { AxiosRequestConfig } from 'axios'
 import AppType from '@/components/Chat/AppType.vue'
 import { Chat as TChat } from '@tdesign-vue-next/chat'
-import { Drawer, Checkbox } from 'tdesign-vue-next'
+import {  Checkbox } from 'tdesign-vue-next'
 import { fetchSSE } from '@/model/sseRequest-reasoning'
 import { mergeRecord } from '@/utils/util'
 // 模型数据
@@ -123,6 +124,17 @@ const { currentApplicationId } = storeToRefs(appsStore)
  */
 const isSelecting = ref(false)
 
+const checkall = ref(false);
+
+const handleCheckAll = (checked: boolean) => {
+    console.log('handleCheckAll',checked)
+    checkall.value = checked ;
+    if(checked){
+        selectedIds.value = chatList.value.map(i => i.RecordId)
+    }else{
+        selectedIds.value = [];
+    }
+}
 /**
  * 选中的消息ID列表
  * @type {Ref<string[]>}
@@ -556,45 +568,37 @@ watch(
     display: flex;
     align-items: self-start;
 }
-
+.share-setting-container{
+    z-index: 10;
+    position: fixed;
+    bottom: 146px;
+}
 .share-setting-content {
     display: flex;
     justify-content: center;
-}
-
-.icon__share-copy,
-.icon__share-close {
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
 }
-
-.icon__share-copy.disabled {
+.icon__share-copy{
+    display: inline-block;
+    background: var(--td-bg-color-container-hover);
+    border-radius: 4px;
+    padding: var(--td-comp-paddingLR-s) var(--td-comp-paddingLR-xl);
+    margin-left:var(--td-comp-paddingLR-l);
+    margin-right:var(--td-comp-paddingLR-xs);
+    font-size: 14px;
+    cursor: pointer;
+}
+.icon__share-copy.disabled{
     cursor: not-allowed;
-    opacity: 0.8;
+    opacity: 0.4;
 }
-
-.icon__share-copy span:nth-child(1),
-.icon__share-close span:nth-child(1) {
-    margin-bottom: 4px;
-    background: var(--td-bg-color-secondarycontainer-hover);
-    border-radius: 100%;
-    width: var(--td-font-size-display-medium);
-    height: var(--td-font-size-display-medium);
-    line-height: var(--td-font-size-display-medium);
-    text-align: center;
-    margin: var(--td-size-2) var(--td-size-7);
+.icon__share-copy span:nth-child(1){
+    margin-right: var(--td-pop-padding-s);
 }
-
-.icon__share-copy span:nth-child(1):hover,
-.icon__share-close span:nth-child(1):hover {
-    background: var(--td-bg-color-secondarycontainer-active);
-}
-:deep(.share-setting-container .t-drawer__content-wrapper){
-    height: 120px !important;
-    background-color: var(--td-bg-color-secondarycontainer);
+.icon__share-close{
+    cursor: pointer;
+    margin-left:var(--td-pop-padding-xl);
+    padding-left:var(--td-comp-paddingLR-xxs);
 }
 :deep(.assistant .t-chat__detail){
     max-width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs) );
@@ -612,5 +616,12 @@ watch(
     width: 100%;
     max-width: 800px;
     margin: 0 auto;
+}
+:deep(.share-setting-content .t-card__body){
+    padding: var(--td-comp-paddingLR-l) var(--td-size-10) var(--td-comp-paddingLR-l) var(--td-comp-paddingLR-xl);
+}
+:deep(.share-setting-card){
+    padding: var(--td-comp-paddingLR-s) var(--td-size-10) var(--td-comp-paddingLR-s) var(--td-comp-paddingLR-xl);
+
 }
 </style>

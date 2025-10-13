@@ -165,7 +165,7 @@ const renderReasoning = (item:Record) => {
 
 <template>
     <!-- 聊天项组件 -->
-    <TChatItem  animation="skeleton" :name="!item.IsFromSelf ? chatStore.currentApplicationName : userStore.name"
+    <TChatItem  animation="skeleton" :name="!item.IsFromSelf ? chatStore.currentApplicationName || item.FromName: userStore.name || item.FromName"
         :role="!item.IsFromSelf ? 'assistant' : 'user'" :variant="!item.IsFromSelf ? undefined : 'base'"
         :text-loading="false" :reasoning="renderReasoning(item)">
         <!-- 时间戳插槽 -->
@@ -174,7 +174,7 @@ const renderReasoning = (item:Record) => {
         </template>
         <!-- 头像插槽 -->
         <template #avatar>
-            <t-avatar v-if="!item.IsFromSelf" :image="chatStore.currentApplicationAvatar" size="medium" />
+            <t-avatar v-if="!item.IsFromSelf" :image="chatStore.currentApplicationAvatar || item.FromAvatar" size="medium" />
             <t-avatar v-else-if="userStore.avatarUrl" :image="userStore.avatarUrl" size="medium">{{ userStore.avatarName
             }}</t-avatar>
             <t-avatar v-else size="medium">{{ userStore.avatarName }}</t-avatar>
@@ -186,13 +186,12 @@ const renderReasoning = (item:Record) => {
             </div>
             <div v-else>
 
-            <div v-if="item.IsFromSelf" class="user-message">
+            <div v-if="item.IsFromSelf && showActions" class="user-message">
                 <!-- <TChatContent :content="item.Content" /> -->
                 <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos"/>
-                <t-icon name="copy" class="copy-icon" @click="(e: any) => copyContent(e, item.Content, 'user')" />
-                <t-icon class="share-icon" name="share" @click="share(item)" />
+                <t-icon name="file-copy" class="copy-icon" @click="(e: any) => copyContent(e, item.Content, 'user')" />
+                <t-icon  name="share-1" class="share-icon" @click="share(item)" />
             </div>
-            <!-- <TChatContent v-else :content="item.Content" /> -->
             <MdContent v-else :content="item.Content"  role="assistant" :quoteInfos="item.QuoteInfos"/>
             <div class="references-container"
                 v-if="item.References && item.References.length > 0 && !(item.IsFinal === false)">
@@ -212,6 +211,12 @@ const renderReasoning = (item:Record) => {
                 <Tooltip :content="t('operation.replay')" destroyOnClose showArrow theme="default">
                     <t-icon class="icon" name="refresh" @click="onResend && onResend(item.RelatedRecordId)"></t-icon>
                 </Tooltip>
+                <Tooltip :content="t('operation.copy')" destroyOnClose showArrow theme="default">
+                    <t-icon class="icon" name="file-copy" @click="(e: any) => copyContent(e, item.Content, 'assistant')" />
+                </Tooltip>
+                <Tooltip :content="t('operation.share')" destroyOnClose showArrow theme="default">
+                    <t-icon class="icon" name="share-1" @click="share(item)" />
+                </Tooltip>
                 <Divider layout="vertical"></Divider>
                 <Tooltip :content="t('operation.good')" destroyOnClose showArrow theme="default">
                     <t-icon class="icon" :class="{ active: record.Score === ScoreValue.Like,disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined} " name="thumb-up-2"
@@ -220,12 +225,6 @@ const renderReasoning = (item:Record) => {
                 <Tooltip :content="t('operation.bad')" destroyOnClose showArrow theme="default">
                     <t-icon class="icon" :class="{ active: record.Score === ScoreValue.Dislike,disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined}" name="thumb-down-1"
                         @click="rate(item, ScoreValue.Dislike)" />
-                </Tooltip>
-                <Tooltip :content="t('operation.copy')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon" name="copy" @click="(e: any) => copyContent(e, item.Content, 'assistant')" />
-                </Tooltip>
-                <Tooltip :content="t('operation.share')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon" name="share" @click="share(item)" />
                 </Tooltip>
             </div>
         </template>
