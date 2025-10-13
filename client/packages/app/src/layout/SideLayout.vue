@@ -11,7 +11,8 @@ const uiStore = useUiStore();
 </script>
 
 <template>
-    <t-drawer :visible="uiStore.drawerVisible" placement="left" mode="push" :show-overlay="false">
+    <t-drawer :visible="uiStore.drawerVisible" placement="left" :mode="uiStore.isMobile ? 'overlay' : 'push'"
+        :show-overlay="false">
         <div class="drawer-content">
             <div class="drawer-control">
                 <SidebarToggle />
