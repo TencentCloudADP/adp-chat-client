@@ -9,6 +9,7 @@ const config = {
   reactStrictMode: true,
   turbopack: false,
   output: 'export',
+  trailingSlash: true,
   images: {
     unoptimized: true,
     dangerouslyAllowSVG: true,
