@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
+import { ChatAddIcon } from 'tdesign-icons-vue-next';
 import { useChatStore } from '@/stores/chat';
 import { useAppsStore } from '@/stores/apps'
 const router = useRouter();
@@ -18,14 +19,14 @@ const createConversation = () => {
         Title: "",
         LastActiveAt: 0,
         CreatedAt: 0,
-        ApplicationId: appsStore.currentApplicationId || '' 
+        ApplicationId: appsStore.currentApplicationId || ''
     });
 };
 </script>
 
 <template>
     <t-tooltip :content="t('conversation.createConversation')" theme="primary">
-        <t-button shape="square" variant="text" @click="createConversation"><t-icon name="chat-add" /></t-button>
+        <t-button shape="square" variant="text" @click="createConversation"><chat-add-icon /></t-button>
     </t-tooltip>
 </template>
 

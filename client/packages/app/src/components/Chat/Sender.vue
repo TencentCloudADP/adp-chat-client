@@ -8,7 +8,7 @@ import type { FileProps } from '@/model/file';
 import { handleGetAsrUrl } from '@/service/chat';
 import { MessagePlugin } from 'tdesign-vue-next';
 import RecordIcon from '@/components/Common/RecordIcon.vue';
-import {SendIcon,StopCircleStrokeIcon} from 'tdesign-icons-vue-next';
+import { SendIcon, StopCircleStrokeIcon, ImageIcon, Microphone1Icon } from 'tdesign-icons-vue-next';
 const { t } = useI18n();
 
 /**
@@ -43,7 +43,7 @@ const recorder = ref(null as WebRecorder | null)
 /**
  * 录音超时时间，单位s
  */
-const recordMaxTime = 60  ;
+const recordMaxTime = 60;
 const recordRef = ref<number | null>(null);
 /**
  * ASR WebSocket连接引用
@@ -90,7 +90,7 @@ const fileList = ref([] as FileProps[])
  * @returns {Promise<void>}
  */
 const handleFileSelect = async function (files: File[]) {
-    if(files && files.length <= 0) return;
+    if (files && files.length <= 0) return;
     const allowed = ['image/png', 'image/jpg', 'image/jpeg', 'image/bmp']
     files.map(async (item: File) => {
         if (!allowed.includes(item.type)) {
@@ -129,9 +129,9 @@ const handleDeleteFile = async function (index: number) {
  * @returns {Promise<void>}
  */
 const handleSend = async function (value: string) {
-    if(props.isStreamLoad){
+    if (props.isStreamLoad) {
         MessagePlugin.warning(t('sender.answering'));
-        return 
+        return
     }
     // 用户点击发送动作时结束录音
     handleStopRecord();
@@ -171,11 +171,11 @@ const handleStartRecord = async () => {
     asrWebSocket.value.onopen = () => {
         startRecording();
         recordRef.value = setTimeout(() => {
-            if(recording.value){
+            if (recording.value) {
                 MessagePlugin.warning(t('sender.recordTooLong'));
                 handleStopRecord();
             }
-        },recordMaxTime * 1000)
+        }, recordMaxTime * 1000)
     }
     asrWebSocket.value.onmessage = (event) => {
         if (!recording.value) {
@@ -227,13 +227,13 @@ const handlePaste = async (event: ClipboardEvent) => {
     try {
         const items = event.clipboardData?.items;
         if (!items || items.length === 0) {
-          console.log('剪贴板中没有检测到内容', 'error');
-          return;
+            console.log('剪贴板中没有检测到内容', 'error');
+            return;
         }
-        
+
         // 查找所有图片项
-        const imageItems = Array.from(items).filter((item: DataTransferItem) => 
-          item.type.includes('image')
+        const imageItems = Array.from(items).filter((item: DataTransferItem) =>
+            item.type.includes('image')
         ).map((i: DataTransferItem) => i.getAsFile()).filter((file): file is File => file !== null);
         handleFileSelect(imageItems)
 
@@ -250,11 +250,10 @@ defineExpose({
 </script>
 
 <template>
-    <TChatSender class="sender-container" :value="inputValue"  :textarea-props="{
+    <TChatSender class="sender-container" :value="inputValue" :textarea-props="{
         placeholder: $t('conversation.input.placeholder'),
         autosize: { minRows: 1, maxRows: 2 },
-    }" 
-    @stop="onStop" @send="handleSend" @change="handleInput" @fileSelect="handleFileSelect" @paste="handlePaste">
+    }" @stop="onStop" @send="handleSend" @change="handleInput" @fileSelect="handleFileSelect" @paste="handlePaste">
         <template #inner-header>
             <div v-if="fileList.length > 0" class="file-upload-container">
                 <div v-for="(img, index) in fileList" class="img-item-container">
@@ -266,47 +265,45 @@ defineExpose({
             </div>
         </template>
         <template #suffix>
-             <!-- 等待中的发送按钮 -->
-            <send-icon v-if="!isStreamLoad && !inputValue" @click="handleSend(inputValue)" class="customeized-icon" size="var(--td-font-size-headline-small)" :fill-color='["#06154233"]' :stroke-color='["var(--td-bg-color-container)"]' :stroke-width="1"/>
+            <!-- 等待中的发送按钮 -->
+            <send-icon v-if="!isStreamLoad && !inputValue" @click="handleSend(inputValue)" class="customeized-icon"
+                size="var(--td-font-size-headline-small)" :fill-color='["#06154233"]'
+                :stroke-color='["var(--td-bg-color-container)"]' :stroke-width="1" />
             <!-- 可用的发送按钮 -->
-            <send-icon v-if="!isStreamLoad && inputValue" @click="handleSend(inputValue)" class="customeized-icon"  size="var(--td-font-size-headline-small)" :fill-color='["var(--td-brand-color)"]' :stroke-color='["var(--td-bg-color-container)"]' :stroke-width="1"/>
+            <send-icon v-if="!isStreamLoad && inputValue" @click="handleSend(inputValue)" class="customeized-icon"
+                size="var(--td-font-size-headline-small)" :fill-color='["var(--td-brand-color)"]'
+                :stroke-color='["var(--td-bg-color-container)"]' :stroke-width="1" />
             <!-- 停止发送按钮 -->
-            <stop-circle-stroke-icon v-if="isStreamLoad" @click="onStop"  class="customeized-icon"  size="var(--td-font-size-headline-small)" :fill-color='["var(--td-brand-color)","#fff"]' :stroke-color='["#fff","#fff"]' :stroke-width="1"/>
+            <stop-circle-stroke-icon v-if="isStreamLoad" @click="onStop" class="customeized-icon"
+                size="var(--td-font-size-headline-small)" :fill-color='["var(--td-brand-color)", "#fff"]'
+                :stroke-color='["#fff", "#fff"]' :stroke-width="1" />
         </template>
         <template #prefix>
             <div class="sender-control-container">
-            
-            <t-upload
-                ref="uploadRef1"
-                :max="10"
-                :multiple="true"
-                :request-method="handleFileSelect"
-                accept="image/*"
-                :showThumbnail="false"
-                :showImageFileName="false"
-                :showUploadProgress="false"
-                tips=""
-            >
-                <t-tooltip  :content="$t('sender.uploadImg')">
-                    <span class="sender-icon  recording-icon" >
-                        <t-icon size="large" name="image"></t-icon>
+
+                <t-upload ref="uploadRef1" :max="10" :multiple="true" :request-method="handleFileSelect"
+                    accept="image/*" :showThumbnail="false" :showImageFileName="false" :showUploadProgress="false"
+                    tips="">
+                    <t-tooltip :content="$t('sender.uploadImg')">
+                        <span class="sender-icon  recording-icon">
+                            <image-icon size="large" />
+                        </span>
+                    </t-tooltip>
+                </t-upload>
+                <t-tooltip v-if="!recording" :content="$t('sender.startRecord')">
+                    <span class="sender-icon  recording-icon" @click="handleStartRecord">
+                        <microphone-1-icon size="large" />
                     </span>
                 </t-tooltip>
-            </t-upload>
-            <t-tooltip v-if="!recording" :content="$t('sender.startRecord')">
-                <span class="sender-icon  recording-icon" @click="handleStartRecord">
-                    <t-icon size="large" name="microphone-1"></t-icon>
-                </span>
-            </t-tooltip>
-                
-            <t-tooltip  v-if="recording"  :content="$t('sender.stopRecord')">
-                <span class="sender-icon recording-icon stop-icon" @click="handleStopRecord">
-                    <RecordIcon />
-                </span>
-            </t-tooltip>
+
+                <t-tooltip v-if="recording" :content="$t('sender.stopRecord')">
+                    <span class="sender-icon recording-icon stop-icon" @click="handleStopRecord">
+                        <RecordIcon />
+                    </span>
+                </t-tooltip>
 
             </div>
-                
+
         </template>
     </TChatSender>
 </template>
@@ -357,28 +354,35 @@ defineExpose({
     padding-top: 8px;
     padding-left: 10px;
 }
+
 .sender-icon {
     padding: var(--td-pop-padding-m);
 }
-.sender-icon.stop-icon{
-padding:0;
+
+.sender-icon.stop-icon {
+    padding: 0;
 }
-.sender-control-container{
+
+.sender-control-container {
     display: flex;
     align-items: center;
 }
-.sender-container{
+
+.sender-container {
     width: 100%;
     max-width: 800px;
 }
-.customeized-icon{
+
+.customeized-icon {
     cursor: pointer;
 }
-:deep(.t-chat-sender__textarea){
+
+:deep(.t-chat-sender__textarea) {
     background-color: var(--td-bg-color-container);
     border-radius: var(--td-radius-medium);
 }
-:deep(.t-chat-sender__footer){
-    padding:0px var(--td-comp-paddingLR-s);
+
+:deep(.t-chat-sender__footer) {
+    padding: 0px var(--td-comp-paddingLR-s);
 }
 </style>

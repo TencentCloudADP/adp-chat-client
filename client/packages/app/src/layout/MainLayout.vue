@@ -25,9 +25,7 @@ const appsStore = useAppsStore()
 
             </div>
             <div class="header-app-settings">
-                <!-- <t-icon name="sound" size="20px" /> -->
                 <CreateConversation />
-                <!-- <t-icon name="more" size="20px"  /> -->
             </div>
         </t-header>
         <t-content class="layout-content">

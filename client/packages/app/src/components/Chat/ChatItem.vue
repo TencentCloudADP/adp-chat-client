@@ -14,6 +14,7 @@ import {
     ChatItem as TChatItem,
     ChatLoading as TChatLoading,
 } from '@tdesign-vue-next/chat';
+import { FileCopyIcon, Share1Icon, RefreshIcon, ThumbUp2Icon, ThumbDown1Icon } from 'tdesign-icons-vue-next';
 // 服务层函数
 import { handleRate } from '@/service/chat';
 // 状态管理
@@ -108,7 +109,7 @@ const rate = async (record: Record, score: ScoreValue) => {
  */
 const share = async (record: Record) => {
     let shareList = [record.RecordId]
-    if(record.RelatedRecordId){
+    if (record.RelatedRecordId) {
         shareList.push(record.RelatedRecordId)
     }
     onShare && onShare(shareList);
@@ -181,7 +182,7 @@ const renderReasoning = (item: Record) => {
                 lazy: true,
                 loading: ''
             }" v-else-if="userStore.avatarUrl" :image="userStore.avatarUrl" size="medium">{{ userStore.avatarName
-                }}</t-avatar>
+            }}</t-avatar>
             <t-avatar :imageProps="{
                 lazy: true,
                 loading: ''
@@ -197,9 +198,8 @@ const renderReasoning = (item: Record) => {
                 <div v-if="item.IsFromSelf && showActions" class="user-message">
                     <!-- <TChatContent :content="item.Content" /> -->
                     <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos" />
-                    <t-icon name="file-copy" class="copy-icon"
-                        @click="(e: any) => copyContent(e, item.Content, 'user')" />
-                    <t-icon name="share-1" class="share-icon" @click="share(item)" />
+                    <file-copy-icon class="copy-icon" @click="(e: any) => copyContent(e, item.Content, 'user')" />
+                    <share-1-icon class="share-icon" @click="share(item)" />
                 </div>
                 <MdContent v-else :content="item.Content" role="assistant" :quoteInfos="item.QuoteInfos" />
                 <div class="references-container"
@@ -218,23 +218,22 @@ const renderReasoning = (item: Record) => {
         <template #actions v-if="(!isStreamLoad || !isLastMsg) && showActions">
             <div class="actions-container">
                 <Tooltip :content="t('operation.replay')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon" name="refresh" @click="onResend && onResend(item.RelatedRecordId)"></t-icon>
+                    <refresh-icon class="icon" @click="onResend && onResend(item.RelatedRecordId)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.copy')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon" name="file-copy"
-                        @click="(e: any) => copyContent(e, item.Content, 'assistant')" />
+                    <file-copy-icon class="icon" @click="(e: any) => copyContent(e, item.Content, 'assistant')" />
                 </Tooltip>
                 <Tooltip :content="t('operation.share')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon" name="share-1" @click="share(item)" />
+                    <share-1-icon class="icon" @click="share(item)" />
                 </Tooltip>
                 <Divider layout="vertical"></Divider>
                 <Tooltip :content="t('operation.good')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon"
+                    <thumb-up-2-icon class="icon"
                         :class="{ active: record.Score === ScoreValue.Like, disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined }"
                         name="thumb-up-2" @click="rate(item, ScoreValue.Like)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.bad')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon"
+                    <thumb-down-1-icon class="icon"
                         :class="{ active: record.Score === ScoreValue.Dislike, disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined }"
                         name="thumb-down-1" @click="rate(item, ScoreValue.Dislike)" />
                 </Tooltip>
