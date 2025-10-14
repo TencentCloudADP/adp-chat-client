@@ -12,6 +12,8 @@
 /out/
 /build
 *.tsbuildinfo
+/.turbo
+/.eslintcache
 
 # misc
 .DS_Store
@@ -21,8 +23,17 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
 
 # others
 .env*.local
 .vercel
 next-env.d.ts
+
+/fumafocs/
+
+# tooling
+.idea/
+.vscode/
+*.swp
+*.swo

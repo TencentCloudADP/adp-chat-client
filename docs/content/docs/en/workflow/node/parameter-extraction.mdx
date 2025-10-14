@@ -1,0 +1,59 @@
+---
+title: Parameter Extraction Node
+author: Steven Lynn
+---
+
+The Parameter Extraction Node is an important component in the Tencent Cloud Agent Development Platform workflow, used to extract key information (parameters) from user conversations.
+
+## Node Function
+
+The Parameter Extraction Node belongs to the information collection category of nodes, collecting parameters through multi-turn dialogues with users. These parameters can be nouns, place names, phone numbers, hospital names, and various other business-related information. When the workflow reaches this node, it will interrupt and interact with the user until the required parameters are collected.
+
+## Operation Instructions
+
+### Input Variables
+
+Input variables only take effect within this node and cannot be used across nodes. Supports up to 50 input variables to meet multi-input variable scenarios.
+
+Configuration items include:
+- **Variable Name**: The name of the variable, can only contain letters, numbers, or underscores, and must start with a letter or underscore (required)
+- **Variable Description**: Description information of the variable (optional)
+- **Data Source**: The data source of the variable, supports "Reference" and "Input" options
+- **Variable Type**: The data type of the variable, defaults to the variable type of "Reference" or string type of "Input"
+
+The system automatically passes three variables by default: current round of dialogue content, dialogue history, and current time, without manual addition.
+
+### Collecting Parameters
+
+#### Model Settings
+
+You can set the large language model used by this node to extract required parameters from user conversations. Only large models that your account has permissions for are supported.
+
+#### Parameter Information Configuration
+
+Parameter information configuration includes:
+- **Parameter Name**: The name of the parameter, it is recommended to use specific Chinese names to facilitate model recognition and understanding (required)
+- **Parameter Type**: The data type of the parameter (required)
+- **Parameter Description**: Description information of the parameter to help the model accurately identify and understand the parameter (required)
+- **Parameter Collection Examples**: Expected correct and incorrect examples of the parameter (optional)
+- **Required**: Whether the parameter is mandatory
+
+#### Prompt Configuration
+
+If you have special requirements for the parameter extraction process, you can configure prompts to guide the large model in generating corresponding clarification and follow-up questions.
+
+Typical scenarios include:
+1. When parameters are not extracted from the dialogue, instructing the model on how to ask the user
+2. When the response content has specific format requirements or preferences
+
+### Output Variables
+
+The output variables processed by this node default to the user-configured parameters, as well as error information Error during runtime (data type is object, this field is empty during normal operation). Manual addition is not supported.
+
+## Application Example
+
+When a user needs to issue an invoice, the Parameter Extraction Node is used to collect the required order number, membership card ID, and user name parameter information.
+
+## Common Issues
+
+If you want to copy the configuration information of other parameters, you can click the "Copy" icon in the upper right corner of the new parameter box and select the parameters you need to copy.

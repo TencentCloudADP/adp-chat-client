@@ -13,3 +13,4 @@ research
 build
 cache
 deploy/default/volume/
+.codebuddy/

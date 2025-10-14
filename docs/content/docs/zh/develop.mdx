@@ -1,0 +1,108 @@
+---
+title: 开发指南
+sidebar_position: 3
+description: 介绍前端与后端的开发环境搭建、调试流程以及常见问题排查。
+---
+
+> 建议先完成一次 [快速开始](/docs/zh/quick-start)，确保基础环境与 `.env` 配置可正常运行，再进行本地开发。
+
+## 前端
+
+### 依赖
+
+1. Node.js **>= 18**
+2. npm（或 pnpm / yarn，示例默认使用 npm）
+
+```bash
+# Ubuntu Server 24.04
+sudo apt update
+sudo apt install -y nodejs npm
+
+# TencentOS Server 4.4
+sudo dnf install -y nodejs npm
+```
+
+> 推荐使用 `nvm` 管理 Node 版本以保持一致性。
+
+### 安装与命令行调试
+
+```bash
+# 初始化（首次执行，会在 client/tagentic-client-vue 下安装依赖）
+make init_client
+
+# 构建（产物输出至 server/static/app）
+make client
+# 启动后端服务（见后端章节）后，可直接在浏览器访问构建产物
+```
+
+### 常见问题（前端）
+
+- **Node 版本过低**：升级至 18+，使用 `node -v` 检查。
+- **依赖安装缓慢或失败**：配置镜像源或多次重试，必要时切换到 `pnpm`。
+- **构建后页面空白**：确保后端已启动、静态路径正确，并检查浏览器控制台是否存在跨域或 404 报错。
+
+## 后端
+
+> 后端默认以容器方式运行（Sanic + Python），无需在宿主机安装 Python。以下命令假设 Docker / Compose 已可用。
+
+### 调试（命令行）
+
+```bash
+# 1. 按照「快速部署」章节完成准备，包含 deploy/default/.env
+# 2. 将部署使用的 .env 同步到 server/ 目录，供调试容器读取
+cp deploy/default/.env server/.env
+
+# 3. 启动后端调试容器（挂载模式，无需重打镜像）
+sudo make debug
+# 成功后，后端以挂载模式运行，本地代码改动会即时生效
+```
+
+> 默认端口：`8000`（容器映射到宿主机）。  
+> 静态资源：前端构建产物位于 `server/static/app`，调试模式下由后端直接提供。
+
+### VS Code 快速调试
+
+在命令面板（`Cmd/Ctrl + Shift + P`）输入 “Preferences: Open Keyboard Shortcuts (JSON)” 并添加：
+
+```json
+{
+  "key": "cmd+r",
+  "command": "workbench.action.terminal.sendSequence",
+  "args": { "text": "make debug\n" }
+}
+```
+
+### 日志与可观测性
+
+```bash
+# 查看日志（基于 docker compose 的部署）
+sudo make logs
+# 或直接使用 docker compose
+sudo docker compose -f deploy/default/compose.yaml logs -f
+
+# 查看容器状态与端口
+sudo docker ps
+ss -tulpen | grep 8000 || sudo lsof -i:8000
+```
+
+### 常见问题（后端）
+
+- **`.env` 解析报错（python-dotenv could not parse）**：`APP_CONFIGS` 必须是单行合法 JSON，严禁尾随逗号与注释。
+- **页面显示 “Unknown Application”**：当前 `TC_SECRET_ID/KEY` 缺少应用访问权限，请到平台侧授权或换用有权限的密钥。
+- **语音输入不可用**：确认已启用腾讯云实时语音识别，并通过 HTTPS 访问以避免浏览器限制。
+
+## Makefile 快速索引
+
+| 命令              | 作用                                          |
+| :---------------- | :-------------------------------------------- |
+| `make init_client`| 安装前端依赖（首次执行）                     |
+| `make client`     | 构建前端，产物输出至 `server/static/app`     |
+| `sudo make pack`  | 构建/打包后端与部署镜像                      |
+| `sudo make deploy`| 通过 Docker Compose 启动服务                 |
+| `sudo make debug` | 启动后端调试容器（挂载模式，无需重建镜像）   |
+| `sudo make logs`  | 查看运行日志                                  |
+| `sudo make url`   | 生成演示用登录地址（URL 跳转示例）           |
+
+## 下一步
+
+完成本地开发流程后，可根据业务需要定制 UI/主题、扩展路由或接入更多企业内部服务，并在生产环境下通过灰度/回滚策略持续迭代。 
