@@ -8,7 +8,7 @@ import type { FileProps } from '@/model/file';
 import { handleGetAsrUrl } from '@/service/chat';
 import { MessagePlugin } from 'tdesign-vue-next';
 import RecordIcon from '@/components/Common/RecordIcon.vue';
-import { SendIcon, StopCircleStrokeIcon, ImageIcon, Microphone1Icon } from 'tdesign-icons-vue-next';
+import { SendIcon, StopCircleStrokeIcon, ImageIcon, Microphone1Icon, DeleteIcon } from 'tdesign-icons-vue-next';
 const { t } = useI18n();
 
 /**
@@ -259,7 +259,7 @@ defineExpose({
                 <div v-for="(img, index) in fileList" class="img-item-container">
                     <t-image fit="contain" :src="img.url" :style="{ width: '70px', height: '70px' }" />
                     <span class="delete-container">
-                        <t-icon name="delete" @click="handleDeleteFile"></t-icon>
+                        <delete-icon @click="handleDeleteFile(index)"></delete-icon>
                     </span>
                 </div>
             </div>
