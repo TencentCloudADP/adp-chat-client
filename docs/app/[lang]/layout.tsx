@@ -7,6 +7,9 @@ import type { Translations } from 'fumadocs-ui/i18n';
 import type { Metadata } from 'next';
 import { i18n } from '@/lib/i18n';
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+const asset = (path: string) => `${basePath}${path}`;
+
 // 中文翻译
 const zh: Partial<Translations> = {
   search: '搜索'
@@ -61,15 +64,15 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
     description,
     keywords,
     icons: {
-      icon: '/images/favicon.png',
-      apple: '/images/favicon.png',
+      icon: asset('/images/favicon.png'),
+      apple: asset('/images/favicon.png'),
     },
     openGraph: {
       title,
       description,
       images: [
         {
-          url: '/images/hello-adp.png',
+          url: asset('/images/hello-adp.png'),
           width: 1200,
           height: 630,
           alt: 'Hello Dify Logo',
@@ -82,7 +85,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
       card: 'summary_large_image',
       title,
       description,
-      images: ['/images/hello-adp.png'],
+      images: [asset('/images/hello-adp.png')],
     },
   };
 }
