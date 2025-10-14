@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { RootProvider } from 'fumadocs-ui/provider';
 import type { ReactNode } from 'react';
 import type { Translations } from 'fumadocs-ui/i18n';
@@ -9,12 +10,6 @@ const normalizedBasePath = (process.env.NEXT_PUBLIC_BASE_PATH ?? '').replace(
   /\/+$/,
   '',
 );
-
-function withBase(path: string) {
-  if (!normalizedBasePath) return path;
-  const normalized = path.startsWith('/') ? path : `/${path}`;
-  return `${normalizedBasePath}${normalized}`.replace(/\/{2,}/g, '/');
-}
 
 function stripBase(pathname: string) {
   if (normalizedBasePath && pathname.startsWith(normalizedBasePath)) {
@@ -38,25 +33,29 @@ export default function LocaleProvider({
   translations,
   children,
 }: LocaleProviderProps) {
-  const handleLocaleChange = useCallback((nextLocale: string) => {
-    const { pathname, search, hash } = window.location;
-    const relative = stripBase(pathname);
-    const segments = relative.split('/').filter(Boolean);
+  const router = useRouter();
 
-    if (segments[0] === 'docs') {
-      if (segments.length > 1) {
-        segments[1] = nextLocale;
+  const handleLocaleChange = useCallback(
+    (nextLocale: string) => {
+      const { pathname, search, hash } = window.location;
+      const relative = stripBase(pathname);
+      const segments = relative.split('/').filter(Boolean);
+
+      if (segments[0] === 'docs') {
+        if (segments.length > 1) {
+          segments[1] = nextLocale;
+        } else {
+          segments.push(nextLocale);
+        }
       } else {
-        segments.push(nextLocale);
+        segments.splice(0, segments.length, 'docs', nextLocale);
       }
-    } else {
-      segments.splice(0, segments.length, 'docs', nextLocale);
-    }
 
-    const nextPath = `/${segments.join('/')}`;
-    const target = withBase(nextPath);
-    window.location.assign(`${target}${search}${hash}`);
-  }, []);
+      const nextPath = `/${segments.join('/')}`;
+      router.push(`${nextPath}${search}${hash}`);
+    },
+    [router],
+  );
 
   return (
     <RootProvider
