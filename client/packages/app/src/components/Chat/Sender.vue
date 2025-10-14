@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n';
 import { ChatSender as TChatSender } from '@tdesign-vue-next/chat'
 import { uploadFile } from '@/service/upload';
+import type { UploadFile } from '@/service/upload';
 import WebRecorder from "@/utils/webRecorder"
 import type { FileProps } from '@/model/file';
 import { handleGetAsrUrl } from '@/service/chat';
@@ -89,28 +90,34 @@ const fileList = ref([] as FileProps[])
  * @param {any} res - 文件选择结果
  * @returns {Promise<void>}
  */
-const handleFileSelect = async function (files: File[]) {
+const handleFileSelect = async function (files: UploadFile[]) {
     if (files && files.length <= 0) return;
     const allowed = ['image/png', 'image/jpg', 'image/jpeg', 'image/bmp']
-    files.map(async (item: File) => {
+    files.map(async (item: UploadFile) => {
         if (!allowed.includes(item.type)) {
             MessagePlugin.error(t('sender.notSupport'))
             return
         }
-        const res = await uploadFile({
-            file: item
-        })
-        if (res.Url) {
-            fileList.value.push({
-                uid: res.Url,
-                name: '',
-                status: 'done',
-                response: '',
-                url: res.Url,
+        try{
+            const res = await uploadFile({
+                file: item.raw || item  //  t-upload 上传方法，文件信息在raw字段
             })
+            if (res.Url) {
+                fileList.value.push({
+                    uid: res.Url,
+                    name: '',
+                    status: 'done',
+                    response: '',
+                    url: res.Url,
+                })
+            }else{
+                MessagePlugin.error(t('sender.uploadError'))
+            }
+        }catch(err){
+            MessagePlugin.error(t('sender.uploadError'))
         }
+        
     })
-
 }
 
 /**
@@ -253,7 +260,7 @@ defineExpose({
     <TChatSender class="sender-container" :value="inputValue" :textarea-props="{
         placeholder: $t('conversation.input.placeholder'),
         autosize: { minRows: 1, maxRows: 2 },
-    }" @stop="onStop" @send="handleSend" @change="handleInput" @fileSelect="handleFileSelect" @paste="handlePaste">
+    }" @stop="onStop" @send="handleSend" @change="handleInput" @paste="handlePaste">
         <template #inner-header>
             <div v-if="fileList.length > 0" class="file-upload-container">
                 <div v-for="(img, index) in fileList" class="img-item-container">
