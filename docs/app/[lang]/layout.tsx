@@ -1,15 +1,11 @@
 import '../global.css';
 import 'remixicon/fonts/remixicon.css';
 import { RootProvider } from 'fumadocs-ui/provider';
-import { Inter } from 'next/font/google';
 import { use } from 'react';
 import type { ReactNode } from 'react';
 import type { Translations } from 'fumadocs-ui/i18n';
 import type { Metadata } from 'next';
-
-const inter = Inter({
-  subsets: ['latin'],
-});
+import { i18n } from '@/lib/i18n';
 
 // 中文翻译
 const zh: Partial<Translations> = {
@@ -113,8 +109,15 @@ export default function Layout({
         locales,
         translations
       }}
+      search={{ enabled: false }}
     >
       {children}
     </RootProvider>
   );
 }
+
+export function generateStaticParams() {
+  return i18n.languages.map((lang) => ({ lang }));
+}
+
+export const dynamicParams = false;

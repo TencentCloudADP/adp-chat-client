@@ -1,14 +1,9 @@
 import './global.css';
 import 'remixicon/fonts/remixicon.css';
 import { RootProvider } from 'fumadocs-ui/provider';
-import { Inter } from 'next/font/google';
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
-
-const inter = Inter({
-  subsets: ['latin'],
-});
 
 export const metadata: Metadata = {
   title: 'Hello ADP - 学习和分享腾讯云智能体平台最佳实践',
@@ -41,10 +36,10 @@ export const metadata: Metadata = {
 
 export default function Layout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={inter.className} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className="flex flex-col min-h-screen" suppressHydrationWarning>
         <GoogleAnalytics />
-        <RootProvider>{children}</RootProvider>
+        <RootProvider search={{ enabled: false }}>{children}</RootProvider>
       </body>
     </html>
   );
