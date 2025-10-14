@@ -16,14 +16,17 @@ const appsStore = useAppsStore()
     <t-layout class="main-layout">
         <t-header class="layout-header">
             <div class="header-app-container">
-                <t-avatar shape="round" :image="appsStore.currentApplicationAvatar" size="large"></t-avatar>
-                <span class="header-app__title">{{ appsStore.currentApplicationName}}</span>
-                
+                <t-avatar :imageProps="{
+                    lazy: true,
+                    loading: ''
+                }" shape="round" :image="appsStore.currentApplicationAvatar" size="large"></t-avatar>
+                <span class="header-app__title">{{ appsStore.currentApplicationName }}</span>
+
             </div>
             <div class="header-app-settings">
                 <!-- <t-icon name="sound" size="20px" /> -->
                 <CreateConversation />
-                <SidebarToggle v-if="!uiStore.drawerVisible"/>
+                <SidebarToggle v-if="!uiStore.drawerVisible" />
                 <!-- <t-icon name="more" size="20px"  /> -->
             </div>
         </t-header>

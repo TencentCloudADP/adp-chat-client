@@ -41,7 +41,18 @@ const handleChooseQuestion = (value: string) => {
 
 <template>
   <flex class="greeting-panel">
-    <t-avatar v-if="appsStore.currentApplicationAvatar" class="greet-avatar" size="64px" shape="round" :image="appsStore.currentApplicationAvatar"></t-avatar>
+    <t-avatar 
+    hideOnLoadFailed 
+    v-if="appsStore.currentApplicationAvatar" 
+    class="greet-avatar" 
+    size="64px" 
+    shape="round" 
+    :image="appsStore.currentApplicationAvatar"
+    :imageProps="{
+      lazy: true,
+      loading: ''
+    }"
+    ></t-avatar>
     <span v-if="appsStore.currentApplicationName" class="greet-name">{{ appsStore.currentApplicationName}}</span>
     <div class="greet-desc" v-if="appsStore.currentApplicationGreeting">
         {{ appsStore.currentApplicationGreeting }}

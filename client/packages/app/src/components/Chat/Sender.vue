@@ -7,11 +7,11 @@ import WebRecorder from "@/utils/webRecorder"
 import type { FileProps } from '@/model/file';
 import { handleGetAsrUrl } from '@/service/chat';
 import { MessagePlugin } from 'tdesign-vue-next';
-import RecordingIcon from '@/assets/icons/recording.svg';
 import SendIcon from '@/assets/icons/send.svg';
 import SendNormalIcon from '@/assets/icons/sendNormal.svg';
 import SendStopIcon from '@/assets/icons/sendStop.svg';
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
+import RecordIcon from '@/components/Common/RecordIcon.vue';
 
 const { t } = useI18n();
 
@@ -276,6 +276,7 @@ defineExpose({
         </template>
         <template #prefix>
             <div class="sender-control-container">
+            
             <t-upload
                 ref="uploadRef1"
                 :max="10"
@@ -299,10 +300,9 @@ defineExpose({
                 </span>
             </t-tooltip>
                 
-            
-            <t-tooltip v-if="recording" :content="$t('sender.stopRecord')">
-                <span class="sender-icon recording-icon" @click="handleStopRecord">
-                    <CustomizedIcon :svg="RecordingIcon" size="l" />
+            <t-tooltip  v-if="recording"  :content="$t('sender.stopRecord')">
+                <span class="sender-icon recording-icon stop-icon" @click="handleStopRecord">
+                    <RecordIcon />
                 </span>
             </t-tooltip>
 
@@ -359,8 +359,10 @@ defineExpose({
     padding-left: 10px;
 }
 .sender-icon {
-    margin-right: var(--td-comp-margin-m);
-    height: var(--td-size-7);
+    padding: var(--td-pop-padding-m);
+}
+.sender-icon.stop-icon{
+padding:0;
 }
 .sender-control-container{
     display: flex;

@@ -6,7 +6,6 @@ import { ref } from 'vue';
 // 类型定义
 import type { Record, AgentThought } from '@/model/chat';
 import { ScoreValue } from '@/model/chat';
-import { useAppsStore } from '@/stores/apps';
 // 工具函数
 import { formatDisplayTime } from '@/utils/date';
 // TDesign Vue 组件
@@ -28,8 +27,6 @@ import MdContent from '../Common/MdContent.vue';
 
 import { useUserStore } from '@/stores/user';
 const userStore = useUserStore();
-
-
 
 const { t } = useI18n();
 const chatStore = useChatStore();
@@ -72,8 +69,7 @@ async function copyContent(event: any, content: string | undefined, type: string
     const container = event?.e.target as HTMLElement;
     const markdownElements = container?.closest('.t-chat__content')?.querySelectorAll('.markdown-body');
     rowtext = markdownElements && markdownElements.length > 0 ? markdownElements[markdownElements.length - 1]?.textContent || undefined : undefined;
-   
-    console.log('rowtext', rowtext)
+
     await copy(rowtext, content);
 }
 
@@ -85,7 +81,7 @@ async function copyContent(event: any, content: string | undefined, type: string
  */
 const rate = async (record: Record, score: ScoreValue) => {
     const disabled = (record.Score != ScoreValue.Unknown && record.Score !== undefined)
-    if(disabled) return;
+    if (disabled) return;
     try {
         const _score = score;
         const msg = _score === ScoreValue.Like ? t('operation.thxForGood') : _score === ScoreValue.Dislike ? t('operation.thxForBad') : "";
@@ -141,31 +137,28 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
             ))}
         </div>
     );
-    // <TChatContent key={index} content={procedure.Debugging?.DisplayContent || procedure.Debugging?.Content || ''} role="system" />
-
 };
 
-const renderReasoning = (item:Record) => {
-    
-    if(!item.AgentThought){
+const renderReasoning = (item: Record) => {
+    if (!item.AgentThought) {
         return false
-    }else{
-       return {
-                collapsed: isLastMsg && !isStreamLoad,
-                expandIconPlacement: 'right' as const,
-                collapsePanelProps: {
-                    header: renderHeader(),
-                    content: renderReasoningContent(item.AgentThought),
-                }
+    } else {
+        return {
+            collapsed: isLastMsg && !isStreamLoad,
+            expandIconPlacement: 'right' as const,
+            collapsePanelProps: {
+                header: renderHeader(),
+                content: renderReasoningContent(item.AgentThought),
             }
+        }
     }
-    
 }
 </script>
 
 <template>
     <!-- 聊天项组件 -->
-    <TChatItem  animation="skeleton" :name="!item.IsFromSelf ? chatStore.currentApplicationName || item.FromName: userStore.name || item.FromName"
+    <TChatItem animation="skeleton"
+        :name="!item.IsFromSelf ? chatStore.currentApplicationName || item.FromName : userStore.name || item.FromName"
         :role="!item.IsFromSelf ? 'assistant' : 'user'" :variant="!item.IsFromSelf ? undefined : 'base'"
         :text-loading="false" :reasoning="renderReasoning(item)">
         <!-- 时间戳插槽 -->
@@ -174,34 +167,44 @@ const renderReasoning = (item:Record) => {
         </template>
         <!-- 头像插槽 -->
         <template #avatar>
-            <t-avatar v-if="!item.IsFromSelf" :image="chatStore.currentApplicationAvatar || item.FromAvatar" size="medium" />
-            <t-avatar v-else-if="userStore.avatarUrl" :image="userStore.avatarUrl" size="medium">{{ userStore.avatarName
-            }}</t-avatar>
-            <t-avatar v-else size="medium">{{ userStore.avatarName }}</t-avatar>
+            <t-avatar :imageProps="{
+                lazy: true,
+                loading: ''
+            }" v-if="!item.IsFromSelf" :image="chatStore.currentApplicationAvatar || item.FromAvatar" size="medium" />
+            <t-avatar :imageProps="{
+                lazy: true,
+                loading: ''
+            }" v-else-if="userStore.avatarUrl" :image="userStore.avatarUrl" size="medium">{{ userStore.avatarName
+                }}</t-avatar>
+            <t-avatar :imageProps="{
+                lazy: true,
+                loading: ''
+            }" v-else size="medium">{{ userStore.avatarName }}</t-avatar>
         </template>
         <!-- 内容插槽 -->
         <template #content>
-            <div  v-if="isLastMsg && isStreamLoad && !item.Content && !item.AgentThought" class="loading-container">
-                 <t-loading  :text="`${$t('common.thinking')}...`" size="small"></t-loading>
+            <div v-if="isLastMsg && isStreamLoad && !item.Content && !item.AgentThought" class="loading-container">
+                <t-loading :text="`${$t('common.thinking')}...`" size="small"></t-loading>
             </div>
             <div v-else>
 
-            <div v-if="item.IsFromSelf && showActions" class="user-message">
-                <!-- <TChatContent :content="item.Content" /> -->
-                <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos"/>
-                <t-icon name="file-copy" class="copy-icon" @click="(e: any) => copyContent(e, item.Content, 'user')" />
-                <t-icon  name="share-1" class="share-icon" @click="share(item)" />
-            </div>
-            <MdContent v-else :content="item.Content"  role="assistant" :quoteInfos="item.QuoteInfos"/>
-            <div class="references-container"
-                v-if="item.References && item.References.length > 0 && !(item.IsFinal === false)">
-                <span class="title">{{ $t('sender.references') }}: </span>
-                <ol>
-                    <li v-for="(reference, index) in item.References">
-                        <t-link theme="primary" :href="reference.Url" target="_blank">{{ reference.Name }}</t-link>
-                    </li>
-                </ol>
-            </div>
+                <div v-if="item.IsFromSelf && showActions" class="user-message">
+                    <!-- <TChatContent :content="item.Content" /> -->
+                    <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos" />
+                    <t-icon name="file-copy" class="copy-icon"
+                        @click="(e: any) => copyContent(e, item.Content, 'user')" />
+                    <t-icon name="share-1" class="share-icon" @click="share(item)" />
+                </div>
+                <MdContent v-else :content="item.Content" role="assistant" :quoteInfos="item.QuoteInfos" />
+                <div class="references-container"
+                    v-if="item.References && item.References.length > 0 && !(item.IsFinal === false)">
+                    <span class="title">{{ $t('sender.references') }}: </span>
+                    <ol>
+                        <li v-for="(reference, index) in item.References">
+                            <t-link theme="primary" :href="reference.Url" target="_blank">{{ reference.Name }}</t-link>
+                        </li>
+                    </ol>
+                </div>
             </div>
 
         </template>
@@ -212,19 +215,22 @@ const renderReasoning = (item:Record) => {
                     <t-icon class="icon" name="refresh" @click="onResend && onResend(item.RelatedRecordId)"></t-icon>
                 </Tooltip>
                 <Tooltip :content="t('operation.copy')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon" name="file-copy" @click="(e: any) => copyContent(e, item.Content, 'assistant')" />
+                    <t-icon class="icon" name="file-copy"
+                        @click="(e: any) => copyContent(e, item.Content, 'assistant')" />
                 </Tooltip>
                 <Tooltip :content="t('operation.share')" destroyOnClose showArrow theme="default">
                     <t-icon class="icon" name="share-1" @click="share(item)" />
                 </Tooltip>
                 <Divider layout="vertical"></Divider>
                 <Tooltip :content="t('operation.good')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon" :class="{ active: record.Score === ScoreValue.Like,disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined} " name="thumb-up-2"
-                        @click="rate(item, ScoreValue.Like)" />
+                    <t-icon class="icon"
+                        :class="{ active: record.Score === ScoreValue.Like, disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined }"
+                        name="thumb-up-2" @click="rate(item, ScoreValue.Like)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.bad')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon" :class="{ active: record.Score === ScoreValue.Dislike,disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined}" name="thumb-down-1"
-                        @click="rate(item, ScoreValue.Dislike)" />
+                    <t-icon class="icon"
+                        :class="{ active: record.Score === ScoreValue.Dislike, disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined }"
+                        name="thumb-down-1" @click="rate(item, ScoreValue.Dislike)" />
                 </Tooltip>
             </div>
         </template>
@@ -306,7 +312,8 @@ const renderReasoning = (item:Record) => {
 .references-container .title {
     color: var(--td-text-color-secondary);
 }
-.loading-container{
-    padding: 0 
+
+.loading-container {
+    padding: 0
 }
 </style>

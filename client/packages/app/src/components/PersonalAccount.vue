@@ -6,8 +6,14 @@ const userStore = useUserStore();
 
 <template>
     <div class="personal-account">
-        <t-avatar v-if="userStore.avatarUrl" size="small" :image="userStore.avatarUrl" />
-        <t-avatar v-else size="small">{{ userStore.avatarName
+        <t-avatar :imageProps="{
+            lazy: true,
+            loading: ''
+        }" v-if="userStore.avatarUrl" size="small" :image="userStore.avatarUrl" />
+        <t-avatar :imageProps="{
+            lazy: true,
+            loading: ''
+        }" v-else size="small">{{ userStore.avatarName
         }}</t-avatar>
         <span class="user-name">{{ userStore.name }}</span>
     </div>
