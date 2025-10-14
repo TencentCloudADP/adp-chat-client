@@ -1,9 +1,9 @@
 import { source } from '@/lib/source';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
-import { RootProvider } from 'fumadocs-ui/provider';
 import { baseOptions } from '@/app/layout.config';
 import type { ReactNode } from 'react';
 import type { Translations } from 'fumadocs-ui/i18n';
+import LocaleProvider from '@/components/LocaleProvider';
 
 const zh: Partial<Translations> = {
   search: '搜索'
@@ -35,19 +35,13 @@ export default async function Layout({
   }[lang];
 
   return (
-    <RootProvider
-      i18n={{
-        locale: lang,
-        locales,
-        translations,
-      }}
-    >
+    <LocaleProvider locale={lang} locales={locales} translations={translations}>
       <DocsLayout
         {...baseOptions(lang)}
         tree={pageTree}
       >
         {children}
       </DocsLayout>
-    </RootProvider>
+    </LocaleProvider>
   );
 }
