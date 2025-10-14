@@ -77,6 +77,7 @@
     "startRecord": "点击开始录音",
     "uploadImg": "上传图片",
     "stopRecord": "点击结束录音",
+    "uploadError": "上传失败，请重试",
     "references": "参考来源",
     "recordTooLong":"语音输入最长60s，已停止并转为文字",
     "notSupport":"暂不支持该类型文件(支持类型：png、jpg)",
