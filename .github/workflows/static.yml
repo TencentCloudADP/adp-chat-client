@@ -48,6 +48,7 @@ jobs:
       working-directory: ./docs
       env:
         NEXT_PUBLIC_GA_ID: ${{ secrets.GA_ID || 'G-15PHNMPFD1' }}
+        NEXT_PUBLIC_BASE_PATH: /adp-chat-client
         
     # 5. 设置 GitHub Pages
     - name: Setup Pages
