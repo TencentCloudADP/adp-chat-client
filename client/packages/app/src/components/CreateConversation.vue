@@ -24,7 +24,7 @@ const createConversation = () => {
 </script>
 
 <template>
-    <t-tooltip :content="$t('conversation.createConversation')" theme="primary">
+    <t-tooltip :content="t('conversation.createConversation')" theme="primary">
         <t-button shape="square" variant="text" @click="createConversation"><t-icon name="chat-add" /></t-button>
     </t-tooltip>
 </template>

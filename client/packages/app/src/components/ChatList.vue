@@ -23,38 +23,7 @@ const { t } = useI18n();
  * @type {Store}
  */
 const chatStore = useChatStore();
-/**
- * 操作选项配置
- * @type {Array<{content: string, value: number, prefixIcon?: Function, theme?: string}>}
- */
-const options = [
-    {
-        content: t('group.moveToGroup'),
-        value: 1,
-        prefixIcon: () => <t-icon name="folder-move" />,
-    },
-    {
-        content: t('operation.editName'),
-        value: 2,
-        prefixIcon: () => <t-icon name="edit-2" />,
-    },
-    {
-        content: t('operation.share'),
-        value: 3,
-        prefixIcon: () => <t-icon name="share-1" />,
-    },
-    {
-        content: t('operation.pin'),
-        value: 4,
-        prefixIcon: () => <t-icon name="pin" />,
-    },
-    {
-        content: t('operation.delete'),
-        value: 5,
-        theme: 'error',
-        prefixIcon: () => <t-icon name="delete" />,
-    },
-];
+
 /**
  * 当前选中的会话ID
  * @type {ComputedRef<string>}
@@ -133,15 +102,6 @@ const handleCreateNewChat = () => {
                 <div v-for="item in list.data" :key="item.Id" class="history-item"
                     :class="{ active: currentConversationId === item.Id }" @click="handleClick(item)">
                     <div class="history-title">{{ item.Title }}</div>
-                    <!-- 操作下拉菜单 -->
-                    <!-- <div class="history-dropdown" @click.stop="">
-                        <t-dropdown :id="`history-dropdown-${item.Id}`" :options="options" placement="bottom"
-                            :attach="`history-dropdown-${item.Id}`" maxColumnWidth="200">
-                            <t-button variant="text" shape="square" size="small">
-                                <t-icon name="ellipsis" />
-                            </t-button>
-                        </t-dropdown>
-                    </div> -->
                 </div>
             </block>
 

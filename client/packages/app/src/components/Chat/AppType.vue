@@ -3,7 +3,7 @@
  * 智能体选择组件
  * 功能：提供智能体选择下拉框，并展示当前智能体的欢迎语和推荐问题
  */
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import { useAppsStore } from '@/stores/apps';
 
 // 组件Props定义
@@ -97,12 +97,12 @@ const handleChooseQuestion = (value: string) => {
   font-size: var(--td-font-size-title-small);
   word-break: break-all;
   margin-top: var(--td-size-8);
-  padding:10px 12px;
-  border-radius: 6px;
+  padding:var(--td-pop-padding-l) var(--td-pop-padding-xl);
+  border-radius: var(--td-radius-medium);
 }
 .greet-tag {
   box-shadow: var(--td-shadow-2);
-  padding:8px 12px;
+  padding:var(--td-pop-padding-l) var(--td-pop-padding-xl);
   color:var(--td-brand-color);
   font-weight:500;
 }

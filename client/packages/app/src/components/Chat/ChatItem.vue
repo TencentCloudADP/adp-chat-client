@@ -26,7 +26,10 @@ import { copy } from '@/utils/clipboard';
 import MdContent from '../Common/MdContent.vue';
 
 import { useUserStore } from '@/stores/user';
+import { useUiStore } from '@/stores/ui';
+
 const userStore = useUserStore();
+const uiStore = useUiStore();
 
 const { t } = useI18n();
 const chatStore = useChatStore();
@@ -104,8 +107,11 @@ const rate = async (record: Record, score: ScoreValue) => {
  * @returns {Promise<void>}
  */
 const share = async (record: Record) => {
-    // TODO: 同时选择关联的问题和答案，但 user 时无法获取到 RelatedRecordId
-    onShare && onShare([record.RecordId, record.RelatedRecordId]);
+    let shareList = [record.RecordId]
+    if(record.RelatedRecordId){
+        shareList.push(record.RelatedRecordId)
+    }
+    onShare && onShare(shareList);
 };
 
 /**
@@ -162,11 +168,11 @@ const renderReasoning = (item: Record) => {
         :role="!item.IsFromSelf ? 'assistant' : 'user'" :variant="!item.IsFromSelf ? undefined : 'base'"
         :text-loading="false" :reasoning="renderReasoning(item)">
         <!-- 时间戳插槽 -->
-        <template #datetime>
+        <template #datetime v-if="!uiStore.isMobile">
             <span v-if="item.Timestamp">{{ formatDisplayTime(item.Timestamp * 1000) }}</span>
         </template>
         <!-- 头像插槽 -->
-        <template #avatar>
+        <template #avatar v-if="!uiStore.isMobile">
             <t-avatar :imageProps="{
                 lazy: true,
                 loading: ''
@@ -249,7 +255,7 @@ const renderReasoning = (item: Record) => {
     opacity: 0;
     transition: opacity 0.2s ease;
     cursor: pointer;
-    margin-left: 8px;
+    margin-left: var(--td-comp-margin-s);
 }
 
 /* 操作按钮图标样式 */
@@ -266,8 +272,8 @@ const renderReasoning = (item: Record) => {
 
 .check-circle {
     color: var(--td-success-color-5);
-    font-size: 20px;
-    margin-right: 8px;
+    font-size: var(--td-font-size-title-large);
+    margin-right: var(--td-comp-margin-s);
 }
 
 .icon.disabled {
@@ -298,7 +304,7 @@ const renderReasoning = (item: Record) => {
     display: flex;
     align-items: center;
     list-style: none;
-    padding: 3px;
+    padding: var(--td-pop-padding-s);
     background-color: var(--td-bg-color-secondarycontainer);
     border-radius: var(--td-radius-medium);
     border: 1px solid var(--td-border-level-2-color);
@@ -306,7 +312,7 @@ const renderReasoning = (item: Record) => {
 }
 
 .references-container {
-    margin: 0px 14px 20px 14px;
+    margin: 0px var(--td-comp-margin-l) var(--td-comp-margin-xl) var(--td-comp-margin-l);
 }
 
 .references-container .title {

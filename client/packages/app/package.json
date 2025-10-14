@@ -52,6 +52,7 @@
     "markdown-it-highlightjs": "^4.2.0",
     "npm-run-all2": "^8.0.4",
     "prettier": "3.5.3",
+    "tdesign-icons-vue-next": "^0.4.1",
     "typescript": "~5.8.0",
     "unplugin-auto-import": "^19.3.0",
     "unplugin-vue-components": "^28.8.0",

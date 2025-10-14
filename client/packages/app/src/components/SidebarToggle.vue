@@ -12,11 +12,20 @@ const handleClick = () => {
 </script>
 
 <template>
-    <t-button variant="text" shape="square" @click="handleClick">
+    <t-button class="sidebar-icon" variant="text" shape="square" @click="handleClick">
         <template #icon>
-            <CustomizedIcon :svg="SidebarIcon" />
+            <CustomizedIcon  :svg="SidebarIcon" size="l"/>
         </template>
     </t-button>
 </template>
 
-<style scoped></style>
+<style scoped>
+.sidebar-icon{
+    margin-right: var(--td-comp-margin-l);
+    padding: var(--td-pop-padding-m);
+    border-radius: var(--td-radius-default);
+}
+.sidebar-icon:hover{
+    background-color: var(--td-bg-color-container-active);
+}
+</style>

@@ -7,12 +7,8 @@ import WebRecorder from "@/utils/webRecorder"
 import type { FileProps } from '@/model/file';
 import { handleGetAsrUrl } from '@/service/chat';
 import { MessagePlugin } from 'tdesign-vue-next';
-import SendIcon from '@/assets/icons/send.svg';
-import SendNormalIcon from '@/assets/icons/sendNormal.svg';
-import SendStopIcon from '@/assets/icons/sendStop.svg';
-import CustomizedIcon from '@/components/CustomizedIcon.vue';
 import RecordIcon from '@/components/Common/RecordIcon.vue';
-
+import {SendIcon,StopCircleStrokeIcon} from 'tdesign-icons-vue-next';
 const { t } = useI18n();
 
 /**
@@ -270,9 +266,12 @@ defineExpose({
             </div>
         </template>
         <template #suffix>
-            <CustomizedIcon v-if="isStreamLoad" showHoverbackground :svg="SendStopIcon" size="xl" />
-            <CustomizedIcon v-if="!isStreamLoad && inputValue" showHoverbackground :svg="SendIcon" size="xl" />
-            <CustomizedIcon v-if="!isStreamLoad && !inputValue"  :svg="SendNormalIcon" size="xl" />
+             <!-- 等待中的发送按钮 -->
+            <send-icon v-if="!isStreamLoad && !inputValue" @click="handleSend(inputValue)" class="customeized-icon" size="var(--td-font-size-headline-small)" :fill-color='["#06154233"]' :stroke-color='["var(--td-bg-color-container)"]' :stroke-width="1"/>
+            <!-- 可用的发送按钮 -->
+            <send-icon v-if="!isStreamLoad && inputValue" @click="handleSend(inputValue)" class="customeized-icon"  size="var(--td-font-size-headline-small)" :fill-color='["var(--td-brand-color)"]' :stroke-color='["var(--td-bg-color-container)"]' :stroke-width="1"/>
+            <!-- 停止发送按钮 -->
+            <stop-circle-stroke-icon v-if="isStreamLoad" @click="onStop"  class="customeized-icon"  size="var(--td-font-size-headline-small)" :fill-color='["var(--td-brand-color)","#fff"]' :stroke-color='["#fff","#fff"]' :stroke-width="1"/>
         </template>
         <template #prefix>
             <div class="sender-control-container">
@@ -368,17 +367,16 @@ padding:0;
     display: flex;
     align-items: center;
 }
-/* TODO: 当前版本不支持，后续再开放 */
-:deep(.t-button:has(.t-icon-file-attachment)){
-     display: none;
-}
 .sender-container{
     width: 100%;
     max-width: 800px;
 }
+.customeized-icon{
+    cursor: pointer;
+}
 :deep(.t-chat-sender__textarea){
     background-color: var(--td-bg-color-container);
-    border-radius: 8px;
+    border-radius: var(--td-radius-medium);
 }
 :deep(.t-chat-sender__footer){
     padding:0px var(--td-comp-paddingLR-s);

@@ -32,7 +32,7 @@ const uiStore = useUiStore();
 }
 
 :deep(.t-icon) {
-    font-size: 18px;
+    font-size: var(--td-font-size-title-large);
     margin-right: var(--td-comp-margin-xs);
 }
 </style>
