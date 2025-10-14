@@ -101,24 +101,32 @@ function resolveRelativePath(page: ReturnType<typeof source.getPages>[number]) {
   return dir ? `${dir}/${filename}` : filename;
 }
 
-async function resolveMTime(relativePath: string) {
-  const absolute = path.join(DOCS_ROOT, relativePath);
-  try {
-    const stat = await fs.stat(absolute);
-    return stat.mtimeMs;
-  } catch (error) {
-    if (!relativePath.endsWith('.mdx')) {
-      const fallback = path.join(DOCS_ROOT, `${relativePath}.mdx`);
-      try {
-        const stat = await fs.stat(fallback);
-        return stat.mtimeMs;
-      } catch (innerError) {
-        console.warn('Failed to resolve MDX path for home cards:', relativePath, innerError);
-      }
-    } else {
-      console.warn('Failed to resolve MDX path for home cards:', relativePath, error);
+function candidatePaths(relativePath: string, lang: LanguageKey) {
+  const withExt = relativePath.endsWith('.mdx')
+    ? relativePath
+    : `${relativePath}.mdx`;
+  const paths = [
+    path.join(DOCS_ROOT, lang, withExt),
+    path.join(DOCS_ROOT, withExt),
+  ];
+  const fallbackLang = i18n.defaultLanguage as LanguageKey;
+  if (lang !== fallbackLang) {
+    paths.push(path.join(DOCS_ROOT, fallbackLang, withExt));
+  }
+  // dedupe
+  return Array.from(new Set(paths));
+}
+
+async function resolveMTime(relativePath: string, lang: LanguageKey) {
+  for (const candidate of candidatePaths(relativePath, lang)) {
+    try {
+      const stat = await fs.stat(candidate);
+      return stat.mtimeMs;
+    } catch {
+      // continue
     }
   }
+  console.warn('Failed to resolve MDX path for home cards:', relativePath);
   return 0;
 }
 
@@ -168,7 +176,7 @@ async function getArticles(lang: LanguageKey): Promise<RawArticleCard[]> {
       .filter((page) => page?.data?.title)
       .map(async (page) => {
         const relativePath = resolveRelativePath(page);
-        const mtime = await resolveMTime(relativePath);
+        const mtime = await resolveMTime(relativePath, lang);
         const segments = [...page.slugs];
         const categorySegments = segments.slice(0, -1);
         const categoryKey = categorySegments.join('/');
