@@ -1,0 +1,196 @@
+---
+title: Quick Start
+sidebar_position: 2
+---
+
+This tutorial is a detailed quick-deployment guide. Even if you’re not yet familiar with the components used in this project, you can still complete the deployment and start using it smoothly.
+
+## Prerequisites for Deployment:
+
+* [Git](https://git-scm.com/downloads)
+* `sudo` and GNU `make` 
+
+## Docker Quick Deployment:
+
+1. Clone the source code and enter the directory
+
+```bash
+git clone https://github.com/TencentCloudADP/adp-chat-client.git
+cd adp-chat-client
+```
+
+2. Install Docker and set image configuration (skip if Docker is already installed):
+
+> For TencentOS Server 4.4:
+
+```bash
+bash script/init_env_tencentos.sh
+```
+
+> For Ubuntu Server 24.04:
+
+```bash
+bash script/init_env_ubuntu.sh
+```
+
+3. Copy the `.env.example` file to the deploy folder
+
+```bash
+cp server/.env.example deploy/default/.env
+```
+
+4. Edit the configuration items in `deploy/default/.env`
+
+Based on your Tencent Cloud account and ADP platform information, fill in the following secrets and application keys:
+
+```dotenv
+# Tencent Cloud account keys: https://console.tencentcloud.com/cam/capi
+TC_SECRET_APPID=
+TC_SECRET_ID=
+TC_SECRET_KEY=
+```
+
+
+```
+# Agent App Key obtained from the ADP platform: https://adp.tencentcloud.com/adp#/app/home
+APP_CONFIGS='[
+    {
+        "Vendor":"Tencent",
+        "ApplicationId":"The unique ID of the chat app. It uniquely identifies a chat app in this system. We recommend using appid, or generate a random uuid via the uuidgen command.",
+        "Comment":"Comment",
+        "AppKey":"",
+        "International":false
+    }
+]'
+
+# JWT secret: a random string; you can generate one with the uuidgen command
+SECRET_KEY=
+```
+
+
+> ⚠️ **Note**:
+>
+> 1. The content of `APP_CONFIGS` must be JSON. Follow JSON rules, e.g., no trailing commas on the last item, and `//` comments are not supported.
+> 2. `Comment`: fill in anything helpful to locate the corresponding agent application.
+> 3. `International`: set to `false` for Tencent Cloud Mainland China (default). If the agent app is developed on the International site, set this to `true`.
+
+5. Build images
+
+```bash
+# Build images
+sudo make pack
+```
+
+6. Start containers
+
+```bash
+sudo make deploy
+```
+
+> ⚠️ **Note**: For production systems, you should apply for an SSL certificate under your own domain and deploy via HTTPS with reverse proxy such as Nginx. If you deploy over plain HTTP, some features (e.g., speech recognition, message copy, etc.) may not work properly.
+
+7. Log in
+
+This system supports integration with your existing account system. Here we demonstrate the login method based on [URL Redirect](#url-redirect):
+
+```bash
+sudo make url
+```
+
+This command generates a login URL. Open it in your browser for a seamless login. For more details on URL redirect login, see [Account Integration](#account-integration).
+
+If you have configured an OAuth login method, open `http://localhost:8000` in your browser to log in. For how to configure OAuth, see [Account Integration](#account-integration).
+
+8. Troubleshooting
+
+```bash
+# Check if containers are running. Normally you should see 2 containers:
+# adp-chat-client-default, adp-chat-client-db-default
+sudo docker ps
+
+# If you don't see the containers, startup likely failed. Check logs:
+sudo make logs
+```
+
+## Account Integration:
+
+### 1. OAuth Protocol Integration
+
+We currently support GitHub OAuth and Microsoft Entra ID OAuth by default. Configure them in the `deploy/default/.env` file as needed:
+
+**GitHub OAuth:**
+
+```dotenv
+# you can obtain it from https://github.com/settings/developers
+OAUTH_GITHUB_CLIENT_ID=
+OAUTH_GITHUB_SECRET=
+```
+
+**Microsoft Entra ID OAuth:**
+
+```dotenv
+# you can obtain it from https://entra.microsoft.com
+OAUTH_MICROSOFT_ENTRA_CLIENT_ID=
+OAUTH_MICROSOFT_ENTRA_SECRET=
+```
+
+If you want to customize authentication for other OAuth systems, modify `server/core/oauth.py` per the specific protocol for adaptation.
+
+### 2. URL Redirect
+
+If you already have your own account system but no standard OAuth—and prefer a simpler approach—you can integrate via URL redirect. The URL redirect integration includes the following three steps:
+
+1. **Your existing account service**: generate a URL pointing to this system, carrying `CustomerId`, `Name`, `ExtraInfo`, `Timestamp`, and the signature.
+2. **User**: the user clicks the URL to log in.
+3. **This system**: after verifying the signature, automatically creates/binds the account, generates a session, and redirects to the chat page.
+
+**Detailed parameters required for URL redirect:**
+
+| Parameter  | Description                                                                                            |
+| :--------- | :----------------------------------------------------------------------------------------------------- |
+| url        | `https://your-domain.com/account/customer?CustomerId=&Name=&Timestamp=&ExtraInfo=&Code=`               |
+| CustomerId | The `uid` in your existing account system                                                              |
+| Name       | The `username` in your existing account system (optional)                                              |
+| Timestamp  | Current timestamp                                                                                      |
+| ExtraInfo  | User information                                                                                       |
+| Code       | Signature, `SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, CustomerId + Name + ExtraInfo + str(Timestamp)))` |
+
+> 📝 Note:
+>
+> 1. Each parameter above needs `url_encode`. For detailed implementation, refer to `CoreAccount.customer_auth` in `server/core/account.py`. For how to generate the URL, see `generate_customer_account_url` in `server/main.py`.
+> 2. You need to set `CUSTOMER_ACCOUNT_SECRET_KEY` in `.env`. It should be a random string, which you can generate with `uuidgen`.
+
+## Service:
+
+To ensure features work properly, please enable/configure the following capabilities in the Tencent Cloud Console in advance:
+
+1. Conversation Title: [Knowledge Engine Atomic Capability: Postpaid Settings](https://console.tencentcloud.com/lkeap/settings), enable: **Atomic Capability\_DeepSeek API-V3 Postpaid**
+
+**Hidden component (why enable this?):**
+The conversation title summarization in the adp-chat-client chat UI calls the deepseek-V3 model and consumes tokens. For convenience, enable postpaid settings to avoid title issues.
+
+2. Voice Input: [real-time communication](https://console.tencentcloud.com/asr/settings), enable: **RTC** in the required regions.
+
+**Hidden component (why enable this?):**
+The chat page of adp-chat-client supports voice input using Tencent Cloud ASR technology. You need to enable it to use voice input in the chat box.
+
+3. Application Permissions: ensure that the account corresponding to `TC_SECRET_ID` / `TC_SECRET_KEY` configured in `.env` has access to the added agent application(s). See: [Platform-side User Permission](https://www.tencentcloud.com/document/product/1254/73347).
+
+**Hidden component: possible issues you may encounter:**
+If the account corresponding to your `TC_SECRET_ID` / `TC_SECRET_KEY` does not have permission for the imported application, that agent app will display as “Unknown Application” on the chat page, affecting user experience.
+
+## FAQ
+
+* **Q: `python-dotenv could not parse ...`**
+  **A:** `APP_CONFIGS` in `.env` is not valid single-line JSON (multi-line, trailing commas, or comments will cause errors).
+* **Q: The page shows “Unknown Application.”**
+  **A:** The current `TC_SECRET_ID/KEY` lack permissions for the app. Grant permissions on the platform or switch to credentials that have them.
+* **Q: Voice input is unavailable.**
+  **A:** Confirm that ASR is enabled; browsers need HTTPS to avoid policy restrictions.
+* **Q: OAuth callback error or 404.**
+  **A:** Check whether the callback URL exactly equals `SERVICE_API_URL + /oauth/callback/...`, and whether the third-party platform configuration matches.
+
+## Next Step:
+
+Congratulations on successfully deploying adp-chat-client. Next, you can:
+See the development guide: read the [Development Guide](/docs/develop) for tutorials on debugging the frontend and backend.

@@ -1,0 +1,69 @@
+---
+title: ADP Workflows
+description: Understand how to build workflows with ADP.
+enableComments: true
+author: "Steven Lynn"
+github_username: "stvlynn"
+x_username: "Stv_Lynn"
+---
+
+## 🤔 Why ADP Uses a Unified Workflow Design
+
+Unlike traditional agent platforms, the Tencent Cloud Agent Development Platform (ADP) relies on a single workflow model—no need to distinguish between chat flows and workflow builders. This unified approach simplifies implementation so you can focus on real business logic.
+
+### 🎯 Core Advantages
+
+**Unified workflow architecture**
+- Conversation handling and business processing run inside the same workflow
+- A built-in global agent node watches the conversation and orchestrates state
+- Supports flexible multi-turn dialogs while ensuring precise flow execution
+
+**Intelligent conversation management**
+- Every workflow-related message is routed through the same agent
+- The agent jumps to the right node based on user intent and context
+- Exit and chit-chat intents are understood globally for natural UX
+
+### 🔧 Technical Highlights
+
+**Flexible dialog orchestration**
+- Multi-turn conversations with automatic completeness analysis
+- Smart clarifying prompts guide users to deliver required details
+- Conditional routing between nodes without pre-baked dialog trees
+
+**Powerful node system**
+- **Information collection**: parameter extraction, selector cards, and more
+- **Information processing**: large-model calls, code blocks, and tool invocations
+- **Foundational nodes**: start, end, branching, and other flow controls
+
+### 🌟 Use Cases
+
+ADP workflows shine in complex business scenarios:
+
+**Invoice issuance**
+- Collect tax information such as company name and identification numbers
+- Normalize inputs with a large language model
+- Call external services to validate and generate invoices
+
+**Case processing**
+- Gather key facts from customers or field agents
+- Branch logic based on conditions and status tracking
+- Save the final resolution into downstream systems
+
+**Patient information queries**
+- Combine identity data with case records for retrieval
+- Summarize case files automatically
+- Provide intelligent Q&A grounded in medical history
+
+## Getting Started
+
+### Ship an MVP with minimal coding
+
+<Cards>
+  <Card 
+    href="./workflow/twitter-mbti-receipt" 
+    title="Build an MVP: Frontend + Backend"
+  >
+    <p>No-code journey powered by Dify and Windsurf.</p>
+    <img src="https://s2.loli.net/2025/05/12/bDNACQq2Stp4L76.png" alt="Twitter MBTI analysis" />
+  </Card>
+</Cards>
