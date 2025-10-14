@@ -9,7 +9,7 @@ const router = useRouter();
 const { t } = useI18n();
 const appsStore = useAppsStore();
 const chatStore = useChatStore();
-const maxAppLen = 4 ;
+const maxAppLen = 4;
 
 const handleClick = (app: Application) => {
     appsStore.setCurrentApplication(app);
@@ -60,7 +60,10 @@ const handleCollapseClick = () => {
     <div class="application-list">
         <div v-for="app in displayedApps" :key="app.ApplicationId" class="application-item"
             :class="{ active: appsStore.currentApplicationId === app.ApplicationId }" @click="handleClick(app)">
-            <t-avatar :image="app.Avatar" size="20px" class="application-avatar" />
+            <t-avatar :imageProps="{
+                lazy: true,
+                loading: ''
+            }" :image="app.Avatar" size="20px" class="application-avatar" />
             <span class="application-name">{{ app.Name }}</span>
         </div>
 

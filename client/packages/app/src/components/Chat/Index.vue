@@ -127,7 +127,6 @@ const isSelecting = ref(false)
 const checkall = ref(false);
 
 const handleCheckAll = (checked: boolean) => {
-    console.log('handleCheckAll',checked)
     checkall.value = checked ;
     if(checked){
         selectedIds.value = chatList.value.map(i => i.RecordId)
@@ -490,7 +489,6 @@ const handleSendData = async (queryVal: string) => {
         },
         {
             success(result) {
-                console.log('result',result)
                 if (result.type === 'conversation') {
                     //  创建新的对话，重新调用chatlist接口更新列表，根据record的LastActiveAt更新列表排序
                     fetchChatList(result.data.Id)
