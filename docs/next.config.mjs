@@ -6,22 +6,11 @@ const withMDX = createMDX();
 const config = {
   reactStrictMode: true,
   turbopack: false,
+  output: 'export',
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-        pathname: '**',
-      },
-      {
-        protocol: 'http',
-        hostname: '**',
-        pathname: '**',
-      }
-    ],
+    unoptimized: true,
     dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-  }
+  },
 };
 
 config.headers = async () => [
