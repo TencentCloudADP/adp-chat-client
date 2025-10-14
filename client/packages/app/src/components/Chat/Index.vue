@@ -419,7 +419,7 @@ const handleCloseShare = () => {
  * @returns {Promise<void>}
  */
 const onShare = async (RecordIds: string[]) => {
-    let _selectedList = chatList.value.filter(item => RecordIds.includes(item?.RelatedRecordId) || RecordIds.includes(item?.RecordId)).map(i => i.RecordId)
+    let _selectedList = chatList.value.filter(item => (item?.RelatedRecordId && RecordIds.includes(item?.RelatedRecordId)) || RecordIds.includes(item?.RecordId)).map(i => i.RecordId)
     isSelecting.value = true
     selectedIds.value = [...new Set([...selectedIds.value, ..._selectedList])]
 }
@@ -549,6 +549,8 @@ watch(
         if (isChatting.value) {
             return
         }
+        isSelecting.value = false;
+        selectedIds.value = [];
         onStop();
         clearConfirm()
     },
@@ -579,11 +581,11 @@ watch(
 .icon__share-copy{
     display: inline-block;
     background: var(--td-bg-color-container-hover);
-    border-radius: 4px;
+    border-radius: var(--td-radius-default);
     padding: var(--td-comp-paddingLR-s) var(--td-comp-paddingLR-xl);
     margin-left:var(--td-comp-paddingLR-l);
     margin-right:var(--td-comp-paddingLR-xs);
-    font-size: 14px;
+    font-size: var(--td-font-size-link-medium);
     cursor: pointer;
 }
 .icon__share-copy.disabled{

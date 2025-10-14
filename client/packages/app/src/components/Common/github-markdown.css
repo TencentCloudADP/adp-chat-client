@@ -489,7 +489,7 @@
   background-color: var(--bgColor-muted);
   border: solid 1px var(--borderColor-neutral-muted);
   border-bottom-color: var(--borderColor-neutral-muted);
-  border-radius: 6px;
+  border-radius: var(--td-radius-medium);
   box-shadow: inset 0 -1px 0 var(--borderColor-neutral-muted);
 }
 
@@ -931,7 +931,7 @@
   font-size: 85%;
   white-space: break-spaces;
   background-color: var(--bgColor-neutral-muted);
-  border-radius: 6px;
+  border-radius: var(--td-radius-medium);
 }
 
 .markdown-body code br,
@@ -977,7 +977,7 @@
   line-height: 1.45;
   color: var(--fgColor-default);
   background-color: var(--bgColor-muted);
-  border-radius: 6px;
+  border-radius: var(--td-radius-medium);
 }
 
 .markdown-body pre code,
@@ -1057,7 +1057,7 @@
   pointer-events: none;
   content: "";
   border: 2px solid var(--borderColor-accent-emphasis);
-  border-radius: 6px;
+  border-radius: var(--td-radius-medium);
 }
 
 .markdown-body .footnotes li:target {

@@ -16,6 +16,7 @@ const appsStore = useAppsStore()
     <t-layout class="main-layout">
         <t-header class="layout-header">
             <div class="header-app-container">
+                <SidebarToggle v-if="!uiStore.drawerVisible" />
                 <t-avatar :imageProps="{
                     lazy: true,
                     loading: ''
@@ -26,7 +27,6 @@ const appsStore = useAppsStore()
             <div class="header-app-settings">
                 <!-- <t-icon name="sound" size="20px" /> -->
                 <CreateConversation />
-                <SidebarToggle v-if="!uiStore.drawerVisible" />
                 <!-- <t-icon name="more" size="20px"  /> -->
             </div>
         </t-header>

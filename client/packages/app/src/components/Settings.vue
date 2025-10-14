@@ -70,6 +70,6 @@ const handleLogout = () => {
 }
 
 .t-icon {
-    font-size: 20px;
+    font-size: var(--td-font-size-title-large);
 }
 </style>
