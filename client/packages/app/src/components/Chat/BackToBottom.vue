@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ArrowDownIcon } from 'tdesign-icons-vue-next';
 
 const props = defineProps<{
     backToBottom: () => void;
@@ -9,7 +10,7 @@ const props = defineProps<{
 <template>
     <t-button shape="circle" class="bottomBtn" @click="props.backToBottom">
         <template #icon>
-            <t-icon name="arrow-down" />
+            <arrow-down-icon />
         </template>
     </t-button>
 </template>

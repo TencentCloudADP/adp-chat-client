@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { SearchIcon } from 'tdesign-icons-vue-next';
 
 const isSearchFocus = ref(false);
 const searchData = ref('');
@@ -15,7 +16,7 @@ const changeSearchFocus = (value: boolean) => {
     <t-input :placeholder="$t('operation.search')" @blur="changeSearchFocus(false)" @focus="changeSearchFocus(true)"
         borderless>
         <template #prefix-icon>
-            <t-icon class="icon" name="search" size="16" />
+            <search-icon class="icon" size="16" />
         </template>
     </t-input>
 </template>

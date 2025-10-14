@@ -15,10 +15,10 @@
             <!-- 聊天消息列表 -->
             <template v-else>
                 <div class="content">
-                    <InfiniteLoading :identifier="chatId"  direction="top" @infinite="infiniteHandler" >
+                    <InfiniteLoading :identifier="chatId" direction="top" @infinite="infiniteHandler">
                         <template #spinner>
-                            <div >
-                                <t-loading  :text="`${$t('common.loading')}...`" size="small"></t-loading>
+                            <div>
+                                <t-loading :text="`${$t('common.loading')}...`" size="small"></t-loading>
                             </div>
                         </template>
                         <template #no-more>
@@ -42,15 +42,17 @@
             </template>
             <!-- 底部发送区域 -->
             <template #footer>
-                <t-card v-if="isSelecting" size="small" class="share-setting-container"  shadow bodyClassName="share-setting-card">
+                <t-card v-if="isSelecting" size="small" class="share-setting-container" shadow
+                    bodyClassName="share-setting-card">
                     <div class="share-setting-content">
-                        <t-checkbox :indeterminate="selectedIds.length !== chatList.length && selectedIds.length !==0" :checked="checkall" @change="handleCheckAll">{{$t('operation.checkAll')}}</t-checkbox>
+                        <t-checkbox :indeterminate="selectedIds.length !== chatList.length && selectedIds.length !== 0"
+                            :checked="checkall" @change="handleCheckAll">{{ $t('operation.checkAll') }}</t-checkbox>
                         <t-divider layout="vertical"></t-divider>
                         <div>
-                            {{$t('operation.shareFor')}}
+                            {{ $t('operation.shareFor') }}
                             <div class="icon__share-copy" :class="{ disabled: selectedIds.length <= 0 }"
                                 @click="handleCopyShare()">
-                                <span> <t-icon name="copy"></t-icon> </span>
+                                <span> <copy-icon /> </span>
                                 <span>{{ $t('operation.copyUrl') }}</span>
                             </div>
                         </div>
@@ -60,14 +62,15 @@
                         </div>
                     </div>
                 </t-card>
-                <Sender ref="senderRef"  :modelOptions="modelOptions" :selectModel="selectModel"
-                    :isDeepThinking="isDeepThinking" :isStreamLoad="isStreamLoad" 
-                    :onStop="onStop" :inputEnter="inputEnter" :handleModelChange="handleModelChange"
+                <Sender ref="senderRef" :modelOptions="modelOptions" :selectModel="selectModel"
+                    :isDeepThinking="isDeepThinking" :isStreamLoad="isStreamLoad" :onStop="onStop"
+                    :inputEnter="inputEnter" :handleModelChange="handleModelChange"
                     :toggleDeepThinking="toggleDeepThinking" />
             </template>
         </TChat>
         <!-- 回到底部按钮 -->
-        <BackToBottom v-show="(isShowToBottom && !isStreamLoad) || hasUserScrolled" :backToBottom="handleClickBackToBottom" />
+        <BackToBottom v-show="(isShowToBottom && !isStreamLoad) || hasUserScrolled"
+            :backToBottom="handleClickBackToBottom" />
     </div>
 </template>
 
@@ -76,9 +79,10 @@ import { ref, watch, nextTick, computed } from 'vue'
 import InfiniteLoading from 'vue-infinite-loading'
 import { storeToRefs } from 'pinia'
 import type { AxiosRequestConfig } from 'axios'
+import { CopyIcon } from 'tdesign-icons-vue-next';
 import AppType from '@/components/Chat/AppType.vue'
 import { Chat as TChat } from '@tdesign-vue-next/chat'
-import {  Checkbox } from 'tdesign-vue-next'
+import { Checkbox } from 'tdesign-vue-next'
 import { fetchSSE } from '@/model/sseRequest-reasoning'
 import { mergeRecord } from '@/utils/util'
 // 模型数据
@@ -127,10 +131,10 @@ const isSelecting = ref(false)
 const checkall = ref(false);
 
 const handleCheckAll = (checked: boolean) => {
-    checkall.value = checked ;
-    if(checked){
+    checkall.value = checked;
+    if (checked) {
         selectedIds.value = chatList.value.map(i => i.RecordId)
-    }else{
+    } else {
         selectedIds.value = [];
     }
 }
@@ -189,7 +193,7 @@ const isShowToBottom = ref(false)
  */
 const handleGetConversationDetail = async (chatId: string, status?: { loaded: () => void; complete: () => void }) => {
     if (!chatId) return
-    if(isChatting.value){
+    if (isChatting.value) {
         status && status.complete()
         return;
     }
@@ -498,7 +502,7 @@ const handleSendData = async (queryVal: string) => {
                     }
                 } else {
                     let record: Record = result.data;
-                    if (result.type == 'reply' &&  record.IsFromSelf) {
+                    if (result.type == 'reply' && record.IsFromSelf) {
                         const index = chatList.value.findIndex(item => item.RecordId === 'placeholder-user');
                         if (index !== -1) {
                             chatList.value.splice(index, 1, record);
@@ -568,59 +572,71 @@ watch(
     display: flex;
     align-items: self-start;
 }
-.share-setting-container{
+
+.share-setting-container {
     z-index: 10;
     position: fixed;
     bottom: 146px;
 }
+
 .share-setting-content {
     display: flex;
     justify-content: center;
     align-items: center;
 }
-.icon__share-copy{
+
+.icon__share-copy {
     display: inline-block;
     background: var(--td-bg-color-container-hover);
     border-radius: var(--td-radius-default);
     padding: var(--td-comp-paddingLR-s) var(--td-comp-paddingLR-xl);
-    margin-left:var(--td-comp-paddingLR-l);
-    margin-right:var(--td-comp-paddingLR-xs);
+    margin-left: var(--td-comp-paddingLR-l);
+    margin-right: var(--td-comp-paddingLR-xs);
     font-size: var(--td-font-size-link-medium);
     cursor: pointer;
 }
-.icon__share-copy.disabled{
+
+.icon__share-copy.disabled {
     cursor: not-allowed;
     opacity: 0.4;
 }
-.icon__share-copy span:nth-child(1){
+
+.icon__share-copy span:nth-child(1) {
     margin-right: var(--td-pop-padding-s);
 }
-.icon__share-close{
+
+.icon__share-close {
     cursor: pointer;
-    margin-left:var(--td-pop-padding-xl);
-    padding-left:var(--td-comp-paddingLR-xxs);
+    margin-left: var(--td-pop-padding-xl);
+    padding-left: var(--td-comp-paddingLR-xxs);
 }
-:deep(.assistant .t-chat__detail){
-    max-width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs) );
-    width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs) );
+
+:deep(.assistant .t-chat__detail) {
+    max-width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs));
+    width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs));
 }
-:deep(.t-chat__footer){
+
+:deep(.t-chat__footer) {
     display: flex;
     justify-content: center;
     padding: 0 var(--td-comp-paddingLR-xl);
 }
-:deep(.t-chat__list){
+
+:deep(.t-chat__list) {
     padding: 0 var(--td-comp-paddingLR-xl);
 }
-:deep(.t-chat__list .content){
+
+:deep(.t-chat__list .content) {
     width: 100%;
     max-width: 800px;
     margin: 0 auto;
 }
-:deep(.share-setting-content .t-card__body){
+
+:deep(.share-setting-content .t-card__body) {
     padding: var(--td-comp-paddingLR-l) var(--td-size-10) var(--td-comp-paddingLR-l) var(--td-comp-paddingLR-xl);
 }
-:deep(.share-setting-card){
+
+:deep(.share-setting-card) {
     padding: var(--td-comp-paddingLR-s) var(--td-size-10) var(--td-comp-paddingLR-s) var(--td-comp-paddingLR-xl);
 
 }
