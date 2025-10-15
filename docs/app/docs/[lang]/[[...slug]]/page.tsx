@@ -36,7 +36,11 @@ export default async function Page({
 // 渲染页面内容
 function renderPage(page: any) {
   const MDXContent = page.data.body;
-  const enableComments = page.data.enableComments !== false; // 默认启用评论，除非明确设置为 false
+  
+  // 全局评论控制：通过环境变量控制，优先级：环境变量 > 页面设置 > 默认值
+  const globalCommentsEnabled = process.env.NEXT_PUBLIC_ENABLE_COMMENTS === 'true';
+  const pageCommentsEnabled = page.data.enableComments !== false; // 页面级别设置
+  const enableComments = globalCommentsEnabled && pageCommentsEnabled;
   
   // 提取作者相关信息
   const author = page.data.author;
