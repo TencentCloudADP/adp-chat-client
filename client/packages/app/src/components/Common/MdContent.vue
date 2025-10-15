@@ -72,17 +72,17 @@ const renderedMarkdown = computed(() => {
   padding: var(--td-comp-paddingTB-s);
 }
 
-.md-content-container.user,
 .md-content-container.system {
   background-color: var(--td-bg-color-secondarycontainer);
 }
 
 .md-content-container.user {
-  border-radius: var(--td-radius-extraLarge);
+  border-radius: var(--td-radius-large);
+  background-color: var(--td-brand-color-light);
 }
 
 .user .md-content {
-  padding: var(--td-comp-paddingTB-s);
+  padding: 0 var(--td-comp-paddingLR-s);
 }
 
 .md-content-container.system {
