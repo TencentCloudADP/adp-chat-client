@@ -6,20 +6,23 @@ import Image from 'next/image';
  * Shared layout configurations
  *
  * you can customise layouts individually from:
- * Docs Layout: app/docs/[lang]/layout.tsx
+ * Home Layout: app/[lang]/(home)/layout.tsx
+ * Docs Layout: app/[lang]/docs/layout.tsx
  */
 export function baseOptions(locale: string): BaseLayoutProps {
   return {
     i18n,
-    nav: {
-      title: (
-        <Image
-          src="/images/adp-icon-transparent.png"
-          alt="ADP-Chat-Client"
-          width={100}
-          height={50}
-        />
-      ),
-    },
-  };
+  nav: {
+    title: (
+      <>
+          <Image
+            src="/images/adp-icon-transparent.png"
+            alt="ADP-Chat-Client"
+            width={100}
+            height={50}
+          />
+      </>
+      )
+    }
+};
 }

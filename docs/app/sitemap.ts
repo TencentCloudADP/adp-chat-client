@@ -1,7 +1,9 @@
 import type { MetadataRoute } from 'next';
 import { i18n } from '@/lib/i18n';
 
+// 静态导出配置
 export const dynamic = 'force-static';
+export const revalidate = false;
 
 // 获取基本URL，根据环境变量设置或默认为本地开发URL
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://hellodify.com';

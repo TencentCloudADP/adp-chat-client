@@ -1,10 +1,11 @@
 'use client';
 
 import Script from 'next/script';
+import { useEffect } from 'react';
 
 export default function GoogleAnalytics() {
-  const gaId = process.env.NEXT_PUBLIC_GA_ID ?? 'G-15PHNMPFD1';
-
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+  
   if (!gaId) {
     return null;
   }
