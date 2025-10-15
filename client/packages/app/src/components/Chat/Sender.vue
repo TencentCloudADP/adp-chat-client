@@ -8,8 +8,9 @@ import WebRecorder from "@/utils/webRecorder"
 import type { FileProps } from '@/model/file';
 import { handleGetAsrUrl } from '@/service/chat';
 import { MessagePlugin } from 'tdesign-vue-next';
+import FileList from '@/components/Common/FileList.vue';
 import RecordIcon from '@/components/Common/RecordIcon.vue';
-import { SendIcon, StopCircleStrokeIcon, ImageIcon, Microphone1Icon, DeleteIcon } from 'tdesign-icons-vue-next';
+import { SendIcon, StopCircleStrokeIcon, ImageIcon, Microphone1Icon } from 'tdesign-icons-vue-next';
 const { t } = useI18n();
 
 /**
@@ -262,14 +263,7 @@ defineExpose({
         autosize: { minRows: 1, maxRows: 2 },
     }" @stop="onStop" @send="handleSend" @change="handleInput" @paste="handlePaste">
         <template #inner-header>
-            <div v-if="fileList.length > 0" class="file-upload-container">
-                <div v-for="(img, index) in fileList" class="img-item-container">
-                    <t-image fit="contain" :src="img.url" :style="{ width: '70px', height: '70px' }" />
-                    <span class="delete-container">
-                        <delete-icon @click="handleDeleteFile(index)"></delete-icon>
-                    </span>
-                </div>
-            </div>
+                <FileList :fileList="fileList" :onDelete="handleDeleteFile"/>
         </template>
         <template #suffix>
             <!-- 等待中的发送按钮 -->
@@ -321,45 +315,9 @@ defineExpose({
     align-items: center;
     gap: var(--td-comp-paddingLR-s);
 }
-
-.img-item-container {
-    border: 1px solid var(--td-component-border);
-    width: 70px;
-    height: 70px;
-    margin-right: 8px;
-    box-sizing: content-box;
-    position: relative;
-    display: inline-block;
-}
-
-.img-item-container:hover .delete-container {
-    display: flex;
-}
-
-.delete-container {
-    display: none;
-    position: absolute;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
-    right: 2px;
-    top: 2px;
-    padding: 4px;
-    background-color: var(--td-bg-color-secondarycontainer);
-    border-radius: var(--td-radius-medium);
-    border: 1px solid var(--td-border-level-2-color);
-    cursor: pointer;
-}
-
-.delete-container:hover,
 .recording-icon:hover {
     cursor: pointer;
     color: var(--td-brand-color);
-}
-
-.file-upload-container {
-    padding-top: 8px;
-    padding-left: 10px;
 }
 
 .sender-icon {
