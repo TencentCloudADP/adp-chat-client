@@ -1,14 +1,23 @@
 import '../global.css';
 import 'remixicon/fonts/remixicon.css';
 import { RootProvider } from 'fumadocs-ui/provider';
+import { Inter } from 'next/font/google';
 import { use } from 'react';
 import type { ReactNode } from 'react';
 import type { Translations } from 'fumadocs-ui/i18n';
 import type { Metadata } from 'next';
 import { i18n } from '@/lib/i18n';
 
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
-const asset = (path: string) => `${basePath}${path}`;
+// 为静态导出生成静态参数
+export function generateStaticParams() {
+  return i18n.languages.map((lang) => ({
+    lang,
+  }));
+}
+
+const inter = Inter({
+  subsets: ['latin'],
+});
 
 // 中文翻译
 const zh: Partial<Translations> = {
@@ -64,15 +73,15 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
     description,
     keywords,
     icons: {
-      icon: asset('/images/favicon.png'),
-      apple: asset('/images/favicon.png'),
+      icon: '/images/favicon.png',
+      apple: '/images/favicon.png',
     },
     openGraph: {
       title,
       description,
       images: [
         {
-          url: asset('/images/hello-adp.png'),
+          url: '/images/hello-adp.png',
           width: 1200,
           height: 630,
           alt: 'Hello Dify Logo',
@@ -85,7 +94,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
       card: 'summary_large_image',
       title,
       description,
-      images: [asset('/images/hello-adp.png')],
+      images: ['/images/hello-adp.png'],
     },
   };
 }
@@ -112,15 +121,8 @@ export default function Layout({
         locales,
         translations
       }}
-      search={{ enabled: false }}
     >
       {children}
     </RootProvider>
   );
 }
-
-export function generateStaticParams() {
-  return i18n.languages.map((lang) => ({ lang }));
-}
-
-export const dynamicParams = false;

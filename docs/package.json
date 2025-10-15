@@ -6,6 +6,7 @@
     "build": "next build",
     "dev": "next dev",
     "start": "next start",
+    "export": "next build",
     "postinstall": "fumadocs-mdx"
   },
   "dependencies": {
@@ -13,6 +14,7 @@
     "@orama/tokenizers": "^3.1.6",
     "anime": "^0.1.2",
     "animejs": "^4.0.2",
+    "autoprefixer": "^10.4.21",
     "fumadocs-core": "15.3.0",
     "fumadocs-mdx": "11.6.3",
     "fumadocs-ui": "15.3.0",
