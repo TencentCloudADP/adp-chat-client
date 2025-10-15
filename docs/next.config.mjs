@@ -10,14 +10,17 @@ const basePath = isGithubPages ? process.env.NEXT_PUBLIC_BASE_PATH : '';
 const config = {
   reactStrictMode: true,
   turbopack: false,
-  // GitHub Pages 配置
-  basePath: basePath,
-  assetPrefix: basePath,
-  output: 'export',
-  trailingSlash: true,
-  // 禁用图片优化（GitHub Pages 不支持）
+  // 只在 GitHub Pages 部署时设置 basePath 和 assetPrefix
+  ...(isGithubPages && {
+    basePath: basePath,
+    assetPrefix: basePath,
+    output: 'export',
+    trailingSlash: true,
+  }),
+  // 图片配置
   images: {
-    unoptimized: true,
+    // 只在 GitHub Pages 部署时禁用图片优化
+    unoptimized: isGithubPages ? true : false,
     remotePatterns: [
       {
         protocol: 'https',
@@ -32,14 +35,7 @@ const config = {
     ],
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-  },
-  // 静态导出时跳过某些功能
-  ...(isGithubPages && {
-    // 禁用服务端功能
-    experimental: {
-      // 其他实验性功能配置
-    }
-  })
+  }
 };
 
 // 只在非静态导出模式下设置 headers

@@ -12,17 +12,17 @@ import Image from 'next/image';
 export function baseOptions(locale: string): BaseLayoutProps {
   return {
     i18n,
-  nav: {
-    title: (
-      <>
+    nav: {
+      title: (
+        <>
           <Image
             src="/images/adp-icon-transparent.png"
             alt="ADP-Chat-Client"
             width={100}
             height={50}
           />
-      </>
+        </>
       )
     }
-};
+  };
 }

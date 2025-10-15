@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const DOCS_PREFIX = '/docs';
 
+// 检查是否为静态导出模式（GitHub Pages）
+const isStaticExport = process.env.NEXT_PUBLIC_BASE_PATH;
+
 function resolveLocale(request: NextRequest) {
   const stored = request.cookies.get('NEXT_LOCALE')?.value;
   if (stored && i18n.languages.includes(stored)) {
@@ -40,6 +43,11 @@ function buildDocsPath(locale: string, rest: string[] = []) {
 
 // 创建基于Fumadocs的i18n中间件
 export function middleware(request: NextRequest) {
+  // 在静态导出模式下（GitHub Pages），跳过所有中间件逻辑
+  if (isStaticExport) {
+    return NextResponse.next();
+  }
+
   const pathname = request.nextUrl.pathname;
 
   if (shouldBypass(pathname)) {
