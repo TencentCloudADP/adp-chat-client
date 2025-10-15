@@ -6,8 +6,9 @@
     "build": "next build",
     "dev": "next dev",
     "start": "next start",
-    "export": "next build",
-    "postinstall": "fumadocs-mdx"
+    "export": "NEXT_PUBLIC_BASE_PATH=/adp-chat-client next build && npm run copy-redirect",
+    "postinstall": "fumadocs-mdx",
+    "copy-redirect": "cp public/index.html out/index.html"
   },
   "dependencies": {
     "@giscus/react": "^3.1.0",

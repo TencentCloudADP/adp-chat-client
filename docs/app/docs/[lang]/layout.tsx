@@ -28,6 +28,18 @@ const locales = [
   },
 ];
 
+// 修复语言切换的 URL 生成逻辑
+function generateI18nUrl(targetLocale: string, currentPathname: string): string {
+  // 确保路径始终保持 /docs/ 前缀
+  if (currentPathname.startsWith('/docs/')) {
+    // 替换路径中的语言部分
+    const pathWithoutLang = currentPathname.replace(/^\/docs\/[^\/]+/, '');
+    return `/docs/${targetLocale}${pathWithoutLang}`;
+  }
+  // 对于其他路径，默认跳转到文档首页
+  return `/docs/${targetLocale}/`;
+}
+
 export default async function Layout({
   children,
   params
@@ -46,7 +58,13 @@ export default async function Layout({
     <RootProvider
       i18n={{
         locale: lang,
-        locales,
+        locales: locales.map(locale => ({
+          ...locale,
+          // 为每个语言选项添加正确的 URL 生成逻辑
+          url: typeof window !== 'undefined' 
+            ? generateI18nUrl(locale.locale, window.location.pathname)
+            : `/docs/${locale.locale}/`
+        })),
         translations,
       }}
     >
