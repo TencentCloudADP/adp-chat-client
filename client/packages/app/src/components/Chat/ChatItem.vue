@@ -6,8 +6,6 @@ import { ref } from 'vue';
 // 类型定义
 import type { Record, AgentThought } from '@/model/chat';
 import { ScoreValue } from '@/model/chat';
-// 工具函数
-import { formatDisplayTime } from '@/utils/date';
 // TDesign Vue 组件
 import {
     ChatContent as TChatContent,
@@ -25,12 +23,6 @@ import { storeToRefs } from 'pinia';
 // 工具函数
 import { copy } from '@/utils/clipboard';
 import MdContent from '../Common/MdContent.vue';
-
-import { useUserStore } from '@/stores/user';
-import { useUiStore } from '@/stores/ui';
-
-const userStore = useUserStore();
-const uiStore = useUiStore();
 
 const { t } = useI18n();
 const chatStore = useChatStore();
@@ -164,30 +156,8 @@ const renderReasoning = (item: Record) => {
 
 <template>
     <!-- 聊天项组件 -->
-    <TChatItem animation="skeleton"
-        :name="!item.IsFromSelf ? chatStore.currentApplicationName || item.FromName : userStore.name || item.FromName"
-        :role="!item.IsFromSelf ? 'assistant' : 'user'" :variant="!item.IsFromSelf ? undefined : 'base'"
-        :text-loading="false" :reasoning="renderReasoning(item)">
-        <!-- 时间戳插槽 -->
-        <template #datetime v-if="!uiStore.isMobile">
-            <span v-if="item.Timestamp">{{ formatDisplayTime(item.Timestamp * 1000) }}</span>
-        </template>
-        <!-- 头像插槽 -->
-        <template #avatar v-if="!uiStore.isMobile">
-            <t-avatar :imageProps="{
-                lazy: true,
-                loading: ''
-            }" v-if="!item.IsFromSelf" :image="chatStore.currentApplicationAvatar || item.FromAvatar" size="medium" />
-            <t-avatar :imageProps="{
-                lazy: true,
-                loading: ''
-            }" v-else-if="userStore.avatarUrl" :image="userStore.avatarUrl" size="medium">{{ userStore.avatarName
-            }}</t-avatar>
-            <t-avatar :imageProps="{
-                lazy: true,
-                loading: ''
-            }" v-else size="medium">{{ userStore.avatarName }}</t-avatar>
-        </template>
+    <TChatItem animation="skeleton" :role="!item.IsFromSelf ? 'assistant' : 'user'" :text-loading="false"
+        :reasoning="renderReasoning(item)">
         <!-- 内容插槽 -->
         <template #content>
             <div v-if="isLastMsg && isStreamLoad && !item.Content && !item.AgentThought" class="loading-container">
