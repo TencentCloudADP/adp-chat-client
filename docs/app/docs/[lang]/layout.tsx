@@ -5,6 +5,7 @@ import { baseOptions } from '@/app/layout.config';
 import type { ReactNode } from 'react';
 import type { Translations } from 'fumadocs-ui/i18n';
 import { i18n } from '@/lib/i18n';
+import { generateI18nUrl } from '@/lib/i18n-utils';
 
 // 为静态导出生成静态参数
 export function generateStaticParams() {
@@ -28,17 +29,7 @@ const locales = [
   },
 ];
 
-// 修复语言切换的 URL 生成逻辑
-function generateI18nUrl(targetLocale: string, currentPathname: string): string {
-  // 确保路径始终保持 /docs/ 前缀
-  if (currentPathname.startsWith('/docs/')) {
-    // 替换路径中的语言部分
-    const pathWithoutLang = currentPathname.replace(/^\/docs\/[^\/]+/, '');
-    return `/docs/${targetLocale}${pathWithoutLang}`;
-  }
-  // 对于其他路径，默认跳转到文档首页
-  return `/docs/${targetLocale}/`;
-}
+
 
 export default async function Layout({
   children,
@@ -61,9 +52,7 @@ export default async function Layout({
         locales: locales.map(locale => ({
           ...locale,
           // 为每个语言选项添加正确的 URL 生成逻辑
-          url: typeof window !== 'undefined' 
-            ? generateI18nUrl(locale.locale, window.location.pathname)
-            : `/docs/${locale.locale}/`
+          url: generateI18nUrl(locale.locale, `/docs/${lang}/`)
         })),
         translations,
       }}

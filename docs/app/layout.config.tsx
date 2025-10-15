@@ -1,6 +1,7 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { i18n } from '@/lib/i18n';
 import Image from 'next/image';
+import { getAssetPath } from '@/lib/utils';
 
 /**
  * Shared layout configurations
@@ -16,7 +17,7 @@ export function baseOptions(locale: string): BaseLayoutProps {
       title: (
         <>
           <Image
-            src="/images/adp-icon-transparent.png"
+            src={getAssetPath("/images/adp-icon-transparent.png")}
             alt="ADP-Chat-Client"
             width={100}
             height={50}
