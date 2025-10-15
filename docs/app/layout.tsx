@@ -11,15 +11,15 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Hello ADP - 学习和分享腾讯云智能体平台最佳实践',
-  description: '帮助新手快速上手腾讯云智能体平台（Tencent Cloud Agent Development Platform，ADP）的教程',
+  title: 'ADP Chat Client - 学习和分享腾讯云智能体平台最佳实践',
+  description: 'ADP-Chat-Client是一个开源的AI智能体应用对话端。可以将腾讯云智能体开发平台（Tencent Cloud ADP） 开发的AI智能体应用快速部署为Web应用（或嵌入到小程序、Android、iOS 应用中）。',
   icons: {
     icon: '/images/favicon.png',
     apple: '/images/favicon.png',
   },
   openGraph: {
-    title: 'Hello ADP - 学习和分享腾讯云智能体平台最佳实践',
-    description: '帮助新手快速上手腾讯云智能体平台（Tencent Cloud Agent Development Platform，ADP）的教程',
+    title: 'ADP Chat Client - 学习和分享腾讯云智能体平台最佳实践',
+    description: 'ADP-Chat-Client是一个开源的AI智能体应用对话端。可以将腾讯云智能体开发平台（Tencent Cloud ADP） 开发的AI智能体应用快速部署为Web应用（或嵌入到小程序、Android、iOS 应用中）。',
     images: [
       {
         url: '/images/hello-adp.png',
