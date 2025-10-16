@@ -11,7 +11,7 @@ const uiStore = useUiStore();
 </script>
 
 <template>
-    <t-drawer :visible="uiStore.drawerVisible" placement="left" :mode="uiStore.isMobile ? 'overlay' : 'push'"
+    <t-drawer drawerClassName="custome-drawer" size="280px" :visible="uiStore.drawerVisible" placement="left" :mode="uiStore.isMobile ? 'overlay' : 'push'"
         :show-overlay="false">
         <div class="drawer-content">
             <div class="drawer-control">
@@ -48,5 +48,8 @@ const uiStore = useUiStore();
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+:deep(.custome-drawer .t-drawer__content-wrapper){
+    box-shadow: none;
 }
 </style>

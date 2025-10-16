@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import type { ChatConversation } from '@/model/chat'
 import { handleLoadConversations } from '@/service/chat'
 import { useAppsStore } from '@/stores/apps'
+import { useUiStore } from '@/stores/ui'
 import type { Application } from '@/model/application'
 
 /**
@@ -53,6 +54,11 @@ export const useChatStore = defineStore('chat', () => {
     currentConversation.value = detail
     // 切换对话后，切换默认 appid
     const appsStore = useAppsStore()
+    const uiStore = useUiStore()
+    // 切换对话时，如果是移动端，自动收起侧边栏
+    if(uiStore.isMobile){
+     uiStore.setDrawerVisible(false);
+    }
     if (detail.ApplicationId) {
       console.log('_currentConversation', detail, appsStore.applications)
       let _currentApplication = appsStore.applications.find((item) => item['ApplicationId'] == detail["ApplicationId"])

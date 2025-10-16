@@ -10,7 +10,13 @@ import { handleGetAsrUrl } from '@/service/chat';
 import { MessagePlugin } from 'tdesign-vue-next';
 import FileList from '@/components/Common/FileList.vue';
 import RecordIcon from '@/components/Common/RecordIcon.vue';
-import { SendIcon, StopCircleStrokeIcon, ImageIcon, Microphone1Icon } from 'tdesign-icons-vue-next';
+import PictureIcon from '@/assets/icons/picture.svg';
+import VoiceInputIcon from '@/assets/icons/voice_input.svg';
+import SendIcon from '@/assets/icons/send.svg';
+import PauseIcon from '@/assets/icons/pause.svg';
+import SendFill from '@/assets/icons/send_fill.svg';
+import CustomizedIcon from '@/components/CustomizedIcon.vue';
+
 const { t } = useI18n();
 
 /**
@@ -267,17 +273,11 @@ defineExpose({
         </template>
         <template #suffix>
             <!-- 等待中的发送按钮 -->
-            <send-icon v-if="!isStreamLoad && !inputValue" @click="handleSend(inputValue)" class="customeized-icon"
-                size="var(--td-font-size-headline-small)" :fill-color='["#06154233"]'
-                :stroke-color='["var(--td-bg-color-container)"]' :stroke-width="1" />
+            <CustomizedIcon class="send-icon waiting" nativeIcon :svg="SendIcon" v-if="!isStreamLoad && !inputValue" @click="handleSend(inputValue)" />
             <!-- 可用的发送按钮 -->
-            <send-icon v-if="!isStreamLoad && inputValue" @click="handleSend(inputValue)" class="customeized-icon"
-                size="var(--td-font-size-headline-small)" :fill-color='["var(--td-brand-color)"]'
-                :stroke-color='["var(--td-bg-color-container)"]' :stroke-width="1" />
+            <CustomizedIcon class="send-icon success" nativeIcon :svg="SendFill" v-if="!isStreamLoad && inputValue" @click="handleSend(inputValue)" />
             <!-- 停止发送按钮 -->
-            <stop-circle-stroke-icon v-if="isStreamLoad" @click="onStop" class="customeized-icon"
-                size="var(--td-font-size-headline-small)" :fill-color='["var(--td-brand-color)", "#fff"]'
-                :stroke-color='["#fff", "#fff"]' :stroke-width="1" />
+            <CustomizedIcon class="send-icon stop"  v-if="isStreamLoad" :svg="PauseIcon" @click="onStop" />
         </template>
         <template #prefix>
             <div class="sender-control-container">
@@ -286,19 +286,19 @@ defineExpose({
                     accept="image/*" :showThumbnail="false" :showImageFileName="false" :showUploadProgress="false"
                     tips="">
                     <t-tooltip :content="$t('sender.uploadImg')">
-                        <span class="sender-icon  recording-icon">
-                            <image-icon size="large" />
+                        <span class="recording-icon">
+                            <CustomizedIcon showHoverBackground  :svg="PictureIcon" />
                         </span>
                     </t-tooltip>
                 </t-upload>
                 <t-tooltip v-if="!recording" :content="$t('sender.startRecord')">
-                    <span class="sender-icon  recording-icon" @click="handleStartRecord">
-                        <microphone-1-icon size="large" />
+                    <span class="recording-icon" @click="handleStartRecord">
+                        <CustomizedIcon showHoverBackground  :svg="VoiceInputIcon" />
                     </span>
                 </t-tooltip>
 
                 <t-tooltip v-if="recording" :content="$t('sender.stopRecord')">
-                    <span class="sender-icon recording-icon stop-icon" @click="handleStopRecord">
+                    <span class="recording-icon stop-icon" @click="handleStopRecord">
                         <RecordIcon />
                     </span>
                 </t-tooltip>
@@ -341,6 +341,15 @@ defineExpose({
 .customeized-icon {
     cursor: pointer;
 }
+.send-icon.waiting{
+    background-color: var(--td-gray-color-4);
+    border-radius:var(--td-radius-circle);
+    transform: rotate(-90deg);
+}
+/* .send-icon.success{
+    background-color: var(--td-gray-color-4);
+    border-radius:var(--td-radius-circle);
+} */
 
 :deep(.t-chat-sender__textarea) {
     background-color: var(--td-bg-color-container);

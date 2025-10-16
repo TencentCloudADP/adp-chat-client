@@ -13,10 +13,10 @@ const handleClick = () => {
 
 <template>
     <t-button class="sidebar-icon" variant="text" shape="square" @click="handleClick">
-        <template #icon>
-            <CustomizedIcon  :svg="SidebarIcon" size="l"/>
-        </template>
-    </t-button>
+            <template #icon>
+                <CustomizedIcon showHoverBackground :svg="SidebarIcon" />
+            </template>
+        </t-button>
 </template>
 
 <style scoped>

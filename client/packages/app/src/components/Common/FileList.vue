@@ -3,24 +3,26 @@
         <div ref="scrollViewRef" class="img-scrollview-container">
             <div v-for="(img, index) in fileList" class="img-item-container">
                 <t-image fit="contain" :src="img.url" :style="{ width: '70px', height: '70px' }" />
-                <span class="delete-container">
-                    <delete-icon @click="onDelete(index)"></delete-icon>
+                <span class="delete-container"  @click="onDelete(index)">
+                    <CustomizedIcon :svg="DeleteIcon" size="l"/>
                 </span>
             </div>
         </div>
-        <div v-if="showFrontIcon"  class="btn front">
-            <chevron-left-icon  @click="handleScroll('front')" size="large"/>
+        <div v-if="showFrontIcon"  class="btn front" @click="handleScroll('front')">
+            <CustomizedIcon :svg="ArrowUpSmallIcon"/>
         </div>
-        <div v-if="showBackIcon" class="btn back">
-            <chevron-right-icon  @click="handleScroll('back')" size="large"/>
+        <div v-if="showBackIcon" class="btn back"  @click="handleScroll('back')">
+            <CustomizedIcon :svg="ArrowUpSmallIcon"/>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { DeleteIcon } from 'tdesign-icons-vue-next';
-import { ChevronRightIcon,ChevronLeftIcon } from 'tdesign-icons-vue-next';
+import ArrowUpSmallIcon from '@/assets/icons/arrow_up_small.svg';
+import DeleteIcon from '@/assets/icons/delete.svg';
+import CustomizedIcon from '@/components/CustomizedIcon.vue';
+
 
 import type { FileProps } from '@/model/file';
 
@@ -105,7 +107,6 @@ watch(props.fileList, (newValue, oldValue) => {
     z-index: 2;
     right: var(--td-comp-paddingLR-xxs);
     top: var(--td-comp-paddingLR-xxs);
-    padding: var(--td-pop-padding-s);
     background-color: var(--td-bg-color-secondarycontainer);
     border-radius: var(--td-radius-medium);
     border: 1px solid var(--td-border-level-2-color);
@@ -146,9 +147,11 @@ watch(props.fileList, (newValue, oldValue) => {
 
 .file-upload-container .btn.back {
     right: 0;
+    transform: rotate(90deg);
 }
 
 .file-upload-container .btn.front {
     left: 0;
+    transform: rotate(270deg);
 }
 </style>

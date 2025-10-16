@@ -24,6 +24,14 @@ onMounted(() => {
 </template>
 
 <style scoped>
+@keyframes rotate {
+from {
+transform: rotate(0deg);
+}
+to {
+transform: rotate(360deg);
+}
+}
 .page-container {
   width: 100vw;
 }

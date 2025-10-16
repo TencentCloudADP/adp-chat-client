@@ -101,13 +101,16 @@ const handleChooseQuestion = (value: string) => {
   border-radius: var(--td-radius-medium);
 }
 .greet-tag {
-  box-shadow: var(--td-shadow-2);
   padding:var(--td-pop-padding-l) var(--td-pop-padding-xl);
   color:var(--td-brand-color);
   font-weight:500;
+  border-radius: var(--td-radius-medium);
+  box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 6px rgba(18, 19, 25, 0.02), 0px 2px 12px rgba(18, 19, 25, 0.04);
 }
 .recommend-question-container {
   margin-top: var(--td-size-6)
 }
 
 </style>
+
+

@@ -18,7 +18,11 @@
                     <InfiniteLoading :identifier="chatId" direction="top" @infinite="infiniteHandler">
                         <template #spinner>
                             <div>
-                                <t-loading :text="`${$t('common.loading')}...`" size="small"></t-loading>
+                                <t-loading :text="`${$t('common.loading')}...`" size="small">
+                                    <template #indicator>
+                                        <CustomizedIcon class="thinking-icon" :svg="ThinkIcon" />
+                                    </template>
+                                </t-loading>
                             </div>
                         </template>
                         <template #no-more>
@@ -52,7 +56,9 @@
                             {{ $t('operation.shareFor') }}
                             <div class="icon__share-copy" :class="{ disabled: selectedIds.length <= 0 }"
                                 @click="handleCopyShare()">
-                                <span> <copy-icon /> </span>
+                                <span> 
+                                    <CustomizedIcon :svg="CopyIcon"/> 
+                                </span>
                                 <span>{{ $t('operation.copyUrl') }}</span>
                             </div>
                         </div>
@@ -70,6 +76,7 @@
         </TChat>
         <!-- 回到底部按钮 -->
         <BackToBottom v-show="(isShowToBottom && !isStreamLoad) || hasUserScrolled"
+            :loading="isChatting"
             :backToBottom="handleClickBackToBottom" />
     </div>
 </template>
@@ -79,7 +86,6 @@ import { ref, watch, nextTick, computed } from 'vue'
 import InfiniteLoading from 'vue-infinite-loading'
 import { storeToRefs } from 'pinia'
 import type { AxiosRequestConfig } from 'axios'
-import { CopyIcon } from 'tdesign-icons-vue-next';
 import AppType from '@/components/Chat/AppType.vue'
 import { Chat as TChat } from '@tdesign-vue-next/chat'
 import { Checkbox } from 'tdesign-vue-next'
@@ -98,6 +104,9 @@ import Sender from './Sender.vue'
 import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
 import { useRouter } from 'vue-router'
+import CustomizedIcon from '@/components/CustomizedIcon.vue';
+import CopyIcon from '@/assets/icons/copy.svg';
+import ThinkIcon from '@/assets/icons/thinking.svg';
 const router = useRouter()
 
 /**
@@ -127,6 +136,8 @@ const { currentApplicationId } = storeToRefs(appsStore)
  * @type {Ref<boolean>}
  */
 const isSelecting = ref(false)
+const currentChatingConversationId = ref('')    //  当前对话中新生成的id
+
 
 const checkall = ref(false);
 
@@ -317,6 +328,7 @@ const clearConfirm = function () {
 const onStop = function () {
     abort?.abort()
     abort = null
+    currentChatingConversationId.value = ''
 }
 
 /**
@@ -497,6 +509,7 @@ const handleSendData = async (queryVal: string) => {
                     //  创建新的对话，重新调用chatlist接口更新列表，根据record的LastActiveAt更新列表排序
                     fetchChatList(result.data.Id)
                     if (result.data.IsNewConversation) {
+                        currentChatingConversationId.value = result.data.Id ;
                         chatStore.setCurrentConversation(result.data)
                         router.push({ name: 'Home', query: { conversationId: result.data.Id } })
                     }
@@ -531,6 +544,7 @@ const handleSendData = async (queryVal: string) => {
                     loading.value = false
                     chatStore.setIsChatting(false)
                     hasUserScrolled.value = false
+                    currentChatingConversationId.value = ''
                     nextTick(() => {
                         backToBottom()
                     })
@@ -548,9 +562,10 @@ const handleSendData = async (queryVal: string) => {
 // 监听chatId变化
 watch(
     chatId,
-    (newId) => {
+    (newId,oldId) => {
+        console.log('newId',newId,newId && newId === currentChatingConversationId.value,'oldId',oldId,'currentConversationId',chatStore.currentConversationId)
         // sse新建对话中不处理变化
-        if (isChatting.value) {
+        if (isChatting.value && (newId && currentChatingConversationId.value && newId === currentChatingConversationId.value)) {
             return
         }
         isSelecting.value = false;
@@ -611,6 +626,11 @@ watch(
     padding-left: var(--td-comp-paddingLR-xxs);
 }
 
+.thinking-icon{
+    animation: rotate 2s linear infinite;
+    width: var(--td-comp-size-xs);
+    height: var(--td-comp-size-xs);
+}
 :deep(.assistant .t-chat__detail) {
     max-width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs));
     width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs));

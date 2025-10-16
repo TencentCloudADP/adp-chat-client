@@ -7,11 +7,14 @@
     "documentation": "Documentation",
     "personalCenter": "Personal Center",
     "switchTheme": "Switch Theme",
-    "systemSettings": "Settings"
+    "systemSettings": "Settings",
+    "tip":"Attention"
   },
   "sider": {
     "switchTheme": "Switch Theme",
-    "selectLanguage": "Select Language"
+    "selectLanguage": "Select Language",
+    "expandMenu":"Expand Menu",
+    "collapseMenu":"Collapse Menu"
   },
   "account": {
     "login": "Login",
@@ -82,5 +85,9 @@
     "notSupport":"File type not supported (Supported types:png、jpg)",
     "recordTooLong":"oice input up to 60 seconds has been stopped and converted to text",
     "answering":"Answering in progress, please wait or click to stop the response."
+  },
+  "login":{
+    "according":"Please configure the login method according to the ",
+    "Guidelines":""
   }
 }

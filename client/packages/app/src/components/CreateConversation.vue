@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
-import { ChatAddIcon } from 'tdesign-icons-vue-next';
 import { useChatStore } from '@/stores/chat';
-import { useAppsStore } from '@/stores/apps'
+import { useAppsStore } from '@/stores/apps';
+import NewConversationIcon from '@/assets/icons/new_conversation.svg';
+import CustomizedIcon from '@/components/CustomizedIcon.vue';
+
 const router = useRouter();
 const { t } = useI18n();
 
@@ -25,8 +27,10 @@ const createConversation = () => {
 </script>
 
 <template>
-    <t-tooltip :content="t('conversation.createConversation')" theme="primary">
-        <t-button shape="square" variant="text" @click="createConversation"><chat-add-icon /></t-button>
+    <t-tooltip :content="t('conversation.createConversation')">
+        <t-button shape="square" variant="text" @click="createConversation">
+            <CustomizedIcon  :svg="NewConversationIcon" showHoverBackground />
+        </t-button>
     </t-tooltip>
 </template>
 

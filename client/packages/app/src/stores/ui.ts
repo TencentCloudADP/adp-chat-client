@@ -64,10 +64,8 @@ const initLanguage = () => {
  * 侧边栏收起/展开逻辑，根据窗口宽度自动设置。
  */
 const autoCollapsed = () => {
-  const MIN_POINT = 992 - 1
   const uiStore = useUiStore()
-  const isCompact = window.innerWidth <= MIN_POINT
-  uiStore.setDrawerVisible(!isCompact)
+  uiStore.setDrawerVisible(!uiStore.isMobile)
 }
 
 /**

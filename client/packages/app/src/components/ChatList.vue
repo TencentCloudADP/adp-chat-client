@@ -71,21 +71,6 @@ const handleClick = (detail: ChatConversation) => {
     chatStore.setCurrentConversation(detail);
     router.push({ name: 'Home', query: { conversationId: detail.Id } });
 };
-
-/**
- * 创建新会话的处理函数
- */
-const handleCreateNewChat = () => {
-    router.push({ name: 'Home' })
-    chatStore.setCurrentConversation({
-        Id: "",
-        AccountId: "",
-        Title: "",
-        LastActiveAt: 0,
-        CreatedAt: 0,
-        ApplicationId: currentApplicationId.value || ''
-    });
-}
 </script>
 
 <template>
