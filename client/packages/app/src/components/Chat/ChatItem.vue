@@ -12,7 +12,6 @@ import {
     ChatItem as TChatItem,
     ChatLoading as TChatLoading,
 } from '@tdesign-vue-next/chat';
-import { FileCopyIcon, Share1Icon, RefreshIcon, ThumbUp2Icon, ThumbDown1Icon } from 'tdesign-icons-vue-next';
 // 服务层函数
 import { handleRate } from '@/service/chat';
 // 状态管理
@@ -23,6 +22,14 @@ import { storeToRefs } from 'pinia';
 // 工具函数
 import { copy } from '@/utils/clipboard';
 import MdContent from '../Common/MdContent.vue';
+import CustomizedIcon from '@/components/CustomizedIcon.vue';
+import RefreshIcon from '@/assets/icons/refresh.svg';
+import CopyIcon from '@/assets/icons/copy.svg';
+import ShareIcon from '@/assets/icons/share.svg';
+import ThumbsUpIcon from '@/assets/icons/thumbs_up.svg';
+import ThumbsDownIcon from '@/assets/icons/thumbs_down.svg';
+import ThinkIcon from '@/assets/icons/thinking.svg';
+
 
 const { t } = useI18n();
 const chatStore = useChatStore();
@@ -62,7 +69,7 @@ const record = ref(item);
  */
 async function copyContent(event: any, content: string | undefined, type: string): Promise<void> {
     let rowtext: string | undefined;
-    const container = event?.e.target as HTMLElement;
+    const container = event?.target as HTMLElement;
     const markdownElements = container?.closest('.t-chat__content')?.querySelectorAll('.markdown-body');
     rowtext = markdownElements && markdownElements.length > 0 ? markdownElements[markdownElements.length - 1]?.textContent || undefined : undefined;
 
@@ -161,15 +168,18 @@ const renderReasoning = (item: Record) => {
         <!-- 内容插槽 -->
         <template #content>
             <div v-if="isLastMsg && isStreamLoad && !item.Content && !item.AgentThought" class="loading-container">
-                <t-loading :text="`${$t('common.thinking')}...`" size="small"></t-loading>
+                <t-loading :text="`${$t('common.thinking')}...`" size="small">
+                    <template #indicator>
+                        <CustomizedIcon class="thinking-icon" :svg="ThinkIcon" />
+                    </template>
+                </t-loading>
             </div>
             <div v-else>
-
                 <div v-if="item.IsFromSelf && showActions" class="user-message">
-                    <!-- <TChatContent :content="item.Content" /> -->
                     <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos" />
-                    <file-copy-icon class="copy-icon" @click="(e: any) => copyContent(e, item.Content, 'user')" />
-                    <share-1-icon class="share-icon" @click="share(item)" />
+                    <CustomizedIcon class="copy-icon" :svg="CopyIcon"
+                        @click="(e: any) => copyContent(e, item.Content, 'user')" />
+                    <CustomizedIcon class="share-icon" :svg="ShareIcon" @click="share(item)" />
                 </div>
                 <MdContent v-else :content="item.Content" role="assistant" :quoteInfos="item.QuoteInfos" />
                 <div class="references-container"
@@ -188,24 +198,26 @@ const renderReasoning = (item: Record) => {
         <template #actions v-if="(!isStreamLoad || !isLastMsg) && showActions">
             <div class="actions-container">
                 <Tooltip :content="t('operation.replay')" destroyOnClose showArrow theme="default">
-                    <refresh-icon class="icon" @click="onResend && onResend(item.RelatedRecordId)" />
+                    <CustomizedIcon class="icon" :svg="RefreshIcon"
+                        @click="onResend && onResend(item.RelatedRecordId)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.copy')" destroyOnClose showArrow theme="default">
-                    <file-copy-icon class="icon" @click="(e: any) => copyContent(e, item.Content, 'assistant')" />
+                    <CustomizedIcon class="icon" :svg="CopyIcon"
+                        @click="(e: any) => copyContent(e, item.Content, 'assistant')" />
                 </Tooltip>
                 <Tooltip :content="t('operation.share')" destroyOnClose showArrow theme="default">
-                    <share-1-icon class="icon" @click="share(item)" />
+                    <CustomizedIcon class="icon" :svg="ShareIcon" @click="share(item)" />
                 </Tooltip>
                 <Divider layout="vertical"></Divider>
                 <Tooltip :content="t('operation.good')" destroyOnClose showArrow theme="default">
-                    <thumb-up-2-icon class="icon"
+                    <CustomizedIcon
                         :class="{ active: record.Score === ScoreValue.Like, disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined }"
-                        name="thumb-up-2" @click="rate(item, ScoreValue.Like)" />
+                        class="icon" :svg="ThumbsUpIcon" @click="rate(item, ScoreValue.Like)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.bad')" destroyOnClose showArrow theme="default">
-                    <thumb-down-1-icon class="icon"
+                    <CustomizedIcon
                         :class="{ active: record.Score === ScoreValue.Dislike, disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined }"
-                        name="thumb-down-1" @click="rate(item, ScoreValue.Dislike)" />
+                        class="icon" :svg="ThumbsDownIcon" @click="rate(item, ScoreValue.Dislike)" />
                 </Tooltip>
             </div>
         </template>
@@ -223,19 +235,6 @@ const renderReasoning = (item: Record) => {
 .user-message .share-icon {
     opacity: 0;
     transition: opacity 0.2s ease;
-    cursor: pointer;
-    margin-left: var(--td-comp-margin-s);
-}
-
-/* 操作按钮图标样式 */
-.icon {
-    margin: var(--td-comp-paddingTB-xs) var(--td-comp-paddingLR-xs);
-    width: var(--td-comp-size-xxxs);
-    height: var(--td-comp-size-xxxs);
-    box-sizing: content-box;
-    color: var(--td-text-color-primary);
-    background-color: var(--td-bg-color-secondarycontainer);
-    border: 0;
     cursor: pointer;
 }
 
@@ -269,14 +268,10 @@ const renderReasoning = (item: Record) => {
 
 /* 操作按钮容器样式 */
 .actions-container {
-    margin-top: var(--td-comp-margin-xs);
     display: flex;
     align-items: center;
     list-style: none;
     padding: var(--td-pop-padding-s);
-    background-color: var(--td-bg-color-secondarycontainer);
-    border-radius: var(--td-radius-medium);
-    border: 1px solid var(--td-border-level-2-color);
     overflow: hidden;
 }
 
@@ -290,5 +285,11 @@ const renderReasoning = (item: Record) => {
 
 .loading-container {
     padding: 0
+}
+.thinking-icon{
+    animation: rotate 2s linear infinite;
+    width: var(--td-comp-size-xs);
+    height: var(--td-comp-size-xs);
+    margin-left: var(--td-comp-margin-l);
 }
 </style>

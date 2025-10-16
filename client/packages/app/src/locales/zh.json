@@ -7,11 +7,14 @@
     "documentation": "帮助文档",
     "personalCenter": "个人中心",
     "switchTheme": "切换主题",
-    "systemSettings": "系统设置"
+    "systemSettings": "系统设置",
+    "tip":"提示"
   },
   "sider": {
     "switchTheme": "切换主题",
-    "selectLanguage": "选择语言"
+    "selectLanguage": "选择语言",
+    "expandMenu":"展开菜单",
+    "collapseMenu":"收起菜单"
   },
   "account": {
     "login": "登录",
@@ -82,5 +85,9 @@
     "recordTooLong":"语音输入最长60s，已停止并转为文字",
     "notSupport":"暂不支持该类型文件(支持类型：png、jpg)",
     "answering":"回答中，请稍后操作或点击停止回答"
+  },
+  "login":{
+    "according":"请根据",
+    "Guidelines":"指引配置登录方式"
   }
 }

@@ -3,7 +3,8 @@ import { languageMap } from '@/i18n';
 import { useUiStore } from '@/stores/ui';
 import { useRouter } from 'vue-router';
 import { logout } from '@/service/login';
-import { Setting1Icon, ModeLightIcon, ModeDarkIcon, TranslateIcon, PoweroffIcon } from 'tdesign-icons-vue-next';
+import SettingIcon from '@/assets/icons/setting.svg';
+import CustomizedIcon from '@/components/CustomizedIcon.vue';
 
 const router = useRouter();
 const uiStore = useUiStore();
@@ -24,22 +25,19 @@ const handleLogout = () => {
 
 <template>
     <t-space>
-        <t-dropdown maxColumnWidth="300px">
+        <t-dropdown maxColumnWidth="280px">
             <t-button theme="default" shape="square" variant="text">
-                <setting-1-icon />
+                <CustomizedIcon  showHoverBackground :svg="SettingIcon" />
             </t-button>
             <t-dropdown-menu>
                 <t-dropdown-item>
                     <div @click="toggleTheme" class="dropdown-item">
-                        <mode-light-icon v-if="uiStore.theme === 'light'" />
-                        <mode-dark-icon v-if="uiStore.theme === 'dark'" />
                         {{ $t('sider.switchTheme') }}
                     </div>
                 </t-dropdown-item>
 
                 <t-dropdown-item>
                     <div class="dropdown-item">
-                        <translate-icon />
                         {{ $t('sider.selectLanguage') }}
                     </div>
                     <t-dropdown-menu>
@@ -54,7 +52,6 @@ const handleLogout = () => {
 
                 <t-dropdown-item>
                     <div @click="handleLogout" class="dropdown-item">
-                        <poweroff-icon />
                         {{ $t('account.logout') }}
                     </div>
                 </t-dropdown-item>

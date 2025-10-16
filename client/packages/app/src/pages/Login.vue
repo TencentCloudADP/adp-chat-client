@@ -10,21 +10,47 @@
           <t-button variant="outline" size="large" :href="provider['url']">{{ provider['name'] }}</t-button>
         </div>
       </t-card>
+      <t-dialog
+        v-model:visible="showEmptyDialog"
+        theme="warning"
+        :footer="false"
+        placement="center"
+        :header="t('header.tip')"
+        :on-close="cancelEmptyDialog"
+        :cancel-btn="null"
+        :closeOnEscKeydown="false"
+        :closeOnOverlayClick="false"
+      >
+      {{ t('login.according')  }} 
+      <t-link theme="primary" target="_blank" size="small" href="https://github.com/TencentCloudADP/adp-chat-client/blob/main/README.cn.md#%E8%B4%A6%E6%88%B7%E4%BD%93%E7%B3%BB%E5%AF%B9%E6%8E%A5"> README </t-link>  
+      {{ t('login.Guidelines') }}
+      </t-dialog>
     </div>
   </t-layout>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { fetchLoginProviders } from '@/service/login';
+const { t } = useI18n();
 
 const oauthProviders = ref([])
+const showEmptyDialog = ref(false);
 
 onMounted(async () => {
   const providers = await fetchLoginProviders();
   console.log('Login Providers:', providers.Providers);
-  oauthProviders.value = providers.Providers;
+  if(providers.Providers?.length <= 0){
+    showEmptyDialog.value = true;
+  }else{
+    oauthProviders.value = providers.Providers;
+  }
 });
+
+const cancelEmptyDialog = () => {
+    showEmptyDialog.value = false;
+}
 </script>
 
 <style scoped>

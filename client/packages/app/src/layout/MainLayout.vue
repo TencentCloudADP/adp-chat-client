@@ -5,10 +5,13 @@ import AIWarning from '@/components/AIWarning.vue';
 import CreateConversation from '@/components/CreateConversation.vue';
 import { useUiStore } from '@/stores/ui';
 import { useAppsStore } from '@/stores/apps'
+import { useChatStore } from '@/stores/chat'
 
 
 const uiStore = useUiStore();
 const appsStore = useAppsStore()
+const chatStore = useChatStore();
+
 
 </script>
 
@@ -17,11 +20,12 @@ const appsStore = useAppsStore()
         <t-header class="layout-header">
             <div class="header-app-container">
                 <SidebarToggle v-if="!uiStore.drawerVisible" />
+                <!-- 空对话时chatStore没有app信息 -->
                 <t-avatar :imageProps="{
                     lazy: true,
                     loading: ''
-                }" shape="round" :image="appsStore.currentApplicationAvatar" size="large"></t-avatar>
-                <span class="header-app__title">{{ appsStore.currentApplicationName }}</span>
+                }" shape="round" :image="chatStore.currentApplicationAvatar || appsStore.currentApplicationAvatar" size="large"></t-avatar>
+                <span class="header-app__title">{{ chatStore.currentApplicationName || appsStore.currentApplicationName}}</span>
 
             </div>
             <div class="header-app-settings">

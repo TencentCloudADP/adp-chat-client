@@ -1,11 +1,14 @@
 <script setup lang="tsx">
 import { ref, computed } from 'vue';
-import { GridViewIcon, ChevronUpIcon } from 'tdesign-icons-vue-next';
 import { useAppsStore } from '@/stores/apps';
 import { useChatStore } from '@/stores/chat';
 import { useRouter } from 'vue-router';
 import type { Application } from '@/model/application'
 import { useI18n } from 'vue-i18n';
+import GridIcon from '@/assets/icons/grid.svg';
+import ArrowUpSmallIcon from '@/assets/icons/arrow_up_small.svg';
+import CustomizedIcon from '@/components/CustomizedIcon.vue';
+
 const router = useRouter();
 const { t } = useI18n();
 const appsStore = useAppsStore();
@@ -70,13 +73,13 @@ const handleCollapseClick = () => {
 
         <!-- 显示更多选项 -->
         <div v-if="showMore" class="application-item" @click="handleMoreClick">
-            <grid-view-icon size="large" class="application-avatar" />
+            <CustomizedIcon showHoverBackground class="application-avatar"  :svg="GridIcon" />
             <span class="application-name">{{ t('common.more') }}</span>
         </div>
 
         <!-- 显示收起选项 -->
         <div v-if="showCollapse" class="application-item" @click="handleCollapseClick">
-            <chevron-up-icon size="large" class="application-avatar" />
+            <CustomizedIcon showHoverBackground class="application-avatar"  :svg="ArrowUpSmallIcon" />
             <span class="application-name">{{ t('common.collapse') }}</span>
         </div>
     </div>

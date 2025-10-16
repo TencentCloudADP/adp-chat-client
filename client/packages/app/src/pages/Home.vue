@@ -37,4 +37,7 @@ onMounted(async () => {
 .content {
     height: 100vh;
 }
+:deep(.custome-drawer .t-drawer__content-wrapper){
+    box-shadow: none;
+}
 </style>
