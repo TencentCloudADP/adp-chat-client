@@ -77,4 +77,7 @@ const chatStore = useChatStore();
     flex-shrink: 0;
     padding: var(--td-pop-padding-l);
 }
+:deep(.t-chat__footer){
+    position: relative;
+}
 </style>

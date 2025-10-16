@@ -46,6 +46,10 @@
             </template>
             <!-- 底部发送区域 -->
             <template #footer>
+                 <!-- 回到底部按钮 -->
+                <BackToBottom v-show="(isShowToBottom && !isStreamLoad) || hasUserScrolled"
+                    :loading="isChatting"
+                    :backToBottom="handleClickBackToBottom" />
                 <t-card v-if="isSelecting" size="small" class="share-setting-container" shadow
                     bodyClassName="share-setting-card">
                     <div class="share-setting-content">
@@ -74,10 +78,7 @@
                     :toggleDeepThinking="toggleDeepThinking" />
             </template>
         </TChat>
-        <!-- 回到底部按钮 -->
-        <BackToBottom v-show="(isShowToBottom && !isStreamLoad) || hasUserScrolled"
-            :loading="isChatting"
-            :backToBottom="handleClickBackToBottom" />
+       
     </div>
 </template>
 

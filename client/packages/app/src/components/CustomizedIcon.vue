@@ -20,6 +20,7 @@ interface Props {
     showHoverBackground?: boolean;
     /** 是否使用原生图标样式（不应用主题滤镜） */
     nativeIcon?: boolean;
+    disablePadding?: boolean;
 }
 
 defineProps<Props>();
@@ -27,16 +28,24 @@ defineProps<Props>();
 </script>
 
 <template>
-    <img :src="svg" class="customeized-icon" :class="{'normal':!nativeIcon,'hoverShadow': showHoverBackground,'svg-dark-mode': uiStore.theme === 'dark',[`size-${size}`]:size }" />
+    <img :src="svg" class="customeized-icon" :class="{'disablePadding':disablePadding,'normal':!nativeIcon,'hoverShadow': showHoverBackground,'svg-dark-mode': uiStore.theme === 'dark',[`size-${size}`]:size }" />
 </template>
 
 <style scoped>
 .svg-dark-mode.normal {
     filter: brightness(0) invert(1);
 }
+.customeized-icon.size-m{
+    width: var(--td-size-6);
+    height: var(--td-size-6);
+}
 .customeized-icon.size-l{
     width: var(--td-size-7);
     height: var(--td-size-7);
+}
+.customeized-icon.size-ml{
+    width: var(--td-size-8);
+    height: var(--td-size-8);
 }
 .customeized-icon.size-xl{
     width: var(--td-size-9);
@@ -49,6 +58,9 @@ defineProps<Props>();
 .customeized-icon{
     cursor: pointer;
     padding: var(--td-pop-padding-s);
+}
+.customeized-icon.disablePadding{
+    padding: 0;
 }
 .hoverShadow:hover{
      /* TODO: 支持配置hover背景色 */

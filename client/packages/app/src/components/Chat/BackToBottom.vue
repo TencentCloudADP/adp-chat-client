@@ -13,7 +13,7 @@ const props = defineProps<{
     <div class="bottom-icon" @click="props.backToBottom">
         <div class="bottom-icon-container">
             <CustomizedIcon  v-if="loading" nativeIcon class="loading" :svg="backToBottomLoadingIcon"/>  
-            <CustomizedIcon nativeIcon :svg="ArrowDownMediumIcon"/>  
+            <CustomizedIcon disablePadding size="m" nativeIcon :svg="ArrowDownMediumIcon"/>  
         </div>
     </div>
 </template>
@@ -22,7 +22,7 @@ const props = defineProps<{
 .bottom-icon{
     position: absolute;
     left: 50%;
-    bottom: 146px;
+    top: calc((var(--td-comp-size-xs) + var(--td-comp-size-l) ) * -1);
     cursor: pointer;
 
     background: #FFFFFF;
