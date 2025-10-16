@@ -40,7 +40,6 @@ const showEmptyDialog = ref(false);
 
 onMounted(async () => {
   const providers = await fetchLoginProviders();
-  console.log('Login Providers:', providers.Providers);
   if(providers.Providers?.length <= 0){
     showEmptyDialog.value = true;
   }else{

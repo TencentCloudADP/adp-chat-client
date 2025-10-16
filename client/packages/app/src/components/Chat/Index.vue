@@ -563,7 +563,6 @@ const handleSendData = async (queryVal: string) => {
 watch(
     chatId,
     (newId,oldId) => {
-        console.log('newId',newId,newId && newId === currentChatingConversationId.value,'oldId',oldId,'currentConversationId',chatStore.currentConversationId)
         // sse新建对话中不处理变化
         if (isChatting.value && (newId && currentChatingConversationId.value && newId === currentChatingConversationId.value)) {
             return

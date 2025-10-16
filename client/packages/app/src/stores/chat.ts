@@ -60,7 +60,6 @@ export const useChatStore = defineStore('chat', () => {
      uiStore.setDrawerVisible(false);
     }
     if (detail.ApplicationId) {
-      console.log('_currentConversation', detail, appsStore.applications)
       let _currentApplication = appsStore.applications.find((item) => item['ApplicationId'] == detail["ApplicationId"])
       _currentApplication && appsStore.setCurrentApplication(_currentApplication)
       _currentApplication && setCurrentApplication(_currentApplication)
