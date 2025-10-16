@@ -79,7 +79,7 @@ const handleCollapseClick = () => {
 
         <!-- 显示收起选项 -->
         <div v-if="showCollapse" class="application-item" @click="handleCollapseClick">
-            <CustomizedIcon showHoverBackground class="application-avatar"  :svg="ArrowUpSmallIcon" />
+            <CustomizedIcon size="ml"  class="application-avatar"  :svg="ArrowUpSmallIcon" />
             <span class="application-name">{{ t('common.collapse') }}</span>
         </div>
     </div>
