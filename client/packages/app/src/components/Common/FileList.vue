@@ -41,8 +41,6 @@ const showFrontIcon = ref(false);
 const handleScroll = (type: string) => {
     let _offset = fileViewRef.value?.clientWidth || 0;
     let _scrollLeft = scrollViewRef.value?.scrollLeft || 0;
-
-    console.log('handleScroll scrollViewRef.value', scrollViewRef.value?.scrollLeft, fileViewRef.value?.scrollLeft, _offset)
     switch (type) {
         case 'back':
             scrollViewRef.value?.scrollTo({
@@ -71,7 +69,6 @@ watch(offset, (newValue, oldValue) => {
 watch(props.fileList, (newValue, oldValue) => {
     let fileWidth = fileViewRef.value?.clientWidth || 0;
     let scrollViewWidth = scrollViewRef.value?.scrollWidth || 0;
-    console.log('newValue',newValue,fileWidth,scrollViewWidth)
     showBackIcon.value = scrollViewWidth > fileWidth
 });
 

@@ -103,6 +103,7 @@ const handleChooseQuestion = (value: string) => {
 .greet-tag {
   padding:var(--td-pop-padding-l) var(--td-pop-padding-xl);
   color:var(--td-brand-color);
+  height: var(--td-comp-size-m);
   font-weight:500;
   border-radius: var(--td-radius-medium);
   box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 6px rgba(18, 19, 25, 0.02), 0px 2px 12px rgba(18, 19, 25, 0.04);
