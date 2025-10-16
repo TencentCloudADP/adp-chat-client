@@ -12,8 +12,8 @@ const props = defineProps<{
 <template>
     <div class="bottom-icon" @click="props.backToBottom">
         <div class="bottom-icon-container">
-            <CustomizedIcon v-if="loading" class="loading" :svg="backToBottomLoadingIcon"/>  
-            <CustomizedIcon :svg="ArrowDownMediumIcon"/>  
+            <CustomizedIcon  v-if="loading" nativeIcon class="loading" :svg="backToBottomLoadingIcon"/>  
+            <CustomizedIcon nativeIcon :svg="ArrowDownMediumIcon"/>  
         </div>
     </div>
 </template>
@@ -45,5 +45,6 @@ const props = defineProps<{
     left: 0;
     z-index:2;
     animation: rotate 2s linear infinite;
+    padding: 0px;
 }
 </style>

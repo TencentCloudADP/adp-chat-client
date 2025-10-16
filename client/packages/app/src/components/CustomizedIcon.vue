@@ -1,12 +1,25 @@
+/**
+ * 自定义图标组件
+ * 
+ * 用于显示SVG图标，支持不同尺寸和主题模式
+ * 可以根据需要显示悬停背景效果
+ */
 <script setup lang="ts">
 import { useUiStore } from '@/stores/ui';
 const uiStore = useUiStore();
 
+/**
+ * 组件属性接口
+ */
 interface Props {
+    /** SVG图标的路径或URL */
     svg: string;
+    /** 图标尺寸，可选值：'l' | 'xl' */
     size?: string;
-    showHoverBackground?:boolean;
-    nativeIcon?:boolean;
+    /** 是否显示悬停背景效果 */
+    showHoverBackground?: boolean;
+    /** 是否使用原生图标样式（不应用主题滤镜） */
+    nativeIcon?: boolean;
 }
 
 defineProps<Props>();
