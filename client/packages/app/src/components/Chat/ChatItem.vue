@@ -183,9 +183,9 @@ const renderReasoning = (item: Record) => {
                 
                 <div v-if="item.IsFromSelf && showActions" class="user-message">
                     <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos" />
-                    <CustomizedIcon class="copy-icon" :svg="CopyIcon"
+                    <CustomizedIcon  class="control-icon copy-icon" :svg="CopyIcon"
                         @click="(e: any) => copyContent(e, item.Content, 'user')" />
-                    <CustomizedIcon class="share-icon" :svg="ShareIcon" @click="share(item)" />
+                    <CustomizedIcon  class="control-icon share-icon" :svg="ShareIcon" @click="share(item)" />
                 </div>
                 <MdContent v-else :content="item.Content" role="assistant" :quoteInfos="item.QuoteInfos" />
                 <div class="references-container"
@@ -203,27 +203,26 @@ const renderReasoning = (item: Record) => {
         <!-- 操作按钮插槽 -->
         <template #actions v-if="(!isStreamLoad || !isLastMsg) && showActions">
             <div class="actions-container">
-                <Tooltip :content="t('operation.replay')" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon class="icon" :svg="RefreshIcon"
-                        @click="onResend && onResend(item.RelatedRecordId)" />
-                </Tooltip>
                 <Tooltip :content="t('operation.copy')" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon class="icon" :svg="CopyIcon"
+                    <CustomizedIcon  class="control-icon icon" :svg="CopyIcon"
                         @click="(e: any) => copyContent(e, item.Content, 'assistant')" />
                 </Tooltip>
-                <Tooltip :content="t('operation.share')" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon class="icon" :svg="ShareIcon" @click="share(item)" />
+                <Tooltip :content="t('operation.replay')" destroyOnClose showArrow theme="default">
+                    <CustomizedIcon  class="control-icon icon" :svg="RefreshIcon"
+                        @click="onResend && onResend(item.RelatedRecordId)" />
                 </Tooltip>
-                <Divider layout="vertical"></Divider>
+                <Tooltip :content="t('operation.share')" destroyOnClose showArrow theme="default">
+                    <CustomizedIcon  class="control-icon icon" :svg="ShareIcon" @click="share(item)" />
+                </Tooltip>
                 <Tooltip :content="t('operation.good')" destroyOnClose showArrow theme="default">
                     <CustomizedIcon
                         :class="{ active: record.Score === ScoreValue.Like, disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined }"
-                        class="icon" :svg="ThumbsUpIcon" @click="rate(item, ScoreValue.Like)" />
+                        class="control-icon icon"  :svg="ThumbsUpIcon" @click="rate(item, ScoreValue.Like)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.bad')" destroyOnClose showArrow theme="default">
                     <CustomizedIcon
                         :class="{ active: record.Score === ScoreValue.Dislike, disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined }"
-                        class="icon" :svg="ThumbsDownIcon" @click="rate(item, ScoreValue.Dislike)" />
+                        class="control-icon icon"  :svg="ThumbsDownIcon" @click="rate(item, ScoreValue.Dislike)" />
                 </Tooltip>
             </div>
         </template>
@@ -248,6 +247,10 @@ const renderReasoning = (item: Record) => {
     color: var(--td-success-color-5);
     font-size: var(--td-font-size-title-large);
     margin-right: var(--td-comp-margin-s);
+}
+.control-icon{
+    padding:var(--td-comp-paddingLR-xxs); 
+    margin-right: var(--td-comp-margin-s); 
 }
 
 .icon.disabled {
@@ -290,8 +293,9 @@ const renderReasoning = (item: Record) => {
 }
 
 .loading-container {
-    padding: 0
+    padding: 0;
 }
+
 .thinking-text{
     color: var(--td-text-color-primary);
     font-size: var(--td-font-size-link-medium);

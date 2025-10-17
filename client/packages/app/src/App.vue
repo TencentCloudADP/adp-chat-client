@@ -28,6 +28,9 @@ onMounted(() => {
 .page-container {
   width: 100vw;
 }
+:deep(.dropdown-item){
+    gap: var(--td-comp-paddingLR-s);
+}
 </style>
 <style>
 @keyframes rotate {

@@ -4,6 +4,10 @@ import { useUiStore } from '@/stores/ui';
 import { useRouter } from 'vue-router';
 import { logout } from '@/service/login';
 import SettingIcon from '@/assets/icons/setting.svg';
+import StarsIcon from '@/assets/icons/stars.svg';
+import QuitIcon from '@/assets/icons/quit.svg';
+import UrlIcon from '@/assets/icons/url.svg';
+
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
 
 const router = useRouter();
@@ -25,19 +29,22 @@ const handleLogout = () => {
 
 <template>
     <t-space>
-        <t-dropdown maxColumnWidth="280px">
+        <t-dropdown maxColumnWidth="280px" >
             <t-button theme="default" shape="square" variant="text">
-                <CustomizedIcon  showHoverBackground :svg="SettingIcon" />
+                <CustomizedIcon showHoverBackground :svg="SettingIcon" />
             </t-button>
+            
             <t-dropdown-menu>
                 <t-dropdown-item>
                     <div @click="toggleTheme" class="dropdown-item">
+                        <CustomizedIcon disablePadding size="m" :svg="StarsIcon" />
                         {{ $t('sider.switchTheme') }}
                     </div>
                 </t-dropdown-item>
 
                 <t-dropdown-item>
                     <div class="dropdown-item">
+                        <CustomizedIcon disablePadding size="m"  :svg="UrlIcon" />
                         {{ $t('sider.selectLanguage') }}
                     </div>
                     <t-dropdown-menu>
@@ -52,6 +59,7 @@ const handleLogout = () => {
 
                 <t-dropdown-item>
                     <div @click="handleLogout" class="dropdown-item">
+                        <CustomizedIcon disablePadding size="m" :svg="QuitIcon" />
                         {{ $t('account.logout') }}
                     </div>
                 </t-dropdown-item>
