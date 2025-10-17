@@ -1,11 +1,23 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n';
 import { ChatSender as TChatSender } from '@tdesign-vue-next/chat'
 import { uploadFile } from '@/service/upload';
+import type { UploadFile } from '@/service/upload';
 import WebRecorder from "@/utils/webRecorder"
 import type { FileProps } from '@/model/file';
 import { handleGetAsrUrl } from '@/service/chat';
 import { MessagePlugin } from 'tdesign-vue-next';
+import FileList from '@/components/Common/FileList.vue';
+import RecordIcon from '@/components/Common/RecordIcon.vue';
+import PictureIcon from '@/assets/icons/picture.svg';
+import VoiceInputIcon from '@/assets/icons/voice_input.svg';
+import SendIcon from '@/assets/icons/send.svg';
+import PauseIcon from '@/assets/icons/pause.svg';
+import SendFill from '@/assets/icons/send_fill.svg';
+import CustomizedIcon from '@/components/CustomizedIcon.vue';
+
+const { t } = useI18n();
 
 /**
  * Sender组件属性定义
@@ -36,6 +48,11 @@ const props = defineProps<{
  */
 const recorder = ref(null as WebRecorder | null)
 
+/**
+ * 录音超时时间，单位s
+ */
+const recordMaxTime = 60;
+const recordRef = ref<number | null>(null);
 /**
  * ASR WebSocket连接引用
  * @type {import('vue').Ref<WebSocket | null>}
@@ -74,33 +91,40 @@ const recording = ref(false)
  */
 const fileList = ref([] as FileProps[])
 
+
 /**
  * 处理文件选择事件
  * @param {any} res - 文件选择结果
  * @returns {Promise<void>}
  */
-const handleFileSelect = async function (res: { files: File[]}) {
-    if(res.files && res.files.length <= 0) return;
+const handleFileSelect = async function (files: UploadFile[]) {
+    if (files && files.length <= 0) return;
     const allowed = ['image/png', 'image/jpg', 'image/jpeg', 'image/bmp']
-    res.files.map(async (item: File) => {
+    files.map(async (item: UploadFile) => {
         if (!allowed.includes(item.type)) {
-            MessagePlugin.error(`暂不支持该类型文件（支持类型：jpg/png）`)
+            MessagePlugin.error(t('sender.notSupport'))
             return
         }
-        const res = await uploadFile({
-            file: item
-        })
-        if (res.Url) {
-            fileList.value.push({
-                uid: res.Url,
-                name: '',
-                status: 'done',
-                response: '',
-                url: res.Url,
+        try{
+            const res = await uploadFile({
+                file: item.raw || item  //  t-upload 上传方法，文件信息在raw字段
             })
+            if (res.Url) {
+                fileList.value.push({
+                    uid: res.Url,
+                    name: '',
+                    status: 'done',
+                    response: '',
+                    url: res.Url,
+                })
+            }else{
+                MessagePlugin.error(t('sender.uploadError'))
+            }
+        }catch(err){
+            MessagePlugin.error(t('sender.uploadError'))
         }
+        
     })
-
 }
 
 /**
@@ -119,6 +143,10 @@ const handleDeleteFile = async function (index: number) {
  * @returns {Promise<void>}
  */
 const handleSend = async function (value: string) {
+    if (props.isStreamLoad) {
+        MessagePlugin.warning(t('sender.answering'));
+        return
+    }
     // 用户点击发送动作时结束录音
     handleStopRecord();
     props.inputEnter && props.inputEnter(value, fileList.value)
@@ -142,7 +170,6 @@ const startRecording = () => {
         recording.value = false
     }
     recorder.value.start()
-    console.log('[asr] start')
 }
 
 /**
@@ -156,7 +183,13 @@ const handleStartRecord = async () => {
     const url = res.url
     asrWebSocket.value = new WebSocket(url)
     asrWebSocket.value.onopen = () => {
-        startRecording()
+        startRecording();
+        recordRef.value = setTimeout(() => {
+            if (recording.value) {
+                MessagePlugin.warning(t('sender.recordTooLong'));
+                handleStopRecord();
+            }
+        }, recordMaxTime * 1000)
     }
     asrWebSocket.value.onmessage = (event) => {
         if (!recording.value) {
@@ -172,6 +205,8 @@ const handleStartRecord = async () => {
     }
     asrWebSocket.value.onclose = () => {
         recording.value = false
+        recordRef.value && clearTimeout(recordRef.value);
+        recordRef.value = null;
     }
 }
 
@@ -186,6 +221,10 @@ const handleStopRecord = () => {
     asrWebSocket.value?.close()
     asrWebSocket.value = null
     recording.value = false
+    if (recordRef.value) {
+        clearTimeout(recordRef.value)
+        recordRef.value = null
+    }
 }
 
 /**
@@ -202,17 +241,15 @@ const handlePaste = async (event: ClipboardEvent) => {
     try {
         const items = event.clipboardData?.items;
         if (!items || items.length === 0) {
-          console.log('剪贴板中没有检测到内容', 'error');
-          return;
+            console.log('剪贴板中没有检测到内容', 'error');
+            return;
         }
-        
+
         // 查找所有图片项
-        const imageItems = Array.from(items).filter((item: DataTransferItem) => 
-          item.type.includes('image')
+        const imageItems = Array.from(items).filter((item: DataTransferItem) =>
+            item.type.includes('image')
         ).map((i: DataTransferItem) => i.getAsFile()).filter((file): file is File => file !== null);
-        handleFileSelect({
-                files: imageItems
-        })
+        handleFileSelect(imageItems)
 
     } catch (error) {
         console.error('粘贴图片出错:', error);
@@ -227,33 +264,47 @@ defineExpose({
 </script>
 
 <template>
-    <TChatSender :value="inputValue" :loading="isStreamLoad" :textarea-props="{
+    <TChatSender class="sender-container" :value="inputValue" :textarea-props="{
         placeholder: $t('conversation.input.placeholder'),
-        autosize: { minRows: 2, maxRows: 2 },
-    }" @stop="onStop" @send="handleSend" @change="handleInput" @fileSelect="handleFileSelect" @paste="handlePaste">
+        autosize: { minRows: 1, maxRows: 6 },
+    }" @stop="onStop" @send="handleSend" @change="handleInput" @paste="handlePaste">
         <template #inner-header>
-            <div v-if="fileList.length > 0" class="file-upload-container">
-                <div v-for="(img, index) in fileList" class="img-item-container">
-                    <t-image fit="contain" :src="img.url" :style="{ width: '70px', height: '70px' }" />
-                    <span class="delete-container">
-                        <t-icon name="delete" @click="handleDeleteFile"></t-icon>
-                    </span>
-                </div>
-            </div>
-
+                <FileList :fileList="fileList" :onDelete="handleDeleteFile"/>
+        </template>
+        <template #suffix>
+            <!-- 等待中的发送按钮 -->
+            <CustomizedIcon class="send-icon waiting" v-if="!isStreamLoad && !inputValue" nativeIcon :svg="SendIcon"  @click="handleSend(inputValue)" />
+            <!-- 可用的发送按钮 -->
+            <CustomizedIcon class="send-icon success" v-if="!isStreamLoad && inputValue"  nativeIcon :svg="SendFill"  @click="handleSend(inputValue)" />
+            <!-- 停止发送按钮 -->
+            <CustomizedIcon class="send-icon stop" v-if="isStreamLoad"  :svg="PauseIcon" nativeIcon @click="onStop" />
         </template>
         <template #prefix>
-            <t-tooltip v-if="!recording" :content="$t('sender.startRecord')">
-                <span class="recording-icon" @click="handleStartRecord">
-                    <t-icon size="large" name="microphone-filled"></t-icon>
-                </span>
-            </t-tooltip>
+            <div class="sender-control-container">
 
-            <t-tooltip v-if="recording" :content="$t('sender.stopRecord')">
-                <span class="recording-icon" @click="handleStopRecord">
-                    <t-icon size="large" name="chevron-right-rectangle-filled"></t-icon>
-                </span>
-            </t-tooltip>
+                <t-upload class="sender-upload" ref="uploadRef1" :max="10" :multiple="true" :request-method="handleFileSelect"
+                    accept="image/*" :showThumbnail="false" :showImageFileName="false" :showUploadProgress="false"
+                    tips="">
+                    <t-tooltip :content="$t('sender.uploadImg')">
+                        <span class="recording-icon">
+                            <CustomizedIcon showHoverBackground  :svg="PictureIcon" />
+                        </span>
+                    </t-tooltip>
+                </t-upload>
+                <t-tooltip v-if="!recording" :content="$t('sender.startRecord')">
+                    <span class="recording-icon" @click="handleStartRecord">
+                        <CustomizedIcon showHoverBackground  :svg="VoiceInputIcon" />
+                    </span>
+                </t-tooltip>
+
+                <t-tooltip v-if="recording" :content="$t('sender.stopRecord')">
+                    <span class="recording-icon stop-icon" @click="handleStopRecord">
+                        <RecordIcon />
+                    </span>
+                </t-tooltip>
+
+            </div>
+
         </template>
     </TChatSender>
 </template>
@@ -264,49 +315,54 @@ defineExpose({
     align-items: center;
     gap: var(--td-comp-paddingLR-s);
 }
-
-.img-item-container {
-    border: 1px solid var(--td-component-border);
-    width: 70px;
-    height: 70px;
-    margin-right: 8px;
-    box-sizing: content-box;
-    position: relative;
-    display: inline-block;
-}
-
-.img-item-container:hover .delete-container {
-    display: flex;
-}
-
-.delete-container {
-    display: none;
-    position: absolute;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
-    right: 2px;
-    top: 2px;
-    padding: 4px;
-    background-color: var(--td-bg-color-secondarycontainer);
-    border-radius: var(--td-radius-medium);
-    border: 1px solid var(--td-border-level-2-color);
-    cursor: pointer;
-}
-
-.delete-container:hover,
 .recording-icon:hover {
     cursor: pointer;
     color: var(--td-brand-color);
 }
 
-.file-upload-container {
-    padding-top: 8px;
-    padding-left: 10px;
-}
-/* TODO: 当前版本不支持，后续再开放 */
-:deep(.t-button:has(.t-icon-file-attachment)){
-     display: none;
+.sender-icon {
+    padding: var(--td-pop-padding-m);
 }
 
+.sender-icon.stop-icon {
+    padding: 0;
+}
+
+.sender-control-container {
+    display: flex;
+    align-items: center;
+}
+
+.sender-container {
+    width: 100%;
+    max-width: 800px;
+}
+
+.customeized-icon {
+    cursor: pointer;
+}
+.send-icon.waiting{
+    padding: 0;
+}
+.send-icon.success{
+    padding: 0;
+}
+.send-icon.stop{
+    padding: 0;
+}
+:deep(.t-chat-sender__textarea) {
+    background-color: var(--td-bg-color-container);
+    border-radius: var(--td-radius-medium);
+}
+
+:deep(.t-chat-sender__footer) {
+    padding: 0px var(--td-comp-paddingLR-s);
+}
+:deep(.sender-upload){
+    height: var(--td-comp-size-m);
+}
+.recording-icon{
+    height: var(--td-comp-size-m);
+    display: inline-block;
+}
 </style>
