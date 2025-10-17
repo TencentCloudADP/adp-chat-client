@@ -297,7 +297,7 @@ defineExpose({
                     </span>
                 </t-tooltip>
 
-                <t-tooltip  :content="$t('sender.stopRecord')">
+                <t-tooltip v-if="recording" :content="$t('sender.stopRecord')">
                     <span class="recording-icon stop-icon" @click="handleStopRecord">
                         <RecordIcon />
                     </span>
