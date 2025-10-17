@@ -7,7 +7,9 @@ import { t } from '@/i18n'
 const appsStore = useAppsStore()
 const { currentApplicationId } = storeToRefs(appsStore)
 
-
+export interface UploadFile extends File {
+  raw?: File
+}
 /**
  * 加载聊天会话列表
  * @returns {Promise<ChatConversation[]>} 返回聊天会话列表的Promise

@@ -7,29 +7,39 @@
     "documentation": "帮助文档",
     "personalCenter": "个人中心",
     "switchTheme": "切换主题",
-    "systemSettings": "系统设置"
+    "systemSettings": "系统设置",
+    "tip":"提示"
+  },
+  "sider": {
+    "switchTheme": "切换主题",
+    "selectLanguage": "选择语言",
+    "expandMenu":"展开菜单",
+    "collapseMenu":"收起菜单"
   },
   "account": {
     "login": "登录",
     "logout": "退出登录",
-    "loginToAdp": "登录",
     "inputAccountName": "请输入账户名",
     "inputPassword": "请输入密码",
-    "defaultName": "游客"
+    "defaultName": "游客",
+    "welcome": "欢迎登录",
+    "systemName": "ADP Chat Client"
   },
   "operation": {
     "search": "搜索",
+    "checkAll":"全选",
+    "shareFor":"分享为",
     "editName": "编辑名称",
     "pin": "置顶",
     "delete": "删除",
     "share": "分享",
-    "cancelShare": "取消分享",
+    "cancelShare": "取消",
     "good": "点赞",
     "bad": "点踩",
     "replay": "重新生成",
     "copy": "复制",
     "copyUrl": "复制链接",
-    "copySuccess": "复制成功",
+    "copySuccess": "复制成功，快前往分享吧",
     "copyError": "复制失败",
     "thxForGood": "谢谢你的认可，我们会继续优化进步",
     "thxForBad": "谢谢你的反馈，我们会继续优化进步"
@@ -51,17 +61,33 @@
     "moveToGroup": "移动到分组"
   },
   "common": {
-    "loading":"加载中",
+    "loading": "加载中",
+    "thinking": "思考中",
     "today": "今天",
     "recent": "最近",
     "s": "秒",
     "copySuccess": "已复制到剪贴板",
     "copyFailed": "复制失败，请重试",
-    "aiWarning": "该回答由AI助手生成，请谨慎识别"
+    "aiWarning": "该回答由AI助手生成，请谨慎识别。",
+    "comply":"请遵守",
+    "Service":"服务条款",
+    "Privacy":"隐私政策",
+    "and":"和",
+    "more": "更多",
+    "collapse": "收起"
   },
   "sender": {
     "startRecord": "点击开始录音",
+    "uploadImg": "上传图片",
     "stopRecord": "点击结束录音",
-    "references": "参考来源"
+    "uploadError": "上传失败，请重试",
+    "references": "参考来源",
+    "recordTooLong":"语音输入最长60s，已停止并转为文字",
+    "notSupport":"暂不支持该类型文件(支持类型：png、jpg)",
+    "answering":"回答中，请稍后操作或点击停止回答"
+  },
+  "login":{
+    "according":"请根据",
+    "Guidelines":"指引配置登录方式"
   }
 }
