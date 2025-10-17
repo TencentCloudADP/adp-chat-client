@@ -72,13 +72,13 @@ const handleCollapseClick = () => {
         </div>
 
         <!-- 显示更多选项 -->
-        <div v-if="showMore" class="application-item" @click="handleMoreClick">
-            <CustomizedIcon showHoverBackground class="application-avatar"  :svg="GridIcon" />
+        <div v-if="showMore" class="application-item control" @click="handleMoreClick">
+            <CustomizedIcon showHoverBackground class="application-avatar control"  :svg="GridIcon" />
             <span class="application-name">{{ t('common.more') }}</span>
         </div>
 
         <!-- 显示收起选项 -->
-        <div v-if="showCollapse" class="application-item" @click="handleCollapseClick">
+        <div v-if="showCollapse" class="application-item control collapse" @click="handleCollapseClick">
             <CustomizedIcon size="ml"  class="application-avatar"  :svg="ArrowUpSmallIcon" />
             <span class="application-name">{{ t('common.collapse') }}</span>
         </div>
@@ -91,6 +91,8 @@ const handleCollapseClick = () => {
 }
 
 .application-item {
+    height: var(--td-comp-size-xl);
+    line-height: var(--td-comp-size-xl);
     cursor: pointer;
     padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-s);
     border-radius: var(--td-radius-medium);
@@ -104,9 +106,24 @@ const handleCollapseClick = () => {
 .application-item.active {
     background: var(--td-bg-color-container-active);
 }
+.application-item:hover {
+    background: var(--td-bg-color-container-active);
+}
+.application-item.control{
+    padding-left: var(--td-comp-paddingLR-xxs)
+}
+.application-item.collapse{
+    padding-left: var(--td-pop-padding-m)
+}
+.application-item.control:hover{
+    background: none;
+}
 
 .application-avatar {
     margin-right: var(--td-comp-margin-xs);
+}
+.application-avatar.control{
+    margin-right: calc(-1 * var(--td-comp-paddingLR-xxs));
 }
 
 .application-name {

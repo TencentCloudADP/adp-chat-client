@@ -21,7 +21,7 @@
     --fgColor-attention: #d29922;
     --fgColor-danger: #f85149;
     --fgColor-done: #ab7df8;
-    --bgColor-default: #0d1117;
+    --bgColor-default: var(--td-bg-color-container);
     --bgColor-muted: #151b23;
     --bgColor-neutral-muted: #656c7633;
     --bgColor-attention-muted: #bb800926;
@@ -649,6 +649,17 @@
 .markdown-body details {
   margin-top: 0;
   margin-bottom: var(--base-size-16);
+}
+.markdown-body p:last-child,
+.markdown-body blockquote,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body dl,
+.markdown-body table,
+.markdown-body pre,
+.markdown-body details {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 .markdown-body.user p {
   margin-top: 0;
