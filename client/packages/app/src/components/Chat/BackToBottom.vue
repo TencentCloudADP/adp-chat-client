@@ -24,7 +24,6 @@ const props = defineProps<{
     left: 50%;
     top: calc((var(--td-comp-size-xs) + var(--td-comp-size-l) ) * -1);
     cursor: pointer;
-
     background: #FFFFFF;
     box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 8px rgba(18, 19, 25, 0.08), 0px 16px 32px rgba(18, 19, 25, 0.16);
     border-radius: 9999px;

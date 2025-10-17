@@ -550,9 +550,12 @@ const handleSendData = async (queryVal: string) => {
                     chatStore.setIsChatting(false)
                     hasUserScrolled.value = false
                     currentChatingConversationId.value = ''
-                    nextTick(() => {
-                        backToBottom()
-                    })
+                    setTimeout(() => {
+                        nextTick(() => {
+                            backToBottom()
+                        })
+                    }, 500);    //  TODO：图标按钮的显示会延迟
+                    
                 }
             },
             fail(msg) {
@@ -656,6 +659,9 @@ watch(
     justify-content: center;
     padding: 0 var(--td-comp-paddingLR-xl);
 }
+:deep(.content .chat-item__content:last-child){
+   margin-bottom: var(--td-comp-paddingLR-xl); 
+}
 
 :deep(.t-chat__list) {
     padding: 0 var(--td-comp-paddingLR-xl);
@@ -683,12 +689,6 @@ watch(
     box-sizing: border-box;
     box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 18px rgba(18, 19, 25, 0.08), 0px 16px 64px rgba(18, 19, 25, 0.16);
     border-radius: 6px;
-}
-.share-checkbox{
-    /* padding-top:calc(var(--td-comp-paddingTB-m) + var(--td-comp-paddingTB-xl)) */
-}
-:deep(.content .t-chat__detail-reasoning){
-    padding-top: 0;
 }
 
 </style>
