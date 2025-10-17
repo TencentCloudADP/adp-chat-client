@@ -5,16 +5,12 @@
 <script setup lang="tsx">
 import { computed } from 'vue';
 import moment from 'moment';
-import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n';
 import { useChatStore } from '@/stores/chat';
-import { useAppsStore } from '@/stores/apps'
 
 import { useRouter } from 'vue-router';
 import type { ChatConversation } from '@/model/chat'
-const appsStore = useAppsStore()
 
-const { currentApplicationId } = storeToRefs(appsStore)
 
 const router = useRouter();
 const { t } = useI18n();
@@ -78,7 +74,7 @@ const handleClick = (detail: ChatConversation) => {
     <div class="history-list">
         <!-- TODO: 增加时间分类 -->
         <!-- 会话项列表 -->
-        <div v-for="(list, index) in conversationsHistoryList" :key="index">
+        <div v-for="(list, index) in conversationsHistoryList" :key="index" class="history-item-container">
             <block v-if="list.data.length > 0">
                 <div class="history-header">
                     <!-- 列表头部 -->
@@ -102,11 +98,16 @@ const handleClick = (detail: ChatConversation) => {
 
 .history-header {
     font-size: var(--td-font-size-mark-small);
+    height: var(--td-comp-size-s);
+    line-height:var(--td-comp-size-s);
     color: var(--td-text-color-primary);
-    padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-s);
+    padding-left: var(--td-comp-paddingLR-s);
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+.history-item-container + .history-item-container{
+    margin-top: var(--td-comp-margin-l);
 }
 
 .history-header__time {
@@ -115,6 +116,8 @@ const handleClick = (detail: ChatConversation) => {
 }
 
 .history-item {
+    height: var(--td-comp-size-m);
+    line-height: var(--td-comp-size-m);
     cursor: pointer;
     padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-s);
     border-radius: var(--td-radius-medium);
@@ -128,6 +131,9 @@ const handleClick = (detail: ChatConversation) => {
 
 
 .history-item.active {
+    background: var(--td-bg-color-container-active);
+}
+.history-item:hover {
     background: var(--td-bg-color-container-active);
 }
 

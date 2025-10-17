@@ -57,14 +57,9 @@ defineProps<Props>();
 }
 .customeized-icon{
     cursor: pointer;
-    padding: var(--td-pop-padding-s);
+    padding: var(--td-pop-padding-m);
 }
 .customeized-icon.disablePadding{
     padding: 0;
-}
-.hoverShadow:hover{
-     /* TODO: 支持配置hover背景色 */
-    /* background-color: var(--td-bg-color-container-active);
-    border-radius: var(--td-radius-default); */
 }
 </style>

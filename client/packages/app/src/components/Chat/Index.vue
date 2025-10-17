@@ -18,7 +18,12 @@
                     <InfiniteLoading :identifier="chatId" direction="top" @infinite="infiniteHandler">
                         <template #spinner>
                             <div>
-                                <t-loading :text="`${$t('common.loading')}...`" size="small">
+                                <t-loading  size="small">
+                                    <template #text>
+                                        <span class="thinking-text">
+                                            {{ `${$t('common.loading')}...` }}
+                                        </span>
+                                    </template>
                                     <template #indicator>
                                         <CustomizedIcon class="thinking-icon" :svg="ThinkIcon" />
                                     </template>
@@ -33,7 +38,7 @@
                         </template>
                     </InfiniteLoading>
                     <div class="chat-item__content" v-for="(item, index) in chatList" :key="item.RecordId">
-                        <Checkbox :checked="selectedIds?.includes(item.RecordId)" v-if="isSelecting"
+                        <Checkbox class="share-checkbox" :checked="selectedIds?.includes(item.RecordId)" v-if="isSelecting"
                             @change="(e) => onSelectIds(item.RecordId, e)" />
                         <div style="width: 100%">
                             <ChatItem :isLastMsg="index === (chatList.length - 1)" :item="item" :index="index"
@@ -47,7 +52,7 @@
             <!-- 底部发送区域 -->
             <template #footer>
                  <!-- 回到底部按钮 -->
-                <BackToBottom v-show="(isShowToBottom && !isStreamLoad) || hasUserScrolled"
+                <BackToBottom v-show="chatId && ((isShowToBottom && !isStreamLoad) || hasUserScrolled)"
                     :loading="isChatting"
                     :backToBottom="handleClickBackToBottom" />
                 <t-card v-if="isSelecting" size="small" class="share-setting-container" shadow
@@ -56,13 +61,11 @@
                         <t-checkbox :indeterminate="selectedIds.length !== chatList.length && selectedIds.length !== 0"
                             :checked="checkall" @change="handleCheckAll">{{ $t('operation.checkAll') }}</t-checkbox>
                         <t-divider layout="vertical"></t-divider>
-                        <div>
+                        <div class="share-text">
                             {{ $t('operation.shareFor') }}
                             <div class="icon__share-copy" :class="{ disabled: selectedIds.length <= 0 }"
                                 @click="handleCopyShare()">
-                                <span> 
-                                    <CustomizedIcon :svg="CopyIcon"/> 
-                                </span>
+                                <CustomizedIcon :svg="CopyLinkIcon"/> 
                                 <span>{{ $t('operation.copyUrl') }}</span>
                             </div>
                         </div>
@@ -107,6 +110,7 @@ import ChatItem from './ChatItem.vue'
 import { useRouter } from 'vue-router'
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
 import CopyIcon from '@/assets/icons/copy.svg';
+import CopyLinkIcon from '@/assets/icons/copy_link.svg';
 import ThinkIcon from '@/assets/icons/thinking.svg';
 const router = useRouter()
 
@@ -601,16 +605,21 @@ watch(
 }
 
 .icon__share-copy {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: var(--td-bg-color-container-hover);
     border-radius: var(--td-radius-default);
-    padding: var(--td-comp-paddingLR-s) var(--td-comp-paddingLR-xl);
+    padding: var(--td-comp-paddingLR-xs) var(--td-comp-paddingLR-xl);
     margin-left: var(--td-comp-paddingLR-l);
     margin-right: var(--td-comp-paddingLR-xs);
     font-size: var(--td-font-size-link-medium);
     cursor: pointer;
 }
-
+.share-text{
+    display: flex;
+    align-items: center;
+}
 .icon__share-copy.disabled {
     cursor: not-allowed;
     opacity: 0.4;
@@ -625,11 +634,17 @@ watch(
     margin-left: var(--td-pop-padding-xl);
     padding-left: var(--td-comp-paddingLR-xxs);
 }
+.thinking-text{
+    color: var(--td-text-color-primary);
+    font-size: var(--td-font-size-link-medium);
+    margin-left: var(--td-comp-margin-xs)
+}
 
 .thinking-icon{
     animation: rotate 2s linear infinite;
     width: var(--td-comp-size-xs);
     height: var(--td-comp-size-xs);
+    padding: 0;
 }
 :deep(.assistant .t-chat__detail) {
     max-width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs));
@@ -657,7 +672,23 @@ watch(
 }
 
 :deep(.share-setting-card) {
+    box-sizing: border-box;
+    box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 18px rgba(18, 19, 25, 0.08), 0px 16px 64px rgba(18, 19, 25, 0.16);
+    border-radius: 6px;
     padding: var(--td-comp-paddingLR-s) var(--td-size-10) var(--td-comp-paddingLR-s) var(--td-comp-paddingLR-xl);
 
 }
+:deep(.share-setting-container){
+    border: none;
+    box-sizing: border-box;
+    box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 18px rgba(18, 19, 25, 0.08), 0px 16px 64px rgba(18, 19, 25, 0.16);
+    border-radius: 6px;
+}
+.share-checkbox{
+    /* padding-top:calc(var(--td-comp-paddingTB-m) + var(--td-comp-paddingTB-xl)) */
+}
+:deep(.content .t-chat__detail-reasoning){
+    padding-top: 0;
+}
+
 </style>

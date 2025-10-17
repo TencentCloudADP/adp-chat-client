@@ -266,23 +266,23 @@ defineExpose({
 <template>
     <TChatSender class="sender-container" :value="inputValue" :textarea-props="{
         placeholder: $t('conversation.input.placeholder'),
-        autosize: { minRows: 1, maxRows: 2 },
+        autosize: { minRows: 1, maxRows: 6 },
     }" @stop="onStop" @send="handleSend" @change="handleInput" @paste="handlePaste">
         <template #inner-header>
                 <FileList :fileList="fileList" :onDelete="handleDeleteFile"/>
         </template>
         <template #suffix>
             <!-- 等待中的发送按钮 -->
-            <CustomizedIcon class="send-icon waiting" nativeIcon :svg="SendIcon" v-if="!isStreamLoad && !inputValue" @click="handleSend(inputValue)" />
+            <CustomizedIcon class="send-icon waiting" v-if="!isStreamLoad && !inputValue" nativeIcon :svg="SendIcon"  @click="handleSend(inputValue)" />
             <!-- 可用的发送按钮 -->
-            <CustomizedIcon class="send-icon success" nativeIcon :svg="SendFill" v-if="!isStreamLoad && inputValue" @click="handleSend(inputValue)" />
+            <CustomizedIcon class="send-icon success" v-if="!isStreamLoad && inputValue"  nativeIcon :svg="SendFill"  @click="handleSend(inputValue)" />
             <!-- 停止发送按钮 -->
-            <CustomizedIcon class="send-icon stop"  v-if="isStreamLoad" :svg="PauseIcon" @click="onStop" />
+            <CustomizedIcon class="send-icon stop" v-if="isStreamLoad"  :svg="PauseIcon" nativeIcon @click="onStop" />
         </template>
         <template #prefix>
             <div class="sender-control-container">
 
-                <t-upload ref="uploadRef1" :max="10" :multiple="true" :request-method="handleFileSelect"
+                <t-upload class="sender-upload" ref="uploadRef1" :max="10" :multiple="true" :request-method="handleFileSelect"
                     accept="image/*" :showThumbnail="false" :showImageFileName="false" :showUploadProgress="false"
                     tips="">
                     <t-tooltip :content="$t('sender.uploadImg')">
@@ -297,7 +297,7 @@ defineExpose({
                     </span>
                 </t-tooltip>
 
-                <t-tooltip v-if="recording" :content="$t('sender.stopRecord')">
+                <t-tooltip  :content="$t('sender.stopRecord')">
                     <span class="recording-icon stop-icon" @click="handleStopRecord">
                         <RecordIcon />
                     </span>
@@ -342,15 +342,14 @@ defineExpose({
     cursor: pointer;
 }
 .send-icon.waiting{
-    background-color: var(--td-gray-color-4);
-    border-radius:var(--td-radius-circle);
-    transform: rotate(-90deg);
+    padding: 0;
 }
-/* .send-icon.success{
-    background-color: var(--td-gray-color-4);
-    border-radius:var(--td-radius-circle);
-} */
-
+.send-icon.success{
+    padding: 0;
+}
+.send-icon.stop{
+    padding: 0;
+}
 :deep(.t-chat-sender__textarea) {
     background-color: var(--td-bg-color-container);
     border-radius: var(--td-radius-medium);
@@ -358,5 +357,12 @@ defineExpose({
 
 :deep(.t-chat-sender__footer) {
     padding: 0px var(--td-comp-paddingLR-s);
+}
+:deep(.sender-upload){
+    height: var(--td-comp-size-m);
+}
+.recording-icon{
+    height: var(--td-comp-size-m);
+    display: inline-block;
 }
 </style>

@@ -24,7 +24,7 @@ const chatStore = useChatStore();
                 <t-avatar :imageProps="{
                     lazy: true,
                     loading: ''
-                }" shape="round" :image="chatStore.currentApplicationAvatar || appsStore.currentApplicationAvatar" size="large"></t-avatar>
+                }" class="header-app__avatar" shape="round" :image="chatStore.currentApplicationAvatar || appsStore.currentApplicationAvatar" size="large"></t-avatar>
                 <span class="header-app__title">{{ chatStore.currentApplicationName || appsStore.currentApplicationName}}</span>
 
             </div>
@@ -61,6 +61,9 @@ const chatStore = useChatStore();
     margin-left: var(--td-comp-margin-s);
 }
 
+.layout-header .header-app__avatar{
+    border-radius: var(--td-radius-medium)
+}
 .layout-header .header-app__title {
     color: var(--td-text-color-primary);
     font-size: var(--td-font-size-link-large);
@@ -79,5 +82,11 @@ const chatStore = useChatStore();
 }
 :deep(.t-chat__footer){
     position: relative;
+}
+:deep(.content .t-chat__content, .content .t-chat__detail-reasoning){
+    padding-top: 0;
+}
+:deep(.content .t-chat__inner){
+    margin-bottom: 0;
 }
 </style>

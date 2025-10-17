@@ -168,13 +168,19 @@ const renderReasoning = (item: Record) => {
         <!-- 内容插槽 -->
         <template #content>
             <div v-if="isLastMsg && isStreamLoad && !item.Content && !item.AgentThought" class="loading-container">
-                <t-loading :text="`${$t('common.thinking')}...`" size="small">
+                <t-loading  size="small">
+                    <template #text>
+                        <span class="thinking-text">
+                            {{ `${$t('common.thinking')}...` }}
+                        </span>
+                    </template>
                     <template #indicator>
                         <CustomizedIcon class="thinking-icon" :svg="ThinkIcon" />
                     </template>
                 </t-loading>
             </div>
             <div v-else>
+                
                 <div v-if="item.IsFromSelf && showActions" class="user-message">
                     <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos" />
                     <CustomizedIcon class="copy-icon" :svg="CopyIcon"
@@ -286,10 +292,16 @@ const renderReasoning = (item: Record) => {
 .loading-container {
     padding: 0
 }
+.thinking-text{
+    color: var(--td-text-color-primary);
+    font-size: var(--td-font-size-link-medium);
+    margin-left: var(--td-comp-margin-xs)
+}
 .thinking-icon{
     animation: rotate 2s linear infinite;
     width: var(--td-comp-size-xs);
     height: var(--td-comp-size-xs);
+    padding: 0;
     margin-left: var(--td-comp-margin-l);
 }
 </style>
