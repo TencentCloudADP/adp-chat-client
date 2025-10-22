@@ -13,13 +13,16 @@ client:
 test_client:
 	cd client && npm run test --ws
 
+run_client:
+	set -a && source server/.env && set +a; cd client; npm run dev
+
 # ----------------- server -----------------
 
 init_server:
 	cd server; uv sync
 
-run:
-	source server/.venv/bin/activate; cd server; sanic main:create_app --factory -H 0.0.0.0 -p 8000
+run_server:
+	source server/.venv/bin/activate; set -a && source server/.env && set +a; cd server; sanic main:create_app --factory --reload -H 0.0.0.0 -p $$SERVER_HTTP_PORT
 
 test_server:
 	source server/.venv/bin/activate; cd server; pytest test/unit_test -W ignore::DeprecationWarning
