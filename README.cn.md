@@ -27,6 +27,7 @@
 
 - CPU >= 2 Core
 - RAM >= 4 GiB
+- 操作系统：Linux/macOS。如果你希望在Windows系统运行，需要通过WSL，或者使用Linux系统的云服务器
 
 ## Docker快速部署
 
@@ -186,6 +187,27 @@ OAuth协议可以帮助实现无缝的身份验证和授权，开发者可以根
 
 # 开发指南
 
+## 后端
+
+### 依赖
+
+- python >= 3.12
+
+### 调试
+
+#### 命令行
+
+``` bash
+# 1. 执行【部署】的所有步骤
+# 2. 复制刚刚编辑好的.env文件到server文件夹
+cp deploy/default/.env server/.env
+
+# 3. 以文件挂载方式启动server容器（无需重新打包）
+sudo make debug
+
+# 4. 至此，API服务已经启动，前端页面需要从下面的【前端】部分获取
+```
+
 ## 前端
 
 ### 依赖
@@ -206,42 +228,8 @@ nvm install v22
 # 初始化（仅首次运行）
 make init_client
 
-# 打包
-make client
-# 打包后编译结果会生成到server/static/app文件夹，启动服务端后即可在浏览器拉取访问
-```
-
-## 后端
-
-### 依赖
-
-- python >= 3.12
-
-### 调试
-
-#### 命令行
-
-``` bash
-# 1. 执行【部署】的所有步骤
-# 2. 复制刚刚编辑好的.env文件到server文件夹
-cp deploy/default/.env server/.env
-
-# 3. 以文件挂载方式启动server容器（无需重新打包）
-sudo make debug
-```
-
-#### VScode快捷调试
-
-通过快捷命令（cmd+shift+p），输入`Preferences: Open Keyboard Shortcuts (JSON)`，添加如下配置，即可通过快捷键cmd+r快速启动命令，如对server进行单元测试。
-
-``` json
-{
-    "key": "cmd+r",
-    "command": "workbench.action.terminal.sendSequence",
-    "args": {
-        "text": "make debug\n"
-    }
-},
+# 调试运行，终端会打印调试网址，如：http://localhost:5173
+make run_client
 ```
 
 ### 架构

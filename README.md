@@ -26,6 +26,7 @@ Please ensure the machine meets the minimum requirements:
 
 - CPU >= 2 Core
 - RAM >= 4 GiB
+- Operating System: Linux/macOS. If you want to run on Windows, you need to use WSL or a cloud server with a Linux system.
 
 ## Docker
 
@@ -184,6 +185,27 @@ If you have an existing account system but do not implement a standard OAuth flo
 
 # Development Guide
 
+## Backend
+
+### Dependencies
+
+- python >= 3.12
+
+### Debugging
+
+#### Command Line
+
+```bash
+# 1. Execute all the steps in [Deployment] section
+# 2. Copy the edited .env file to the server folder
+cp deploy/default/.env server/.env
+
+# 3. Start the server container in mount mode (no need to rebuild)
+sudo make debug
+
+# 4. At this point, the API service has been started, and the front-end page needs to be obtained from the [Frontend] section below.
+```
+
 ## Frontend
 
 ### Dependencies
@@ -204,42 +226,8 @@ nvm install v22
 # Initialize (only needed on the first run)
 make init_client
 
-# Build
-make client
-# The build output will be generated in server/static/app. You can access it in the browser after starting the backend.
-```
-
-## Backend
-
-### Dependencies
-
-- python >= 3.12
-
-### Debugging
-
-#### Command Line
-
-```bash
-# 1. Execute all the steps in [Deployment] section
-# 2. Copy the edited .env file to the server folder
-cp deploy/default/.env server/.env
-
-# 3. Start the server container in mount mode (no need to rebuild)
-sudo make debug
-```
-
-#### VSCode Quick Debugging
-
-Use the shortcut command (cmd+shift+p), enter `Preferences: Open Keyboard Shortcuts (JSON)`, and add the following configuration to quickly launch commands via the shortcut cmd+r, such as running unit tests for the server.
-
-```json
-{
-    "key": "cmd+r",
-    "command": "workbench.action.terminal.sendSequence",
-    "args": {
-        "text": "make debug\n"
-    }
-},
+# Run the frontend in dev mode, the terminal will print the debugging URL, such as: http://localhost:5173
+make run_client
 ```
 
 ### Architecture
