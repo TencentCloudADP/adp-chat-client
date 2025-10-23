@@ -1,0 +1,84 @@
+---
+title: Run with CVM
+sidebar_position: 4
+description: Learn how to setup a Tencent Cloud CVM (Cloud Virtual Machine) to deploy and run adp-chat-client.
+---
+
+Running **adp-chat-client** on a **Cloud Virtual Machine (CVM)** allows you to better manage your development environment, maintain data security, and ensure stable access in the cloud.  
+Tencent Cloud provides high-performance CVM products that can help enhance your development and deployment experience.
+
+This tutorial walks you through creating and setting up a Tencent Cloud CVM instance for running the **adp-chat-client** system.
+
+---
+
+## Prerequisites
+
+Before you begin, make sure you have:
+
+- A **Tencent Cloud account**  
+  You can [register one here](https://www.tencentcloud.com/login).
+- A **local machine** (your computer) to access and manage the CVM.
+
+---
+
+## Steps
+
+### 1. Log in and get started
+
+Log in to your [Tencent Cloud account](https://www.tencentcloud.com/) and open the **CVM product page**:  
+- [Tencent Cloud CVM – Get Started](https://www.tencentcloud.com/products/cvm)
+
+---
+
+### 2. Configure and purchase your CVM instance
+
+On the **Custom Configuration** page, select the following options based on your needs:
+
+- **Billing Mode** (Pay as you go or spot instances)
+- **Region** (choose the location of the data center)
+- **Instance model** (e.g., Standard, MEM-optimized)
+- **Image** (choose your OS — Ubuntu or TencentOS)
+
+
+You can access the configuration page here:  
+[Custom Configuration](http://manage.qcloud.com/shoppingcart/shop.php?tab=cvm&_ga=1.91351132.770173325.1571651505)
+
+For detailed configuration options, refer to:
+
+- [Customizing Linux CVM Configurations](https://intl.cloud.tencent.com/document/product/213/10517)
+- [Customizing Windows CVM Configurations](https://intl.cloud.tencent.com/document/product/213/10516)
+
+---
+
+### 3. Log in to your CVM instance
+
+Once the CVM instance is successfully created, you can log in and start using it as your remote server.
+
+- [Logging in to a Linux Instance](https://intl.cloud.tencent.com/document/product/213/5436)
+- [Logging in to a Windows Instance](https://intl.cloud.tencent.com/document/product/213/10514)
+
+After logging in, you can install dependencies and deploy **adp-chat-client** just like you would on a local machine.
+
+> **Tip:** For Linux users, we recommend using SSH to access the CVM terminal.  
+> For Windows users, you can use Remote Desktop Protocol (RDP) or PowerShell.
+
+---
+
+## Next Steps
+
+Once your CVM is up and running, proceed to: [Quick Start](/docs/en/quick-start)
+
+This documents explain how to initialize your environment, set up `.env` files, and start the **adp-chat-client** service.
+
+---
+
+## Need Help?
+
+For more resources and troubleshooting, visit:
+
+- [Tencent Cloud CVM Documentation](https://intl.cloud.tencent.com/document/product/213)
+- [Tencent Cloud Support](https://www.tencentcloud.com/contact-us)
+
+---
+
+
