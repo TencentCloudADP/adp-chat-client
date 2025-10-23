@@ -1,0 +1,81 @@
+---
+title: 配置云服务器（CVM）来运行 adp-chat-client
+sidebar_position: 4
+description: 了解如何配置腾讯云服务器（Cloud Virtual Machine，简称 CVM）并运行 adp-chat-client。
+---
+
+在**云服务器（CVM）** 上运行**adp-chat-client**，可帮助你更好地管理开发环境、保障数据安全，并确保在云端的稳定访问。 腾讯云提供高性能的CVM产品，能够提升你的开发与部署体验。
+
+本教程将逐步指导你创建并配置腾讯云CVM实例，以运行**adp-chat-client**系统。
+
+---
+
+## 前提条件
+
+开始操作前，请确保你已具备以下条件：
+
+- 一个**腾讯云账号**  
+  你可通过[此处注册](https://cloud.tencent.com/register)。
+- 一台用于访问和管理CVM的**本地机器**。
+
+---
+
+## 操作步骤
+
+### 1. 登录并进入操作页面
+
+登录你的[腾讯云账号](https://cloud.tencent.com/)，打开**CVM产品页面**：  
+- [腾讯云CVM - 开始使用](https://cloud.tencent.com/product/cvm)
+
+---
+
+### 2. 配置并购买CVM实例
+你可通过以下链接进入配置页面：  
+[云服务器购买页](https://buy.cloud.tencent.com/cvm)
+
+在购买页的**自定义配置**页面，根据你的需求选择以下选项：
+
+- **计费模式**（包年包月、按量计费或竞价实例）
+- **地域**（选择数据中心所在位置）
+- **实例配置**（如标准型、内存型等）
+- **镜像**（选择操作系统，如Windows或TencentOS）
+
+
+
+如需了解详细配置选项，可参考：
+
+- [快速配置 Linux 云服务器](https://cloud.tencent.com/document/product/213/2936)
+- [快速配置 Windows 云服务器](https://cloud.tencent.com/document/product/213/2764)
+
+---
+
+### 3. 登录CVM实例
+
+CVM实例创建成功后，你即可登录并将其用作远程服务器。
+
+- [登陆 Linux 实例](https://cloud.tencent.com/document/product/213/5436)
+- [登陆 Windows 实例](https://cloud.tencent.com/document/product/213/5435)
+
+登录后，你可像在本地机器上一样，安装依赖并部署**adp-chat-client**。
+
+> **提示**：对于 Linux 用户，建议使用SSH访问CVM终端。  
+> 对于 Windows 用户，可使用远程桌面协议（RDP）或 PowerShell。
+
+---
+
+## 后续步骤
+
+当你的CVM启动并正常运行后，请参考：[快速开始](/docs/zh/quick-start)
+
+该文档将说明如何初始化环境、配置`.env`文件，以及使用**adp-chat-client**。
+
+---
+
+## 需要帮助？
+
+如需更多资源或故障排查支持，请访问：
+
+- [腾讯云CVM文档中心](https://cloud.tencent.com/document/product/213)
+- [腾讯云在线支持](https://cloud.tencent.com/online-service?from=doc_213)
+
+---
