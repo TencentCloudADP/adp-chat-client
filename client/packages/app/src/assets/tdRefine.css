@@ -21,3 +21,10 @@
   padding-top: 0 !important;
 }
 /* stylelint-enable */
+
+:root[theme-mode='dark']{
+  --td-sender-bg:rgba(255, 255, 255, 0.22);
+}
+:root[theme-mode='light']{
+  --td-sender-bg:rgba(255, 255, 255, 1);
+}

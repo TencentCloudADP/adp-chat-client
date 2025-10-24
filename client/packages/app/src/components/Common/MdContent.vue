@@ -54,13 +54,12 @@ const mdIt = MarkdownIt({
   breaks: true,
   linkify: true,
   typographer: true,
-  quotes: '""'  // 保持直引号
 }).use(katex)
   .use(markdownItHighlightjs);
 
 const renderedMarkdown = computed(() => {
+  // return mdIt.render(content || '');
   return content && mdIt.render(insertReference(content || '', quoteInfos));
-
 });
 
 </script>
@@ -73,7 +72,9 @@ const renderedMarkdown = computed(() => {
 }
 
 .md-content-container.system {
-  background-color: var(--td-bg-color-secondarycontainer);
+  background-color: transparent;
+  padding-bottom:0;
+  border-left:1px solid var(--td-component-stroke);
 }
 
 .md-content-container.user {
@@ -90,12 +91,10 @@ const renderedMarkdown = computed(() => {
   font: var(--td-font-body-medium);
 }
 
-.md-content-container.assistant {
-  padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingTB-m);
-  margin-left: var(--td-comp-margin-l);
-  ;
+.md-content-container.assistant{
+  padding: var(--td-comp-paddingTB-s) 0;
+  margin-left: 0;
 }
-
 :deep(.md-content-container img) {
   width: 150px;
   display: inline-block;

@@ -14,7 +14,7 @@
             </template>
             <!-- 聊天消息列表 -->
             <template v-else>
-                <div class="content">
+                <div class="content selectable" :class="uiStore.isMobile ? 'isMobile' : ''">
                     <InfiniteLoading :identifier="chatId" direction="top" @infinite="infiniteHandler">
                         <template #spinner>
                             <div>
@@ -95,6 +95,8 @@ import { Chat as TChat } from '@tdesign-vue-next/chat'
 import { Checkbox } from 'tdesign-vue-next'
 import { fetchSSE } from '@/model/sseRequest-reasoning'
 import { mergeRecord } from '@/utils/util'
+import { useUiStore } from '@/stores/ui'
+
 // 模型数据
 import { modelOptions, defaultModel } from '@/model/models'
 import type { Record } from '@/model/chat'
@@ -109,16 +111,19 @@ import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
 import { useRouter } from 'vue-router'
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
-import CopyIcon from '@/assets/icons/copy.svg';
 import CopyLinkIcon from '@/assets/icons/copy_link.svg';
 import ThinkIcon from '@/assets/icons/thinking.svg';
 const router = useRouter()
+
 
 /**
  * 聊天存储实例
  * @type {import('@/stores/chat').useChatStore}
  */
 const chatStore = useChatStore()
+
+const uiStore = useUiStore()
+
 /**
  * 应用存储实例
  * @type {import('@/stores/apps').useAppsStore}
@@ -545,17 +550,17 @@ const handleSendData = async (queryVal: string) => {
             },
             complete(isOk, msg) {
                 if (isOk) {
-                    isStreamLoad.value = false
+                    
                     loading.value = false
                     chatStore.setIsChatting(false)
                     hasUserScrolled.value = false
                     currentChatingConversationId.value = ''
                     setTimeout(() => {
+                        isStreamLoad.value = false
                         nextTick(() => {
                             backToBottom()
                         })
                     }, 500);    //  TODO：图标按钮的显示会延迟
-                    
                 }
             },
             fail(msg) {
@@ -649,15 +654,15 @@ watch(
     height: var(--td-comp-size-xs);
     padding: 0;
 }
-:deep(.assistant .t-chat__detail) {
-    max-width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs));
-    width: calc(100% - var(--td-comp-size-m) - var(--td-comp-margin-xs));
-}
 
 :deep(.t-chat__footer) {
     display: flex;
     justify-content: center;
-    padding: 0 var(--td-comp-paddingLR-xl);
+    padding: 0 var(--td-comp-paddingLR-m);
+
+}
+:deep(.content .chat-item__content){
+   margin-bottom: var(--td-comp-paddingLR-l); 
 }
 :deep(.content .chat-item__content:last-child){
    margin-bottom: var(--td-comp-paddingLR-xl); 

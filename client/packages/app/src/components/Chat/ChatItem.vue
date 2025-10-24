@@ -16,6 +16,8 @@ import {
 import { handleRate } from '@/service/chat';
 // 状态管理
 import { useChatStore } from '@/stores/chat';
+import { useUiStore } from '@/stores/ui'
+
 // TDesign UI 组件
 import { MessagePlugin, Tooltip, Divider } from 'tdesign-vue-next';
 import { storeToRefs } from 'pinia';
@@ -33,6 +35,7 @@ import ThinkIcon from '@/assets/icons/thinking.svg';
 
 const { t } = useI18n();
 const chatStore = useChatStore();
+const uiStore = useUiStore()
 const { currentConversationId: chatId } = storeToRefs(chatStore);
 
 /**
@@ -59,6 +62,7 @@ const { showActions = true, item, index, isLastMsg, loading, isStreamLoad, onRes
 
 // 响应式变量
 const record = ref(item);
+const expandStatus = ref(false);
 
 /**
  * 复制内容到剪贴板
@@ -121,9 +125,9 @@ const share = async (record: Record) => {
  * @returns {JSX.Element} - 返回对应的头部组件
  */
 const renderHeader = () => {
-    const endText = t('conversation.deepThinkingFinished');
+    const endText = expandStatus.value ? t('conversation.deepThinkingFinished') : t('conversation.deepThinkingExpand')  ;
     return (
-        <div class="flex">
+        <div class="flex collapsed-thinking-text">
             <span>{endText}</span>
         </div>
     );
@@ -135,7 +139,7 @@ const renderHeader = () => {
  * @returns {JSX.Element | null} - 返回渲染的推理内容或 null
  */
 const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
-    if (!reasoningContent) return <div>dasd</div>;
+    if (!reasoningContent) return <div></div>;
     return (
         <div>
             {reasoningContent.Procedures?.map((procedure, index) => (
@@ -151,10 +155,16 @@ const renderReasoning = (item: Record) => {
     } else {
         return {
             collapsed: isLastMsg && !isStreamLoad,
+            expandIcon:false,
             expandIconPlacement: 'right' as const,
+            onExpandChange:(e) =>{
+                console.log('change',e)
+                expandStatus.value = e;
+            },
             collapsePanelProps: {
+                expandIcon:false,
                 header: renderHeader(),
-                content: renderReasoningContent(item.AgentThought),
+                content: renderReasoningContent(item.AgentThought)
             }
         }
     }
@@ -164,7 +174,7 @@ const renderReasoning = (item: Record) => {
 <template>
     <!-- 聊天项组件 -->
     <TChatItem animation="skeleton" :role="!item.IsFromSelf ? 'assistant' : 'user'" :text-loading="false"
-        :reasoning="renderReasoning(item)">
+        :reasoning="renderReasoning(item)" >
         <!-- 内容插槽 -->
         <template #content>
             <div v-if="isLastMsg && isStreamLoad && !item.Content && !item.AgentThought" class="loading-container">
@@ -181,11 +191,11 @@ const renderReasoning = (item: Record) => {
             </div>
             <div v-else>
                 
-                <div v-if="item.IsFromSelf && showActions" class="user-message">
+                <div v-if="item.IsFromSelf" class="user-message">
                     <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos" />
-                    <CustomizedIcon  class="control-icon copy-icon" :svg="CopyIcon"
+                    <CustomizedIcon v-if="showActions && !uiStore.isMobile" class="control-icon copy-icon" :svg="CopyIcon"
                         @click="(e: any) => copyContent(e, item.Content, 'user')" />
-                    <CustomizedIcon  class="control-icon share-icon" :svg="ShareIcon" @click="share(item)" />
+                    <CustomizedIcon v-if="showActions  && !uiStore.isMobile" class="control-icon share-icon" :svg="ShareIcon" @click="share(item)" />
                 </div>
                 <MdContent v-else :content="item.Content" role="assistant" :quoteInfos="item.QuoteInfos" />
                 <div class="references-container"
@@ -201,10 +211,10 @@ const renderReasoning = (item: Record) => {
 
         </template>
         <!-- 操作按钮插槽 -->
-        <template #actions v-if="(!isStreamLoad || !isLastMsg) && showActions">
-            <div class="actions-container">
+        <template #actions v-if="showActions" >
+            <div v-show="!isStreamLoad || !isLastMsg" class="actions-container">
                 <Tooltip :content="t('operation.copy')" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon  class="control-icon icon" :svg="CopyIcon"
+                    <CustomizedIcon  class="control-icon copy-icon icon" :svg="CopyIcon"
                         @click="(e: any) => copyContent(e, item.Content, 'assistant')" />
                 </Tooltip>
                 <Tooltip :content="t('operation.replay')" destroyOnClose showArrow theme="default">
@@ -212,7 +222,7 @@ const renderReasoning = (item: Record) => {
                         @click="onResend && onResend(item.RelatedRecordId)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.share')" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon  class="control-icon icon" :svg="ShareIcon" @click="share(item)" />
+                    <CustomizedIcon  class="control-icon share-icon icon" :svg="ShareIcon" @click="share(item)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.good')" destroyOnClose showArrow theme="default">
                     <CustomizedIcon
@@ -252,7 +262,9 @@ const renderReasoning = (item: Record) => {
     padding:var(--td-comp-paddingLR-xxs); 
     margin-right: var(--td-comp-margin-s); 
 }
-
+.copy-icon{
+    padding-left: 0;
+}
 .icon.disabled {
     opacity: 0.25;
     cursor: not-allowed;
@@ -282,6 +294,11 @@ const renderReasoning = (item: Record) => {
     list-style: none;
     padding: var(--td-pop-padding-s);
     overflow: hidden;
+    position: relative;
+    padding-left: 0;
+}
+.collapsed-thinking-text{
+    color: var(--td-text-color-placeholder);
 }
 
 .references-container {
@@ -307,5 +324,20 @@ const renderReasoning = (item: Record) => {
     height: var(--td-comp-size-xs);
     padding: 0;
     margin-left: var(--td-comp-margin-l);
+}
+:deep(.t-chat__actions-margin){
+    width: 100%;
+    padding: 0;
+    margin-left: 0;
+}
+.isMobile .share-icon{
+    position: absolute;
+    right: 0;
+    margin-right: 0;
+}
+.isMobile .control-icon{
+    border: 1px solid var(--td-component-border);
+    border-radius: var(--td-radius-medium);
+    padding: calc(var(--td-pop-padding-m) - 1px);
 }
 </style>

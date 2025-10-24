@@ -16,12 +16,12 @@
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Chat as TChat } from '@tdesign-vue-next/chat';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import ChatItem from '@/components/Chat/ChatItem.vue';
 import type { Record } from '@/model/chat';
-import { LoadingPlugin } from 'tdesign-vue-next';
+import { LoadingPlugin,MessagePlugin } from 'tdesign-vue-next';
 import { handleLoadConversationDetail } from '@/service/chat';
-
+const router = useRouter();
 const route = useRoute();
 const { t } = useI18n();
 
@@ -55,7 +55,7 @@ const isStreamLoad = ref(false);
  * @returns {Promise<void>}
  */
 const handleGetConversationDetail = async (ShareId: string) => {
-  if (!ShareId) return;
+  if (!ShareId) return
   const loadingInstance = LoadingPlugin({
     attach: '#chat-content',
     size: 'medium',
@@ -70,14 +70,19 @@ const handleGetConversationDetail = async (ShareId: string) => {
     chatList.value = ChatConversation?.Response.Records;
     loadingInstance.hide();
   } catch (err) {
+    console.log('handleGetConversationDetail',err)
     loadingInstance.hide();
   }
 };
 
 onMounted(async () => {
+  console.log('ShareId',route.query.ShareId)
   if (route.query.ShareId) {
     ShareId.value = route.query.ShareId?.toString();
     handleGetConversationDetail(ShareId.value);
+  }else{
+    // 分享地址有误时跳回首页
+    router.push({ name: 'Home' });
   }
 });
 </script>
