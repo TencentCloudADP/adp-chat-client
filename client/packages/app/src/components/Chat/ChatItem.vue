@@ -157,8 +157,7 @@ const renderReasoning = (item: Record) => {
             collapsed: isLastMsg && !isStreamLoad,
             expandIcon:false,
             expandIconPlacement: 'right' as const,
-            onExpandChange:(e) =>{
-                console.log('change',e)
+            onExpandChange:(e: boolean) =>{
                 expandStatus.value = e;
             },
             collapsePanelProps: {
