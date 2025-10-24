@@ -1,4 +1,5 @@
-import axios from 'axios'
+import axios from 'axios';
+import router from '@/router'
 
 // 根据环境动态设置baseURL
 const isDev = import.meta.env.DEV
@@ -76,6 +77,10 @@ instance.interceptors.response.use(
       console.error('API Error:', error.response.status, error.response.data)
     } else {
       console.error('Network Error:', error.message)
+    }
+    console.log('error',error)
+    if (error.response.data.Error.Exception == 'AccountUnauthorized') {
+      router.push({ name: 'login' })
     }
     return Promise.reject(error)
   },

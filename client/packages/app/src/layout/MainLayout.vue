@@ -24,7 +24,7 @@ const chatStore = useChatStore();
                 <t-avatar :imageProps="{
                     lazy: true,
                     loading: ''
-                }" class="header-app__avatar" shape="round" :image="chatStore.currentApplicationAvatar || appsStore.currentApplicationAvatar" size="large"></t-avatar>
+                }" class="header-app__avatar" shape="round" :image="chatStore.currentApplicationAvatar || appsStore.currentApplicationAvatar" :size="uiStore.isMobile ? 'var(--td-line-height-headline-small)' : 'large'"></t-avatar>
                 <span class="header-app__title">{{ chatStore.currentApplicationName || appsStore.currentApplicationName}}</span>
 
             </div>
@@ -79,6 +79,10 @@ const chatStore = useChatStore();
 .layout-footer {
     flex-shrink: 0;
     padding: var(--td-pop-padding-l);
+}
+.header-app-container{
+    display: flex;
+    align-items: center;
 }
 :deep(.t-chat__footer){
     position: relative;

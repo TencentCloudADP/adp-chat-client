@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n';
+import { useUiStore } from '@/stores/ui'
 import { ChatSender as TChatSender } from '@tdesign-vue-next/chat'
 import { uploadFile } from '@/service/upload';
 import type { UploadFile } from '@/service/upload';
@@ -18,6 +19,7 @@ import SendFill from '@/assets/icons/send_fill.svg';
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
 
 const { t } = useI18n();
+const uiStore = useUiStore()
 
 /**
  * Sender组件属性定义
@@ -265,7 +267,7 @@ defineExpose({
 
 <template>
     <TChatSender class="sender-container" :value="inputValue" :textarea-props="{
-        placeholder: $t('conversation.input.placeholder'),
+        placeholder: uiStore.isMobile ? $t('conversation.input.placeholderMobile') : $t('conversation.input.placeholder'),
         autosize: { minRows: 1, maxRows: 6 },
     }" @stop="onStop" @send="handleSend" @change="handleInput" @paste="handlePaste">
         <template #inner-header>
@@ -351,7 +353,7 @@ defineExpose({
     padding: 0;
 }
 :deep(.t-chat-sender__textarea) {
-    background-color: var(--td-bg-color-container);
+    background-color: var(--td-sender-bg);
     border-radius: var(--td-radius-medium);
 }
 

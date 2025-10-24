@@ -22,6 +22,9 @@ const router = createRouter({
     {
       path: '/share/:shareId?',
       name: 'share',
+      meta:{
+        unauthorized: true
+      },
       component: () => import('@/pages/Share.vue'),
     },
   ],
@@ -30,12 +33,16 @@ const router = createRouter({
 router.beforeEach(
   (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
     console.log('router',to)
-    if (to.name !== 'login' && !isLoggedIn()) {
-      next({ name: 'login' })
-    } else if (to.name === 'login' && isLoggedIn()) {
-      next({ name: 'Home' })
-    } else {
+    if(to.meta.unauthorized){
       next()
+    }else{
+      if (to.name !== 'login' && !isLoggedIn()) {
+        next({ name: 'login' })
+      } else if (to.name === 'login' && isLoggedIn()) {
+        next({ name: 'Home' })
+      } else {
+        next()
+      }
     }
   },
 )
