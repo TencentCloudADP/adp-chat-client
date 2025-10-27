@@ -8,7 +8,7 @@ import type { Translations } from 'fumadocs-ui/i18n';
 import type { Metadata } from 'next';
 import { i18n } from '@/lib/i18n';
 
-// 为静态导出生成静态参数
+// Generate static params for static export
 export function generateStaticParams() {
   return i18n.languages.map((lang) => ({
     lang,
@@ -19,13 +19,13 @@ const inter = Inter({
   subsets: ['latin'],
 });
 
-// 中文翻译
+// Chinese translations
 const zh: Partial<Translations> = {
   search: '搜索'
 };
 
 
-// 可用语言配置
+// Available language configurations
 const locales = [
   {
     name: 'English',
@@ -38,24 +38,24 @@ const locales = [
 ];
 
 export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }) {
-  // 解析Promise获取语言参数
+  // Resolve Promise to get language parameter
   const resolvedParams = await params;
   const { lang } = resolvedParams;
   
-  // 根据不同语言设置不同的标题和描述
+  // Set different titles and descriptions based on language
   const titles = {
-    en: 'Hello ADP - ADP Tutorials with Best Practice',
-    zh: 'Hello ADP - 全网最齐全的免费ADP教程与最佳实践',
+    en: 'ADP Chat Client - An open sourced AI Agent application conversation interface.',
+    zh: 'ADP Chat Client - 开源的 AI 智能体应用对话端。',
   };
 
   const descriptions = {
-    en: 'ADP tutorials, guides, and best practices for building AI workflows and applications with ADP',
-    zh: 'ADP教程、入门指南与最佳实践，涵盖AI应用与工作流构建',
+    en: 'ADP Chat Client is an open-source conversational interface for AI agent applications. Deploy Tencent Cloud ADP developed AI agents as web applications, or embed them into mini-programs, Android, and iOS apps.',
+    zh: 'ADP Chat Client 是一个开源的 AI 智能体应用对话端。可以将腾讯云智能体开发平台（Tencent Cloud ADP）开发的 AI 智能体应用快速部署为 Web 应用，或嵌入到小程序、Android、iOS 应用中。',
   };
 
   const keywordsMap = {
-    en: ['ADP', 'ADP tutorial', 'ADP guide', 'ADP best practices', 'AI workflow', 'AI application'],
-    zh: ['ADP', 'ADP教程', 'ADP指南', 'ADP最佳实践', 'AI工作流', 'AI应用'],
+    en: ['ADP Chat Client', 'Tencent Cloud ADP', 'AI Agent', 'Conversational AI', 'AI Deployment', 'Open Source'],
+    zh: ['ADP Chat Client', '腾讯云 ADP', 'AI 智能体', '对话应用', 'AI 部署', '开源'],
   } as const;
 
   const locales = {
@@ -84,7 +84,7 @@ export async function generateMetadata({ params }: { params: Promise<{ lang: str
           url: '/images/hello-adp.png',
           width: 1200,
           height: 630,
-          alt: 'Hello Dify Logo',
+          alt: 'ADP Chat Client Logo',
         },
       ],
       locale,
@@ -109,7 +109,7 @@ export default function Layout({
   const resolvedParams = use(params);
   const { lang } = resolvedParams;
   
-  // 根据语言选择翻译
+  // Select translations based on language
   const translations = {
     zh
   }[lang];

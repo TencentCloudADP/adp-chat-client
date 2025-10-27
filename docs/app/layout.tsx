@@ -10,32 +10,12 @@ const inter = Inter({
   subsets: ['latin'],
 });
 
+// 移除根布局的 metadata，让子布局（[lang]/layout.tsx）的多语言 metadata 生效
+// 这样可以根据不同语言显示不同的标题和描述
 export const metadata: Metadata = {
-  title: 'ADP Chat Client - 学习和分享腾讯云智能体平台最佳实践',
-  description: 'ADP-Chat-Client是一个开源的AI智能体应用对话端。可以将腾讯云智能体开发平台（Tencent Cloud ADP） 开发的AI智能体应用快速部署为Web应用（或嵌入到小程序、Android、iOS 应用中）。',
   icons: {
     icon: '/images/favicon.png',
     apple: '/images/favicon.png',
-  },
-  openGraph: {
-    title: 'ADP Chat Client - 学习和分享腾讯云智能体平台最佳实践',
-    description: 'ADP-Chat-Client是一个开源的AI智能体应用对话端。可以将腾讯云智能体开发平台（Tencent Cloud ADP） 开发的AI智能体应用快速部署为Web应用（或嵌入到小程序、Android、iOS 应用中）。',
-    images: [
-      {
-        url: '/images/hello-adp.png',
-        width: 1200,
-        height: 630,
-        alt: 'Hello ADP Logo',
-      },
-    ],
-    locale: 'zh_CN',
-    type: 'website',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Hello ADP - 学习和分享腾讯云智能体平台最佳实践',
-    description: '帮助新手快速上手腾讯云智能体平台（Tencent Cloud Agent Development Platform，ADP）的教程',
-    images: ['/images/hello-adp.png'],
   },
 };
 
