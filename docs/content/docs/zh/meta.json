@@ -4,6 +4,7 @@
   "pages": [
     "index",
     "quick-start",
-    "develop"
+    "develop",
+    "cvm-setup"
   ]
 }
