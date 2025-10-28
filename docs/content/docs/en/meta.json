@@ -1,0 +1,10 @@
+{
+  "icon": "home-4-line",
+  "defaultOpen": true,
+  "pages": [
+    "index",
+    "quick-start",
+    "develop",
+    "deploy"
+  ]
+}
