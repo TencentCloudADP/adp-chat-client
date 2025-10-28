@@ -2,6 +2,33 @@
 
 This document explains how to configure different AI vendors in the ADP Chat Client.
 
+## 📋 Configuration Location
+
+**All vendor configurations must be added to the `APP_CONFIGS` field in your `.env` file.**
+
+The `APP_CONFIGS` field contains a JSON array of vendor configurations:
+
+```bash
+# In server/.env file
+APP_CONFIGS='[
+    {
+        "Vendor": "Tencent",
+        "ApplicationId": "your-app-id",
+        "Comment": "Health Assistant",
+        "AppKey": "your-app-key",
+        "International": false
+    },
+    {
+        "Vendor": "OpenAI", 
+        "ApplicationId": "openai-gpt4",
+        "Comment": "ChatGPT 4",
+        "ApiKey": "sk-proj-...",
+        "BaseUrl": "https://api.openai.com/v1",
+        "ModelName": "gpt-4"
+    }
+]'
+```
+
 ## Supported Vendors
 
 | Vendor | Description | Use Case |
