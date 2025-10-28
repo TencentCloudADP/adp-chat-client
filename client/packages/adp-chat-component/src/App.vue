@@ -1,13 +1,19 @@
 <script setup lang="ts">
 
 import { ref } from 'vue'
-import { defineProps } from 'vue'
+import { withDefaults, defineProps } from 'vue'
 
-const props = defineProps({
-  container: String,
-})
+interface Props {
+  container?: string,
+  canPark?: boolean,
+}
 
-const popup = ref(false)
+const props = withDefaults(defineProps<Props>(), {
+  container: 'body',
+  canPark: false,
+});
+
+const popup = ref(!props.canPark)
 const open = ref(false)
 </script>
 
@@ -16,10 +22,11 @@ const open = ref(false)
     <div v-if="!open" class="toggle-btn" @click="open = !open">f</div>
   </Teleport>
 
-  <Teleport :to="'#'+props.container">
-    <div v-show="open" @keydown.esc="open = false" tabindex="0" :class="{ 'panel-popup': popup, 'panel-side': !popup }">
+  <Teleport :to="props.container">
+    <div v-show="open" @keydown.esc="open = false" tabindex="0" :class="{ 'panel-popup': popup, 'panel-park': !popup }">
       <div class="panel-header">
-        <label><input type="checkbox" v-model="popup" />弹出</label>
+        <label v-if="canPark"><input type="checkbox" v-model="popup" />弹出</label>
+        <div v-else></div>
         <button class="panel-close-btn" @click="open = false">—</button>
       </div>
       <h1>Chat</h1>
@@ -63,7 +70,7 @@ const open = ref(false)
   border: #d0d0d0 1px solid;
   transform: scale(1.1);
 }
-.panel-side {
+.panel-park {
   width: 300px;
   padding: 30px;
   background: white;
