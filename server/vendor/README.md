@@ -7,7 +7,7 @@ This document explains how to configure different AI vendors in the ADP Chat Cli
 | Vendor | Description | Use Case |
 |--------|-------------|----------|
 | **Tencent** | Tencent Cloud ADP | Enterprise AI with Chinese language support |
-| **Ollama** | Local LLM models | Privacy-focused, offline AI (Llama, Qwen, Mistral) |
+| **Ollama** | Local LLM models | Privacy-focused, offline AI (Llama, Gemma, Mistral) |
 | **OpenAI** | OpenAI GPT models | State-of-the-art language models |
 
 ---
@@ -47,14 +47,14 @@ TC_SECRET_KEY=your-secret-key
 ```
 
 Get credentials from:
-- China: https://console.cloud.tencent.com/cam/capi
+- China mainland: https://console.cloud.tencent.com/cam/capi
 - International: https://console.tencentcloud.com/cam/capi
 
 ---
 
 ## 2. Ollama
 
-**Use Case**: Local, privacy-focused AI models (Llama, Qwen, Mistral)
+**Use Case**: Local, privacy-focused AI models (Llama, Gemma, Mistral)
 
 ### Quick Start
 
@@ -63,7 +63,7 @@ Get credentials from:
 curl -fsSL https://ollama.com/install.sh | sh
 
 # Pull a model
-ollama pull qwen3:0.6b
+ollama pull gemma3:1b
 
 # Start service
 ollama serve
@@ -74,10 +74,10 @@ ollama serve
 ```json
 {
     "Vendor": "Ollama",
-    "ApplicationId": "ollama-qwen3-0.6b",
-    "Comment": "Qwen 3 Local Model",
+    "ApplicationId": "ollama-gemma3-1b",
+    "Comment": "Gemma 3 Local Model",
     "BaseUrl": "http://localhost:11434/v1",
-    "ModelName": "qwen3:0.6b",
+    "ModelName": "gemma3:1b",
     "Temperature": 0.7,
     "MaxTokens": 2000
 }
@@ -106,7 +106,7 @@ ollama serve
 ollama pull llama2          # Llama 2 7B
 ollama pull llama3.1:8b     # Llama 3.1 8B
 ollama pull mistral:7b      # Mistral 7B
-ollama pull gemma2:2b       # Gemma 2B
+ollama pull gemma3:1b       # Gemma 2B
 ollama pull codellama       # Code Llama
 ```
 
@@ -193,10 +193,10 @@ APP_CONFIGS='[
     },
     {
         "Vendor": "Ollama",
-        "ApplicationId": "ollama-qwen3",
-        "Comment": "Qwen 3 Local",
+        "ApplicationId": "ollama-gemma3",
+        "Comment": "Gemma 3 Local",
         "BaseUrl": "http://localhost:11434/v1",
-        "ModelName": "qwen3:0.6b"
+        "ModelName": "gemma3:1b"
     },
     {
         "Vendor": "OpenAI",
