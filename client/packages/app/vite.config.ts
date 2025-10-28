@@ -10,7 +10,9 @@ import { TDesignResolver } from 'unplugin-vue-components/resolvers'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '')
+  const env = loadEnv(mode, fileURLToPath(new URL('../../', import.meta.url)), '')
+  const apiUrl = env.SERVICE_API_URL || 'http://localhost:8888'
+  
   return {
     base: './',
     plugins: [
@@ -43,7 +45,7 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         '/api': {
-          target: env.SERVICE_API_URL,
+          target: apiUrl,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
         },
