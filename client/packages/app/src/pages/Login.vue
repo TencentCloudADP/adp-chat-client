@@ -1,62 +1,55 @@
 <template>
-  <div class="login-container">
-    <t-card class="login-card">
-      <div class="login-title">{{ $t('account.loginToAdp') }}</div>
-
-      <t-form class="login-form" layout="vertical" :label-width="0" @submit="onSubmit">
-        <!-- <t-form-item>
-          <t-input v-model="username" :placeholder="$t('account.inputAccountName')" clearable disabled>
-            <template #prefix-icon>
-              <t-icon name="user" />
-            </template>
-</t-input>
-</t-form-item>
-<t-form-item>
-  <t-input v-model="password" type="password" :placeholder="$t('account.inputPassword')" clearable disabled>
-    <template #prefix-icon>
-              <t-icon name="lock-on" />
-            </template>
-  </t-input>
-</t-form-item>
-<t-form-item>
-  <t-button theme="primary" type="submit" block :disabled="!username || !password">{{ $t('account.login')
-    }}
-  </t-button>
-</t-form-item> -->
-
-        <div class="oauth-buttons" v-if="oauthProviders.length > 0">
-          <div v-for="provider, index in oauthProviders" class="oauth-button-wrapper">
-            <t-button variant="outline" :href="provider['url']">{{ provider['name'] }}</t-button>
-          </div>
+  <t-layout class="page-container">
+    <div class="login-container">
+      <t-card class="login-card">
+        <template #title>
+          <div class="login-title">{{ $t('account.welcome') }}👋</div>
+          <div class="login-title">{{ $t('account.systemName') }}</div>
+        </template>
+        <div v-for="provider, index in oauthProviders" class="oauth-button-wrapper">
+          <t-button variant="outline" size="large" :href="provider['url']">{{ provider['name'] }}</t-button>
         </div>
-
-      </t-form>
-    </t-card>
-  </div>
+      </t-card>
+      <t-dialog
+        v-model:visible="showEmptyDialog"
+        theme="warning"
+        :footer="false"
+        placement="center"
+        :header="t('header.tip')"
+        :on-close="cancelEmptyDialog"
+        :cancel-btn="null"
+        :closeOnEscKeydown="false"
+        :closeOnOverlayClick="false"
+      >
+      {{ t('login.according')  }} 
+      <t-link theme="primary" target="_blank" size="small" href="https://github.com/TencentCloudADP/adp-chat-client/blob/main/README.cn.md#%E8%B4%A6%E6%88%B7%E4%BD%93%E7%B3%BB%E5%AF%B9%E6%8E%A5"> README </t-link>  
+      {{ t('login.Guidelines') }}
+      </t-dialog>
+    </div>
+  </t-layout>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
-import { MessagePlugin } from 'tdesign-vue-next';
 import { fetchLoginProviders } from '@/service/login';
-
 const { t } = useI18n();
 
-const username = ref('');
-const password = ref('');
 const oauthProviders = ref([])
-
-const router = useRouter();
-
-const onSubmit = (e: Event) => { };
+const showEmptyDialog = ref(false);
 
 onMounted(async () => {
   const providers = await fetchLoginProviders();
-  console.log('Login Providers:', providers.Providers);
-  oauthProviders.value = providers.Providers;
+  if(providers.Providers?.length <= 0){
+    showEmptyDialog.value = true;
+  }else{
+    oauthProviders.value = providers.Providers;
+  }
 });
+
+const cancelEmptyDialog = () => {
+    showEmptyDialog.value = false;
+}
 </script>
 
 <style scoped>
@@ -69,37 +62,27 @@ onMounted(async () => {
 }
 
 .login-card {
-  min-width: 400px;
-  padding: var(--td-comp-paddingTB-xxl) var(--td-comp-paddingLR-xxl);
-  box-shadow: var(--td-shadow-1);
+  padding: var(--td-comp-paddingTB-xl) var(--td-comp-paddingLR-xl);
   border-radius: var(--td-radius-large);
-  background: var(--td-bg-color-container);
 }
 
 .login-title {
-  font-size: var(--td-font-size-title-large);
+  font-size: var(--td-size-10);
   font-weight: 600;
-  color: var(--td-brand-color);
-  margin-bottom: var(--td-comp-margin-l);
-  text-align: center;
-}
-
-.login-form {
-  margin-top: var(--td-comp-margin-m);
+  color: var(--td-text-color-primary);
+  line-height: normal;
 }
 
 .t-button {
-  min-width: 320px;
-  max-width: 640px;
-}
-
-.oauth-buttons {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  width: 400px;
 }
 
 .oauth-button-wrapper:not(:last-child) {
-  margin-bottom: var(--td-comp-margin-m);
+  margin-bottom: var(--td-comp-margin-l);
+}
+
+:deep(.t-card__header),
+:deep(.t-card__body) {
+  padding: var(--td-comp-paddingTB-m) var(--td-comp-paddingLR-xl);
 }
 </style>

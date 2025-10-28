@@ -19,14 +19,26 @@ onMounted(() => {
 
 <template>
   <t-config-provider :global-config="tDesignLocale">
-    <t-layout class="page-container">
-      <RouterView />
-    </t-layout>
+    <RouterView />
   </t-config-provider>
 </template>
 
 <style scoped>
-.page-container{
-width: 100vw; 
+
+.page-container {
+  width: 100vw;
+}
+:deep(.dropdown-item){
+    gap: var(--td-comp-paddingLR-s);
+}
+</style>
+<style>
+@keyframes rotate {
+from {
+transform: rotate(0deg);
+}
+to {
+transform: rotate(360deg);
+}
 }
 </style>

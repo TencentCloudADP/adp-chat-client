@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { useUiStore } from '@/stores/ui';
+import SidebarIcon from '@/assets/icons/sidebar.svg';
+import CustomizedIcon from '@/components/CustomizedIcon.vue';
 
 const uiStore = useUiStore();
 
@@ -8,20 +9,23 @@ const handleClick = () => {
     uiStore.toggleDrawer();
 };
 
-const iconName = computed(() => (uiStore.drawerVisible ? 'indent-left' : 'indent-right'));
 </script>
 
 <template>
-    <t-button class="collapse-btn" variant="text" shape="square" @click="handleClick">
-        <template #icon><t-icon :name="iconName" /></template>
-    </t-button>
+    <t-button class="sidebar-icon" variant="text" shape="square" @click="handleClick">
+            <template #icon>
+                <CustomizedIcon showHoverBackground :svg="SidebarIcon" />
+            </template>
+        </t-button>
 </template>
 
 <style scoped>
-.collapse-btn {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    z-index: 10;
+.sidebar-icon{
+    margin-right: var(--td-comp-margin-l);
+    padding: var(--td-pop-padding-m);
+    border-radius: var(--td-radius-default);
+}
+.sidebar-icon:hover{
+    background-color: var(--td-bg-color-container-active);
 }
 </style>

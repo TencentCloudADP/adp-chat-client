@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import CustomizedIcon from '@/components/CustomizedIcon.vue';
+import SearchIcon from '@/assets/icons/search.svg';
 
 const isSearchFocus = ref(false);
 const searchData = ref('');
@@ -15,7 +17,7 @@ const changeSearchFocus = (value: boolean) => {
     <t-input :placeholder="$t('operation.search')" @blur="changeSearchFocus(false)" @focus="changeSearchFocus(true)"
         borderless>
         <template #prefix-icon>
-            <t-icon class="icon" name="search" size="16" />
+            <CustomizedIcon :svg="SearchIcon"/> 
         </template>
     </t-input>
 </template>
