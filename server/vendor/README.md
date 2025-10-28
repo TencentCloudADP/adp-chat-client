@@ -1,0 +1,237 @@
+# Vendor Configuration Guide
+
+This document explains how to configure different AI vendors in the ADP Chat Client.
+
+## Supported Vendors
+
+| Vendor | Description | Use Case |
+|--------|-------------|----------|
+| **Tencent** | Tencent Cloud ADP | Enterprise AI with Chinese language support |
+| **Ollama** | Local LLM models | Privacy-focused, offline AI (Llama, Qwen, Mistral) |
+| **OpenAI** | OpenAI GPT models | State-of-the-art language models |
+
+---
+
+## 1. Tencent ADP
+
+**Use Case**: Enterprise AI with knowledge base and RAG support
+
+### Configuration
+
+```json
+{
+    "Vendor": "Tencent",
+    "ApplicationId": "1979154564259682304",
+    "Comment": "Health Assistant",
+    "AppKey": "your-app-key-here",
+    "International": false
+}
+```
+
+### Required Fields
+
+| Field | Description | How to Obtain |
+|-------|-------------|---------------|
+| `ApplicationId` | Tencent ADP application ID | [ADP Console](https://adp.cloud.tencent.com/adp/#/app/home) |
+| `AppKey` | Application authentication key | ADP Console → App Settings |
+| `International` | Region setting | `false` (China) / `true` (International) |
+
+### Additional Setup
+
+Configure Tencent Cloud credentials in `.env`:
+
+```bash
+TC_SECRET_APPID=your-appid
+TC_SECRET_ID=your-secret-id
+TC_SECRET_KEY=your-secret-key
+```
+
+Get credentials from:
+- China: https://console.cloud.tencent.com/cam/capi
+- International: https://console.tencentcloud.com/cam/capi
+
+---
+
+## 2. Ollama
+
+**Use Case**: Local, privacy-focused AI models (Llama, Qwen, Mistral)
+
+### Quick Start
+
+```bash
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Pull a model
+ollama pull qwen3:0.6b
+
+# Start service
+ollama serve
+```
+
+### Configuration
+
+```json
+{
+    "Vendor": "Ollama",
+    "ApplicationId": "ollama-qwen3-0.6b",
+    "Comment": "Qwen 3 Local Model",
+    "BaseUrl": "http://localhost:11434/v1",
+    "ModelName": "qwen3:0.6b",
+    "Temperature": 0.7,
+    "MaxTokens": 2000
+}
+```
+
+### Required Fields
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| `BaseUrl` | Ollama API endpoint (must end with `/v1`) | `http://localhost:11434/v1` |
+| `ModelName` | Model identifier | `llama2` |
+
+### Optional Parameters
+
+| Field | Description | Default | Range |
+|-------|-------------|---------|-------|
+| `Temperature` | Randomness/creativity | `0.7` | `0.0` - `2.0` |
+| `MaxTokens` | Max response length | `2000` | `1` - `8192` |
+| `TopP` | Nucleus sampling | `1.0` | `0.1` - `1.0` |
+| `FrequencyPenalty` | Reduce repetition | `0.0` | `-2.0` - `2.0` |
+| `PresencePenalty` | Encourage new topics | `0.0` | `-2.0` - `2.0` |
+
+### Popular Models
+
+```bash
+ollama pull llama2          # Llama 2 7B
+ollama pull llama3.1:8b     # Llama 3.1 8B
+ollama pull mistral:7b      # Mistral 7B
+ollama pull gemma2:2b       # Gemma 2B
+ollama pull codellama       # Code Llama
+```
+
+---
+
+## 3. OpenAI
+
+**Use Case**: State-of-the-art language models (GPT-3.5, GPT-4, GPT-5)
+
+### Configuration
+
+```json
+{
+    "Vendor": "OpenAI",
+    "ApplicationId": "openai-gpt4",
+    "Comment": "ChatGPT 4",
+    "ApiKey": "sk-proj-...",
+    "BaseUrl": "https://api.openai.com/v1",
+    "ModelName": "gpt-4"
+}
+```
+
+### Required Fields
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| `ApiKey` | OpenAI API key | `sk-proj-...` |
+| `BaseUrl` | API endpoint | `https://api.openai.com/v1` |
+| `ModelName` | Model identifier | `gpt-4`, `gpt-3.5-turbo` |
+
+### Supported Models
+
+| Model | Use Case |
+|-------|----------|
+| `gpt-3.5-turbo` | Fast, cost-effective |
+| `gpt-4` | Complex reasoning, coding |
+| `gpt-4-turbo` | Balanced performance |
+| `gpt-4.1` | Latest GPT-4 variant |
+| `gpt-5` | Advanced reasoning (no custom temperature) |
+
+### Special Note: GPT-5/o1/o3
+
+These models don't support custom `Temperature`:
+
+```json
+{
+    "Vendor": "OpenAI",
+    "ApplicationId": "openai-gpt5",
+    "Comment": "GPT-5",
+    "ApiKey": "sk-proj-...",
+    "ModelName": "gpt-5"
+    // Do NOT set Temperature
+}
+```
+
+---
+
+## Configuration Examples
+
+### Single Vendor
+
+```bash
+APP_CONFIGS='[
+    {
+        "Vendor": "Ollama",
+        "ApplicationId": "ollama-llama2",
+        "Comment": "Llama 2",
+        "BaseUrl": "http://localhost:11434/v1",
+        "ModelName": "llama2"
+    }
+]'
+```
+
+### Multiple Vendors
+
+```bash
+APP_CONFIGS='[
+    {
+        "Vendor": "Tencent",
+        "ApplicationId": "1234567890",
+        "Comment": "Health Assistant",
+        "AppKey": "...",
+        "International": false
+    },
+    {
+        "Vendor": "Ollama",
+        "ApplicationId": "ollama-qwen3",
+        "Comment": "Qwen 3 Local",
+        "BaseUrl": "http://localhost:11434/v1",
+        "ModelName": "qwen3:0.6b"
+    },
+    {
+        "Vendor": "OpenAI",
+        "ApplicationId": "openai-gpt4",
+        "Comment": "ChatGPT 4",
+        "ApiKey": "sk-proj-...",
+        "ModelName": "gpt-4"
+    }
+]'
+```
+
+---
+
+## Common Issues
+
+### Vendor not found
+Check `Vendor` field is capitalized: `"Tencent"`, `"Ollama"`, `"OpenAI"`
+
+### Ollama connection failed
+```bash
+ollama serve  # Start Ollama service
+curl http://localhost:11434/v1/models  # Test API
+```
+
+### OpenAI API error 401
+- Verify API key at https://platform.openai.com/api-keys
+- Check account has credits
+
+### OpenAI temperature error
+Remove `Temperature` field for GPT-5/o1/o3 models
+
+---
+
+## Resources
+
+- **Tencent ADP**: https://adp.cloud.tencent.com/
+- **Ollama**: https://ollama.ai/
+- **OpenAI**: https://platform.openai.com/
