@@ -146,7 +146,7 @@ export interface Record {
   Reasons?: any[];
   RecordId: string;
   References?: Reference[];
-  RelatedRecordId: string;
+  RelatedRecordId?: string;
   ReplyMethod?: number;
   Score?: ScoreValue;
   SessionId?: string;

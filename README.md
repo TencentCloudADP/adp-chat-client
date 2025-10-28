@@ -26,6 +26,7 @@ Please ensure the machine meets the minimum requirements:
 
 - CPU >= 2 Core
 - RAM >= 4 GiB
+- Operating System: Linux/macOS. If you want to run on Windows, you need to use WSL or a cloud server with a Linux system.
 
 ## Docker
 
@@ -122,13 +123,13 @@ sudo make logs
 
 ## Video Tutorial
 
-[📺 Video Tutorial](https://yuanzinengli-1304234438.cos.ap-guangzhou.myqcloud.com/adp-chat-client.mp4)
+[📺 Video Tutorial](https://pub-eada7a74aa3243c1a5c7b627deafeac9.r2.dev/adp-chat-client.mp4)
 
 ## Service Configuration
 
 To use the system, enable/configure the following services:
 1. Dialogue title generation: [Tencent Cloud DeepSeek OpenAI API](https://www.tencentcloud.com/document/product/1255/70381).
-2. Voice input: [Speech Recognition: Settings](https://console.cloud.tencent.com/asr/settings), enable: Real-time speech recognition for the required region.
+2. Voice input: [Speech Recognition: Settings](https://www.tencentcloud.com/products/asr), enable: Real-time speech recognition for the required region.
 3. App Permission: Make sure the account associated with your TC_SECRET_ID/TC_SECRET_KEY has permission to access the applications you’ve added. For details, see the [platform-side user permissions documentation](https://www.tencentcloud.com/document/product/1254/73347).
 
 ## Account System Integration
@@ -184,6 +185,27 @@ If you have an existing account system but do not implement a standard OAuth flo
 
 # Development Guide
 
+## Backend
+
+### Dependencies
+
+- python >= 3.12
+
+### Debugging
+
+#### Command Line
+
+```bash
+# 1. Execute all the steps in [Deployment] section
+# 2. Copy the edited .env file to the server folder
+cp deploy/default/.env server/.env
+
+# 3. Start the server container in mount mode (no need to rebuild)
+sudo make debug
+
+# 4. At this point, the API service has been started, and the front-end page needs to be obtained from the [Frontend] section below.
+```
+
 ## Frontend
 
 ### Dependencies
@@ -204,42 +226,8 @@ nvm install v22
 # Initialize (only needed on the first run)
 make init_client
 
-# Build
-make client
-# The build output will be generated in server/static/app. You can access it in the browser after starting the backend.
-```
-
-## Backend
-
-### Dependencies
-
-- python >= 3.12
-
-### Debugging
-
-#### Command Line
-
-```bash
-# 1. Execute all the steps in [Deployment] section
-# 2. Copy the edited .env file to the server folder
-cp deploy/default/.env server/.env
-
-# 3. Start the server container in mount mode (no need to rebuild)
-sudo make debug
-```
-
-#### VSCode Quick Debugging
-
-Use the shortcut command (cmd+shift+p), enter `Preferences: Open Keyboard Shortcuts (JSON)`, and add the following configuration to quickly launch commands via the shortcut cmd+r, such as running unit tests for the server.
-
-```json
-{
-    "key": "cmd+r",
-    "command": "workbench.action.terminal.sendSequence",
-    "args": {
-        "text": "make debug\n"
-    }
-},
+# Run the frontend in dev mode, the terminal will print the debugging URL, such as: http://localhost:5173
+make run_client
 ```
 
 ### Architecture
@@ -254,7 +242,3 @@ Use the shortcut command (cmd+shift+p), enter `Preferences: Open Keyboard Shortc
 | static | Static files |
 | test | Testing |
 | util | Other utility classes |
-
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=TencentCloudADP/adp-chat-client&type=Date)](https://www.star-history.com/#TencentCloudADP/adp-chat-client&Date)

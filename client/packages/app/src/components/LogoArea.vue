@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import Logo from '@/assets/img/favicon.ico';
 
-defineProps<{
-    title: string
-}>()
-
 const getLogo = () => {
     return Logo;
 };
@@ -14,9 +10,9 @@ const getLogo = () => {
 <template>
     <div class="header-logo-container">
         <img :src="getLogo()" alt="Logo" class="header-logo" />
-        <t-divider layout="vertical">
-            <span class="header-title">{{ title }}</span>
-        </t-divider>
+        <!-- <t-divider layout="vertical">
+            <span class="header-title">{{ $t('project.projectName') }}</span>
+        </t-divider> -->
     </div>
 </template>
 
@@ -24,6 +20,7 @@ const getLogo = () => {
 .header-logo-container {
     display: flex;
     align-items: center;
+    padding: 0 var(--td-comp-paddingLR-s);
 }
 
 .header-logo {

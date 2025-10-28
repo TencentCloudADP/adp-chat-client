@@ -6,9 +6,6 @@ import { ref } from 'vue';
 // 类型定义
 import type { Record, AgentThought } from '@/model/chat';
 import { ScoreValue } from '@/model/chat';
-import { useAppsStore } from '@/stores/apps';
-// 工具函数
-import { formatDisplayTime } from '@/utils/date';
 // TDesign Vue 组件
 import {
     ChatContent as TChatContent,
@@ -25,11 +22,13 @@ import { storeToRefs } from 'pinia';
 // 工具函数
 import { copy } from '@/utils/clipboard';
 import MdContent from '../Common/MdContent.vue';
-
-import { useUserStore } from '@/stores/user';
-const userStore = useUserStore();
-const appsStore = useAppsStore();
-
+import CustomizedIcon from '@/components/CustomizedIcon.vue';
+import RefreshIcon from '@/assets/icons/refresh.svg';
+import CopyIcon from '@/assets/icons/copy.svg';
+import ShareIcon from '@/assets/icons/share.svg';
+import ThumbsUpIcon from '@/assets/icons/thumbs_up.svg';
+import ThumbsDownIcon from '@/assets/icons/thumbs_down.svg';
+import ThinkIcon from '@/assets/icons/thinking.svg';
 
 
 const { t } = useI18n();
@@ -70,11 +69,10 @@ const record = ref(item);
  */
 async function copyContent(event: any, content: string | undefined, type: string): Promise<void> {
     let rowtext: string | undefined;
-    const container = event?.e.target as HTMLElement;
+    const container = event?.target as HTMLElement;
     const markdownElements = container?.closest('.t-chat__content')?.querySelectorAll('.markdown-body');
     rowtext = markdownElements && markdownElements.length > 0 ? markdownElements[markdownElements.length - 1]?.textContent || undefined : undefined;
-   
-    console.log('rowtext', rowtext)
+
     await copy(rowtext, content);
 }
 
@@ -86,7 +84,7 @@ async function copyContent(event: any, content: string | undefined, type: string
  */
 const rate = async (record: Record, score: ScoreValue) => {
     const disabled = (record.Score != ScoreValue.Unknown && record.Score !== undefined)
-    if(disabled) return;
+    if (disabled) return;
     try {
         const _score = score;
         const msg = _score === ScoreValue.Like ? t('operation.thxForGood') : _score === ScoreValue.Dislike ? t('operation.thxForBad') : "";
@@ -109,8 +107,11 @@ const rate = async (record: Record, score: ScoreValue) => {
  * @returns {Promise<void>}
  */
 const share = async (record: Record) => {
-    // TODO: 同时选择关联的问题和答案，但 user 时无法获取到 RelatedRecordId
-    onShare && onShare([record.RecordId, record.RelatedRecordId]);
+    let shareList = [record.RecordId]
+    if (record.RelatedRecordId) {
+        shareList.push(record.RelatedRecordId)
+    }
+    onShare && onShare(shareList);
 };
 
 /**
@@ -119,7 +120,7 @@ const share = async (record: Record) => {
  * @param {Record} item - 当前消息项
  * @returns {JSX.Element} - 返回对应的头部组件
  */
-const renderHeader = (flag: boolean) => {
+const renderHeader = () => {
     const endText = t('conversation.deepThinkingFinished');
     return (
         <div class="flex">
@@ -142,93 +143,86 @@ const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
             ))}
         </div>
     );
-    // <TChatContent key={index} content={procedure.Debugging?.DisplayContent || procedure.Debugging?.Content || ''} role="system" />
-
 };
 
-const renderReasoning = (item:Record) => {
-    
-    if(!item.AgentThought){
+const renderReasoning = (item: Record) => {
+    if (!item.AgentThought) {
         return false
-    }else{
-       return {
-                collapsed: isLastMsg && !isStreamLoad,
-                expandIconPlacement: 'right' as const,
-                collapsePanelProps: {
-                    header: renderHeader(isLastMsg && isStreamLoad && !item.Content && !(item.AgentThought && item.AgentThought.Procedures && item.AgentThought.Procedures.length > 0)),
-                    content: renderReasoningContent(item.AgentThought),
-                }
+    } else {
+        return {
+            collapsed: isLastMsg && !isStreamLoad,
+            expandIconPlacement: 'right' as const,
+            collapsePanelProps: {
+                header: renderHeader(),
+                content: renderReasoningContent(item.AgentThought),
             }
+        }
     }
-    
 }
 </script>
 
 <template>
     <!-- 聊天项组件 -->
-    <TChatItem  animation="skeleton" :name="!item.IsFromSelf ? appsStore.currentApplicationName : userStore.name"
-        :role="!item.IsFromSelf ? 'assistant' : 'user'" :variant="!item.IsFromSelf ? undefined : 'base'"
-        :text-loading="isLastMsg && loading" :reasoning="renderReasoning(item)">
-        <!-- 时间戳插槽 -->
-        <template #datetime>
-            <span v-if="item.Timestamp">{{ formatDisplayTime(item.Timestamp * 1000) }}</span>
-        </template>
-        <!-- 头像插槽 -->
-        <template #avatar>
-            <t-avatar v-if="!item.IsFromSelf" :image="appsStore.currentApplicationAvatar" size="medium" />
-            <t-avatar v-else-if="userStore.avatarUrl" :image="userStore.avatarUrl" size="medium">{{ userStore.avatarName
-            }}</t-avatar>
-            <t-avatar v-else size="medium">{{ userStore.avatarName }}</t-avatar>
-        </template>
+    <TChatItem animation="skeleton" :role="!item.IsFromSelf ? 'assistant' : 'user'" :text-loading="false"
+        :reasoning="renderReasoning(item)">
         <!-- 内容插槽 -->
         <template #content>
-            <!-- <div  v-if="false" class="loading-container"> -->
-            <div  v-if="isLastMsg && isStreamLoad && !item.Content && !item.AgentThought" class="loading-container">
-                <!-- <t-loading size="small"></t-loading> -->
-                 <t-skeleton></t-skeleton>
+            <div v-if="isLastMsg && isStreamLoad && !item.Content && !item.AgentThought" class="loading-container">
+                <t-loading  size="small">
+                    <template #text>
+                        <span class="thinking-text">
+                            {{ `${$t('common.thinking')}...` }}
+                        </span>
+                    </template>
+                    <template #indicator>
+                        <CustomizedIcon class="thinking-icon" :svg="ThinkIcon" />
+                    </template>
+                </t-loading>
             </div>
             <div v-else>
-
-            <div v-if="item.IsFromSelf" class="user-message">
-                <!-- <TChatContent :content="item.Content" /> -->
-                <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos"/>
-                <t-icon name="copy" class="copy-icon" @click="(e: any) => copyContent(e, item.Content, 'user')" />
-                <t-icon class="share-icon" name="share" @click="share(item)" />
-            </div>
-            <!-- <TChatContent v-else :content="item.Content" /> -->
-            <MdContent v-else :content="item.Content"  role="assistant" :quoteInfos="item.QuoteInfos"/>
-            <div class="references-container"
-                v-if="item.References && item.References.length > 0 && !(item.IsFinal === false)">
-                <span class="title">{{ $t('sender.references') }}: </span>
-                <ol>
-                    <li v-for="(reference, index) in item.References">
-                        <t-link theme="primary" :href="reference.Url" target="_blank">{{ reference.Name }}</t-link>
-                    </li>
-                </ol>
-            </div>
+                
+                <div v-if="item.IsFromSelf && showActions" class="user-message">
+                    <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos" />
+                    <CustomizedIcon  class="control-icon copy-icon" :svg="CopyIcon"
+                        @click="(e: any) => copyContent(e, item.Content, 'user')" />
+                    <CustomizedIcon  class="control-icon share-icon" :svg="ShareIcon" @click="share(item)" />
+                </div>
+                <MdContent v-else :content="item.Content" role="assistant" :quoteInfos="item.QuoteInfos" />
+                <div class="references-container"
+                    v-if="item.References && item.References.length > 0 && !(item.IsFinal === false)">
+                    <span class="title">{{ $t('sender.references') }}: </span>
+                    <ol>
+                        <li v-for="(reference, index) in item.References">
+                            <t-link theme="primary" :href="reference.Url" target="_blank">{{ reference.Name }}</t-link>
+                        </li>
+                    </ol>
+                </div>
             </div>
 
         </template>
         <!-- 操作按钮插槽 -->
         <template #actions v-if="(!isStreamLoad || !isLastMsg) && showActions">
             <div class="actions-container">
-                <Tooltip :content="t('operation.replay')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon" name="refresh" @click="onResend && onResend(item.RelatedRecordId)"></t-icon>
-                </Tooltip>
-                <Divider layout="vertical"></Divider>
-                <Tooltip :content="t('operation.good')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon" :class="{ active: record.Score === ScoreValue.Like,disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined} " name="thumb-up-2"
-                        @click="rate(item, ScoreValue.Like)" />
-                </Tooltip>
-                <Tooltip :content="t('operation.bad')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon" :class="{ active: record.Score === ScoreValue.Dislike,disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined}" name="thumb-down-1"
-                        @click="rate(item, ScoreValue.Dislike)" />
-                </Tooltip>
                 <Tooltip :content="t('operation.copy')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon" name="copy" @click="(e: any) => copyContent(e, item.Content, 'assistant')" />
+                    <CustomizedIcon  class="control-icon icon" :svg="CopyIcon"
+                        @click="(e: any) => copyContent(e, item.Content, 'assistant')" />
+                </Tooltip>
+                <Tooltip :content="t('operation.replay')" destroyOnClose showArrow theme="default">
+                    <CustomizedIcon  class="control-icon icon" :svg="RefreshIcon"
+                        @click="onResend && onResend(item.RelatedRecordId)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.share')" destroyOnClose showArrow theme="default">
-                    <t-icon class="icon" name="share" @click="share(item)" />
+                    <CustomizedIcon  class="control-icon icon" :svg="ShareIcon" @click="share(item)" />
+                </Tooltip>
+                <Tooltip :content="t('operation.good')" destroyOnClose showArrow theme="default">
+                    <CustomizedIcon
+                        :class="{ active: record.Score === ScoreValue.Like, disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined }"
+                        class="control-icon icon"  :svg="ThumbsUpIcon" @click="rate(item, ScoreValue.Like)" />
+                </Tooltip>
+                <Tooltip :content="t('operation.bad')" destroyOnClose showArrow theme="default">
+                    <CustomizedIcon
+                        :class="{ active: record.Score === ScoreValue.Dislike, disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined }"
+                        class="control-icon icon"  :svg="ThumbsDownIcon" @click="rate(item, ScoreValue.Dislike)" />
                 </Tooltip>
             </div>
         </template>
@@ -247,25 +241,16 @@ const renderReasoning = (item:Record) => {
     opacity: 0;
     transition: opacity 0.2s ease;
     cursor: pointer;
-    margin-left: 8px;
-}
-
-/* 操作按钮图标样式 */
-.icon {
-    margin: var(--td-comp-paddingTB-xs) var(--td-comp-paddingLR-xs);
-    width: var(--td-comp-size-xxxs);
-    height: var(--td-comp-size-xxxs);
-    box-sizing: content-box;
-    color: var(--td-text-color-primary);
-    background-color: var(--td-bg-color-secondarycontainer);
-    border: 0;
-    cursor: pointer;
 }
 
 .check-circle {
     color: var(--td-success-color-5);
-    font-size: 20px;
-    margin-right: 8px;
+    font-size: var(--td-font-size-title-large);
+    margin-right: var(--td-comp-margin-s);
+}
+.control-icon{
+    padding:var(--td-comp-paddingLR-xxs); 
+    margin-right: var(--td-comp-margin-s); 
 }
 
 .icon.disabled {
@@ -292,25 +277,35 @@ const renderReasoning = (item:Record) => {
 
 /* 操作按钮容器样式 */
 .actions-container {
-    margin-top: var(--td-comp-margin-xs);
     display: flex;
     align-items: center;
     list-style: none;
-    padding: 3px;
-    background-color: var(--td-bg-color-secondarycontainer);
-    border-radius: var(--td-radius-medium);
-    border: 1px solid var(--td-border-level-2-color);
+    padding: var(--td-pop-padding-s);
     overflow: hidden;
 }
 
 .references-container {
-    margin: 0px 14px 20px 14px;
+    margin: 0px var(--td-comp-margin-l) var(--td-comp-margin-xl) var(--td-comp-margin-l);
 }
 
 .references-container .title {
     color: var(--td-text-color-secondary);
 }
-.loading-container{
-    padding: 0 
+
+.loading-container {
+    padding: 0;
+}
+
+.thinking-text{
+    color: var(--td-text-color-primary);
+    font-size: var(--td-font-size-link-medium);
+    margin-left: var(--td-comp-margin-xs)
+}
+.thinking-icon{
+    animation: rotate 2s linear infinite;
+    width: var(--td-comp-size-xs);
+    height: var(--td-comp-size-xs);
+    padding: 0;
+    margin-left: var(--td-comp-margin-l);
 }
 </style>

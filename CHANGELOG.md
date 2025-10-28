@@ -1,3 +1,55 @@
+## v0.2.0 (2025-10-17)
+
+### Feat
+
+- **client**: adjust dialog spacing and icon sizing​
+- **client**: correct AI description copy text​
+- **client**: enhance authentication flows and UI consistency​
+- **client**: implement scrollable image upload gallery​
+- **client**: resolve critical interaction issues and implement UI improvements​
+- **client**: enhance voice recording and sharing experiences​
+- **client**: enhance sharing UX and input handling​
+- **client**: Add create conversation button
+- **client**: Implement settings menu
+- **client**: Add icons folder
+- add github action
+- update star history
+- add star history on readme
+
+### Fix
+
+- **client**: resolve voice button display issues​
+- **client**: reposition scroll-to-bottom and clean dependencies​
+- **client**: clean debug logs and adjust tag dimensions​
+- **client**: correct copy button text labels​
+- **client**: resolve button visibility in dark mode​
+- **client**: resolve file upload failure scenarios​
+- **client**: Add index param for handleDeleteFile function
+- **client**: Remove unused import
+- **client**: Add collapse of application list
+- update video url
+- **client**: Fix some UI issue
+
+### Refactor
+
+- **client**: Refactor of chat item
+- **client**: Change import method for TD icons
+- **client**: Hide project title
+- **client**: Refactor isMobile function
+- **client**: Modify some UI
+- **client**: Remove unused components
+- **client**: Refactor personal account
+- **client**: add application list to sidebar
+- **client**: Refactor sidebar UI
+- **client**: UI refactor for some components
+- **client**: Refactor UI layout
+- **client**: Refactor the login page UI
+- **server**: use pyproject.toml and uv to manage the vitrual env
+
+### Perf
+
+- **client**: Reduce duplicate CSS code
+
 ## v0.1.0 (2025-09-29)
 
 ### Feat
