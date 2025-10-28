@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+    </head>
+    <body>
+        <script src="adp-chat-component.umd.js"></script>
+        <link rel="stylesheet" href="adp-chat-component.css">
+        <script>
+            window.onload = function() {
+                ADPChatComponent.init('chat-panel')
+            }
+        </script>
+        <div id="container">
+            <div id="main">
+            </div>
+            <div id="chat-panel">
+            </div>
+        </div>
+        <div id="app" style="display: none;"></div>
+    </body>
+
+    <style>
+        #container {
+            display: flex;
+            flex-direction: row;
+            width: 100vw;
+            height: 100vh;
+        }
+        #main {
+            flex-grow: 1;
+            background-image: repeating-linear-gradient(45deg, #f0f0f0, #f0f0f0 100px, #ffffff 100px, #ffffff 200px);
+        }
+        #chat-panel {
+            width: fit-content;
+            height: 100vh;
+        }
+    </style>
+</html>
