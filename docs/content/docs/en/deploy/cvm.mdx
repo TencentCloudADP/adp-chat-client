@@ -1,0 +1,116 @@
+---
+title: CVM
+sidebar_position: 1
+description: Learn how to deploy and run adp-chat-client on Tencent Cloud CVM (Cloud Virtual Machine).
+---
+
+[Tencent Cloud CVM (Cloud Virtual Machine)](https://cloud.tencent.com/product/cvm) is an efficient and scalable cloud server service provided by Tencent Cloud, designed to help users quickly build, deploy, and manage cloud applications. With Tencent Cloud CVM, you can easily create and manage virtual machine instances and deploy web services.
+
+This guide demonstrates how to deploy adp-chat-client to the cloud, allowing others to access and interact with your intelligent agent application via URL.
+
+![English](https://cdn.jsdelivr.net/gh/AllenWriter/picgo-images@main/images/Clipboard_Screenshot_1761553937.png)
+
+## Prerequisites
+
+Before you begin, make sure you have:
+
+- **[Tencent Cloud Account](https://cloud.tencent.com/register)**
+- A deployed CVM instance
+- Git
+- Docker
+
+## Steps
+
+### Initialize CVM Service
+
+#### 1. Purchase and Configure CVM Instance
+
+Go to the [Cloud Server purchase page](https://buy.cloud.tencent.com/cvm) to purchase a CVM. On the **Custom Configuration** page, select the following options based on your needs:
+
+- **Billing Mode** (Monthly subscription, pay-as-you-go, or spot instances)
+- **Region** (Choose the data center location)
+- **Instance Configuration** (e.g., Standard, Memory-optimized)
+- **Image** (Choose your operating system, such as Windows or TencentOS)
+
+For detailed configuration options, refer to:
+
+- [Quick Configuration for Linux CVM](https://cloud.tencent.com/document/product/213/2936)
+- [Quick Configuration for Windows CVM](https://cloud.tencent.com/document/product/213/2764)
+
+#### 2. Log in to CVM Instance
+
+After the CVM instance is successfully created, log in using an SSH connection tool.
+
+- [Logging in to Linux Instance](https://cloud.tencent.com/document/product/213/5436)
+- [Logging in to Windows Instance](https://cloud.tencent.com/document/product/213/5435)
+
+> **Tip**: For Linux users, we recommend using SSH to access the CVM instance.
+> For Windows users, you can use Remote Desktop Protocol (RDP) or PowerShell to log in to the CVM instance.
+
+After logging in, you can install dependencies and deploy **adp-chat-client** just like on a local machine.
+
+## Deploy Service
+
+Once your CVM is up and running, refer to [Quick Start](/docs/en/quick-start) to initialize the environment, configure the `.env` file, and deploy and run **adp-chat-client**.
+
+Follow these steps to deploy and run **adp-chat-client**. For detailed instructions, refer to [Quick Start](/docs/en/quick-start).
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/TencentCloudADP/adp-chat-client.git
+cd adp-chat-client
+```
+
+### 2. Initialize API Key
+
+```bash
+cp server/.env.example deploy/default/.env
+```
+
+Modify the configuration items in the `deploy/default/.env` file:
+
+```bash
+# Tencent Cloud account credentials: https://console.cloud.tencent.com/cam/capi
+TC_SECRET_APPID=
+TC_SECRET_ID=
+TC_SECRET_KEY=
+
+# Agent application key obtained from ADP platform: https://adp.cloud.tencent.com/
+APP_CONFIGS='[
+    {
+        "Vendor":"Tencent",
+        "ApplicationId":"Unique ID for the conversation application, uniquely identifies a conversation application in this system. Recommended to use appid, or use uuidgen command to generate a random uuid",
+        "Comment": "Comment",
+        "AppKey": "",
+        "International": false
+    }
+]'
+
+# JWT secret key, a random string, can be generated using the uuidgen command
+SECRET_KEY=
+```
+
+### 3. Build Image and Start Service
+
+```bash
+# Build image (need to re-run after modifying code, no need to re-pack if only modifying .env file)
+sudo make pack
+
+# Start service
+sudo make deploy
+
+# Login
+sudo make url
+```
+
+## Need Help?
+
+For more resources and troubleshooting support, visit:
+
+- [Tencent Cloud CVM Documentation](https://cloud.tencent.com/document/product/213)
+- [Tencent Cloud Online Support](https://cloud.tencent.com/online-service?from=doc_213)
+
+---
+
+

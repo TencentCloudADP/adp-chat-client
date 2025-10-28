@@ -1,0 +1,178 @@
+---
+title: 快速开始
+sidebar_position: 2
+description: 从环境准备到 Docker 启动的完整指引，帮助你在几分钟内运行 adp-chat-client。
+---
+
+本教程提供详细的部署步骤，即便对组件并不熟悉，也能顺利完成搭建并开始使用。
+
+## 前置条件
+
+- [Git](https://git-scm.com/downloads)
+- [Docker](https://www.docker.com/)
+
+## Docker 快速部署
+
+1. **克隆代码并进入目录**
+
+```bash
+git clone https://github.com/TencentCloudADP/adp-chat-client.git
+cd adp-chat-client
+```
+
+2. **安装 Docker 并配置镜像（已安装可跳过）**
+
+> 适用于 TencentOS Server 4.4：
+
+```bash
+bash script/init_env_tencentos.sh
+```
+
+> 适用于 Ubuntu Server 24.04：
+
+```bash
+bash script/init_env_ubuntu.sh
+```
+
+3. **复制环境变量模板**
+
+```bash
+cp server/.env.example deploy/default/.env
+```
+
+4. **填写 `deploy/default/.env`**
+
+根据腾讯云账户与 ADP 平台信息，补齐以下配置：
+
+```dotenv
+# 腾讯云账号密钥：https://console.cloud.tencent.com/cam/capi
+TC_SECRET_APPID=
+TC_SECRET_ID=
+TC_SECRET_KEY=
+```
+
+获取方法：前往[腾讯云控制台](https://console.cloud.tencent.com/cam/capi)，新建密钥，分别获取 TC_SECRET_APPID、TC_SECRET_ID 和 TC_SECRET_KEY。其中 TC_SECRET_KEY 仅在首次新建密钥时候出现，请注意保存。
+
+![](https://cdn.jsdelivr.net/gh/AllenWriter/picgo-images@main/images/Clipboard_Screenshot_1760531258.png)
+
+```dotenv
+# 从 ADP 平台获取的智能体应用 AppKey：https://adp.tencentcloud.com/adp#/app/home
+APP_CONFIGS='[
+    {
+        "Vendor":"Tencent",
+        "ApplicationId":"Chat 应用的唯一 ID，建议使用 appid 或 uuidgen 生成。",
+        "Comment":"描述信息",
+        "AppKey":"",
+        "International":false
+    }
+]'
+
+# JWT 密钥，可通过 uuidgen 生成随机字符串
+SECRET_KEY=
+```
+
+> ⚠️ 注意：
+>
+> 1. `APP_CONFIGS` 必须是合法 JSON，末尾不能有多余逗号，也不支持 `//` 注释。
+> 2. `Comment` 用于标记智能体应用，便于维护。
+> 3. `International` 默认为 `false`（中国站），若应用在海外站创建需改为 `true`。
+> 4. `ApplicationId`: 进入任意 ADP 应用，在应用网址内查看 appid。例如某个应用的链接为 `https://adp.cloud.tencent.com/adp/#/app/knowledge/app-config?appid=1959******8208&appType=knowledge_qa&spaceId=default_space`，则它的 ApplicationId 为 `1959******8208`。
+> 5. `AppKey`: 进入任意 ADP 应用，在应用发布 > 服务状态内获取 AppKey。
+
+![](https://cdn.jsdelivr.net/gh/AllenWriter/picgo-images@main/images/Clipboard_Screenshot_1760531791.png)
+
+5. **构建镜像**
+
+```bash
+sudo make pack
+```
+
+6. **启动容器**
+
+```bash
+sudo make deploy
+```
+
+> ⚠️ 提示：生产环境建议申请自己的域名与 SSL 证书，通过 Nginx/反代以 HTTPS 提供服务。若使用 HTTP，语音识别、消息复制等功能可能受限。
+
+7. **登录系统**
+
+系统支持对接现有账号体系。这里以 [URL 跳转](#2-url-跳转) 为例：
+
+```bash
+sudo make url
+```
+
+命令会生成登录地址，浏览器打开即可一键登录。若使用 OAuth 登录，直接访问 `http://localhost:8000`。
+
+8. **排查问题**
+
+```bash
+# 查看容器状态，正常情况会看到两个容器：
+# adp-chat-client-default, adp-chat-client-db-default
+sudo docker ps
+
+# 若未启动成功，查看日志
+sudo make logs
+```
+
+## 账号体系对接
+
+### 1. OAuth 协议
+
+默认支持 GitHub OAuth 与 Microsoft Entra ID OAuth，在 `deploy/default/.env` 中配置：
+
+```dotenv
+# https://github.com/settings/developers
+OAUTH_GITHUB_CLIENT_ID=
+OAUTH_GITHUB_SECRET=
+```
+
+```dotenv
+# https://entra.microsoft.com
+OAUTH_MICROSOFT_ENTRA_CLIENT_ID=
+OAUTH_MICROSOFT_ENTRA_SECRET=
+```
+
+若需接入其他 OAuth，可参照 `server/core/oauth.py` 进行适配。
+
+### 2. URL 跳转
+
+若已有账号体系且暂不支持 OAuth，可通过 URL 跳转快速打通：
+
+1. **既有系统**：生成携带 `CustomerId`、`Name`、`ExtraInfo`、`Timestamp`、`Code` 的登录 URL。
+2. **用户**：点击该 URL 完成登录。
+3. **adp-chat-client**：校验签名后自动创建/绑定账号并建立会话。
+
+| 参数        | 说明                                                                                                                                                   |
+| :---------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| url         | `https://your-domain.com/account/customer?CustomerId=&Name=&Timestamp=&ExtraInfo=&Code=`                                                              |
+| CustomerId  | 现有账号系统中的 `uid`                                                                                                                                 |
+| Name        | 现有账号系统中的用户名（可选）                                                                                                                         |
+| Timestamp   | 当前时间戳                                                                                                                                             |
+| ExtraInfo   | 用户附加信息                                                                                                                                           |
+| Code        | 签名：`SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, CustomerId + Name + ExtraInfo + str(Timestamp)))`                                                      |
+
+> 提示：
+>
+> 1. 参数需进行 `url_encode`。示例实现见 `server/core/account.py` 的 `CoreAccount.customer_auth`，生成 URL 的示例可参考 `server/main.py` 的 `generate_customer_account_url`。
+> 2. `.env` 中需要设置 `CUSTOMER_ACCOUNT_SECRET_KEY`，建议使用 `uuidgen` 生成随机字符串。
+
+## 服务能力开通
+
+为确保功能正常，请提前在腾讯云控制台启用以下能力：
+
+1. **会话标题能力**：[知识引擎原子能力-后付费设置](https://console.tencentcloud.com/lkeap/settings)，开启 **Atomic Capability\_DeepSeek API-V3 Postpaid**。
+2. **语音输入**：[语音识别设置](https://console.tencentcloud.com/asr/settings)，启用所需地域的 **实时语音**。
+3. **应用权限**：确保 `.env` 中配置的 `TC_SECRET_ID` / `TC_SECRET_KEY` 对应账户具备智能体应用权限。详见 [平台侧用户权限](https://www.tencentcloud.com/document/product/1254/73347)。
+
+## 常见问题 FAQ
+
+- **`python-dotenv could not parse ...`**：`APP_CONFIGS` 不是单行合法 JSON，检查是否存在多行、尾随逗号或注释。
+- **页面显示 “Unknown Application”**：当前使用的 `TC_SECRET_ID/KEY` 没有该应用的访问权限，请在平台添加或更换凭证。
+- **语音输入不可用**：确认已启用腾讯云 ASR，并确保浏览器使用 HTTPS。
+- **OAuth 回调报错或 404**：检查回调地址是否与第三方平台配置完全一致（`SERVICE_API_URL + /oauth/callback/...`）。
+
+## 下一步
+
+恭喜完成部署！接下来可继续阅读 [开发指南](/docs/zh/develop)，了解如何调试前端与后端以及常用命令。 

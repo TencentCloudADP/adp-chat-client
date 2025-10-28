@@ -1,0 +1,114 @@
+---
+title: CVM
+sidebar_position: 1
+description: 了解如何在腾讯云服务器（Cloud Virtual Machine, CVM) 部署并运行 adp-chat-client。
+---
+
+[腾讯云 CVM（Cloud Virtual Machine）](https://cloud.tencent.com/product/cvm)是腾讯云提供的一种高效、可扩展的云服务器，旨在帮助用户快速构建、部署和管理云端应用。通过腾讯云 CVM，你可以轻松创建和管理虚拟机实例并部署 Web 服务。
+
+本文将为你演示如何将 adp-chat-client 部署至云端，其他人可通过 URL 访问并与智能体应用对话。
+
+![](https://cdn.jsdelivr.net/gh/AllenWriter/picgo-images@main/images/Clipboard_Screenshot_1761551188.png)
+
+## 前提条件
+
+开始操作前，请确保你已具备以下条件：
+
+- **[腾讯云账号](https://cloud.tencent.com/register)**
+- 开通并部署一台 CVM
+- Git
+- Docker
+
+## 操作步骤
+
+### 初始化 CVM 服务
+
+#### 1. 购买并配置 CVM 实例
+
+进入[云服务器页](https://buy.cloud.tencent.com/cvm)购买 CVM。在购买页的**自定义配置**页面，根据你的需求选择以下选项：
+
+- **计费模式**（包年包月、按量计费或竞价实例）
+- **地域**（选择数据中心所在位置）
+- **实例配置**（如标准型、内存型等）
+- **镜像**（选择操作系统，如Windows或TencentOS）
+
+如需了解详细配置选项，可参考：
+
+- [快速配置 Linux 云服务器](https://cloud.tencent.com/document/product/213/2936)
+- [快速配置 Windows 云服务器](https://cloud.tencent.com/document/product/213/2764)
+
+#### 2. 登录 CVM 实例
+
+CVM 实例创建成功后，通过 SSH 连接工具完成登录。
+
+- [登录 Linux 实例](https://cloud.tencent.com/document/product/213/5436)
+- [登录 Windows 实例](https://cloud.tencent.com/document/product/213/5435)
+
+> **提示**：对于 Linux 用户，建议使用 SSH 访问 CVM 实例。
+> 对于 Windows 用户，可使用远程桌面协议（RDP）或 PowerShell 登录 CVM 实例。
+
+登录后，你可像在本地机器上一样，安装依赖并部署 **adp-chat-client**。
+
+## 部署服务
+
+当你的 CVM 启动并正常运行后，请参考[快速开始](/docs/zh/quick-start)初始化环境、配置`.env`文件，部署并运行**adp-chat-client**。
+
+参考以下步骤，部署并运行**adp-chat-client**。详细说明请参考[快速开始](/docs/zh/quick-start)。
+
+### 1. 拉取代码
+
+```bash
+git clone https://github.com/TencentCloudADP/adp-chat-client.git
+cd adp-chat-client
+```
+
+### 2. 初始化 API Key
+
+```bash
+cp server/.env.example deploy/default/.env
+```
+
+修改 `deploy/default/.env` 文件中的配置项：
+
+```bash
+# 腾讯云账户密钥：https://console.cloud.tencent.com/cam/capi
+TC_SECRET_APPID=
+TC_SECRET_ID=
+TC_SECRET_KEY=
+
+# ADP平台获取的智能体应用key：https://adp.cloud.tencent.com/
+APP_CONFIGS='[
+    {
+        "Vendor":"Tencent",
+        "ApplicationId":"对话应用唯一Id，在本系统内唯一标识一个对话应用，推荐使用appid，或者使用uuidgen命令生成一个随机的uuid",
+        "Comment": "注释",
+        "AppKey": "",
+        "International": false
+    }
+]'
+
+# JWT密钥，一个随机字符串，可以使用uuidgen命令生成
+SECRET_KEY=
+```
+
+### 3. 制作镜像并启动服务
+
+```bash
+# 制作镜像（修改代码后需要重新运行，如果只是修改.env文件不需要重新pack）
+sudo make pack
+
+# 启动服务
+sudo make deploy
+
+# 登录
+sudo make url
+```
+
+## 需要帮助？
+
+如需更多资源或故障排查支持，请访问：
+
+- [腾讯云 CVM 文档](https://cloud.tencent.com/document/product/213)
+- [腾讯云在线支持](https://cloud.tencent.com/online-service?from=doc_213)
+
+---
