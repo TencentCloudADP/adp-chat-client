@@ -26,7 +26,7 @@ class OpenAI(BaseVendor):
             ApplicationId=self.application_id,
             Name=self.config.get('Comment', 'OpenAI GPT Model'),
             Avatar=self.config.get('Avatar', default_avatar),
-            Greeting=self.config.get('Greeting', '你好！我是 ChatGPT，有什么可以帮助你的吗？'),
+            Greeting=self.config.get('Greeting', 'Hi, I am chatgpt, how can I help you?'),
             OpeningQuestions=self.config.get('OpeningQuestions', [])
         )
     
