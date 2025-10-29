@@ -80,6 +80,24 @@ class OpenAI(BaseVendor):
             
             logger.info(f"[OpenAI] Calling API: {base_url}/chat/completions with model: {model_name}")
             
+            # Get conversation history from database
+            from core.chat import CoreChatHistory
+            history_records = await CoreChatHistory.get_records(db, conversation_id)
+            
+            # Build messages array with history
+            messages = []
+            for record in history_records:
+                role = "user" if record.get('IsFromSelf') else "assistant"
+                messages.append({
+                    "role": role,
+                    "content": record.get('Content', '')
+                })
+            
+            # Add current user message
+            messages.append({"role": "user", "content": query})
+            
+            logger.info(f"[OpenAI] Sending {len(messages)} messages (including {len(history_records)} history messages)")
+            
             # Prepare request headers
             headers = {
                 'Authorization': f'Bearer {api_key}',
@@ -90,7 +108,7 @@ class OpenAI(BaseVendor):
             # Note: GPT-5 and reasoning models (o1, o3) have special parameter requirements
             payload = {
                 "model": model_name,
-                "messages": [{"role": "user", "content": query}],
+                "messages": messages,
                 "stream": True
             }
             
@@ -170,29 +188,39 @@ class OpenAI(BaseVendor):
                             except json.JSONDecodeError as e:
                                 logger.warning(f"[OpenAI] Failed to parse line: {line_str[:100]}... Error: {e}")
                                 continue
+                    
+                    # Process any remaining data in buffer
+                    if buffer:
+                        line_str = buffer.decode('utf-8').strip()
+                        if line_str and not line_str.startswith(':') and line_str != '[DONE]':
+                            if line_str.startswith('data: '):
+                                line_str = line_str[6:]
+                            try:
+                                data = json.loads(line_str)
+                                if 'choices' in data and len(data['choices']) > 0:
+                                    delta = data['choices'][0].get('delta', {})
+                                    delta_content = delta.get('content', '')
+                                    if delta_content:
+                                        content += delta_content
+                                        record = MsgRecord(Content=delta_content)
+                                        yield to_message(
+                                            MessageType.REPLY,
+                                            record=record,
+                                            incremental=True
+                                        )
+                            except json.JSONDecodeError:
+                                pass
             
-            # Save messages to database
+            # Save messages to chat history using new design
+            logger.info(f"[OpenAI] Final content length: {len(content)}")
             if content:
-                from model.chat import ChatRecord
+                from core.chat import CoreChatHistory
                 
-                # Save user message
-                user_record = ChatRecord(
-                    ConversationId=conversation_id,
-                    Content=query,
-                    FromRole='user'
+                # Save message pair to chat history
+                await CoreChatHistory.add_message_pair(
+                    db, conversation_id, "openai", query, content
                 )
-                db.add(user_record)
-                
-                # Save assistant message
-                assistant_record = ChatRecord(
-                    ConversationId=conversation_id,
-                    Content=content,
-                    FromRole='assistant'
-                )
-                db.add(assistant_record)
-                
-                await db.commit()
-                logger.info(f"[OpenAI] Saved messages to database")
+                logger.info(f"[OpenAI] Saved message pair to chat history")
             
             # Update conversation title if new
             if is_new_conversation and content:
@@ -217,50 +245,40 @@ class OpenAI(BaseVendor):
             yield to_message(MessageType.REPLY, record=error_record, incremental=False)
     
     async def get_messages(self, db, account_id, conversation_id, limit, last_record_id=None):
-        """Get message history from database"""
-        from sqlalchemy import select, and_
-        from model.chat import ChatRecord
-        
+        """
+        Get message history from chat_history table
+        Returns all messages on first load, empty array on pagination
+        """
         try:
-            # Build query
-            query = select(ChatRecord).where(
-                ChatRecord.ConversationId == conversation_id
-            ).order_by(ChatRecord.CreatedAt.desc()).limit(limit)
+            from core.chat import CoreChatHistory
             
-            # If last_record_id is provided, get messages before that record
+            logger.info(f"[OpenAI] Loading messages: conversation_id={conversation_id}, last_record_id={last_record_id}")
+            
+            # If last_record_id is provided, return empty array
+            # (all messages are loaded on first request)
             if last_record_id:
-                last_record = (await db.execute(
-                    select(ChatRecord).where(ChatRecord.Id == last_record_id)
-                )).scalar()
-                
-                if last_record:
-                    query = select(ChatRecord).where(
-                        and_(
-                            ChatRecord.ConversationId == conversation_id,
-                            ChatRecord.CreatedAt < last_record.CreatedAt
-                        )
-                    ).order_by(ChatRecord.CreatedAt.desc()).limit(limit)
+                logger.info(f"[OpenAI] Pagination request - returning empty (all messages already loaded)")
+                return []
             
-            # Execute query
-            result = await db.execute(query)
-            records = result.scalars().all()
+            # First load: get all message records from chat history
+            records_data = await CoreChatHistory.get_records(db, conversation_id)
             
-            # Convert to MsgRecord format (return list of MsgRecord objects, not dicts)
+            # Convert to MsgRecord format
             messages = []
-            for record in reversed(records):  # Reverse to get chronological order
+            for record_data in records_data:
                 msg_record = MsgRecord(
-                    RecordId=str(record.Id),
-                    Content=record.Content,
-                    IsFromSelf=(record.FromRole == 'user'),
-                    CreatedAt=int(record.CreatedAt.timestamp())
+                    RecordId=record_data.get('RecordId', ''),
+                    Content=record_data.get('Content', ''),
+                    IsFromSelf=record_data.get('IsFromSelf', False),
+                    CreatedAt=record_data.get('CreatedAt')
                 )
                 messages.append(msg_record)
             
-            logger.info(f"[OpenAI] Retrieved {len(messages)} messages for conversation {conversation_id}")
+            logger.info(f"[OpenAI] Loaded {len(messages)} messages from chat_history")
             return messages
             
         except Exception as e:
-            logger.error(f"[OpenAI] Error retrieving messages: {str(e)}", exc_info=True)
+            logger.error(f"[OpenAI] Error loading messages from chat_history: {str(e)}", exc_info=True)
             return []
     
     async def upload(self, db, request, account_id, mime_type):

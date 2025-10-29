@@ -34,3 +34,19 @@ class SharedConversation(Base):
     ParentConversationId = Column(UUID(), nullable=False)
     CreatedAt = Column(DateTime, nullable=False, server_default=func.current_timestamp())
     Records = Column(JSON(64), nullable=False)
+
+
+class ChatHistory(Base):
+    """
+    Chat history storage for non-Tencent vendors (OpenAI, Ollama, etc.)
+    Based on the successful SharedConversation design pattern
+    Stores complete conversation history as JSON array for simple retrieval
+    """
+    __tablename__ = "chat_history"
+
+    Id: Mapped[str] = mapped_column(UUID(), server_default=text("uuid_generate_v4()"), primary_key=True)
+    ConversationId = Column(UUID(), nullable=False, unique=True, index=True)  # One record per conversation
+    ApplicationId = Column(String(64), nullable=False, index=True)  # Distinguish different vendors (openai, ollama, etc.)
+    Records = Column(JSON(), nullable=False, default=list)  # Complete message records using same JSON design as SharedConversation
+    LastUpdated = Column(DateTime, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
+    CreatedAt = Column(DateTime, nullable=False, server_default=func.current_timestamp())
