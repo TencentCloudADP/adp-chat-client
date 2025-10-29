@@ -98,17 +98,17 @@ TC_SECRET_KEY=your-secret-key
 ### 快速开始
 
 ```bash
-# Install Ollama
+# 安装 Ollama
 curl -fsSL https://ollama.com/install.sh | sh
 
-# Pull a model
+# 拉取模型
 ollama pull gemma3:1b
 
-# Start service
+# 启动服务
 ollama serve
 ```
 
-### Configuration
+### 配置
 
 ```json
 {
@@ -202,9 +202,9 @@ ollama pull gemma3:1b       # Gemma3 1B
 
 ---
 
-## Configuration Examples
+## 配置示例
 
-### Single Vendor
+### 单个供应商
 
 ```bash
 APP_CONFIGS='[
@@ -218,7 +218,7 @@ APP_CONFIGS='[
 ]'
 ```
 
-### Multiple Vendors
+### 多个供应商
 
 ```bash
 APP_CONFIGS='[
@@ -248,28 +248,28 @@ APP_CONFIGS='[
 
 ---
 
-## Common Issues
+## 常见问题
 
-### Vendor not found
-Check `Vendor` field is capitalized: `"Tencent"`, `"Ollama"`, `"OpenAI"`
+### 找不到供应商
+检查 `Vendor` 字段首字母是否大写：`"Tencent"`、`"Ollama"`、`"OpenAI"`
 
-### Ollama connection failed
+### Ollama 连接失败
 ```bash
-ollama serve  # Start Ollama service
-curl http://localhost:11434/v1/models  # Test API
+ollama serve  # 启动 Ollama 服务
+curl http://localhost:11434/v1/models  # 测试 API
 ```
 
-### OpenAI API error 401
-- Verify API key at https://platform.openai.com/api-keys
-- Check account has credits
+### OpenAI API 错误 401
+- 在 https://platform.openai.com/api-keys 验证 API 密钥
+- 检查账户是否有余额
 
-### OpenAI temperature error
-Remove `Temperature` field for GPT-5/o1/o3 models
+### OpenAI temperature 错误
+对于 GPT-5/o1/o3 模型，请移除 `Temperature` 字段
 
 ---
 
-## Resources
+## 相关资源
 
-- **Tencent ADP**: https://adp.cloud.tencent.com/
-- **Ollama**: https://ollama.ai/
-- **OpenAI**: https://platform.openai.com/
+- **腾讯 ADP**：https://adp.cloud.tencent.com/
+- **Ollama**：https://ollama.ai/
+- **OpenAI**：https://platform.openai.com/
