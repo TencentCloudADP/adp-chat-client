@@ -89,27 +89,19 @@ class OpenAICompatible(BaseVendor):
             
             logger.info(f"[OpenAICompatible] Calling API: {base_url}/chat/completions with model: {model_name}")
             
-            # Get conversation history from SharedConversation
-            from core.share import CoreShareConversation
-            from sqlalchemy import select
-            from model.chat import SharedConversation
-            
-            # Try to get existing shared conversation for this conversation_id
-            result = await db.execute(
-                select(SharedConversation).where(
-                    SharedConversation.ParentConversationId == conversation_id
-                ).limit(1)
-            )
-            shared_conv = result.scalar()
+            # Get conversation history from ChatRecord
+            from core.chat import CoreMessage
             
             # Build messages array with history
             messages = []
-            if shared_conv and shared_conv.Records:
-                for record in shared_conv.Records:
-                    role = "user" if record.get('IsFromSelf') else "assistant"
+            if not is_new_conversation:
+                # Load existing messages from ChatRecord
+                chat_records = await CoreMessage.list(db, conversation_id)
+                for record in chat_records:
+                    role = "user" if record.FromRole == "user" else "assistant"
                     messages.append({
                         "role": role,
-                        "content": record.get('Content', '')
+                        "content": record.Content
                     })
             
             # Add current user message
@@ -227,46 +219,18 @@ class OpenAICompatible(BaseVendor):
                             except json.JSONDecodeError:
                                 pass
             
-            # Save messages using SharedConversation design
+            # Save messages to ChatRecord
             logger.info(f"[OpenAICompatible] Final content length: {len(content)}")
             if content:
-                from datetime import datetime
+                from core.chat import CoreMessage
                 
-                # Build new records
-                record_count = len(shared_conv.Records) if shared_conv and shared_conv.Records else 0
-                current_time = datetime.now().isoformat()
+                # Save user message
+                await CoreMessage.create(db, conversation_id, "user", query)
                 
-                user_record = {
-                    'RecordId': f"{conversation_id}_{record_count}",
-                    'Content': query,
-                    'IsFromSelf': True,
-                    'CreatedAt': current_time
-                }
+                # Save assistant message
+                await CoreMessage.create(db, conversation_id, "assistant", content)
                 
-                assistant_record = {
-                    'RecordId': f"{conversation_id}_{record_count + 1}",
-                    'Content': content,
-                    'IsFromSelf': False,
-                    'CreatedAt': current_time
-                }
-                
-                if shared_conv:
-                    # Update existing SharedConversation
-                    # IMPORTANT: Must reassign entire array to trigger SQLAlchemy update
-                    existing_records = list(shared_conv.Records) if shared_conv.Records else []
-                    shared_conv.Records = existing_records + [user_record, assistant_record]
-                else:
-                    # Create new SharedConversation
-                    shared_conv = SharedConversation(
-                        AccountId=account_id,
-                        ApplicationId=self.application_id,
-                        ParentConversationId=conversation_id,
-                        Records=[user_record, assistant_record]
-                    )
-                    db.add(shared_conv)
-                
-                await db.commit()
-                logger.info(f"[OpenAICompatible] Saved message pair to SharedConversation")
+                logger.info(f"[OpenAICompatible] Saved message pair to ChatRecord")
             
             # Update conversation title if new
             if is_new_conversation and content:
@@ -291,42 +255,50 @@ class OpenAICompatible(BaseVendor):
     
     async def get_messages(self, db, account_id, conversation_id, limit, last_record_id=None):
         """
-        Get message history from SharedConversation
-        Returns all messages on first load, empty array on pagination
+        Get message history from ChatRecord
+        Supports pagination using last_record_id
         """
         try:
-            logger.info(f"[OpenAICompatible] Loading messages: conversation_id={conversation_id}, last_record_id={last_record_id}")
+            logger.info(f"[OpenAICompatible] Loading messages: conversation_id={conversation_id}, limit={limit}, last_record_id={last_record_id}")
             
-            # If last_record_id is provided, return empty array
-            # (all messages are loaded on first request)
-            if last_record_id:
-                logger.info(f"[OpenAICompatible] Pagination request - returning empty (all messages already loaded)")
-                return []
-            
-            # First load: get all message records from SharedConversation
+            from core.chat import CoreMessage
             from sqlalchemy import select
-            from model.chat import SharedConversation
+            from model.chat import ChatRecord
             
-            result = await db.execute(
-                select(SharedConversation).where(
-                    SharedConversation.ParentConversationId == conversation_id
-                ).limit(1)
-            )
-            shared_conv = result.scalar()
+            # Build query
+            query = select(ChatRecord).where(
+                ChatRecord.ConversationId == conversation_id
+            ).order_by(ChatRecord.CreatedAt)
+            
+            # Apply pagination if last_record_id is provided
+            if last_record_id:
+                # Get the timestamp of the last record
+                last_record_result = await db.execute(
+                    select(ChatRecord).where(ChatRecord.Id == last_record_id)
+                )
+                last_record = last_record_result.scalar()
+                if last_record:
+                    query = query.where(ChatRecord.CreatedAt > last_record.CreatedAt)
+            
+            # Apply limit
+            query = query.limit(limit)
+            
+            # Execute query
+            result = await db.execute(query)
+            chat_records = result.scalars().all()
             
             # Convert to MsgRecord format
             messages = []
-            if shared_conv and shared_conv.Records:
-                for record_data in shared_conv.Records:
-                    msg_record = MsgRecord(
-                        RecordId=record_data.get('RecordId', ''),
-                        Content=record_data.get('Content', ''),
-                        IsFromSelf=record_data.get('IsFromSelf', False),
-                        CreatedAt=record_data.get('CreatedAt')
-                    )
-                    messages.append(msg_record)
+            for record in chat_records:
+                msg_record = MsgRecord(
+                    RecordId=str(record.Id),
+                    Content=record.Content,
+                    IsFromSelf=(record.FromRole == "user"),
+                    CreatedAt=record.CreatedAt.isoformat() if record.CreatedAt else None
+                )
+                messages.append(msg_record)
             
-            logger.info(f"[OpenAICompatible] Loaded {len(messages)} messages from SharedConversation")
+            logger.info(f"[OpenAICompatible] Loaded {len(messages)} messages from ChatRecord")
             return messages
             
         except Exception as e:
