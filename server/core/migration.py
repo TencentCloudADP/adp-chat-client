@@ -5,7 +5,7 @@ from asyncpg.exceptions import InvalidCatalogNameError
 from sqlalchemy import inspect
 from sqlalchemy.sql import text
 from model.account import Account
-from model.chat import ChatRecord, ChatConversation, SharedConversation, ChatHistory
+from model.chat import ChatRecord, ChatConversation, SharedConversation
 from util.database import create_db_engine
 
 from app_factory import TAgenticApp
@@ -52,7 +52,6 @@ class Migration:
             ChatRecord,
             ChatConversation,
             SharedConversation,
-            ChatHistory,
         ]
 
     @staticmethod

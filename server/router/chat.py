@@ -1,5 +1,4 @@
 import logging
-import os
 
 from sanic import json
 from sanic.views import HTTPMethodView
@@ -14,11 +13,6 @@ from core.conversation import CoreConversation
 from core.share import CoreShareConversation
 from app_factory import TAgenticApp
 app: TAgenticApp = TAgenticApp.get_app()
-
-# Configuration for message pagination
-# Can be overridden by environment variable CHAT_MESSAGE_PAGE_SIZE
-DEFAULT_MESSAGE_PAGE_SIZE = 100
-MESSAGE_PAGE_SIZE = int(os.getenv('CHAT_MESSAGE_PAGE_SIZE', DEFAULT_MESSAGE_PAGE_SIZE))
 
 
 class ChatMessageApi(HTTPMethodView):
@@ -72,7 +66,7 @@ class ChatMessageListApi(HTTPMethodView):
                 request.ctx.db,
                 request.ctx.account_id,
                 args['ConversationId'],
-                MESSAGE_PAGE_SIZE,
+                app.config.CHAT_MESSAGE_PAGE_SIZE,
                 args['LastRecordId']
             )
             resp = {
