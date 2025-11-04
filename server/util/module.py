@@ -48,7 +48,17 @@ def autodiscover_vendor():
         module = import_module(f'vendor.{name}')
         if hasattr(module, 'get_class'):
             logging.info(f'loading vendor class: {name}')
-            cls = module.get_class()
-            vendors[cls.get_vendor()] = cls
+            cls_or_list = module.get_class()
+            
+            # Support both single class and list of classes
+            if isinstance(cls_or_list, list):
+                for cls in cls_or_list:
+                    vendor_name = cls.get_vendor()
+                    vendors[vendor_name] = cls
+                    logging.info(f'  registered vendor: {vendor_name}')
+            else:
+                vendor_name = cls_or_list.get_vendor()
+                vendors[vendor_name] = cls_or_list
+                logging.info(f'  registered vendor: {vendor_name}')
 
     return vendors

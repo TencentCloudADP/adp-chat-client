@@ -10,7 +10,7 @@ import { TDesignResolver } from 'unplugin-vue-components/resolvers'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, fileURLToPath(new URL('../../', import.meta.url)), '')
+  const env = loadEnv(mode, process.cwd(), '')
   const apiUrl = env.SERVICE_API_URL || 'http://localhost:8888'
   
   return {
