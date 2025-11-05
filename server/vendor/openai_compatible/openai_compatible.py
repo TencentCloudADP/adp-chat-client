@@ -261,13 +261,13 @@ class OpenAICompatible(BaseVendor):
             logger.info(f"[OpenAICompatible] Loading messages: conversation_id={conversation_id}, limit={limit}, last_record_id={last_record_id}")
             
             from core.chat import CoreMessage
-            from sqlalchemy import select
+            from sqlalchemy import select, desc
             from model.chat import ChatRecord
-            
+
             # Build query
             query = select(ChatRecord).where(
                 ChatRecord.ConversationId == conversation_id
-            ).order_by(ChatRecord.CreatedAt)
+            ).order_by(desc(ChatRecord.CreatedAt))
             
             # Apply pagination if last_record_id is provided
             if last_record_id:
@@ -277,7 +277,7 @@ class OpenAICompatible(BaseVendor):
                 )
                 last_record = last_record_result.scalar()
                 if last_record:
-                    query = query.where(ChatRecord.CreatedAt > last_record.CreatedAt)
+                    query = query.where(ChatRecord.CreatedAt < last_record.CreatedAt)
             
             # Apply limit
             query = query.limit(limit)
@@ -293,10 +293,11 @@ class OpenAICompatible(BaseVendor):
                     RecordId=str(record.Id),
                     Content=record.Content,
                     IsFromSelf=(record.FromRole == "user"),
-                    CreatedAt=record.CreatedAt.isoformat() if record.CreatedAt else None,
+                    Timestamp=record.CreatedAt.timestamp(),
                     CanRating=False
                 )
                 messages.append(msg_record)
+            messages = messages[::-1]
             
             logger.info(f"[OpenAICompatible] Loaded {len(messages)} messages from ChatRecord")
             return messages
