@@ -1,10 +1,16 @@
+# flake8: noqa: E501
 import logging
 import aiohttp
 import json
 from typing import AsyncGenerator
 
+from sqlalchemy import select, desc
+from model.chat import ChatRecord
+from core.chat import CoreMessage
+
 from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, MessageType
 from util.helper import to_message
+
 
 logger = logging.getLogger(__name__)
 
@@ -12,18 +18,18 @@ logger = logging.getLogger(__name__)
 class OpenAICompatible(BaseVendor):
     """
     OpenAI-compatible vendor implementation
-    
+
     Supports:
     - OpenAI (GPT-3.5, GPT-4, GPT-5, o1, o3, etc.)
     - Ollama (local models with OpenAI-compatible API)
     - Any other service that implements OpenAI's chat completions API
     """
-    
+
     @classmethod
     def get_vendor(cls) -> str:
         """Return vendor name"""
         return 'OpenAICompatible'
-    
+
     async def get_info(self) -> ApplicationInfo:
         """Get application information from config"""
         return ApplicationInfo(
@@ -33,7 +39,7 @@ class OpenAICompatible(BaseVendor):
             Greeting=self.config.get('Greeting', 'Hello! How can I help you today?'),
             OpeningQuestions=self.config.get('OpeningQuestions', [])
         )
-    
+
     async def chat(
         self,
         db,
@@ -47,7 +53,7 @@ class OpenAICompatible(BaseVendor):
     ) -> AsyncGenerator:
         """
         Main chat method using OpenAI-compatible API
-        
+
         Args:
             db: Database session
             account_id: User account ID
@@ -57,7 +63,7 @@ class OpenAICompatible(BaseVendor):
             conversation_cb: Callback for conversation operations
             search_network: Whether to search network (not used)
             custom_variables: Custom variables (not used)
-        
+
         Yields:
             Messages with conversation info and AI responses
         """
@@ -71,27 +77,26 @@ class OpenAICompatible(BaseVendor):
                     is_new_conversation=True
                 )
                 conversation_id = str(conversation.Id)
-            
+
             # Get configuration
             api_key = self.config.get('ApiKey', '')
             base_url = self.config.get('BaseUrl', 'https://api.openai.com/v1')
             model_name = self.config.get('ModelName', 'gpt-3.5-turbo')
             temperature = self.config.get('Temperature', 0.7)
             max_tokens = self.config.get('MaxTokens', 2000)
-            
+
             # API key is optional (e.g., Ollama doesn't require it)
             if not api_key and not base_url.startswith('http://localhost'):
                 raise ValueError("API Key is required in configuration")
-            
+
             # Ensure base_url ends with /v1 if needed
             if not base_url.endswith('/v1') and '/v1/' not in base_url:
                 base_url = base_url.rstrip('/') + '/v1'
-            
+
             logger.info(f"[OpenAICompatible] Calling API: {base_url}/chat/completions with model: {model_name}")
-            
+
             # Get conversation history from ChatRecord
-            from core.chat import CoreMessage
-            
+
             # Build messages array with history
             messages = []
             if not is_new_conversation:
@@ -103,24 +108,24 @@ class OpenAICompatible(BaseVendor):
                         "role": role,
                         "content": record.Content
                     })
-            
+
             # Add current user message
             messages.append({"role": "user", "content": query})
-            
+
             logger.info(f"[OpenAICompatible] Sending {len(messages)} messages (including {len(messages)-1} history messages)")
-            
+
             # Prepare request headers
             headers = {'Content-Type': 'application/json'}
             if api_key:
                 headers['Authorization'] = f'Bearer {api_key}'
-            
+
             # Prepare request payload
             payload = {
                 "model": model_name,
                 "messages": messages,
                 "stream": True
             }
-            
+
             # GPT-5 and reasoning models (o1, o3) have special parameter requirements
             if model_name.startswith('gpt-5') or model_name.startswith('o1') or model_name.startswith('o3'):
                 payload["max_completion_tokens"] = max_tokens
@@ -129,7 +134,7 @@ class OpenAICompatible(BaseVendor):
                 # Standard models support temperature and max_tokens
                 payload["temperature"] = temperature
                 payload["max_tokens"] = max_tokens
-            
+
             # Call OpenAI-compatible API
             content = ""
             async with aiohttp.ClientSession() as session:
@@ -143,41 +148,41 @@ class OpenAICompatible(BaseVendor):
                         error_text = await resp.text()
                         logger.error(f"[OpenAICompatible] API error: {resp.status} - {error_text}")
                         raise Exception(f"OpenAI-compatible API error: {resp.status} - {error_text}")
-                    
+
                     # Stream response (SSE format)
                     buffer = b''
                     async for chunk in resp.content.iter_any():
                         if not chunk:
                             continue
-                        
+
                         buffer += chunk
-                        
+
                         # Split by newline
                         while b'\n' in buffer:
                             line_bytes, buffer = buffer.split(b'\n', 1)
                             line_str = line_bytes.decode('utf-8').strip()
-                            
+
                             # Skip empty lines and comments
                             if not line_str or line_str.startswith(':'):
                                 continue
-                            
+
                             # Remove "data: " prefix
                             if line_str.startswith('data: '):
                                 line_str = line_str[6:]
-                            
+
                             # Check for end of stream
                             if line_str == '[DONE]':
                                 logger.info(f"[OpenAICompatible] Response completed")
                                 break
-                            
+
                             try:
                                 data = json.loads(line_str)
-                                
+
                                 # Extract delta content
                                 if 'choices' in data and len(data['choices']) > 0:
                                     delta = data['choices'][0].get('delta', {})
                                     delta_content = delta.get('content', '')
-                                    
+
                                     if delta_content:
                                         content += delta_content
                                         # Send incremental content (delta)
@@ -187,16 +192,16 @@ class OpenAICompatible(BaseVendor):
                                             record=record,
                                             incremental=True
                                         )
-                                    
+
                                     # Check if finished
                                     finish_reason = data['choices'][0].get('finish_reason')
                                     if finish_reason:
                                         logger.info(f"[OpenAICompatible] Finish reason: {finish_reason}")
-                                        
+
                             except json.JSONDecodeError as e:
                                 logger.warning(f"[OpenAICompatible] Failed to parse line: {line_str[:100]}... Error: {e}")
                                 continue
-                    
+
                     # Process any remaining data in buffer
                     if buffer:
                         line_str = buffer.decode('utf-8').strip()
@@ -218,20 +223,18 @@ class OpenAICompatible(BaseVendor):
                                         )
                             except json.JSONDecodeError:
                                 pass
-            
+
             # Save messages to ChatRecord
             logger.info(f"[OpenAICompatible] Final content length: {len(content)}")
             if content:
-                from core.chat import CoreMessage
-                
                 # Save user message
                 await CoreMessage.create(db, conversation_id, "user", query)
-                
+
                 # Save assistant message
                 await CoreMessage.create(db, conversation_id, "assistant", content)
-                
+
                 logger.info(f"[OpenAICompatible] Saved message pair to ChatRecord")
-            
+
             # Update conversation title if new
             if is_new_conversation and content:
                 title = query[:20] + "..." if len(query) > 20 else query
@@ -244,14 +247,14 @@ class OpenAICompatible(BaseVendor):
                     conversation=conversation,
                     is_new_conversation=False
                 )
-            
+
             logger.info(f"[OpenAICompatible] Chat completed. Response length: {len(content)}")
-            
+
         except Exception as e:
             logger.error(f"[OpenAICompatible] Error in chat: {str(e)}", exc_info=True)
             # Yield error message
             yield to_message(MessageType.ERROR, error_msg=str(e))
-    
+
     async def get_messages(self, db, account_id, conversation_id, limit, last_record_id=None):
         """
         Get message history from ChatRecord
@@ -259,16 +262,12 @@ class OpenAICompatible(BaseVendor):
         """
         try:
             logger.info(f"[OpenAICompatible] Loading messages: conversation_id={conversation_id}, limit={limit}, last_record_id={last_record_id}")
-            
-            from core.chat import CoreMessage
-            from sqlalchemy import select, desc
-            from model.chat import ChatRecord
 
             # Build query
             query = select(ChatRecord).where(
                 ChatRecord.ConversationId == conversation_id
             ).order_by(desc(ChatRecord.CreatedAt))
-            
+
             # Apply pagination if last_record_id is provided
             if last_record_id:
                 # Get the timestamp of the last record
@@ -278,14 +277,14 @@ class OpenAICompatible(BaseVendor):
                 last_record = last_record_result.scalar()
                 if last_record:
                     query = query.where(ChatRecord.CreatedAt < last_record.CreatedAt)
-            
+
             # Apply limit
             query = query.limit(limit)
-            
+
             # Execute query
             result = await db.execute(query)
             chat_records = result.scalars().all()
-            
+
             # Convert to MsgRecord format
             messages = []
             for record in chat_records:
@@ -298,18 +297,18 @@ class OpenAICompatible(BaseVendor):
                 )
                 messages.append(msg_record)
             messages = messages[::-1]
-            
+
             logger.info(f"[OpenAICompatible] Loaded {len(messages)} messages from ChatRecord")
             return messages
-            
+
         except Exception as e:
             logger.error(f"[OpenAICompatible] Error loading messages: {str(e)}", exc_info=True)
             return []
-    
+
     async def upload(self, db, request, account_id, mime_type):
         """Upload file - not implemented"""
         raise NotImplementedError("OpenAI-compatible vendor does not support file upload")
-    
+
     async def rate(self, db, account_id, conversation_id, record_id, score, comment=None):
         """Rate message - not implemented"""
         raise NotImplementedError("OpenAI-compatible vendor does not support message rating")
@@ -320,12 +319,12 @@ class OpenAICompatible(BaseVendor):
 class OpenAI(OpenAICompatible):
     """
     OpenAI vendor alias
-    
+
     This is an alias for OpenAICompatible that allows users to use
     "Vendor": "OpenAI" in their configuration while sharing the same
     implementation logic.
     """
-    
+
     @classmethod
     def get_vendor(cls) -> str:
         return 'OpenAI'
@@ -334,16 +333,16 @@ class OpenAI(OpenAICompatible):
 class Ollama(OpenAICompatible):
     """
     Ollama vendor alias
-    
+
     This is an alias for OpenAICompatible that allows users to use
     "Vendor": "Ollama" in their configuration while sharing the same
     implementation logic.
     """
-    
+
     @classmethod
     def get_vendor(cls) -> str:
         return 'Ollama'
-    
+
     async def get_info(self) -> ApplicationInfo:
         """Get application information with Ollama-specific defaults"""
         return ApplicationInfo(
