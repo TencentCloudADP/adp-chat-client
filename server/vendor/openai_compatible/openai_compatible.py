@@ -150,79 +150,46 @@ class OpenAICompatible(BaseVendor):
                         raise Exception(f"OpenAI-compatible API error: {resp.status} - {error_text}")
 
                     # Stream response (SSE format)
-                    buffer = b''
-                    async for chunk in resp.content.iter_any():
-                        if not chunk:
+                    while True:
+                        raw_line = await resp.content.readline()
+                        if not raw_line:
+                            break
+                        line = raw_line.decode()
+                        if ':' not in line:
                             continue
+                        _, line_str = line.split(':', 1)
 
-                        buffer += chunk
+                        # Check for end of stream
+                        if line_str == '[DONE]':
+                            logger.info(f"[OpenAICompatible] Response completed")
+                            break
 
-                        # Split by newline
-                        while b'\n' in buffer:
-                            line_bytes, buffer = buffer.split(b'\n', 1)
-                            line_str = line_bytes.decode('utf-8').strip()
+                        try:
+                            data = json.loads(line_str)
 
-                            # Skip empty lines and comments
-                            if not line_str or line_str.startswith(':'):
-                                continue
+                            # Extract delta content
+                            if 'choices' in data and len(data['choices']) > 0:
+                                delta = data['choices'][0].get('delta', {})
+                                delta_content = delta.get('content', '')
 
-                            # Remove "data: " prefix
-                            if line_str.startswith('data: '):
-                                line_str = line_str[6:]
+                                if delta_content:
+                                    content += delta_content
+                                    # Send incremental content (delta)
+                                    record = MsgRecord(Content=delta_content)
+                                    yield to_message(
+                                        MessageType.REPLY,
+                                        record=record,
+                                        incremental=True
+                                    )
 
-                            # Check for end of stream
-                            if line_str == '[DONE]':
-                                logger.info(f"[OpenAICompatible] Response completed")
-                                break
+                                # Check if finished
+                                finish_reason = data['choices'][0].get('finish_reason')
+                                if finish_reason:
+                                    logger.info(f"[OpenAICompatible] Finish reason: {finish_reason}")
 
-                            try:
-                                data = json.loads(line_str)
-
-                                # Extract delta content
-                                if 'choices' in data and len(data['choices']) > 0:
-                                    delta = data['choices'][0].get('delta', {})
-                                    delta_content = delta.get('content', '')
-
-                                    if delta_content:
-                                        content += delta_content
-                                        # Send incremental content (delta)
-                                        record = MsgRecord(Content=delta_content)
-                                        yield to_message(
-                                            MessageType.REPLY,
-                                            record=record,
-                                            incremental=True
-                                        )
-
-                                    # Check if finished
-                                    finish_reason = data['choices'][0].get('finish_reason')
-                                    if finish_reason:
-                                        logger.info(f"[OpenAICompatible] Finish reason: {finish_reason}")
-
-                            except json.JSONDecodeError as e:
-                                logger.warning(f"[OpenAICompatible] Failed to parse line: {line_str[:100]}... Error: {e}")
-                                continue
-
-                    # Process any remaining data in buffer
-                    if buffer:
-                        line_str = buffer.decode('utf-8').strip()
-                        if line_str and not line_str.startswith(':') and line_str != '[DONE]':
-                            if line_str.startswith('data: '):
-                                line_str = line_str[6:]
-                            try:
-                                data = json.loads(line_str)
-                                if 'choices' in data and len(data['choices']) > 0:
-                                    delta = data['choices'][0].get('delta', {})
-                                    delta_content = delta.get('content', '')
-                                    if delta_content:
-                                        content += delta_content
-                                        record = MsgRecord(Content=delta_content)
-                                        yield to_message(
-                                            MessageType.REPLY,
-                                            record=record,
-                                            incremental=True
-                                        )
-                            except json.JSONDecodeError:
-                                pass
+                        except json.JSONDecodeError as e:
+                            logger.warning(f"[OpenAICompatible] Failed to parse line: {line_str[:100]}... Error: {e}")
+                            continue
 
             # Save messages to ChatRecord
             logger.info(f"[OpenAICompatible] Final content length: {len(content)}")
