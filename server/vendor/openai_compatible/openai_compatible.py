@@ -28,7 +28,7 @@ class OpenAICompatible(BaseVendor):
         """Get application information from config"""
         return ApplicationInfo(
             ApplicationId=self.application_id,
-            Name=self.config.get('Comment', 'AI Assistant'),
+            Name=self.config.get('DisplayName', 'AI Assistant'),
             Avatar=self.config.get('Avatar', 'https://cdn.simpleicons.org/openai/10A37F'),
             Greeting=self.config.get('Greeting', 'Hello! How can I help you today?'),
             OpeningQuestions=self.config.get('OpeningQuestions', [])
@@ -347,7 +347,7 @@ class Ollama(OpenAICompatible):
         """Get application information with Ollama-specific defaults"""
         return ApplicationInfo(
             ApplicationId=self.application_id,
-            Name=self.config.get('Comment', 'Ollama Local Model'),
+            Name=self.config.get('DisplayName', 'Ollama Local Model'),
             Avatar=self.config.get('Avatar', 'https://cdn.simpleicons.org/ollama/000000'),
             Greeting=self.config.get('Greeting', 'Hello! I am a local AI assistant. How can I help you?'),
             OpeningQuestions=self.config.get('OpeningQuestions', [])
