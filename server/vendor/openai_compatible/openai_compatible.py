@@ -294,7 +294,8 @@ class OpenAICompatible(BaseVendor):
                     RecordId=str(record.Id),
                     Content=record.Content,
                     IsFromSelf=(record.FromRole == "user"),
-                    CreatedAt=record.CreatedAt.isoformat() if record.CreatedAt else None
+                    CreatedAt=record.CreatedAt.isoformat() if record.CreatedAt else None,
+                    CanRating=False
                 )
                 messages.append(msg_record)
             
