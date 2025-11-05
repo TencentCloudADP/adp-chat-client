@@ -250,8 +250,7 @@ class OpenAICompatible(BaseVendor):
         except Exception as e:
             logger.error(f"[OpenAICompatible] Error in chat: {str(e)}", exc_info=True)
             # Yield error message
-            error_record = MsgRecord(Content=f"Error: {str(e)}")
-            yield to_message(MessageType.ERROR, record=error_record, incremental=False)
+            yield to_message(MessageType.ERROR, error_msg=str(e))
     
     async def get_messages(self, db, account_id, conversation_id, limit, last_record_id=None):
         """
