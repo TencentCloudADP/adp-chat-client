@@ -8,7 +8,7 @@ from sqlalchemy import select, desc
 from model.chat import ChatRecord
 from core.chat import CoreMessage
 
-from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, MessageType
+from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, MessageType, _AgentThought, _ProcedureThought, _DebuggingThought
 from util.helper import to_message
 
 
@@ -104,9 +104,15 @@ class OpenAICompatible(BaseVendor):
                 chat_records = await CoreMessage.list(db, conversation_id)
                 for record in chat_records:
                     role = "user" if record.FromRole == "user" else "assistant"
+                    try:
+                        record_dict = json.loads(record.Content)
+                        content = record_dict.get('Content', '')
+                    except json.JSONDecodeError as e:
+                        content = record.Content
+
                     messages.append({
                         "role": role,
-                        "content": record.Content
+                        "content": content
                     })
 
             # Add current user message
@@ -137,6 +143,7 @@ class OpenAICompatible(BaseVendor):
 
             # Call OpenAI-compatible API
             content = ""
+            reasoning_content = ""
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     f"{base_url}/chat/completions",
@@ -170,7 +177,19 @@ class OpenAICompatible(BaseVendor):
                             # Extract delta content
                             if 'choices' in data and len(data['choices']) > 0:
                                 delta = data['choices'][0].get('delta', {})
+                                delta_reasoning_content = delta.get('reasoning_content', '')
                                 delta_content = delta.get('content', '')
+
+                                if delta_reasoning_content:
+                                    reasoning_content += delta_reasoning_content
+                                    # Send incremental content (delta)
+
+                                    record = MsgRecord(AgentThought=_AgentThought(Procedures=[_ProcedureThought(Debugging=_DebuggingThought(Content=delta_reasoning_content))]))
+                                    yield to_message(
+                                        MessageType.THOUGHT,
+                                        record=record,
+                                        incremental=True
+                                    )
 
                                 if delta_content:
                                     content += delta_content
@@ -195,10 +214,10 @@ class OpenAICompatible(BaseVendor):
             logger.info(f"[OpenAICompatible] Final content length: {len(content)}")
             if content:
                 # Save user message
-                await CoreMessage.create(db, conversation_id, "user", query)
+                related_record = await CoreMessage.create(db, conversation_id, "user", json.dumps({'Content': query}, ensure_ascii=False))
 
                 # Save assistant message
-                await CoreMessage.create(db, conversation_id, "assistant", content)
+                await CoreMessage.create(db, conversation_id, "assistant", json.dumps({'RelatedId': str(related_record.Id), 'Content': content, 'ReasoningContent': reasoning_content}, ensure_ascii=False))
 
                 logger.info(f"[OpenAICompatible] Saved message pair to ChatRecord")
 
@@ -255,9 +274,24 @@ class OpenAICompatible(BaseVendor):
             # Convert to MsgRecord format
             messages = []
             for record in chat_records:
+                related_id = None
+                content = record.Content
+                reasoning_content = ''
+                agent_thought = None
+                try:
+                    record_dict = json.loads(record.Content)
+                    related_id = record_dict.get('RelatedId', None)
+                    content = record_dict.get('Content', '')
+                    reasoning_content = record_dict.get('ReasoningContent', '')
+                    if reasoning_content:
+                        agent_thought = _AgentThought(Procedures=[_ProcedureThought(Debugging=_DebuggingThought(Content=reasoning_content))])
+                except json.JSONDecodeError as e:
+                    pass
                 msg_record = MsgRecord(
                     RecordId=str(record.Id),
-                    Content=record.Content,
+                    RelatedRecordId=related_id,
+                    AgentThought=agent_thought,
+                    Content=content,
                     IsFromSelf=(record.FromRole == "user"),
                     Timestamp=record.CreatedAt.timestamp(),
                     CanRating=False
