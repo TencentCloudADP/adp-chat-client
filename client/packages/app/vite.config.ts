@@ -11,7 +11,6 @@ import { TDesignResolver } from 'unplugin-vue-components/resolvers'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const apiUrl = env.SERVICE_API_URL || 'http://localhost:8888'
   
   return {
     base: './',
@@ -45,7 +44,7 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         '/api': {
-          target: apiUrl,
+          target: env.SERVICE_API_URL,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
         },
