@@ -7,7 +7,6 @@ import { ref } from 'vue';
 import { useAppsStore } from '@/stores/apps';
 import { useUiStore } from '@/stores/ui'
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
-import StarIcon from '@/assets/icons/star.svg';
 const uiStore = useUiStore()
 
 // 组件Props定义
@@ -65,7 +64,7 @@ const handleChooseQuestion = (value: string) => {
         <t-check-tag theme="default" class="greet-tag" v-for="question in appsStore.currentApplicationOpeningQuestions" variant="outline"
           @click="handleChooseQuestion(question)">
           <span class="greet-tag-text">
-            <CustomizedIcon v-if="uiStore.isMobile" nativeIcon disablePadding class="star-icon" :svg="StarIcon" />
+            <CustomizedIcon name="star" v-if="uiStore.isMobile" nativeIcon class="star-icon" />
             {{ question }}
           </span>
           

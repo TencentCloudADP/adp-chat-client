@@ -11,11 +11,6 @@ import { handleGetAsrUrl } from '@/service/chat';
 import { MessagePlugin } from 'tdesign-vue-next';
 import FileList from '@/components/Common/FileList.vue';
 import RecordIcon from '@/components/Common/RecordIcon.vue';
-import PictureIcon from '@/assets/icons/picture.svg';
-import VoiceInputIcon from '@/assets/icons/voice_input.svg';
-import SendIcon from '@/assets/icons/send.svg';
-import PauseIcon from '@/assets/icons/pause.svg';
-import SendFill from '@/assets/icons/send_fill.svg';
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
 
 const { t } = useI18n();
@@ -275,11 +270,11 @@ defineExpose({
         </template>
         <template #suffix>
             <!-- 等待中的发送按钮 -->
-            <CustomizedIcon class="send-icon waiting" v-if="!isStreamLoad && !inputValue" nativeIcon :svg="SendIcon"  @click="handleSend(inputValue)" />
+            <CustomizedIcon class="send-icon waiting" v-if="!isStreamLoad && !inputValue" nativeIcon :name="uiStore.theme === 'dark' ? 'send_dark' : 'send'"  @click="handleSend(inputValue)" />
             <!-- 可用的发送按钮 -->
-            <CustomizedIcon class="send-icon success" v-if="!isStreamLoad && inputValue"  nativeIcon :svg="SendFill"  @click="handleSend(inputValue)" />
+            <CustomizedIcon class="send-icon success" v-if="!isStreamLoad && inputValue"  nativeIcon name="send_fill" @click="handleSend(inputValue)" />
             <!-- 停止发送按钮 -->
-            <CustomizedIcon class="send-icon stop" v-if="isStreamLoad"  :svg="PauseIcon" nativeIcon @click="onStop" />
+            <CustomizedIcon class="send-icon stop" v-if="isStreamLoad"   :name="uiStore.theme === 'dark' ? 'pause_dark' : 'pause'" nativeIcon @click="onStop" />
         </template>
         <template #prefix>
             <div class="sender-control-container">
@@ -289,13 +284,13 @@ defineExpose({
                     tips="">
                     <t-tooltip :content="$t('sender.uploadImg')">
                         <span class="recording-icon">
-                            <CustomizedIcon showHoverBackground  :svg="PictureIcon" />
+                            <CustomizedIcon  name="picture"  />
                         </span>
                     </t-tooltip>
                 </t-upload>
                 <t-tooltip v-if="!recording" :content="$t('sender.startRecord')">
                     <span class="recording-icon" @click="handleStartRecord">
-                        <CustomizedIcon showHoverBackground  :svg="VoiceInputIcon" />
+                        <CustomizedIcon  name="voice_input"  />
                     </span>
                 </t-tooltip>
 

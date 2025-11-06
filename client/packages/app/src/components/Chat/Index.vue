@@ -14,18 +14,18 @@
             </template>
             <!-- 聊天消息列表 -->
             <template v-else>
-                <div class="content selectable" :class="uiStore.isMobile ? 'isMobile' : ''">
-                    <InfiniteLoading :identifier="chatId" direction="top" @infinite="infiniteHandler">
+                <div class="content selectable" :class="{ isMobile: uiStore.isMobile, isFull: chatList.length <= 0 }">
+                    <InfiniteLoading v-if="chatId" :identifier="chatId" direction="top" @infinite="infiniteHandler">
                         <template #spinner>
                             <div>
-                                <t-loading  size="small">
+                                <t-loading size="small">
                                     <template #text>
                                         <span class="thinking-text">
                                             {{ `${$t('common.loading')}...` }}
                                         </span>
                                     </template>
                                     <template #indicator>
-                                        <CustomizedIcon class="thinking-icon" :svg="ThinkIcon" />
+                                        <CustomizedIcon class="thinking-icon" name="thinking" />
                                     </template>
                                 </t-loading>
                             </div>
@@ -38,11 +38,11 @@
                         </template>
                     </InfiniteLoading>
                     <div class="chat-item__content" v-for="(item, index) in chatList" :key="item.RecordId">
-                        <Checkbox class="share-checkbox" :checked="selectedIds?.includes(item.RecordId)" v-if="isSelecting"
-                            @change="(e) => onSelectIds(item.RecordId, e)" />
+                        <Checkbox class="share-checkbox" :checked="selectedIds?.includes(item.RecordId)"
+                            v-if="isSelecting" @change="(e) => onSelectIds(item.RecordId, e)" />
                         <div style="width: 100%">
                             <ChatItem :isLastMsg="index === (chatList.length - 1)" :item="item" :index="index"
-                                :loading="loading" :isStreamLoad="isStreamLoad" :onResend="onResend"
+                                :loading="loading" :isStreamLoad="isChatting" :onResend="onResend"
                                 :onShare="onShare" />
                         </div>
                     </div>
@@ -51,10 +51,9 @@
             </template>
             <!-- 底部发送区域 -->
             <template #footer>
-                 <!-- 回到底部按钮 -->
+                <!-- 回到底部按钮 -->
                 <BackToBottom v-show="chatId && ((isShowToBottom && !isStreamLoad) || hasUserScrolled)"
-                    :loading="isChatting"
-                    :backToBottom="handleClickBackToBottom" />
+                    :loading="isChatting" :backToBottom="handleClickBackToBottom" />
                 <t-card v-if="isSelecting" size="small" class="share-setting-container" shadow
                     bodyClassName="share-setting-card">
                     <div class="share-setting-content">
@@ -65,7 +64,7 @@
                             {{ $t('operation.shareFor') }}
                             <div class="icon__share-copy" :class="{ disabled: selectedIds.length <= 0 }"
                                 @click="handleCopyShare()">
-                                <CustomizedIcon :svg="CopyLinkIcon"/> 
+                                <CustomizedIcon name="copy_link" />
                                 <span>{{ $t('operation.copyUrl') }}</span>
                             </div>
                         </div>
@@ -81,7 +80,7 @@
                     :toggleDeepThinking="toggleDeepThinking" />
             </template>
         </TChat>
-       
+
     </div>
 </template>
 
@@ -111,8 +110,6 @@ import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
 import { useRouter } from 'vue-router'
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
-import CopyLinkIcon from '@/assets/icons/copy_link.svg';
-import ThinkIcon from '@/assets/icons/thinking.svg';
 const router = useRouter()
 
 
@@ -213,6 +210,7 @@ const isShowToBottom = ref(false)
  * @returns {Promise<void>}
  */
 const handleGetConversationDetail = async (chatId: string, status?: { loaded: () => void; complete: () => void }) => {
+    console.log('isChatting', isChatting)
     if (!chatId) return
     if (isChatting.value) {
         status && status.complete()
@@ -264,13 +262,20 @@ const throttle = (fn: Function, delay: number) => {
  * 滚动到底部
  * @returns {void}
  */
-const backToBottom = throttle(() => {
-    if (!(chatRef.value && chatRef.value.scrollToBottom)) return;
+const backToBottom = () => {
+     if (!(chatRef.value && chatRef.value.scrollToBottom)) return;
     if (hasUserScrolled.value) return;
     chatRef.value.scrollToBottom({
         behavior: 'smooth',
     });
-}, 500);
+}
+// const backToBottom = throttle(() => {
+//     if (!(chatRef.value && chatRef.value.scrollToBottom)) return;
+//     if (hasUserScrolled.value) return;
+//     chatRef.value.scrollToBottom({
+//         behavior: 'smooth',
+//     });
+// }, 500);
 
 /**
  * 点击回到底部按钮
@@ -287,7 +292,8 @@ const handleClickBackToBottom = () => {
  * @returns {void}
  */
 const getDefaultQuestion = (value: string) => {
-    senderRef.value && senderRef.value.changeSenderVal(value, [])
+    // senderRef.value && senderRef.value.changeSenderVal(value, [])
+    inputEnter(value)
 }
 
 /**
@@ -347,7 +353,11 @@ const onStop = function () {
  * @returns {void}
  */
 const infiniteHandler = function ($state: any) {
-    handleGetConversationDetail(chatId.value, $state)
+    try{
+        handleGetConversationDetail(chatId.value, $state)
+    }catch(err){
+        $state.complete()
+    }
 }
 
 /**
@@ -519,7 +529,7 @@ const handleSendData = async (queryVal: string) => {
                     //  创建新的对话，重新调用chatlist接口更新列表，根据record的LastActiveAt更新列表排序
                     fetchChatList(result.data.Id)
                     if (result.data.IsNewConversation) {
-                        currentChatingConversationId.value = result.data.Id ;
+                        currentChatingConversationId.value = result.data.Id;
                         chatStore.setCurrentConversation(result.data)
                         router.push({ name: 'Home', query: { conversationId: result.data.Id } })
                     }
@@ -550,17 +560,17 @@ const handleSendData = async (queryVal: string) => {
             },
             complete(isOk, msg) {
                 if (isOk) {
-                    
                     loading.value = false
                     chatStore.setIsChatting(false)
-                    hasUserScrolled.value = false
                     currentChatingConversationId.value = ''
-                    setTimeout(() => {
-                        isStreamLoad.value = false
-                        nextTick(() => {
-                            backToBottom()
-                        })
-                    }, 500);    //  TODO：图标按钮的显示会延迟
+                    nextTick(() => {
+                        backToBottom();
+                        setTimeout(() => {
+                            hasUserScrolled.value = false;  //  结束后取消自动滚动
+                            isStreamLoad.value = false;
+                        }, 500);    //  自动滚动到底有操作延迟，确认触底后取消状态位
+                    })
+                    
                 }
             },
             fail(msg) {
@@ -575,7 +585,7 @@ const handleSendData = async (queryVal: string) => {
 // 监听chatId变化
 watch(
     chatId,
-    (newId,oldId) => {
+    (newId, oldId) => {
         // sse新建对话中不处理变化
         if (isChatting.value && (newId && currentChatingConversationId.value && newId === currentChatingConversationId.value)) {
             return
@@ -624,10 +634,12 @@ watch(
     font-size: var(--td-font-size-link-medium);
     cursor: pointer;
 }
-.share-text{
+
+.share-text {
     display: flex;
     align-items: center;
 }
+
 .icon__share-copy.disabled {
     cursor: not-allowed;
     opacity: 0.4;
@@ -642,17 +654,31 @@ watch(
     margin-left: var(--td-pop-padding-xl);
     padding-left: var(--td-comp-paddingLR-xxs);
 }
-.thinking-text{
+
+.thinking-text {
     color: var(--td-text-color-primary);
     font-size: var(--td-font-size-link-medium);
     margin-left: var(--td-comp-margin-xs)
 }
 
-.thinking-icon{
+.thinking-icon {
     animation: rotate 2s linear infinite;
     width: var(--td-comp-size-xs);
     height: var(--td-comp-size-xs);
     padding: 0;
+}
+
+.content.isFull,
+.content.isFull .infinite-loading-container,
+.content.isFull .infinite-status-prompt {
+    height: 100%;
+}
+
+:deep(.content.isFull .infinite-status-prompt) {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 :deep(.t-chat__footer) {
@@ -661,20 +687,24 @@ watch(
     padding: 0 var(--td-comp-paddingLR-m);
 
 }
-:deep(.content .chat-item__content){
-   margin-bottom: var(--td-comp-paddingLR-l); 
+
+:deep(.content .chat-item__content) {
+    padding-bottom: var(--td-comp-paddingLR-l);
+    margin-left: var(--td-size-4);
 }
-:deep(.content .chat-item__content:last-child){
-   margin-bottom: var(--td-comp-paddingLR-xl); 
+
+:deep(.content .chat-item__content:last-child) {
+    padding-bottom: var(--td-comp-paddingLR-xl);
 }
 
 :deep(.t-chat__list) {
-    padding: 0 var(--td-comp-paddingLR-xl);
+    padding: 0 calc(var(--td-comp-paddingLR-xl) - var(--td-size-4));
+    overflow-y: scroll;
 }
 
 :deep(.t-chat__list .content) {
     width: 100%;
-    max-width: 800px;
+    max-width: calc(800px + var(--td-size-4));   /* 添加滚动条宽度 */
     margin: 0 auto;
 }
 
@@ -689,11 +719,11 @@ watch(
     padding: var(--td-comp-paddingLR-s) var(--td-size-10) var(--td-comp-paddingLR-s) var(--td-comp-paddingLR-xl);
 
 }
-:deep(.share-setting-container){
+
+:deep(.share-setting-container) {
     border: none;
     box-sizing: border-box;
     box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 18px rgba(18, 19, 25, 0.08), 0px 16px 64px rgba(18, 19, 25, 0.16);
     border-radius: 6px;
 }
-
 </style>

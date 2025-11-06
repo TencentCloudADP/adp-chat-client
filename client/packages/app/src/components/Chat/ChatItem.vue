@@ -19,18 +19,12 @@ import { useChatStore } from '@/stores/chat';
 import { useUiStore } from '@/stores/ui'
 
 // TDesign UI 组件
-import { MessagePlugin, Tooltip, Divider } from 'tdesign-vue-next';
+import { MessagePlugin, Tooltip } from 'tdesign-vue-next';
 import { storeToRefs } from 'pinia';
 // 工具函数
 import { copy } from '@/utils/clipboard';
 import MdContent from '../Common/MdContent.vue';
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
-import RefreshIcon from '@/assets/icons/refresh.svg';
-import CopyIcon from '@/assets/icons/copy.svg';
-import ShareIcon from '@/assets/icons/share.svg';
-import ThumbsUpIcon from '@/assets/icons/thumbs_up.svg';
-import ThumbsDownIcon from '@/assets/icons/thumbs_down.svg';
-import ThinkIcon from '@/assets/icons/thinking.svg';
 
 
 const { t } = useI18n();
@@ -172,7 +166,7 @@ const renderReasoning = (item: Record) => {
 
 <template>
     <!-- 聊天项组件 -->
-    <TChatItem animation="skeleton" :role="!item.IsFromSelf ? 'assistant' : 'user'" :text-loading="false"
+    <TChatItem  animation="skeleton" :role="!item.IsFromSelf ? 'assistant' : 'user'" :text-loading="false"
         :reasoning="renderReasoning(item)" >
         <!-- 内容插槽 -->
         <template #content>
@@ -184,7 +178,7 @@ const renderReasoning = (item: Record) => {
                         </span>
                     </template>
                     <template #indicator>
-                        <CustomizedIcon class="thinking-icon" :svg="ThinkIcon" />
+                        <CustomizedIcon class="thinking-icon" name="thinking" />
                     </template>
                 </t-loading>
             </div>
@@ -192,9 +186,10 @@ const renderReasoning = (item: Record) => {
                 
                 <div v-if="item.IsFromSelf" class="user-message">
                     <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos" />
-                    <CustomizedIcon v-if="showActions && !uiStore.isMobile" class="control-icon copy-icon" :svg="CopyIcon"
+                    <CustomizedIcon v-if="showActions && !uiStore.isMobile" class="control-icon copy-icon" name="copy" 
                         @click="(e: any) => copyContent(e, item.Content, 'user')" />
-                    <CustomizedIcon v-if="showActions  && !uiStore.isMobile" class="control-icon share-icon" :svg="ShareIcon" @click="share(item)" />
+                    <CustomizedIcon v-if="showActions  && !uiStore.isMobile" class="control-icon share-icon" name="share"
+                        @click="share(item)" />
                 </div>
                 <MdContent v-else :content="item.Content" role="assistant" :quoteInfos="item.QuoteInfos" />
                 <div class="references-container"
@@ -211,27 +206,30 @@ const renderReasoning = (item: Record) => {
         </template>
         <!-- 操作按钮插槽 -->
         <template #actions v-if="showActions" >
+            <!-- <div  class="actions-container"> -->
             <div v-show="!isStreamLoad || !isLastMsg" class="actions-container">
                 <Tooltip :content="t('operation.copy')" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon  class="control-icon copy-icon icon" :svg="CopyIcon"
+                    <CustomizedIcon size="s" class="control-icon copy-icon icon" name="copy" 
                         @click="(e: any) => copyContent(e, item.Content, 'assistant')" />
                 </Tooltip>
                 <Tooltip :content="t('operation.replay')" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon  class="control-icon icon" :svg="RefreshIcon"
+                    <CustomizedIcon size="s" class="control-icon icon" name="refresh" 
                         @click="onResend && onResend(item.RelatedRecordId)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.share')" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon  class="control-icon share-icon icon" :svg="ShareIcon" @click="share(item)" />
+                    <CustomizedIcon size="s" class="control-icon share-icon icon" name="share"  @click="share(item)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.good')" destroyOnClose showArrow theme="default">
                     <CustomizedIcon
+                        size="s"
                         :class="{ active: record.Score === ScoreValue.Like, disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined }"
-                        class="control-icon icon"  :svg="ThumbsUpIcon" @click="rate(item, ScoreValue.Like)" />
+                        class="control-icon icon" name="thumbs_up"  @click="rate(item, ScoreValue.Like)" />
                 </Tooltip>
                 <Tooltip :content="t('operation.bad')" destroyOnClose showArrow theme="default">
                     <CustomizedIcon
+                        size="s"
                         :class="{ active: record.Score === ScoreValue.Dislike, disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined }"
-                        class="control-icon icon"  :svg="ThumbsDownIcon" @click="rate(item, ScoreValue.Dislike)" />
+                        class="control-icon icon" name="thumbs_down"   @click="rate(item, ScoreValue.Dislike)" />
                 </Tooltip>
             </div>
         </template>
@@ -338,5 +336,8 @@ const renderReasoning = (item: Record) => {
     border: 1px solid var(--td-component-border);
     border-radius: var(--td-radius-medium);
     padding: calc(var(--td-pop-padding-m) - 1px);
+}
+.chat-item__container.loading{
+    padding-bottom: 32px;
 }
 </style>

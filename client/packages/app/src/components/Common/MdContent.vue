@@ -7,9 +7,8 @@
 
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import type { QuoteInfo } from '@/model/chat'
-
 import { storeToRefs } from 'pinia'
 import { useUiStore } from '@/stores/ui'
 import MarkdownIt from 'markdown-it';
@@ -18,8 +17,8 @@ import markdownItHighlightjs from 'markdown-it-highlightjs';
 import 'katex/dist/katex.min.css';
 import './github-markdown.css';
 import 'highlight.js/styles/default.css';
-const uiStore = useUiStore()
 
+const uiStore = useUiStore()
 const { theme } = storeToRefs(uiStore)
 
 // message rendering
@@ -54,11 +53,11 @@ const mdIt = MarkdownIt({
   breaks: true,
   linkify: true,
   typographer: true,
-}).use(katex)
-  .use(markdownItHighlightjs);
+})
+  .use(katex)
+  .use(markdownItHighlightjs)
 
 const renderedMarkdown = computed(() => {
-  // return mdIt.render(content || '');
   return content && mdIt.render(insertReference(content || '', quoteInfos));
 });
 
@@ -67,6 +66,9 @@ const renderedMarkdown = computed(() => {
 
 
 <style scoped>
+.md-content{
+  position: relative;
+}
 .md-content-container {
   padding: var(--td-comp-paddingTB-s);
 }
