@@ -11,7 +11,6 @@ import { TDesignResolver } from 'unplugin-vue-components/resolvers'
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  
   return {
     base: './',
     plugins: [
