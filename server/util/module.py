@@ -49,7 +49,7 @@ def autodiscover_vendor():
         if hasattr(module, 'get_class'):
             logging.info(f'loading vendor class: {name}')
             cls_or_list = module.get_class()
-            
+
             # Support both single class and list of classes
             if isinstance(cls_or_list, list):
                 for cls in cls_or_list:
