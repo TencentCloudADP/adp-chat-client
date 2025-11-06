@@ -1,0 +1,275 @@
+---
+title: 多供应商配置
+sidebar_position: 4
+---
+
+本文档介绍如何在 ADP Chat Client 中配置不同的 AI 供应商。
+
+## 📋 配置位置
+
+**所有供应商配置必须添加到 `.env` 文件中的 `APP_CONFIGS` 字段。**
+
+`APP_CONFIGS` 字段包含一个供应商配置的 JSON 数组：
+
+```bash
+# In server/.env file
+APP_CONFIGS='[
+    {
+        "Vendor": "Tencent",
+        "ApplicationId": "your-app-id",
+        "Comment": "Health Assistant",
+        "AppKey": "your-app-key",
+        "International": false
+    },
+    {
+        "Vendor": "Ollama",
+        "ApplicationId": "ollama-gemma3-1b",
+        "DisplayName": "Gemma 3 Local Model",
+        "BaseUrl": "http://localhost:11434/v1",
+        "ModelName": "gemma3:1b",
+        "Temperature": 0.7,
+        "MaxTokens": 2000
+    },
+    {
+        "Vendor": "OpenAI", 
+        "ApplicationId": "openai-gpt4",
+        "DisplayName": "ChatGPT 4",
+        "ApiKey": "sk-proj-...",
+        "BaseUrl": "https://api.openai.com/v1",
+        "ModelName": "gpt-4"
+    }
+]'
+```
+
+## 支持的供应商
+
+| 供应商 | 描述 | 使用场景 |
+|--------|-------------|----------|
+| **Tencent** | 腾讯云 ADP | 企业级智能体开发平台 |
+| **Ollama** | 本地 LLM 模型 | 注重隐私、离线 AI（Llama、Gemma、Mistral）|
+| **OpenAI** | OpenAI GPT 模型 | 最先进的语言模型 |
+
+---
+
+## 1. 腾讯 ADP
+
+**使用场景**：支持知识库和 RAG 的企业级 AI
+
+### 配置
+
+```json
+{
+    "Vendor": "Tencent",
+    "ApplicationId": "1979154564259682304",
+    "Comment": "Health Assistant",
+    "AppKey": "your-app-key-here",
+    "International": false
+}
+```
+
+### 必填字段
+
+| 字段 | 描述 | 获取方式 |
+|-------|-------------|---------------|
+| `ApplicationId` | 腾讯 ADP 应用 ID | [ADP 控制台](https://adp.cloud.tencent.com/adp/#/app/home) |
+| `AppKey` | 应用认证密钥 | ADP 控制台 → 应用设置 |
+| `International` | 区域设置 | `false`（中国）/ `true`（国际）|
+
+### 额外配置
+
+在 `.env` 中配置腾讯云凭证：
+
+```bash
+TC_SECRET_APPID=your-appid
+TC_SECRET_ID=your-secret-id
+TC_SECRET_KEY=your-secret-key
+```
+
+获取凭证：
+- 中国大陆：https://console.cloud.tencent.com/cam/capi
+- 国际站：https://console.tencentcloud.com/cam/capi
+
+---
+
+## 2. Ollama
+
+**使用场景**：本地、注重隐私的 AI 模型（Llama、Gemma、Mistral）
+
+### 快速开始
+
+```bash
+# 安装 Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# 拉取模型
+ollama pull gemma3:1b
+
+# 启动服务
+ollama serve
+```
+
+### 配置
+
+```json
+{
+    "Vendor": "Ollama",
+    "ApplicationId": "ollama-gemma3-1b",
+    "DisplayName": "Gemma 3 Local Model",
+    "BaseUrl": "http://localhost:11434/v1",
+    "ModelName": "gemma3:1b",
+    "Temperature": 0.7,
+    "MaxTokens": 2000
+}
+```
+
+### 必填字段
+
+| 字段 | 描述 | 默认值 |
+|-------|-------------|---------|
+| `BaseUrl` | Ollama API 端点（必须以 `/v1` 结尾）| `http://localhost:11434/v1` |
+| `ModelName` | 模型标识符 | `llama2` |
+
+### 可选参数
+
+| 字段 | 描述 | 默认值 | 范围 |
+|-------|-------------|---------|-------|
+| `Temperature` | 随机性/创造性 | `0.7` | `0.0` - `2.0` |
+| `MaxTokens` | 最大响应长度 | `2000` | `1` - `8192` |
+| `TopP` | 核采样 | `1.0` | `0.1` - `1.0` |
+| `FrequencyPenalty` | 减少重复 | `0.0` | `-2.0` - `2.0` |
+| `PresencePenalty` | 鼓励新话题 | `0.0` | `-2.0` - `2.0` |
+
+### 热门模型
+
+```bash
+ollama pull llama2          # Llama 2 7B
+ollama pull llama3.1:8b     # Llama 3.1 8B
+ollama pull mistral:7b      # Mistral 7B
+ollama pull gemma3:1b       # Gemma3 1B
+```
+
+---
+
+## 3. OpenAI
+
+**使用场景**：最先进的语言模型（GPT-3.5、GPT-4、GPT-5）
+
+### 配置
+
+```json
+{
+    "Vendor": "OpenAI",
+    "ApplicationId": "openai-gpt4",
+    "DisplayName": "ChatGPT 4",
+    "ApiKey": "sk-proj-...",
+    "BaseUrl": "https://api.openai.com/v1",
+    "ModelName": "gpt-4"
+}
+```
+
+### 必填字段
+
+| 字段 | 描述 | 示例 |
+|-------|-------------|---------|
+| `ApiKey` | OpenAI API 密钥 | `sk-proj-...` |
+| `BaseUrl` | API 端点 | `https://api.openai.com/v1` |
+| `ModelName` | 模型标识符 | `gpt-4`、`gpt-3.5-turbo` |
+
+### 支持的模型
+
+| 模型 | 使用场景 |
+|-------|----------|
+| `gpt-3.5-turbo` | 快速、经济实惠 |
+| `gpt-4` | 复杂推理、编程 |
+| `gpt-4-turbo` | 平衡性能 |
+| `gpt-4.1` | 最新 GPT-4 变体 |
+| `gpt-5` | 高级推理（不支持自定义温度）|
+
+### 特别说明：GPT-5/o1/o3
+
+这些模型不支持自定义 `Temperature`：
+
+```json
+{
+    "Vendor": "OpenAI",
+    "ApplicationId": "openai-gpt5",
+    "DisplayName": "GPT-5",
+    "ApiKey": "sk-proj-...",
+    "ModelName": "gpt-5"
+    // 不要设置 Temperature
+}
+```
+
+---
+
+## 配置示例
+
+### 单个供应商
+
+```bash
+APP_CONFIGS='[
+    {
+        "Vendor": "Ollama",
+        "ApplicationId": "ollama-llama2",
+        "DisplayName": "Llama 2",
+        "BaseUrl": "http://localhost:11434/v1",
+        "ModelName": "llama2"
+    }
+]'
+```
+
+### 多个供应商
+
+```bash
+APP_CONFIGS='[
+    {
+        "Vendor": "Tencent",
+        "ApplicationId": "1234567890",
+        "Comment": "Health Assistant",
+        "AppKey": "...",
+        "International": false
+    },
+    {
+        "Vendor": "Ollama",
+        "ApplicationId": "ollama-gemma3",
+        "DisplayName": "Gemma 3 Local",
+        "BaseUrl": "http://localhost:11434/v1",
+        "ModelName": "gemma3:1b"
+    },
+    {
+        "Vendor": "OpenAI",
+        "ApplicationId": "openai-gpt4",
+        "DisplayName": "ChatGPT 4",
+        "ApiKey": "sk-proj-...",
+        "ModelName": "gpt-4"
+    }
+]'
+```
+
+---
+
+## 常见问题
+
+### 找不到供应商
+检查 `Vendor` 字段首字母是否大写：`"Tencent"`、`"Ollama"`、`"OpenAI"`
+
+### Ollama 连接失败
+```bash
+ollama serve  # 启动 Ollama 服务
+curl http://localhost:11434/v1/models  # 测试 API
+```
+
+### OpenAI API 错误 401
+- 在 https://platform.openai.com/api-keys 验证 API 密钥
+- 检查账户是否有余额
+
+### OpenAI temperature 错误
+对于 GPT-5/o1/o3 模型，请移除 `Temperature` 字段
+
+---
+
+## 相关资源
+
+- **腾讯 ADP**：https://adp.cloud.tencent.com/
+- **Ollama**：https://ollama.ai/
+- **OpenAI**：https://platform.openai.com/

@@ -66,7 +66,7 @@ class ChatMessageListApi(HTTPMethodView):
                 request.ctx.db,
                 request.ctx.account_id,
                 args['ConversationId'],
-                4,
+                app.config.CHAT_MESSAGE_PAGE_SIZE,
                 args['LastRecordId']
             )
             resp = {
