@@ -117,7 +117,7 @@ class MsgRecord(BaseModel):
     IsFromSelf: Optional[bool] = None
     IsFinal: Optional[bool] = None
     CanRating: Optional[bool] = None
-    Timestamp: Optional[int] = None
+    Timestamp: Optional[float] = None
     CanFeedback: Optional[bool] = None
     SessionId: Optional[str] = None
     WorkFlow: Optional[_WorkFlow] = None

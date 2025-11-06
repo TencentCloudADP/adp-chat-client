@@ -50,6 +50,11 @@ class TAgenticConfig(
         default=24,
     )
 
+    CHAT_MESSAGE_PAGE_SIZE: PositiveInt = Field(
+        description="Number of messages to load per page when browsing chat history",
+        default=100,
+    )
+
     model_config = SettingsConfigDict(
         # read from dotenv format config file
         env_file=".env",
