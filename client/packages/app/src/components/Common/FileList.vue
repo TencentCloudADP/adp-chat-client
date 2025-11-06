@@ -4,23 +4,21 @@
             <div v-for="(img, index) in fileList" class="img-item-container">
                 <t-image fit="contain" :src="img.url" :style="{ width: '70px', height: '70px' }" />
                 <span class="delete-container"  @click="onDelete(index)">
-                    <CustomizedIcon :svg="DeleteIcon" size="l"/>
+                    <CustomizedIcon name="delete"/>
                 </span>
             </div>
         </div>
         <div v-if="showFrontIcon"  class="btn front" @click="handleScroll('front')">
-            <CustomizedIcon :svg="ArrowUpSmallIcon"/>
+            <CustomizedIcon name="arrow_up_small"/>
         </div>
         <div v-if="showBackIcon" class="btn back"  @click="handleScroll('back')">
-            <CustomizedIcon :svg="ArrowUpSmallIcon"/>
+            <CustomizedIcon name="arrow_up_small"/>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import ArrowUpSmallIcon from '@/assets/icons/arrow_up_small.svg';
-import DeleteIcon from '@/assets/icons/delete.svg';
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
 
 

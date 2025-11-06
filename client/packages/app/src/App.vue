@@ -73,6 +73,26 @@ onMounted(() => {
 :deep(.t-chat__text--variant--text .t-chat__detail-reasoning){
   padding-top: 0;
 }
+/* 自定义滚动条样式 */
+@-moz-document url-prefix(){
+  :deep(.t-chat__list){
+    scrollbar-color:var(--td-scrollbar-color) transparent;
+    scrollbar-width: thin;
+  }
+}
+ :deep(.t-chat__list::-webkit-scrollbar ){
+    width: var(--td-size-4);
+    background: transparent;
+}
+:deep(.t-chat__list::-webkit-scrollbar-thumb){
+    border: 2px solid transparent;
+    background-clip: content-box;
+    background-color: var(--td-scrollbar-color);
+    border-radius: 15px;
+}
+:deep(.t-chat__list::-webkit-scrollbar-thumb:hover){
+    background-color: var(--td-scrollbar-hover-color);
+}
 </style>
 <style>
 @keyframes rotate {
@@ -86,4 +106,15 @@ transform: rotate(360deg);
 .selectable {
   user-select: text;
 }
+/* .narrow-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+} */
+/* .narrow-scrollbar::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    background-clip: content-box;
+    background-color: var(--td-scrollbar-color);
+    border-radius: 15px;
+} */
+
 </style>

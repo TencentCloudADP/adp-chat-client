@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
-import ArrowDownMediumIcon from '@/assets/icons/arrow_down_medium.svg';
-import backToBottomLoadingIcon from '@/assets/icons/loading.svg';
 const props = defineProps<{
     loading?: boolean,
     backToBottom: () => void;
@@ -12,8 +10,8 @@ const props = defineProps<{
 <template>
     <div class="bottom-icon" @click="props.backToBottom">
         <div class="bottom-icon-container">
-            <CustomizedIcon  v-if="loading" nativeIcon class="loading" :svg="backToBottomLoadingIcon"/>  
-            <CustomizedIcon disablePadding size="m" nativeIcon :svg="ArrowDownMediumIcon"/>  
+            <CustomizedIcon  v-if="loading" nativeIcon class="loading" name="back_to_bottom_loading"/>  
+            <CustomizedIcon size="m" nativeIcon name="arrow_down_medium" />  
         </div>
     </div>
 </template>
