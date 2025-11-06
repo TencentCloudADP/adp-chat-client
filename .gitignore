@@ -16,4 +16,3 @@ deploy/default/volume/
 .codebuddy/
 .vercel
 server/static/
-client/package-lock.json
