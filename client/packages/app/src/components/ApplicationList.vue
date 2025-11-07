@@ -5,8 +5,6 @@ import { useChatStore } from '@/stores/chat';
 import { useRouter } from 'vue-router';
 import type { Application } from '@/model/application'
 import { useI18n } from 'vue-i18n';
-import GridIcon from '@/assets/icons/grid.svg';
-import ArrowUpSmallIcon from '@/assets/icons/arrow_up_small.svg';
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
 
 const router = useRouter();
@@ -73,13 +71,13 @@ const handleCollapseClick = () => {
 
         <!-- 显示更多选项 -->
         <div v-if="showMore" class="application-item control" @click="handleMoreClick">
-            <CustomizedIcon showHoverBackground class="application-avatar control"  :svg="GridIcon" />
+            <CustomizedIcon :showHoverBg="false" class="application-avatar control"  name="grid"/>
             <span class="application-name">{{ t('common.more') }}</span>
         </div>
 
         <!-- 显示收起选项 -->
         <div v-if="showCollapse" class="application-item control collapse" @click="handleCollapseClick">
-            <CustomizedIcon size="ml"  class="application-avatar"  :svg="ArrowUpSmallIcon" />
+            <CustomizedIcon :showHoverBg="false" size="xs"  class="application-avatar" name="arrow_up_small" />
             <span class="application-name">{{ t('common.collapse') }}</span>
         </div>
     </div>
@@ -122,10 +120,15 @@ const handleCollapseClick = () => {
 .application-avatar {
     margin-right: var(--td-comp-margin-xs);
 }
+.application-avatar.collapse{
+    margin: var(--td-comp-margin-xs);
+}
 .application-avatar.control{
     margin-right: calc(-1 * var(--td-comp-paddingLR-xxs));
 }
-
+.application-item.collapse svg{
+    margin: 0 var(--td-size-2);
+}
 .application-name {
     max-width: 90%;
     overflow: hidden;

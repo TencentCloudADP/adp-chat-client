@@ -64,6 +64,7 @@ const cancelEmptyDialog = () => {
 .login-card {
   padding: var(--td-comp-paddingTB-xl) var(--td-comp-paddingLR-xl);
   border-radius: var(--td-radius-large);
+  max-width: 90%;
 }
 
 .login-title {
@@ -84,5 +85,8 @@ const cancelEmptyDialog = () => {
 :deep(.t-card__header),
 :deep(.t-card__body) {
   padding: var(--td-comp-paddingTB-m) var(--td-comp-paddingLR-xl);
+}
+:deep(.oauth-button-wrapper .t-button){
+  max-width: 100%;
 }
 </style>

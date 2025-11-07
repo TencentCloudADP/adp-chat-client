@@ -49,9 +49,11 @@
     "createConversation": "新建对话",
     "thinking": "思考中",
     "deepThinkingFinished": "已深度思考",
+    "deepThinkingExpand":"收起深度思考过程",
     "duration": "用时",
     "input": {
       "placeholder": "有问题，尽管问，shift+enter换行，enter发送消息",
+      "placeholderMobile":"请输入消息...",
       "deepThinking": "深度思考"
     }
   },

@@ -3,7 +3,6 @@ import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { useChatStore } from '@/stores/chat';
 import { useAppsStore } from '@/stores/apps';
-import NewConversationIcon from '@/assets/icons/new_conversation.svg';
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
 
 const router = useRouter();
@@ -29,7 +28,7 @@ const createConversation = () => {
 <template>
     <t-tooltip :content="t('conversation.createConversation')">
         <t-button shape="square" variant="text" @click="createConversation">
-            <CustomizedIcon  :svg="NewConversationIcon" showHoverBackground />
+            <CustomizedIcon name="new_conversation" />
         </t-button>
     </t-tooltip>
 </template>

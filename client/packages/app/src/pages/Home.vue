@@ -2,12 +2,13 @@
 import MainLayout from '@/layout/MainLayout.vue'
 import SideLayout from '@/layout/SideLayout.vue'
 import { onMounted } from 'vue'
+import { useUiStore } from '@/stores/ui'
 import { fetchUserInfo } from '@/service/user';
 import { fetchApplicationInfo } from '@/stores/apps';
 import { fetchChatList } from '@/stores/chat';
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
+const uiStore = useUiStore()
 const route = useRoute()
-const router = useRouter()
 
 /**
  * 页面挂载时执行的生命周期钩子
@@ -25,7 +26,7 @@ onMounted(async () => {
 </script>
 
 <template>
-    <t-layout class="page-container">
+    <t-layout class="page-container" :class="uiStore.isMobile ? 'isMobile' : 'pc'">
         <t-content class="content">
             <SideLayout />
             <MainLayout />

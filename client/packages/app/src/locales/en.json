@@ -49,9 +49,11 @@
     "createConversation": "Create Conversation",
     "thinking": "Thinking",
     "deepThinkingFinished": "Deep Thinking Finished",
+    "deepThinkingExpand": "Collapse the deep thought process",
     "duration": "Duration",
     "input": {
       "placeholder": "Ask me here, press shift+enter to start a new line, press enter to send the message",
+      "placeholderMobile":"Please enter your message...",
       "deepThinking": "Deep Thinking"
     }
   },
