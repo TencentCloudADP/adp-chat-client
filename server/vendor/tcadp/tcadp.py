@@ -28,21 +28,22 @@ class TCADP(BaseVendor):
         resp = await tc_request(self.tc_config(), action, payload)
         if 'Error' in resp['Response']:
             logging.error(resp)
-            raise Exception(resp['Response']['Error'])
+        else:
+            BotBizId = resp['Response']['BotBizId']
+            self.config['BotBizId'] = BotBizId
 
-        BotBizId = resp['Response']['BotBizId']
-        self.config['BotBizId'] = BotBizId
+            action = "DescribeApp"
+            payload = {
+                "AppBizId": BotBizId,
+            }
+            resp = await tc_request(self.tc_config(), action, payload)
 
-        action = "DescribeApp"
-        payload = {
-            "AppBizId": BotBizId,
-        }
-        resp = await tc_request(self.tc_config(), action, payload)
         if 'Error' in resp['Response']:
             logging.error(resp)
             return ApplicationInfo(
                 ApplicationId = self.application_id,
-                Name = '未知应用',
+                Name = 'Unknown',
+                Greeting = 'Please check your AppKey/SseURL/TC_SECRET_ID/TC_SECRET_KEY',
             )
         else:
             return ApplicationInfo(
