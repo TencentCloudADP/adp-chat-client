@@ -1,6 +1,7 @@
 import { httpService } from './httpService'
 import type { ChatConversation, ChatConversationProps, Record, ScoreValue } from '@/model/chat'
-import type { AxiosRequestConfig } from 'axios'
+import type { AxiosRequestConfig,AxiosError } from 'axios'
+import { MessagePlugin } from 'tdesign-vue-next';
 import { t } from '@/i18n'
 
 /**
@@ -12,8 +13,12 @@ export const handleLoadConversations = async () => {
   try {
     const response: ChatConversation[] = await httpService.get('/chat/conversations')
     return response
-  } catch (error) {
+  } catch (error:any) {
     console.error(t('获取应用列表失败:'), error)
+    MessagePlugin.error({
+          content: error?.message || t('获取聊天信息失败'),
+          duration: 3000
+    })
     throw new Error(t('获取应用列表失败'))
   }
 }
@@ -34,10 +39,14 @@ export const handleLoadConversationDetail = async (params: ChatConversationProps
       }
     } = await httpService.get('/chat/messages', params)
     return response
-  } catch (error) {
+  } catch (error:any) {
     console.error(t('获取聊天信息失败:'), error)
+    MessagePlugin.error({
+          content: error?.message || t('获取聊天信息失败'),
+          duration: 3000
+    })
     throw new Error(t('获取聊天信息失败'))
-  }
+  } 
 }
 
 /**
@@ -66,8 +75,12 @@ export const handleRate = async (params: object) => {
   try {
     const response: any = await httpService.post('/feedback/rate', params)
     return response
-  } catch (error) {
+  } catch (error:any) {
     console.error(t('获取聊天信息失败:'), error)
+    MessagePlugin.error({
+          content: error?.message || t('获取聊天信息失败'),
+          duration: 3000
+    })
     throw new Error(t('获取聊天信息失败'))
   }
 }
@@ -82,8 +95,12 @@ export const handleGetShareId = async (params: object) => {
   try {
     const response: any = await httpService.post('/share/create', params)
     return response
-  } catch (error) {
+  } catch (error:any) {
     console.error(t('获取聊天信息失败:'), error)
+    MessagePlugin.error({
+          content: error?.message || t('获取聊天信息失败'),
+          duration: 3000
+    })
     throw new Error(t('获取聊天信息失败'))
   }
 }
@@ -92,8 +109,12 @@ export const handleGetAsrUrl = async () => {
   try {
     const response: any = await httpService.get('/helper/asr/url')
     return response
-  } catch (error) {
+  } catch (error:any) {
     console.error(t('获取聊天信息失败:'), error)
+    MessagePlugin.success({
+          content: error?.message || t('operation.copySuccess'),
+          duration: 3000
+    })
     throw new Error(t('获取聊天信息失败'))
   }
 }

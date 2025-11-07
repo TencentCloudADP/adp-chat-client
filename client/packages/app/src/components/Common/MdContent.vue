@@ -7,9 +7,8 @@
 
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { computed } from "vue";
 import type { QuoteInfo } from '@/model/chat'
-
 import { storeToRefs } from 'pinia'
 import { useUiStore } from '@/stores/ui'
 import MarkdownIt from 'markdown-it';
@@ -18,8 +17,8 @@ import markdownItHighlightjs from 'markdown-it-highlightjs';
 import 'katex/dist/katex.min.css';
 import './github-markdown.css';
 import 'highlight.js/styles/default.css';
-const uiStore = useUiStore()
 
+const uiStore = useUiStore()
 const { theme } = storeToRefs(uiStore)
 
 // message rendering
@@ -54,13 +53,12 @@ const mdIt = MarkdownIt({
   breaks: true,
   linkify: true,
   typographer: true,
-  quotes: '""'  // 保持直引号
-}).use(katex)
-  .use(markdownItHighlightjs);
+})
+  .use(katex)
+  .use(markdownItHighlightjs)
 
 const renderedMarkdown = computed(() => {
   return content && mdIt.render(insertReference(content || '', quoteInfos));
-
 });
 
 </script>
@@ -68,12 +66,17 @@ const renderedMarkdown = computed(() => {
 
 
 <style scoped>
+.md-content{
+  position: relative;
+}
 .md-content-container {
   padding: var(--td-comp-paddingTB-s);
 }
 
 .md-content-container.system {
-  background-color: var(--td-bg-color-secondarycontainer);
+  background-color: transparent;
+  padding-bottom:0;
+  border-left:1px solid var(--td-component-stroke);
 }
 
 .md-content-container.user {
@@ -90,12 +93,10 @@ const renderedMarkdown = computed(() => {
   font: var(--td-font-body-medium);
 }
 
-.md-content-container.assistant {
-  padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingTB-m);
-  margin-left: var(--td-comp-margin-l);
-  ;
+.md-content-container.assistant{
+  padding: var(--td-comp-paddingTB-s) 0;
+  margin-left: 0;
 }
-
 :deep(.md-content-container img) {
   width: 150px;
   display: inline-block;

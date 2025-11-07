@@ -5,6 +5,9 @@
  */
 import { ref } from 'vue';
 import { useAppsStore } from '@/stores/apps';
+import { useUiStore } from '@/stores/ui'
+import CustomizedIcon from '@/components/CustomizedIcon.vue';
+const uiStore = useUiStore()
 
 // 组件Props定义
 const {  getDefaultQuestion } = defineProps({
@@ -43,7 +46,7 @@ const handleChooseQuestion = (value: string) => {
   <flex class="greeting-panel">
     <t-avatar 
     hideOnLoadFailed 
-    v-if="appsStore.currentApplicationAvatar" 
+    v-if="appsStore.currentApplicationAvatar && !uiStore.isMobile" 
     class="greet-avatar" 
     size="64px" 
     shape="round" 
@@ -53,13 +56,19 @@ const handleChooseQuestion = (value: string) => {
       loading: ''
     }"
     ></t-avatar>
-    <span v-if="appsStore.currentApplicationName" class="greet-name">{{ appsStore.currentApplicationName}}</span>
+    <span v-if="appsStore.currentApplicationName  && !uiStore.isMobile" class="greet-name">{{ appsStore.currentApplicationName}}</span>
     <div class="greet-desc" v-if="appsStore.currentApplicationGreeting">
         {{ appsStore.currentApplicationGreeting }}
     </div>
-    <t-space gap="8" class="recommend-question-container" v-if="appsStore.currentApplicationOpeningQuestions && appsStore.currentApplicationOpeningQuestions.length > 0">
-        <t-check-tag  class="greet-tag" v-for="question in appsStore.currentApplicationOpeningQuestions" variant="outline"
-          @click="handleChooseQuestion(question)">{{ question }}</t-check-tag>
+    <t-space :direction="uiStore.isMobile ? 'vertical' : 'horizontal'" gap="8" class="recommend-question-container" v-if="appsStore.currentApplicationOpeningQuestions && appsStore.currentApplicationOpeningQuestions.length > 0">
+        <t-check-tag theme="default" class="greet-tag" v-for="question in appsStore.currentApplicationOpeningQuestions" variant="outline"
+          @click="handleChooseQuestion(question)">
+          <span class="greet-tag-text">
+            <CustomizedIcon name="star" v-if="uiStore.isMobile" nativeIcon class="star-icon" />
+            {{ question }}
+          </span>
+          
+        </t-check-tag>
       </t-space>
   </flex>
 </template>
@@ -79,6 +88,10 @@ const handleChooseQuestion = (value: string) => {
   font-weight: 500;
   margin-top:16px;
 }
+.isMobile .greeting-panel{
+  justify-content: flex-start;
+  align-items: flex-start;
+}
 
 .greeting-panel {
   display: flex;
@@ -90,7 +103,12 @@ const handleChooseQuestion = (value: string) => {
 .greet-avatar{
   border-radius: var(--td-radius-large);
 }
-
+.isMobile .greet-desc{
+  background-color: transparent;
+  padding:0;
+  margin-top: var(--td-comp-margin-m);
+  color: var(--td-text-color-primary)
+}
 .greet-desc {
   color: var(--td-text-color-secondary);
   background-color: var(--td-bg-color-container-hover) ;
@@ -100,13 +118,27 @@ const handleChooseQuestion = (value: string) => {
   padding:var(--td-pop-padding-l) var(--td-pop-padding-xl);
   border-radius: var(--td-radius-medium);
 }
+.isMobile .greet-tag{
+  color: var(--td-text-color-primary);
+  padding:var(--td-pop-padding-xl) var(--td-pop-padding-xxl);
+  font-size: var(--td-font-size-title-small);
+  font-weight: 400;
+}
 .greet-tag {
   padding:var(--td-pop-padding-l) var(--td-pop-padding-xl);
   color:var(--td-brand-color);
   height: var(--td-comp-size-m);
   font-weight:500;
+  font-size: var(--td-font-size-link-small);
   border-radius: var(--td-radius-medium);
   box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 6px rgba(18, 19, 25, 0.02), 0px 2px 12px rgba(18, 19, 25, 0.04);
+}
+.greet-tag-text{
+  display: flex;
+  align-items: center;
+}
+.greet-tag-text .star-icon{
+  margin-right: var(--td-comp-margin-xs);
 }
 .recommend-question-container {
   margin-top: var(--td-size-6)
