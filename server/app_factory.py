@@ -34,6 +34,8 @@ class TAgenticApp(Sanic):
             if app_config['Vendor'] in self.vendors.keys():
                 application_id = app_config['ApplicationId']
                 self.apps[application_id] = self.vendors[app_config['Vendor']](app_config, application_id)
+            else:
+                logging.error(f'Vendor {app_config["Vendor"]} not found in vendors({list(self.vendors.keys())})')
         logging.info(f'apps: {self.apps}')
 
     def get_vendor_app(self, application_id: str) -> BaseVendor:
