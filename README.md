@@ -88,7 +88,7 @@ SECRET_KEY=
 
 5. Build docker image
 ```bash
-# Build image (rerun after code changes, no need to repack if you only modify the .env file).
+# Build image (The initial deployment requires packing, and it needs to be rerun after code changes, no need to repack if you only modify the .env file).
 sudo make pack
 ```
 
