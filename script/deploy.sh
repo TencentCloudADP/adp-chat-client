@@ -46,11 +46,21 @@ stop_instance() {
 	docker network rm adp-chat-client-network-$INSTANCE
 }
 
+# 检查.env文件是否存在
+check_env() {
+    if [ ! -f ".env" ]; then
+        echo "错误: 未找到.env文件: `pwd`"
+        echo "Error: .env file not found: `pwd`"
+        exit 1
+    fi
+}
+
 ### 封装 deploy 逻辑
 deploy_instance() {
     local INSTANCE="$1"
     echo "Deploying $INSTANCE..."
     cd $INSTANCE_DIR/$INSTANCE
+    check_env
     source .env
     docker network create adp-chat-client-network-$INSTANCE
     docker run --name adp-chat-client-db-$INSTANCE -d -e POSTGRES_PASSWORD=$PGSQL_PASSWORD -v ./volume/db:/var/lib/postgresql/data --network adp-chat-client-network-$INSTANCE postgres:17
@@ -63,6 +73,7 @@ debug_instance() {
     local INSTANCE="$1"
     echo "Deploying $INSTANCE..."
     cd $INSTANCE_DIR/$INSTANCE
+    check_env
     source .env
     docker network create adp-chat-client-network-$INSTANCE
     docker run --name adp-chat-client-db-$INSTANCE -d -e POSTGRES_PASSWORD=$PGSQL_PASSWORD -v ./volume/db:/var/lib/postgresql/data --network adp-chat-client-network-$INSTANCE postgres:17
