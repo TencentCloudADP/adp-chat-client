@@ -85,6 +85,7 @@ SECRET_KEY=
 > 2. Comment: Can be filled in freely for easy identification of the corresponding agent application.
 > 3. International: If the agent application is developed on the [ADP](https://adp.tencentcloud.com/), set the value to true.
 > 4. ApplicationId: Access any ADP application and check the appid in the application URL. For example, if an application's link is `https://adp.tencentcloud.com/adp/#/app/knowledge/app-config?appid=197******768&appType=knowledge_qa&spaceId=default_space`, then its ApplicationId is 197******768.
+> 5. Vendor: Fixed to "Tencent", other options may be available for other platforms in the future.
 
 5. Build docker image
 ```bash
