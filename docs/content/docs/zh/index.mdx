@@ -1,14 +1,16 @@
 ---
 title: ADP Chat Client 简介
-description: 了解 adp-chat-client 的定位、核心能力与架构，开启企业级智能体应用之旅。
+description: 了解 ADP-Chat-Client 的定位、核心能力与架构，开启企业级智能体应用之旅。
 sidebar_position: 1
 ---
 
 ## 概览
 
-adp-chat-client 是一款开源的智能体对话前端应用。借助它，您可以将 [腾讯云智能体开发平台（Tencent Cloud ADP）](https://cloud.tencent.com/product/tcadp) 上构建的智能体，快速发布为 Web 应用，并方便地嵌入到小程序、Android、iOS 等多种形态。系统内置实时对话、对话历史、语音输入、图片理解等能力，并支持第三方身份体系对接（OAuth / URL 跳转）。前端采用 TDesign 组件体系，支持主题和交互自定义；后端提供 Docker 打包方案，降低集成与运维门槛。
+ADP-Chat-Client 是一款开源的智能体**对话端**解决方案。提供​​开箱即用的前端界面（支持灵活定制）​​与​​稳定可靠的后端服务​​。您可以使用该项目将由腾讯云智能体开发平台（Tencent Cloud ADP）开发的智能体应用快速部署为 ​​Web 应用​​，或无缝嵌入 ​​小程序、Android、iOS 等多端场景​​，直接复用平台已有的流程与架构，无需重复开发基础功能。
 
-## 为什么选择 adp-chat-client
+系统内置**实时对话、对话历史、语音输入、图片理解**等能力，并支持第三方身份体系对接（OAuth / URL 跳转）。前端采用 TDesign 组件体系，支持主题和交互自定义；后端支持通过 Docker **快速部署**，降低集成与运维门槛。
+
+## 为什么选择 ADP-Chat-Client
 
 - **5 分钟上线**：Docker 一键部署，免去繁琐的环境与模块对接流程，加速从研发走向上线。
 - **零门槛复用 ADP 能力**：直接对接 ADP 的成熟能力（自然语言处理、多模态交互、知识库/RAG、工作流等），无需重复造轮子。
@@ -49,18 +51,18 @@ adp-chat-client 是一款开源的智能体对话前端应用。借助它，您�
 
 两种登录方案帮助你适配不同的企业 IT 环境：
 
-### 1) OAuth
+### 1. OAuth
 
 GitHub OAuth 与 Microsoft Entra ID OAuth 免改造接入，在 `.env` 中配置即可。需要扩展其他 OAuth 平台，可参照 `server/core/oauth.py` 的适配逻辑。  
 **优势：** 改造成本低，账号与权限统一，满足审计与合规需求。
 
-### 2) URL 跳转
+### 2. URL 跳转
 
 若暂时无法提供标准 OAuth，可使用更轻量的 URL 跳转方案：
 
 1. 既有系统生成携带 `CustomerId`、`Name`、`ExtraInfo`、`Timestamp`、`Code` 的登录 URL。
 2. 用户点击后登录。
-3. adp-chat-client 校验签名、自动创建/绑定账户，并建立会话。
+3. ADP-Chat-Client 校验签名、自动创建/绑定账户，并建立会话。
 
 ## 架构一览
 
@@ -76,4 +78,4 @@ GitHub OAuth 与 Microsoft Entra ID OAuth 免改造接入，在 `.env` 中配置
 
 ## 下一步
 
-已经了解 adp-chat-client 的定位与能力？继续查看 [快速开始](/docs/zh/quick-start)，完成本地或服务器部署。 
+已经了解 ADP-Chat-Client 的定位与能力？继续查看 [快速开始](/docs/zh/quick-start)，完成本地或服务器部署。 
