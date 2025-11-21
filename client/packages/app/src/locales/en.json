@@ -51,6 +51,8 @@
     "deepThinkingFinished": "Deep Thinking Finished",
     "deepThinkingExpand": "Collapse the deep thought process",
     "duration": "Duration",
+    "sendError": "Failed to send message, please try again",
+    "networkError": "Network connection failed, please check your network and try again",
     "input": {
       "placeholder": "Ask me here, press shift+enter to start a new line, press enter to send the message",
       "placeholderMobile":"Please enter your message...",
