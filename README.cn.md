@@ -193,6 +193,7 @@ OAuth协议可以帮助实现无缝的身份验证和授权，开发者可以根
 ### 依赖
 
 - python >= 3.12
+- uv ~= 0.8
 
 ### 调试
 
@@ -203,10 +204,10 @@ OAuth协议可以帮助实现无缝的身份验证和授权，开发者可以根
 # 2. 复制刚刚编辑好的.env文件到server文件夹
 cp deploy/default/.env server/.env
 
-# 3. 以文件挂载方式启动server容器（无需重新打包）
-sudo make debug
+# 3. 初始化（仅首次运行）
+make init_server
 
-# 4. 至此，API服务已经启动，前端页面需要从下面的【前端】部分获取
+# 4. 继续下面的步骤，安装【前端】部分依赖
 ```
 
 ## 前端
@@ -229,8 +230,8 @@ nvm install v22
 # 初始化（仅首次运行）
 make init_client
 
-# 调试运行，终端会打印调试网址，如：http://localhost:5173
-make run_client
+# 调试运行，同时运行前后端，终端会打印调试网址，如：[ui]   ➜  Local:   http://localhost:5173/
+make dev
 ```
 
 ### 架构
