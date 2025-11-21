@@ -79,7 +79,7 @@ instance.interceptors.response.use(
       console.error('Network Error:', error.message)
     }
     console.log('error',error)
-    if (error.response.data.Error.Exception == 'AccountUnauthorized') {
+    if (error.response && error.response.data && error.response.data.Error && error.response.data.Error.Exception == 'AccountUnauthorized') {
       router.push({ name: 'login' })
     }
     return Promise.reject(error)
