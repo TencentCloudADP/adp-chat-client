@@ -13,16 +13,10 @@ client:
 test_client:
 	cd client && npm run test --ws
 
-run_client:
-	set -a && source server/.env && set +a; cd client; npm run dev
-
 # ----------------- server -----------------
 
 init_server:
 	cd server; uv sync
-
-run_server:
-	source server/.venv/bin/activate; set -a && source server/.env && set +a; cd server; sanic main:create_app --factory --reload -H 0.0.0.0 -p $$SERVER_HTTP_PORT
 
 test_server:
 	source server/.venv/bin/activate; cd server; pytest test/unit_test -W ignore::DeprecationWarning
@@ -64,9 +58,6 @@ pull_image:
 stop:
 	@bash script/deploy.sh stop
 
-debug:
-	@bash script/deploy.sh debug
-
 deploy:
 	@bash script/deploy.sh deploy
 
@@ -81,3 +72,14 @@ init_env:
 
 url:
 	@bash script/deploy.sh run "python main.py --generate-customer-account-url --uid 1 --username test"
+
+# ----------------- dev -----------------
+
+dev:
+	npx concurrently "make run_client" "make run_server" --names ui,server --prefix-colors blue,green --kill-others
+
+run_client:
+	set -a && source server/.env && set +a; cd client; npm run dev
+
+run_server:
+	source server/.venv/bin/activate; set -a && source server/.env && set +a; cd server; sanic main:create_app --factory --reload --reload-dir=./ -H 0.0.0.0 -p $$SERVER_HTTP_PORT

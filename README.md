@@ -191,6 +191,7 @@ If you have an existing account system but do not implement a standard OAuth flo
 ### Dependencies
 
 - python >= 3.12
+- uv ~= 0.8
 
 ### Debugging
 
@@ -201,10 +202,10 @@ If you have an existing account system but do not implement a standard OAuth flo
 # 2. Copy the edited .env file to the server folder
 cp deploy/default/.env server/.env
 
-# 3. Start the server container in mount mode (no need to rebuild)
-sudo make debug
+# 3. Initialize (only needed on the first run)
+make init_server
 
-# 4. At this point, the API service has been started, and the front-end page needs to be obtained from the [Frontend] section below.
+# 4. continue to [Frontend] section below.
 ```
 
 ## Frontend
@@ -227,8 +228,8 @@ nvm install v22
 # Initialize (only needed on the first run)
 make init_client
 
-# Run the frontend in dev mode, the terminal will print the debugging URL, such as: http://localhost:5173
-make run_client
+# Run the backend/frontend in dev mode, the terminal will print the debugging URL, such as: [ui]   ➜  Local:   http://localhost:5173/
+make dev
 ```
 
 ### Architecture
