@@ -89,9 +89,10 @@ import { ref, watch, nextTick, computed } from 'vue'
 import InfiniteLoading from 'vue-infinite-loading'
 import { storeToRefs } from 'pinia'
 import type { AxiosRequestConfig } from 'axios'
+import { useI18n } from 'vue-i18n'
 import AppType from '@/components/Chat/AppType.vue'
 import { Chat as TChat } from '@tdesign-vue-next/chat'
-import { Checkbox } from 'tdesign-vue-next'
+import { Checkbox, MessagePlugin } from 'tdesign-vue-next'
 import { fetchSSE } from '@/model/sseRequest-reasoning'
 import { mergeRecord } from '@/utils/util'
 import { useUiStore } from '@/stores/ui'
@@ -111,6 +112,7 @@ import ChatItem from './ChatItem.vue'
 import { useRouter } from 'vue-router'
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
 const router = useRouter()
+const { t } = useI18n()
 
 
 /**
@@ -574,9 +576,32 @@ const handleSendData = async (queryVal: string) => {
                 }
             },
             fail(msg) {
-                console.error('fail', msg)
-                isStreamLoad.value = false
-                loading.value = false
+                // 根据错误类型显示不同的提示
+                let errorMessage = t('conversation.sendError')
+                
+                // 判断是否为 AbortError（用户取消请求）
+                if (msg && typeof msg === 'object' &&
+                    (
+                        ('name' in msg && msg.name === 'AbortError') ||
+                        ('code' in msg && msg.code === 'ERR_CANCELED')
+                    )
+                ) {
+                    return
+                }
+                // 判断是否为 AxiosError（网络错误）
+                else if (msg && typeof msg === 'object' &&
+                    (
+                        ('code' in msg && msg.code === 'ERR_NETWORK')
+                    )
+                ) {
+                    errorMessage = t('conversation.networkError')
+                }
+                // 如果是字符串类型的错误消息，直接使用
+                else if (msg && typeof msg === 'string') {
+                    errorMessage = msg
+                }
+                
+                MessagePlugin.error(errorMessage)
             }
         },
     )

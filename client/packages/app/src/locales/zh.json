@@ -51,6 +51,8 @@
     "deepThinkingFinished": "已深度思考",
     "deepThinkingExpand":"收起深度思考过程",
     "duration": "用时",
+    "sendError": "发送消息失败，请重试",
+    "networkError": "网络连接失败，请检查网络后重试",
     "input": {
       "placeholder": "有问题，尽管问，shift+enter换行，enter发送消息",
       "placeholderMobile":"请输入消息...",
