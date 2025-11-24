@@ -18,6 +18,10 @@
 
 - [部署](#部署)
 - [开发指南](#开发指南)
+  - [后端](#后端)
+  - [前端](#前端)
+- [专题](#专题)
+  - [变量-API参数](#变量-API参数)
 
 # 部署
 
@@ -245,3 +249,40 @@ make dev
 | static | 静态文件 |
 | test | 测试 |
 | util | 其他辅助类 |
+
+# 专题
+
+## 变量-API参数
+
+调用智能体对话时，可以向智能体传递参数，根据具体情况，可以选择在前端还是后端进行传递，这是一个后端附加API参数的示例
+
+```python
+# 编辑文件：server/router/chat.py
+class ChatMessageApi(HTTPMethodView):
+    @login_required
+    async def post(self, request: Request):
+        parser = reqparse.RequestParser()
+        parser.add_argument("Query", type=str, required=True, location="json")
+        parser.add_argument("ConversationId", type=str, location="json")
+        parser.add_argument("ApplicationId", type=str, location="json")
+        parser.add_argument("SearchNetwork", type=bool, default=True, location="json")
+        parser.add_argument("CustomVariables", type=dict, default={}, location="json")
+        args = parser.parse_args(request)
+        logging.info(f"ChatMessageApi: {args}")
+
+        application_id = args['ApplicationId']
+        vendor_app = app.get_vendor_app(application_id)
+
+        # 新增以下代码，就能在对话时附加额外的API参数：
+        from core.account import CoreAccount
+        account = await CoreAccount.get(request.ctx.db, request.ctx.account_id)
+        # 注意这里的json.dumps，腾讯云ADP约定：如果值是字典，需要进行一次json编码，转换为json字符串
+        args['CustomVariables']['account'] = json.dumps({
+            "id": str(account.Id),
+            "name": account.Name,
+        })
+        logging.info(f"[ChatMessageApi] ApplicationId: {application_id},\n\
+            CustomVariables: {args['CustomVariables']},\n\
+            vendor_app: {vendor_app}")
+
+```
