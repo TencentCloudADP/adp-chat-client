@@ -1,6 +1,7 @@
 import logging
+import json
 
-from sanic import json
+import sanic
 from sanic.views import HTTPMethodView
 from sanic_restful_api import reqparse
 from sanic.request.types import Request
@@ -29,7 +30,10 @@ class ChatMessageApi(HTTPMethodView):
 
         application_id = args['ApplicationId']
         vendor_app = app.get_vendor_app(application_id)
-        print('application_id: ', application_id, vendor_app)
+
+        logging.info(f"[ChatMessageApi] ApplicationId: {application_id},\n\
+            CustomVariables: {args['CustomVariables']},\n\
+            vendor_app: {vendor_app}")
 
         async def streaming_fn(response):
             async for data in CoreChat.message(
@@ -75,7 +79,7 @@ class ChatMessageListApi(HTTPMethodView):
                     'Records': messages,
                 }
             }
-            return json(resp)
+            return sanic.json(resp)
 
         if args["ShareId"] is not None:
             if args['LastRecordId'] is not None:
@@ -84,7 +88,7 @@ class ChatMessageListApi(HTTPMethodView):
             else:
                 conversation = await CoreShareConversation.list(request.ctx.db, args["ShareId"])
                 result = conversation.to_dict()
-            return json({"Response": result})
+            return sanic.json({"Response": result})
 
         raise SanicException('ConversationId or ShareId is required')
 
@@ -93,7 +97,7 @@ class ChatConversationListApi(HTTPMethodView):
     @login_required
     async def get(self, request: Request):
         conversations = await CoreConversation.list(request.ctx.db, request.ctx.account_id)
-        return json([conversation.to_dict() for conversation in conversations])
+        return sanic.json([conversation.to_dict() for conversation in conversations])
 
 
 class ChatConversationDeleteApi(HTTPMethodView):
@@ -104,7 +108,7 @@ class ChatConversationDeleteApi(HTTPMethodView):
         args = parser.parse_args(request)
 
         await CoreConversation.delete(request.ctx.db, request.ctx.account_id, args["ConversationId"])
-        return json({"Success": 1})
+        return sanic.json({"Success": 1})
 
 
 app.add_route(ChatMessageApi.as_view(), "/chat/message")

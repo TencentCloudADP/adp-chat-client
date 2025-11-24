@@ -17,6 +17,10 @@
 
 - [Deployment](#deployment)
 - [Development Guide](#development-guide)
+  - [Backend](#backend)
+  - [Frontend](#frontend)
+- [Advanced Topics](#advanced-topics)
+  - [Variables - API Parameters](#variables---api-parameters)
 
 # Deployment
 
@@ -244,3 +248,40 @@ make dev
 | static | Static files |
 | test | Testing |
 | util | Other utility classes |
+
+# Advanced Topics
+
+## Variables - API Parameters
+
+When calling the agent for conversation, you can pass parameters to the agent. Depending on the specific situation, you can choose to pass them on the frontend or backend. Here is an example of adding API parameters on the backend:
+
+```python
+# Edit file: server/router/chat.py
+class ChatMessageApi(HTTPMethodView):
+    @login_required
+    async def post(self, request: Request):
+        parser = reqparse.RequestParser()
+        parser.add_argument("Query", type=str, required=True, location="json")
+        parser.add_argument("ConversationId", type=str, location="json")
+        parser.add_argument("ApplicationId", type=str, location="json")
+        parser.add_argument("SearchNetwork", type=bool, default=True, location="json")
+        parser.add_argument("CustomVariables", type=dict, default={}, location="json")
+        args = parser.parse_args(request)
+        logging.info(f"ChatMessageApi: {args}")
+
+        application_id = args['ApplicationId']
+        vendor_app = app.get_vendor_app(application_id)
+
+        # Add the following code to attach additional API parameters during conversation:
+        from core.account import CoreAccount
+        account = await CoreAccount.get(request.ctx.db, request.ctx.account_id)
+        # Note the json.dumps here: Tencent Cloud ADP convention requires that if the value is a dictionary, it needs to be JSON-encoded once and converted to a JSON string
+        args['CustomVariables']['account'] = json.dumps({
+            "id": str(account.Id),
+            "name": account.Name,
+        })
+        logging.info(f"[ChatMessageApi] ApplicationId: {application_id},\n\
+            CustomVariables: {args['CustomVariables']},\n\
+            vendor_app: {vendor_app}")
+
+```
