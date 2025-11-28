@@ -175,7 +175,8 @@ async function getArticles(lang: LanguageKey): Promise<RawArticleCard[]> {
       .filter((page) => page?.data?.title)
       .map(async (page) => {
         const relativePath = resolveRelativePath(page);
-        const mtime = await resolveMTime(relativePath);
+        const relativePathWithLang = `${lang}/${relativePath}`;
+        const mtime = await resolveMTime(relativePathWithLang);
         const segments = [...page.slugs];
         const categorySegments = segments.slice(0, -1);
         const categoryKey = categorySegments.join('/');
