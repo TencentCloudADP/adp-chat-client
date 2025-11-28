@@ -95,11 +95,11 @@ ss -tulpen | grep 8000 || sudo lsof -i:8000
 
 | 命令              | 作用                                          |
 | :---------------- | :-------------------------------------------- |
-| `make init_client`| 安装前端依赖（首次执行）                     |
-| `make client`     | 构建前端，产物输出至 `server/static/app`     |
+| `make init_client`| 安装前端依赖（首次调试前执行）                     |
+| `make init_server`| 安装后端依赖（首次调试前执行）                     |
+| `make dev`        | 以调试模式同时启动前/后端                    |
 | `sudo make pack`  | 构建/打包后端与部署镜像                      |
 | `sudo make deploy`| 通过 Docker Compose 启动服务                 |
-| `sudo make debug` | 启动后端调试容器（挂载模式，无需重建镜像）   |
 | `sudo make logs`  | 查看运行日志                                  |
 | `sudo make url`   | 生成演示用登录地址（URL 跳转示例）           |
 
