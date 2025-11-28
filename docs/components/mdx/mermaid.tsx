@@ -33,7 +33,8 @@ export function Mermaid({ chart }: MermaidProps) {
       mermaid.initialize({
         startOnLoad: true,
         theme: isDark ? 'dark' : 'default',
-        securityLevel: 'loose',
+        securityLevel: 'strict',
+        // 使用默认的 strict 配置，已经足够安全且不影响正常使用
       });
 
       try {
