@@ -3,6 +3,11 @@
 @import 'fumadocs-ui/css/preset.css';
 
 /* 画中画效果的全局样式 */
+/* 
+ * 注意：scroll-state 容器查询是实验性特性，浏览器支持度低
+ * 暂时注释掉以避免构建警告
+ */
+/*
 .pip-container {
   container-type: scroll-state;
   position: relative;
@@ -28,3 +33,4 @@
     transform: scale(1.1);
   }
 }
+*/

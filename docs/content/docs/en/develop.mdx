@@ -98,9 +98,9 @@ ss -tulpen | grep 8000 || sudo lsof -i:8000
 | Command            | Purpose                                                 |
 | ------------------ | ------------------------------------------------------- |
 | `make init_client` | Install frontend dependencies (first run)               |
-| `make client`      | Build frontend; outputs to `server/static/app`          |
+| `make init_server` | Install backend dependencies (first run)                |
+| `make dev`         | Start frontend/backend in development mode (without container) |
 | `sudo make pack`   | Build/package backend and deployment images             |
 | `sudo make deploy` | Start services via Docker Compose                       |
-| `sudo make debug`  | Start backend container in bind-mount mode (no rebuild) |
 | `sudo make logs`   | View runtime logs                                       |
 | `sudo make url`    | Generate a demo login URL (URL redirection example)     |
