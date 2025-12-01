@@ -17,6 +17,10 @@
 
 - [Deployment](#deployment)
 - [Development Guide](#development-guide)
+  - [Backend](#backend)
+  - [Frontend](#frontend)
+- [Advanced Topics](#advanced-topics)
+  - [Variables - API Parameters](#variables---api-parameters)
 
 # Deployment
 
@@ -85,10 +89,11 @@ SECRET_KEY=
 > 2. Comment: Can be filled in freely for easy identification of the corresponding agent application.
 > 3. International: If the agent application is developed on the [ADP](https://adp.tencentcloud.com/), set the value to true.
 > 4. ApplicationId: Access any ADP application and check the appid in the application URL. For example, if an application's link is `https://adp.tencentcloud.com/adp/#/app/knowledge/app-config?appid=197******768&appType=knowledge_qa&spaceId=default_space`, then its ApplicationId is 197******768.
+> 5. Vendor: Fixed to "Tencent", other options may be available for other platforms in the future.
 
 5. Build docker image
 ```bash
-# Build image (rerun after code changes, no need to repack if you only modify the .env file).
+# Build image (The initial deployment requires packing, and it needs to be rerun after code changes, no need to repack if you only modify the .env file).
 sudo make pack
 ```
 
@@ -190,6 +195,7 @@ If you have an existing account system but do not implement a standard OAuth flo
 ### Dependencies
 
 - python >= 3.12
+- uv ~= 0.8
 
 ### Debugging
 
@@ -200,10 +206,10 @@ If you have an existing account system but do not implement a standard OAuth flo
 # 2. Copy the edited .env file to the server folder
 cp deploy/default/.env server/.env
 
-# 3. Start the server container in mount mode (no need to rebuild)
-sudo make debug
+# 3. Initialize (only needed on the first run)
+make init_server
 
-# 4. At this point, the API service has been started, and the front-end page needs to be obtained from the [Frontend] section below.
+# 4. continue to [Frontend] section below.
 ```
 
 ## Frontend
@@ -226,8 +232,8 @@ nvm install v22
 # Initialize (only needed on the first run)
 make init_client
 
-# Run the frontend in dev mode, the terminal will print the debugging URL, such as: http://localhost:5173
-make run_client
+# Run the backend/frontend in dev mode, the terminal will print the debugging URL, such as: [ui]   ➜  Local:   http://localhost:5173/
+make dev
 ```
 
 ### Architecture
@@ -242,3 +248,40 @@ make run_client
 | static | Static files |
 | test | Testing |
 | util | Other utility classes |
+
+# Advanced Topics
+
+## Variables - API Parameters
+
+When calling the agent for conversation, you can pass parameters to the agent. Depending on the specific situation, you can choose to pass them on the frontend or backend. Here is an example of adding API parameters on the backend:
+
+```python
+# Edit file: server/router/chat.py
+class ChatMessageApi(HTTPMethodView):
+    @login_required
+    async def post(self, request: Request):
+        parser = reqparse.RequestParser()
+        parser.add_argument("Query", type=str, required=True, location="json")
+        parser.add_argument("ConversationId", type=str, location="json")
+        parser.add_argument("ApplicationId", type=str, location="json")
+        parser.add_argument("SearchNetwork", type=bool, default=True, location="json")
+        parser.add_argument("CustomVariables", type=dict, default={}, location="json")
+        args = parser.parse_args(request)
+        logging.info(f"ChatMessageApi: {args}")
+
+        application_id = args['ApplicationId']
+        vendor_app = app.get_vendor_app(application_id)
+
+        # Add the following code to attach additional API parameters during conversation:
+        from core.account import CoreAccount
+        account = await CoreAccount.get(request.ctx.db, request.ctx.account_id)
+        # Note the json.dumps here: Tencent Cloud ADP convention requires that if the value is a dictionary, it needs to be JSON-encoded once and converted to a JSON string
+        args['CustomVariables']['account'] = json.dumps({
+            "id": str(account.Id),
+            "name": account.Name,
+        })
+        logging.info(f"[ChatMessageApi] ApplicationId: {application_id},\n\
+            CustomVariables: {args['CustomVariables']},\n\
+            vendor_app: {vendor_app}")
+
+```

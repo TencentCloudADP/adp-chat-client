@@ -1,6 +1,6 @@
 import '../global.css';
 import 'remixicon/fonts/remixicon.css';
-import { RootProvider } from 'fumadocs-ui/provider';
+import { ClientRootProvider } from '@/components/providers/client-root-provider';
 import { Inter } from 'next/font/google';
 import { use } from 'react';
 import type { ReactNode } from 'react';
@@ -115,7 +115,7 @@ export default function Layout({
   }[lang];
 
   return (
-    <RootProvider
+    <ClientRootProvider
       i18n={{
         locale: lang,
         locales,
@@ -123,6 +123,6 @@ export default function Layout({
       }}
     >
       {children}
-    </RootProvider>
+    </ClientRootProvider>
   );
 }

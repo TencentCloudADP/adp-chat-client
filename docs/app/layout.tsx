@@ -1,6 +1,6 @@
 import './global.css';
 import 'remixicon/fonts/remixicon.css';
-import { RootProvider } from 'fumadocs-ui/provider';
+import { ClientRootProvider } from '@/components/providers/client-root-provider';
 import { Inter } from 'next/font/google';
 import Script from 'next/script';
 import type { ReactNode } from 'react';
@@ -36,8 +36,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             gtag('config', 'G-15PHNMPFD1');
           `}
         </Script>
-        <RootProvider>{children}</RootProvider>
-        <Analytics />
+        <ClientRootProvider>{children}</ClientRootProvider>
       </body>
     </html>
   );

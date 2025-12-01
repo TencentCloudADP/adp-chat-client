@@ -18,6 +18,10 @@
 
 - [部署](#部署)
 - [开发指南](#开发指南)
+  - [后端](#后端)
+  - [前端](#前端)
+- [专题](#专题)
+  - [变量-API参数](#变量-API参数)
 
 # 部署
 
@@ -87,11 +91,12 @@ SECRET_KEY=
 > 2. Comment: 可以任意填写，方便自己定位对应的智能体应用
 > 3. International: 使用腾讯云国内站设为false(默认)，如果是在国际站开发的智能体应用，此处设为true
 > 4. ApplicationId: 进入任意ADP应用，在应用网址内查看appid。例如某个应用的链接为 `https://adp.cloud.tencent.com/adp/#/app/knowledge/app-config?appid=1959******8208&appType=knowledge_qa&spaceId=default_space`，则它的ApplicationId为1959******8208。
+> 5. Vendor: 固定为Tencent，后续支持其他平台可能会有其他选项
 
 5. 制作镜像
 
 ``` bash
-# 制作镜像（修改代码后需要重新运行，如果只是修改.env文件不需要重新pack）
+# 制作镜像（首次部署需要运行，修改代码后需要重新运行，如果只是修改.env文件不需要重新pack）
 sudo make pack
 ```
 
@@ -192,6 +197,7 @@ OAuth协议可以帮助实现无缝的身份验证和授权，开发者可以根
 ### 依赖
 
 - python >= 3.12
+- uv ~= 0.8
 
 ### 调试
 
@@ -202,10 +208,10 @@ OAuth协议可以帮助实现无缝的身份验证和授权，开发者可以根
 # 2. 复制刚刚编辑好的.env文件到server文件夹
 cp deploy/default/.env server/.env
 
-# 3. 以文件挂载方式启动server容器（无需重新打包）
-sudo make debug
+# 3. 初始化（仅首次运行）
+make init_server
 
-# 4. 至此，API服务已经启动，前端页面需要从下面的【前端】部分获取
+# 4. 继续下面的步骤，安装【前端】部分依赖
 ```
 
 ## 前端
@@ -228,8 +234,8 @@ nvm install v22
 # 初始化（仅首次运行）
 make init_client
 
-# 调试运行，终端会打印调试网址，如：http://localhost:5173
-make run_client
+# 调试运行，同时运行前后端，终端会打印调试网址，如：[ui]   ➜  Local:   http://localhost:5173/
+make dev
 ```
 
 ### 架构
@@ -243,3 +249,40 @@ make run_client
 | static | 静态文件 |
 | test | 测试 |
 | util | 其他辅助类 |
+
+# 专题
+
+## 变量-API参数
+
+调用智能体对话时，可以向智能体传递参数，根据具体情况，可以选择在前端还是后端进行传递，这是一个后端附加API参数的示例
+
+```python
+# 编辑文件：server/router/chat.py
+class ChatMessageApi(HTTPMethodView):
+    @login_required
+    async def post(self, request: Request):
+        parser = reqparse.RequestParser()
+        parser.add_argument("Query", type=str, required=True, location="json")
+        parser.add_argument("ConversationId", type=str, location="json")
+        parser.add_argument("ApplicationId", type=str, location="json")
+        parser.add_argument("SearchNetwork", type=bool, default=True, location="json")
+        parser.add_argument("CustomVariables", type=dict, default={}, location="json")
+        args = parser.parse_args(request)
+        logging.info(f"ChatMessageApi: {args}")
+
+        application_id = args['ApplicationId']
+        vendor_app = app.get_vendor_app(application_id)
+
+        # 新增以下代码，就能在对话时附加额外的API参数：
+        from core.account import CoreAccount
+        account = await CoreAccount.get(request.ctx.db, request.ctx.account_id)
+        # 注意这里的json.dumps，腾讯云ADP约定：如果值是字典，需要进行一次json编码，转换为json字符串
+        args['CustomVariables']['account'] = json.dumps({
+            "id": str(account.Id),
+            "name": account.Name,
+        })
+        logging.info(f"[ChatMessageApi] ApplicationId: {application_id},\n\
+            CustomVariables: {args['CustomVariables']},\n\
+            vendor_app: {vendor_app}")
+
+```
