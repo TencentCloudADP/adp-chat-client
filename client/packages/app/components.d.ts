@@ -20,6 +20,7 @@ declare module 'vue' {
     Index: typeof import('./src/components/Chat/Index.vue')['default']
     LogoArea: typeof import('./src/components/LogoArea.vue')['default']
     MdContent: typeof import('./src/components/Common/MdContent.vue')['default']
+    OptionCard: typeof import('./src/components/Common/OptionCard.vue')['default']
     PersonalAccount: typeof import('./src/components/PersonalAccount.vue')['default']
     RecordIcon: typeof import('./src/components/Common/RecordIcon.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
