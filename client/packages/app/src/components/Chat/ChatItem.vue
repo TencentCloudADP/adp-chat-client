@@ -42,8 +42,9 @@ const { currentConversationId: chatId } = storeToRefs(chatStore);
  * @property {boolean} showActions - 是否显示操作按钮
  * @property {Function} onResend - 重新发送消息的回调函数
  * @property {Function} onShare - 分享消息的回调函数
+ * @property {Function} sendMessage - 主动发送消息
  */
-const { showActions = true, item, index, isLastMsg, loading, isStreamLoad, onResend, onShare } = defineProps<{
+const { showActions = true, item, index, isLastMsg, loading, isStreamLoad, onResend, onShare, sendMessage } = defineProps<{
     item: Record;
     index: number;
     isLastMsg?: boolean;
@@ -52,6 +53,7 @@ const { showActions = true, item, index, isLastMsg, loading, isStreamLoad, onRes
     showActions?: boolean;
     onResend?: (id: string | undefined) => void;
     onShare?: (ids: string[]) => void;
+    sendMessage?: (message: string) => void;
 }>();
 
 // 响应式变量
@@ -192,6 +194,7 @@ const renderReasoning = (item: Record) => {
                         @click="share(item)" />
                 </div>
                 <MdContent v-else :content="item.Content" role="assistant" :quoteInfos="item.QuoteInfos" />
+                <OptionCard v-if="item.OptionCards && item.OptionCards.length" :cards="item.OptionCards" :sendMessage="sendMessage" />
                 <div class="references-container"
                     v-if="item.References && item.References.length > 0 && !(item.IsFinal === false)">
                     <span class="title">{{ $t('sender.references') }}: </span>

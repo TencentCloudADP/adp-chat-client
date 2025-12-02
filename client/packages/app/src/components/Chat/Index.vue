@@ -43,7 +43,8 @@
                         <div style="width: 100%">
                             <ChatItem :isLastMsg="index === (chatList.length - 1)" :item="item" :index="index"
                                 :loading="loading" :isStreamLoad="isChatting" :onResend="onResend"
-                                :onShare="onShare" />
+                                :onShare="onShare"
+                                :sendMessage="inputEnter" />
                         </div>
                     </div>
                 </div>
