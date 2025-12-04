@@ -20,7 +20,8 @@
   - [Backend](#backend)
   - [Frontend](#frontend)
 - [Advanced Topics](#advanced-topics)
-  - [Variables - API Parameters](#variables---api-parameters)
+  - [Agent: Variables - API Parameters](#agent-variables---api-parameters)
+  - [Deployment: Subpath](#deployment-subpath)
 
 # Deployment
 
@@ -251,7 +252,7 @@ make dev
 
 # Advanced Topics
 
-## Variables - API Parameters
+## Agent: Variables - API Parameters
 
 When calling the agent for conversation, you can pass parameters to the agent. Depending on the specific situation, you can choose to pass them on the frontend or backend. Here is an example of adding API parameters on the backend:
 
@@ -284,4 +285,31 @@ class ChatMessageApi(HTTPMethodView):
             CustomVariables: {args['CustomVariables']},\n\
             vendor_app: {vendor_app}")
 
+```
+
+## Deployment: Subpath
+
+If you want to deploy the application to a subpath (e.g., /chat), you need to combine it with nginx's rewrite functionality. Here's an example of deploying to `https://example.com/chat`:
+
+.env
+```
+SERVICE_API_URL=https://example.com/chat
+SERVER_HTTP_PORT=8000
+```
+
+nginx.conf
+```
+http {
+    server {
+        location /chat {
+            proxy_pass http://127.0.0.1:8000/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Prefix /chat;
+            rewrite ^/chat/(.*)$ /$1 break;
+        }
+    }
+}
 ```
