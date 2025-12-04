@@ -21,7 +21,8 @@
   - [后端](#后端)
   - [前端](#前端)
 - [专题](#专题)
-  - [变量-API参数](#变量-API参数)
+  - [智能体: 变量-API参数](#智能体-变量-API参数)
+  - [部署: 子路径](#部署-子路径)
 
 # 部署
 
@@ -252,7 +253,7 @@ make dev
 
 # 专题
 
-## 变量-API参数
+## 智能体: 变量-API参数
 
 调用智能体对话时，可以向智能体传递参数，根据具体情况，可以选择在前端还是后端进行传递，这是一个后端附加API参数的示例
 
@@ -285,4 +286,31 @@ class ChatMessageApi(HTTPMethodView):
             CustomVariables: {args['CustomVariables']},\n\
             vendor_app: {vendor_app}")
 
+```
+
+## 部署: 子路径
+
+如果希望部署到一个子路径里（如：/chat），需要结合nginx的rewrite功能，这里以部署到`https://example.com/chat`为例进行说明
+
+.env
+```
+SERVICE_API_URL=https://example.com/chat
+SERVER_HTTP_PORT=8000
+```
+
+nginx.conf
+```
+http {
+    server {
+        location /chat {
+            proxy_pass http://127.0.0.1:8000/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Prefix /chat;
+            rewrite ^/chat/(.*)$ /$1 break;
+        }
+    }
+}
 ```
