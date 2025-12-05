@@ -56,7 +56,32 @@ def create_app_with_configs() -> TAgenticApp:
 def create_app() -> TAgenticApp:
     # Set server timezone to UTC. Time display will format in client side with customer's timezone
     os.environ['TZ'] = 'UTC'
-    time.tzset()
+
+    # 解决 Windows 无法启动问题
+    # tzset() is only available on Unix/Linux systems, not on Windows
+    if hasattr(time, 'tzset'):
+        time.tzset()
+    
+    # Windows compatibility: provide os.getpgid and os.killpg if not available
+    # These functions are only available on Unix/Linux systems, not on Windows
+    if not hasattr(os, 'getpgid'):
+        def getpgid(pid):
+            # On Windows, return the process ID itself since there's no process group concept
+            # This allows killpg to work with the returned value
+            return pid
+        os.getpgid = getpgid
+    
+    if not hasattr(os, 'killpg'):
+        def killpg(pgid, sig):
+            # On Windows, use os.kill() as a fallback
+            # Note: Windows doesn't support process groups the same way Unix does
+            # This is a minimal compatibility shim
+            try:
+                os.kill(pgid, sig)
+            except (OSError, AttributeError):
+                # Silently ignore if killpg is not needed on Windows
+                pass
+        os.killpg = killpg
 
     start_time = time.perf_counter()
     app = create_app_with_configs()

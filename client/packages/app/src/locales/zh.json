@@ -20,10 +20,13 @@
     "login": "登录",
     "logout": "退出登录",
     "inputAccountName": "请输入账户名",
+    "inputEmail": "请输入邮箱",
     "inputPassword": "请输入密码",
     "defaultName": "游客",
     "welcome": "欢迎登录",
-    "systemName": "ADP Chat Client"
+    "systemName": "ADP Chat Client",
+    "loginSuccess": "登录成功",
+    "loginFailed": "登录失败，请检查邮箱和密码"
   },
   "operation": {
     "search": "搜索",
