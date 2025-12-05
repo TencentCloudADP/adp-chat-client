@@ -20,10 +20,13 @@
     "login": "Login",
     "logout": "Logout",
     "inputAccountName": "Please enter your account name",
+    "inputEmail": "Please enter your email",
     "inputPassword": "Please enter your password",
     "defaultName": "Guest",
     "welcome": "Welcome",
-    "systemName": "ADP Chat Client"
+    "systemName": "ADP Chat Client",
+    "loginSuccess": "Login Success",
+    "loginFailed": "Login Failed, please check your email and password"
   },
   "operation": {
     "search": "Search",
