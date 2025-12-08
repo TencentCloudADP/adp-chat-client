@@ -21,10 +21,10 @@
     "fumadocs-ui": "15.3.0",
     "lucide-react": "^0.511.0",
     "mermaid": "^11.6.0",
-    "next": "15.3.1",
+    "next": "^15.3.6",
     "next-themes": "^0.4.6",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
     "remixicon": "^4.6.0"
   },
   "devDependencies": {
@@ -32,8 +32,8 @@
     "@types/animejs": "^3.1.13",
     "@types/mdx": "^2.0.13",
     "@types/node": "22.15.12",
-    "@types/react": "^19.1.3",
-    "@types/react-dom": "^19.1.3",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.5",
     "typescript": "^5.8.3"
