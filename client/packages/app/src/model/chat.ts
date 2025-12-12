@@ -60,6 +60,7 @@ export interface Debugging {
 }
 
 export interface Procedure {
+  PluginType?: number;
   AgentIcon?: string;
   Debugging?: Debugging;
   Elapsed?: number;
