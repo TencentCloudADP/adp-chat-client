@@ -188,9 +188,9 @@ const renderReasoning = (item: Record) => {
                 
                 <div v-if="item.IsFromSelf" class="user-message">
                     <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos" />
-                    <CustomizedIcon v-if="showActions && !uiStore.isMobile" class="control-icon copy-icon" name="copy" 
+                    <CustomizedIcon size="s" v-if="showActions && !uiStore.isMobile" class="control-icon copy-icon" name="copy" 
                         @click="(e: any) => copyContent(e, item.Content, 'user')" />
-                    <CustomizedIcon v-if="showActions  && !uiStore.isMobile" class="control-icon share-icon" name="share"
+                    <CustomizedIcon size="s" v-if="showActions  && !uiStore.isMobile" class="control-icon share-icon" name="share"
                         @click="share(item)" />
                 </div>
 
@@ -273,6 +273,7 @@ const renderReasoning = (item: Record) => {
     opacity: 0;
     transition: opacity 0.2s ease;
     cursor: pointer;
+    margin-top: var(--td-comp-margin-s);
 }
 
 .check-circle {
