@@ -538,6 +538,7 @@ const handleSendData = async (queryVal: string) => {
                     }
                 } else {
                     let record: Record = result.data;
+                    console.log('record(', result.type, '):', record)
                     if (result.type == 'reply' && record.IsFromSelf) {
                         const index = chatList.value.findIndex(item => item.RecordId === 'placeholder-user');
                         if (index !== -1) {
