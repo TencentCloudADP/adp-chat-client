@@ -43,8 +43,7 @@
                         <div style="width: 100%">
                             <ChatItem :isLastMsg="index === (chatList.length - 1)" :item="item" :index="index"
                                 :loading="loading" :isStreamLoad="isChatting" :onResend="onResend"
-                                :onShare="onShare"
-                                :sendMessage="inputEnter" />
+                                :onShare="onShare" />
                         </div>
                     </div>
                 </div>
@@ -106,7 +105,7 @@ import { handleLoadConversationDetail, handleSendConversation, handleGetShareId 
 import { useChatStore, fetchChatList } from '@/stores/chat'
 import { useAppsStore } from '@/stores/apps'
 import { copy } from '@/utils/clipboard';
-
+import { useUserStore } from '@/stores/user'
 import Sender from './Sender.vue'
 import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
@@ -115,7 +114,7 @@ import CustomizedIcon from '@/components/CustomizedIcon.vue';
 const router = useRouter()
 const { t } = useI18n()
 
-
+const userStore = useUserStore()
 /**
  * 聊天存储实例
  * @type {import('@/stores/chat').useChatStore}
@@ -396,12 +395,25 @@ const inputEnter = function (queryVal: string | undefined, fileList?: FileProps[
         return
     }
     if (!queryVal) return
+    const files: string[] = [];
     let _query = ``;
-    {
-        for (const file of fileList || []) {
-            if (file.status == 'done') {
-                _query += `![](${file.url})`
+    // 仅对图片类型追加 Markdown 图片引用，其他文件只加入 files 列表
+    const isImageUrl = (url: string) => {
+        if (!url) return false;
+        const pureUrl = url.split('?')[0].toLowerCase();
+        return pureUrl.endsWith('.png')
+            || pureUrl.endsWith('.jpg')
+            || pureUrl.endsWith('.jpeg')
+            || pureUrl.endsWith('.bmp')
+            || pureUrl.endsWith('.gif')
+            || pureUrl.endsWith('.webp');
+    };
+    for (const file of fileList || []) {
+        if (file.status === 'done' && file.url) {
+            if (isImageUrl(file.url)) {
+                _query += `![](${file.url})`;
             }
+            files.push(file.url);
         }
     }
     _query += queryVal;
@@ -425,7 +437,7 @@ const inputEnter = function (queryVal: string | undefined, fileList?: FileProps[
     nextTick(() => {
         backToBottom()
     })
-    handleSendData(_query)
+    handleSendData(_query, files)
     senderRef.value && senderRef.value.changeSenderVal('', [])
 }
 
@@ -506,12 +518,23 @@ const onSelectIds = (RecordId: string | undefined, checked: boolean) => {
  * @param {string} queryVal - 查询内容
  * @returns {Promise<void>}
  */
-const handleSendData = async (queryVal: string) => {
+const handleSendData = async (queryVal: string, fileList?: string[]) => {
     abort = new AbortController()
     loading.value = true
     isStreamLoad.value = true
     hasUserScrolled.value = false
     chatStore.setIsChatting(true)
+
+    // Fixed: Remove incorrect generic usage with Record
+    const _files: { [key: string]: any } = {};
+    if (fileList) {
+        if (fileList.length == 1) {
+            _files.file = fileList[0]
+        } else if (fileList.length > 1) {
+            _files.files = fileList.map(item => item as string)
+        }
+    }
+
     await fetchSSE(
         () => {
             const options = {
@@ -524,6 +547,11 @@ const handleSendData = async (queryVal: string) => {
                 Query: queryVal,
                 ConversationId: chatId.value, //   id为空创建新对话
                 ApplicationId: currentApplicationId.value,
+                CustomVariables: {
+                    employee_id: userStore.id,
+                    employee_name: userStore.name,
+                    ..._files,
+                }
             }, options)
         },
         {
@@ -538,7 +566,7 @@ const handleSendData = async (queryVal: string) => {
                     }
                 } else {
                     let record: Record = result.data;
-                    console.log('record(', result.type, '):', record)
+                    console.log('record', result.type, record)
                     if (result.type == 'reply' && record.IsFromSelf) {
                         const index = chatList.value.findIndex(item => item.RecordId === 'placeholder-user');
                         if (index !== -1) {
@@ -726,7 +754,7 @@ watch(
 
 :deep(.t-chat__list) {
     padding: 0 calc(var(--td-comp-paddingLR-xl) - var(--td-size-4));
-    overflow-y: scroll;
+    overflow-y: auto;
 }
 
 :deep(.t-chat__list .content) {

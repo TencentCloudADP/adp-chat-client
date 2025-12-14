@@ -1,8 +1,19 @@
 <template>
     <div ref="fileViewRef" v-if="fileList.length > 0" class="file-upload-container">
         <div ref="scrollViewRef" class="img-scrollview-container">
-            <div v-for="(img, index) in fileList" class="img-item-container">
-                <t-image fit="contain" :src="img.url" :style="{ width: '70px', height: '70px' }" />
+            <div v-for="(img, index) in fileList" class="img-item-container" :class="{ 'file-item': !isImageFile(img) }">
+                <!-- 图片文件显示图片 -->
+                <t-image 
+                    v-if="isImageFile(img)" 
+                    fit="contain" 
+                    :src="img.url" 
+                    :style="{ width: '70px', height: '70px' }" 
+                />
+                <!-- 非图片文件显示文档图标 -->
+                <div v-else class="file-icon-container">
+                    <CustomizedIcon name="file" class="file-icon" />
+                    <span class="file-extension">{{ getFileExtension(img) || 'file' }}</span>
+                </div>
                 <span class="delete-container"  @click="onDelete(index)">
                     <CustomizedIcon name="delete"/>
                 </span>
@@ -18,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
 
 
@@ -34,6 +45,33 @@ const offset = ref(0);
 const showBackIcon = ref(false);
 
 const showFrontIcon = ref(false);
+
+// 判断文件是否为图片
+const isImageFile = (file: FileProps): boolean => {
+    if (!file.url) return false;
+    const url = file.url.toLowerCase();
+    const imageExts = ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp'];
+    return imageExts.some(ext => url.includes(ext));
+};
+
+// 获取文件扩展名
+const getFileExtension = (file: FileProps): string => {
+    if (!file.url) return '';
+    const url = file.url.toLowerCase();
+    const match = url.match(/\.([a-z0-9]+)(?:[?#]|$)/);
+    return match ? match[1] : '';
+};
+
+// 获取文件显示名称
+const getFileName = (file: FileProps): string => {
+    if (file.name) return file.name;
+    if (file.url) {
+        const urlParts = file.url.split('/');
+        const fileName = urlParts[urlParts.length - 1].split('?')[0];
+        return fileName || '文件';
+    }
+    return '文件';
+};
 
 
 const handleScroll = (type: string) => {
@@ -88,6 +126,38 @@ watch(props.fileList, (newValue, oldValue) => {
     box-sizing: content-box;
     position: relative;
     display: inline-block;
+    background: var(--td-bg-color-container);
+}
+
+.img-item-container.file-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--td-comp-paddingTB-xs);
+}
+
+.file-icon-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    gap: var(--td-comp-margin-xs);
+}
+
+.file-icon {
+    width: 32px;
+    height: 32px;
+    color: var(--td-text-color-secondary);
+}
+
+.file-extension {
+    font-size: 10px;
+    color: var(--td-text-color-placeholder);
+    text-transform: uppercase;
+    font-weight: 500;
 }
 
 .img-item-container:hover .delete-container {

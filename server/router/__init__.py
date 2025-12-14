@@ -12,7 +12,7 @@ def check_login(request):
 
     auth_token = auth.split(' ')[-1]
     token = SessionToken.check(auth_token)
-    request.ctx.account_id = token['AccountId']
+    request.ctx.account_id = token.get('AccountId', token.get('id'))
 
 
 def login_required(view):

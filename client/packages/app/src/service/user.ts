@@ -13,7 +13,9 @@ export const fetchUserInfo = async () => {
     // 服务端单点登录后，头像URL存入ExtraInfo中，前端从ExtraInfo中读取头像
     const { Name, ExtraInfo = '' } = Info
     const Avatar = (() => { try { return JSON.parse(ExtraInfo).avatar || '' } catch { return '' } })();
-    userStore.setUserInfo(Name, Avatar)
+    const OpenId = (() => { try { return JSON.parse(ExtraInfo).open_id || '' } catch { return '' } })();
+    console.log(OpenId, Name, Avatar)
+    userStore.setUserInfo(OpenId, Name, Avatar)
   } catch (error) {
     console.error('获取用户信息失败:', error)
     throw new Error('获取用户信息失败')

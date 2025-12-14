@@ -52,7 +52,12 @@ declare module 'vue' {
     TLayout: typeof import('tdesign-vue-next')['Layout']
     TLink: typeof import('tdesign-vue-next')['Link']
     TLoading: typeof import('tdesign-vue-next')['Loading']
+    TMessage: typeof import('tdesign-vue-next')['Message']
     TSpace: typeof import('tdesign-vue-next')['Space']
+    TSwitch: typeof import('tdesign-vue-next')['Switch']
+    TTabPanel: typeof import('tdesign-vue-next')['TabPanel']
+    TTabs: typeof import('tdesign-vue-next')['Tabs']
+    TTextarea: typeof import('tdesign-vue-next')['Textarea']
     TTooltip: typeof import('tdesign-vue-next')['Tooltip']
     TUpload: typeof import('tdesign-vue-next')['Upload']
   }

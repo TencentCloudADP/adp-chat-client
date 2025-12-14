@@ -1,6 +1,6 @@
 {
   "project": {
-    "projectName": "Tencent Cloud ADP Chat Client"
+    "projectName": "曜芯智问"
   },
   "header": {
     "codeRepository": "代码仓库",
@@ -65,7 +65,29 @@
   "group": {
     "group": "分组",
     "createGroup": "新建分组",
-    "moveToGroup": "移动到分组"
+    "moveToGroup": "移动到分组",
+    "createApp": "管理智能体",
+    "addBuiltInApp": "添加内置智能体",
+    "addBuiltInAppDesc": "从系统预设的智能体模板中选择",
+    "createCustomApp": "创建自定义智能体",
+    "createCustomAppDesc": "根据您的需求自定义创建智能体",
+    "publishedApps": "智能体广场",
+    "myApps": "我的智能体",
+    "enabled": "启用",
+    "disabled": "禁用",
+    "published": "已发布",
+    "unpublished": "未发布",
+    "appAvatar": "头像",
+    "appAvatarPlaceholder": "请输入头像地址或后续上传头像",
+    "appName": "名称",
+    "appNamePlaceholder": "请输入智能体名称",
+    "appPrompt": "提示词",
+    "appPromptPlaceholder": "请输入智能体提示词，例如角色设定、语气风格等",
+    "appKnowledge": "知识库",
+    "appKnowledgePlaceholder": "可在此处接入知识库上传功能（支持多个文件）",
+    "confirmCreate": "确认创建",
+    "uploadAvatar": "上传头像",
+    "uploadKnowledge": "上传知识库文件"
   },
   "common": {
     "loading": "加载中",

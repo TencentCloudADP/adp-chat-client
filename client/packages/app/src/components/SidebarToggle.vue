@@ -16,6 +16,7 @@ const handleClick = () => {
 
 <style scoped>
 .sidebar-icon{
-    margin-right: var(--td-comp-margin-l);
+    /* margin-right: var(--td-comp-margin-xs); */
+    margin-right: 0;
 }
 </style>

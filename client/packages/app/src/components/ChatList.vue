@@ -107,7 +107,8 @@ const handleClick = (detail: ChatConversation) => {
     align-items: center;
 }
 .history-item-container + .history-item-container{
-    margin-top: var(--td-comp-margin-l);
+    /* margin-top: var(--td-comp-margin-l); */
+    margin-top: 0px;
 }
 
 .history-header__time {

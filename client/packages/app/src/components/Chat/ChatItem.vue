@@ -2,7 +2,7 @@
 // 国际化工具
 import { useI18n } from 'vue-i18n';
 // Vue 响应式工具
-import { ref } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 // 类型定义
 import type { Record, AgentThought } from '@/model/chat';
 import { ScoreValue } from '@/model/chat';
@@ -59,6 +59,24 @@ const { showActions = true, item, index, isLastMsg, loading, isStreamLoad, onRes
 // 响应式变量
 const record = ref(item);
 const expandStatus = ref(false);
+const reasoningContainerRef = ref<HTMLElement | null>(null);
+
+// 自动滚动到底部的函数
+const scrollToBottom = () => {
+    if (reasoningContainerRef.value && isLastMsg && isStreamLoad) {
+        nextTick(() => {
+            const container = reasoningContainerRef.value;
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        });
+    }
+};
+
+// 监听思考过程内容变化，自动滚动
+watch(() => item.AgentThought?.Procedures, () => {
+    scrollToBottom();
+}, { deep: true });
 
 /**
  * 复制内容到剪贴板
@@ -137,7 +155,14 @@ const renderHeader = () => {
 const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
     if (!reasoningContent) return <div></div>;
     return (
-        <div>
+        <div 
+            class="reasoning-content-container"
+            ref={(el: any) => {
+                reasoningContainerRef.value = el as HTMLElement | null;
+                // 当容器更新时，自动滚动到底部
+                scrollToBottom();
+            }}
+        >
             {reasoningContent.Procedures?.map((procedure, index) => (
                 <MdContent key={index} content={procedure.Debugging?.DisplayContent || procedure.Debugging?.Content || ''} role="system" />
             ))}
@@ -151,7 +176,7 @@ const renderReasoning = (item: Record) => {
     } else {
         return {
             collapsed: isLastMsg && !isStreamLoad,
-            expandIcon:false,
+            expandIcon: false,
             expandIconPlacement: 'right' as const,
             onExpandChange:(e: boolean) =>{
                 expandStatus.value = e;
@@ -322,6 +347,35 @@ const renderReasoning = (item: Record) => {
 }
 .collapsed-thinking-text{
     color: var(--td-text-color-placeholder);
+}
+
+.reasoning-content-container {
+    max-height: 100px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--td-comp-paddingTB-m) var(--td-comp-paddingLR-m);
+    padding-top: var(--td-comp-paddingTB-l);
+    border-radius: var(--td-radius-medium);
+    background: var(--td-bg-color-container);
+    margin-top: var(--td-comp-margin-s);
+}
+
+.reasoning-content-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.reasoning-content-container::-webkit-scrollbar-track {
+    background: var(--td-bg-color-container-hover);
+    border-radius: var(--td-radius-small);
+}
+
+.reasoning-content-container::-webkit-scrollbar-thumb {
+    background: var(--td-component-border);
+    border-radius: var(--td-radius-small);
+}
+
+.reasoning-content-container::-webkit-scrollbar-thumb:hover {
+    background: var(--td-text-color-placeholder);
 }
 
 .references-container {

@@ -105,8 +105,6 @@ export function mergeRecord(record: Record, delta: Record, msg_type: string) {
       } else {
         // 如果procedures长度不同，则说明有一个新的过程
         let newLength = delta?.AgentThought?.Procedures?.length || 0
-        console.log('length:', length, 'newLength:', newLength)
-
         if (newLength > length) {
           // 新增1个流程后，上一个流程需要处理，否则上一个流程就会截断数据
           if (delta.AgentThought?.Procedures![length-1].Debugging!.Content 
@@ -151,9 +149,11 @@ export function mergeRecord(record: Record, delta: Record, msg_type: string) {
     }
   } else if (msg_type === "token_stat") {
     // 处理 TokenStatMessage 合并
-    let length = delta.TokenStat?.Procedures?.length || 0
+    let length = record.TokenStat?.Procedures?.length || 0
+    console.log('length:', length)
+    console.log('record.TokenStat?.Procedures:', record.TokenStat?.Procedures)
     if (length > 0 && record.TokenStat?.Procedures?.[length-1].Debugging) {
-      if (length == record.TokenStat?.Procedures?.length) {
+      if (length == delta.TokenStat?.Procedures?.length) {
         record.TokenStat!.Procedures![length-1].Title = delta.TokenStat!.Procedures![length-1].Title
         record.TokenStat!.Procedures![length-1].Status = delta.TokenStat!.Procedures![length-1].Status
         record.TokenStat!.Procedures![length-1].Debugging = delta.TokenStat!.Procedures![length-1].Debugging

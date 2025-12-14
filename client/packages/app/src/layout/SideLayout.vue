@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import SidebarToggle from '@/components/SidebarToggle.vue';
 import ApplicationList from '@/components/ApplicationList.vue';
 import HistoryList from '@/components/ChatList.vue';
 import LogoArea from '@/components/LogoArea.vue';
@@ -14,9 +13,6 @@ const uiStore = useUiStore();
     <t-drawer drawerClassName="custome-drawer" size="280px" :visible="uiStore.drawerVisible" placement="left" :mode="uiStore.isMobile ? 'overlay' : 'push'"
         :show-overlay="false">
         <div class="drawer-content">
-            <div class="drawer-control">
-                <SidebarToggle />
-            </div>
             <ApplicationList />
             <t-divider />
             <HistoryList />
@@ -37,11 +33,6 @@ const uiStore = useUiStore();
 .drawer-content {
     display: flex;
     flex-direction: column;
-}
-
-.drawer-control {
-    display: flex;
-    justify-content: flex-start;
 }
 
 .drawer-footer {
