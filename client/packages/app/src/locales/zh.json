@@ -1,6 +1,6 @@
 {
   "project": {
-    "projectName": "曜芯智问"
+    "projectName": "曜芯智问Useek"
   },
   "header": {
     "codeRepository": "代码仓库",
@@ -108,6 +108,7 @@
   "sender": {
     "startRecord": "点击开始录音",
     "uploadImg": "上传图片",
+    "uploading": "上传中",
     "stopRecord": "点击结束录音",
     "uploadError": "上传失败，请重试",
     "references": "参考来源",

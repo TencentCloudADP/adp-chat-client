@@ -1,21 +1,28 @@
 <template>
     <div ref="fileViewRef" v-if="fileList.length > 0" class="file-upload-container">
         <div ref="scrollViewRef" class="img-scrollview-container">
-            <div v-for="(img, index) in fileList" class="img-item-container" :class="{ 'file-item': !isImageFile(img) }">
-                <!-- ͼƬ�ļ���ʾͼƬ -->
+            <div v-for="(img, index) in fileList" class="img-item-container" :class="{ 'file-item': !isImageFile(img), 'uploading': img.status === 'uploading' }">
                 <t-image 
-                    v-if="isImageFile(img)" 
+                    v-if="isImageFile(img) && img.url" 
                     fit="contain" 
                     :src="img.url" 
                     :style="{ width: '70px', height: '70px' }" 
                 />
-                <!-- ��ͼƬ�ļ���ʾ�ĵ�ͼ�� -->
                 <div v-else class="file-icon-container">
                     <CustomizedIcon name="file" class="file-icon" />
-                    <span class="file-extension">{{ getFileExtension(img) || 'file' }}</span>
+                    <div class="file-info">
+                        <span class="file-name" :title="getFileName(img)">{{ getFileName(img) }}</span>
+                        <span class="file-size" :title="formatFileSize(img.size)">{{ formatFileSize(img.size) }}</span>
+                    </div>
                 </div>
-                <span class="delete-container"  @click="onDelete(index)">
-                    <CustomizedIcon name="delete"/>
+                <!-- 上传中遮罩层 -->
+                <div v-if="img.status === 'uploading'" class="upload-overlay">
+                    <div class="upload-progress-container">
+                        <span class="upload-progress-text">{{ img.progress || 0 }}%</span>
+                    </div>
+                </div>
+                <span v-if="img.status !== 'uploading'" class="delete-container"  @click="onDelete(index)">
+                    <CustomizedIcon size="xs" name="delete"/>
                 </span>
             </div>
         </div>
@@ -46,7 +53,7 @@ const showBackIcon = ref(false);
 
 const showFrontIcon = ref(false);
 
-// �ж��ļ��Ƿ�ΪͼƬ
+// 判断文件是否为图片
 const isImageFile = (file: FileProps): boolean => {
     if (!file.url) return false;
     const url = file.url.toLowerCase();
@@ -54,23 +61,37 @@ const isImageFile = (file: FileProps): boolean => {
     return imageExts.some(ext => url.includes(ext));
 };
 
-// ��ȡ�ļ���չ��
+// 获取文件扩展名
 const getFileExtension = (file: FileProps): string => {
-    if (!file.url) return '';
-    const url = file.url.toLowerCase();
-    const match = url.match(/\.([a-z0-9]+)(?:[?#]|$)/);
-    return match ? match[1] : '';
+    // 优先从文件名获取扩展名
+    if (file.name) {
+        const nameParts = file.name.split('.');
+        if (nameParts.length > 1) {
+            return nameParts.pop()?.toLowerCase() || '';
+        }
+    }
+    // 如果文件名没有扩展名，尝试从 URL 获取
+    if (file.url) {
+        const url = file.url.toLowerCase();
+        const match = url.match(/\.([a-z0-9]+)(?:[?#]|$)/);
+        return match ? match[1] : '';
+    }
+    return '';
 };
 
-// ��ȡ�ļ���ʾ����
+// 获取文件显示名称
 const getFileName = (file: FileProps): string => {
-    if (file.name) return file.name;
-    if (file.url) {
-        const urlParts = file.url.split('/');
-        const fileName = urlParts[urlParts.length - 1].split('?')[0];
-        return fileName || '�ļ�';
-    }
-    return '�ļ�';
+    console.log('file', file)
+    return file.name || '';
+};
+
+// 格式化文件大小
+const formatFileSize = (bytes?: number): string => {
+    if (!bytes || bytes === 0) return '';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + sizes[i];
 };
 
 
@@ -127,6 +148,8 @@ watch(props.fileList, (newValue, oldValue) => {
     position: relative;
     display: inline-block;
     background: var(--td-bg-color-container);
+    border-radius: var(--td-radius-medium);
+    overflow: hidden;
 }
 
 .img-item-container.file-item {
@@ -134,30 +157,93 @@ watch(props.fileList, (newValue, oldValue) => {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: var(--td-comp-paddingTB-xs);
+    /* padding: var(--td-comp-paddingTB-xs); */
+}
+
+.upload-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3;
+    border-radius: inherit;
+}
+
+.upload-progress-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.upload-progress-text {
+    color: var(--td-text-color-anti);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.img-item-container.uploading {
+    opacity: 0.9;
 }
 
 .file-icon-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     width: 100%;
     height: 100%;
-    gap: var(--td-comp-margin-xs);
+    gap: 4px;
+    padding: 6px 4px;
+    box-sizing: border-box;
 }
 
 .file-icon {
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     color: var(--td-text-color-secondary);
+    flex-shrink: 0;
 }
 
-.file-extension {
+.file-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 2px;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+}
+
+.file-name {
     font-size: 10px;
+    line-height: 1.2;
     color: var(--td-text-color-placeholder);
-    text-transform: uppercase;
     font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    display: block;
+}
+
+.file-size {
+    font-size: 10px;
+    line-height: 1.2;
+    color: var(--td-text-color-placeholder);
+    font-weight: 400;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    display: block;
 }
 
 .img-item-container:hover .delete-container {

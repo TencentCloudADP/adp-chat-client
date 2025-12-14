@@ -12,6 +12,7 @@ import { MessagePlugin } from 'tdesign-vue-next';
 import FileList from '@/components/Common/FileList.vue';
 import RecordIcon from '@/components/Common/RecordIcon.vue';
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
+import { uuidv4 } from '@/utils/id';
 
 const { t } = useI18n();
 const uiStore = useUiStore()
@@ -135,22 +136,47 @@ const handleFileSelect = async function (files: UploadFile[]) {
             MessagePlugin.error(t('sender.notSupport'))
             return
         }
-        try{
+        try {
+            const uid = uuidv4() as string;
+            fileList.value.push({
+                uid: uid,
+                name: fileName,
+                status: 'uploading',
+                response: '',
+                url: '',
+                progress: 0,
+                size: file.size,
+            })
+
+            console.log('file size', file.size)
+            console.log('file name', fileName)
+
             const res = await uploadFile({
-                file: item.raw || item  //  t-upload 上传方法，文件信息在raw字段
+                file: item.raw || item,  //  t-upload 上传方法，文件信息在raw字段
+                onProgress: (progressEvent: any) => {
+                    const fileItem = fileList.value.find((item: FileProps) => item.uid === uid);
+                    if (fileItem && progressEvent.total) {
+                        fileItem.progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    }
+                }
             })
             if (res.Url) {
-                fileList.value.push({
-                    uid: res.Url,
-                    name: '',
-                    status: 'done',
-                    response: '',
-                    url: res.Url,
-                })
+                const fileItem = fileList.value.find((item: FileProps) => item.uid === uid);
+                if (fileItem) {
+                    fileItem.status = 'done';
+                    fileItem.url = res.Url;
+                }
+                // fileList.value.push({
+                //     uid: res.Url,
+                //     name: '',
+                //     status: 'done',
+                //     response: '',
+                //     url: res.Url,
+                // })
             }else{
                 MessagePlugin.error(t('sender.uploadError'))
             }
-        }catch(err){
+        } catch(err) {
             MessagePlugin.error(t('sender.uploadError'))
         }
         

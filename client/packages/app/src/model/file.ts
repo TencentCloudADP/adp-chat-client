@@ -4,4 +4,6 @@ export interface FileProps {
   name?: string,
   status?: string,
   response?: string,
+  progress?: number,
+  size?: number, // 文件大小（字节）
 }
