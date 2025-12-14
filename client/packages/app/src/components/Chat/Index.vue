@@ -411,7 +411,7 @@ const inputEnter = function (queryVal: string | undefined, fileList?: FileProps[
     for (const file of fileList || []) {
         if (file.status === 'done' && file.url) {
             if (isImageUrl(file.url)) {
-                _query += `![](${file.url})`;
+                _query += `![](${file.url})\n`;
             }
             files.push(file.url);
         }
