@@ -3,6 +3,7 @@ import type { ChatConversation, ChatConversationProps, Record, ScoreValue } from
 import type { AxiosRequestConfig,AxiosError } from 'axios'
 import { MessagePlugin } from 'tdesign-vue-next';
 import { t } from '@/i18n'
+import { showToolExecutionResult } from '@/utils/util'
 
 /**
  * 加载聊天会话列表
@@ -38,6 +39,22 @@ export const handleLoadConversationDetail = async (params: ChatConversationProps
         LastRecordId: string,
       }
     } = await httpService.get('/chat/messages', params)
+    console.log('handleLoadConversationDetail:', response)
+
+    // 预处理输出
+    response.Response.Records.forEach((record) => {
+      if (record.AgentThought) {
+        record.AgentThought.Procedures?.forEach((procedure) => {
+          if (procedure.Debugging) {
+            // if (procedure.Debugging.DisplayStatus === '工具执行') {
+            if (procedure.PluginType == 1) {
+              procedure.Debugging.DisplayContent = showToolExecutionResult(procedure!)
+            }
+          }
+        })
+      }
+    })
+
     return response
   } catch (error:any) {
     console.error(t('获取聊天信息失败:'), error)
