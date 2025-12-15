@@ -8,11 +8,9 @@ import moment from 'moment';
 import { useI18n } from 'vue-i18n';
 import { useChatStore } from '@/stores/chat';
 
-import { useRouter } from 'vue-router';
 import type { ChatConversation } from '@/model/chat'
 
 
-const router = useRouter();
 const { t } = useI18n();
 /**
  * 聊天状态管理
@@ -65,7 +63,6 @@ const conversationsHistoryList = computed<ConversationHistoryItem[]>(() => {
  */
 const handleClick = (detail: ChatConversation) => {
     chatStore.setCurrentConversation(detail);
-    router.push({ name: 'Home', query: { conversationId: detail.Id } });
 };
 </script>
 
@@ -75,7 +72,7 @@ const handleClick = (detail: ChatConversation) => {
         <!-- TODO: 增加时间分类 -->
         <!-- 会话项列表 -->
         <div v-for="(list, index) in conversationsHistoryList" :key="index" class="history-item-container">
-            <block v-if="list.data.length > 0">
+            <div v-if="list.data.length > 0">
                 <div class="history-header">
                     <!-- 列表头部 -->
                     <span class="history-header__time">{{ list.time }}</span>
@@ -84,7 +81,7 @@ const handleClick = (detail: ChatConversation) => {
                     :class="{ active: currentConversationId === item.Id }" @click="handleClick(item)">
                     <div class="history-title">{{ item.Title }}</div>
                 </div>
-            </block>
+            </div>
 
         </div>
 

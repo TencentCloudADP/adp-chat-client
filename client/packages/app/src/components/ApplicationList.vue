@@ -2,12 +2,10 @@
 import { ref, computed } from 'vue';
 import { useAppsStore } from '@/stores/apps';
 import { useChatStore } from '@/stores/chat';
-import { useRouter } from 'vue-router';
 import type { Application } from '@/model/application'
 import { useI18n } from 'vue-i18n';
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
 
-const router = useRouter();
 const { t } = useI18n();
 const appsStore = useAppsStore();
 const chatStore = useChatStore();
@@ -15,7 +13,6 @@ const maxAppLen = 4;
 
 const handleClick = (app: Application) => {
     appsStore.setCurrentApplication(app);
-    router.push({ name: 'Home' })
     chatStore.setCurrentConversation({
         Id: "",
         AccountId: "",
