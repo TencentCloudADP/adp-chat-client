@@ -9,7 +9,7 @@
                     :style="{ width: '70px', height: '70px' }" 
                 />
                 <div v-else class="file-icon-container">
-                    <CustomizedIcon name="file" class="file-icon" />
+                    <CustomizedIcon :name="getFileIconName(img)" class="file-icon" />
                     <div class="file-info">
                         <span class="file-name" :title="getFileName(img)">{{ getFileName(img) }}</span>
                         <span class="file-size" :title="formatFileSize(img.size)">{{ formatFileSize(img.size) }}</span>
@@ -59,6 +59,38 @@ const isImageFile = (file: FileProps): boolean => {
     const url = file.url.toLowerCase();
     const imageExts = ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp'];
     return imageExts.some(ext => url.includes(ext));
+};
+
+// 根据文件类型获取图标名称
+const getFileIconName = (file: FileProps): string => {
+    // 如果能够识别为图片，使用 picture 图标
+    if (isImageFile(file)) {
+        return 'picture';
+    }
+    
+    // 根据文件扩展名判断图标类型
+    const ext = getFileExtension(file).toLowerCase();
+    
+    // 根据扩展名映射到对应的图标名称
+    const iconMap: Record<string, string> = {
+        'pdf': 'file_pdf',
+        'doc': 'file_doc',
+        'docx': 'file_doc',
+        'xls': 'file_xlsx',
+        'xlsx': 'file_xlsx',
+        'ppt': 'file_ppt',
+        'pptx': 'file_ppt',
+        'txt': 'file_txt',
+        'md': 'file_markdown',
+        'markdown': 'file_markdown',
+        'html': 'file_html',
+        'htm': 'file_html',
+        'epub': 'file_epub',
+        'csv': 'file_txt', // CSV 使用 txt 图标
+    };
+    
+    // 如果找到了对应的图标，返回；否则返回默认的 file 图标
+    return iconMap[ext] || 'file';
 };
 
 // 获取文件扩展名
@@ -144,12 +176,14 @@ watch(props.fileList, (newValue, oldValue) => {
     width: var(--td-size-16);
     height: var(--td-size-16);
     margin-right: var(--td-comp-margin-s);
+    margin-bottom: var(--td-comp-margin-s);
     box-sizing: content-box;
     position: relative;
     display: inline-block;
     background: var(--td-bg-color-container);
     border-radius: var(--td-radius-medium);
     overflow: hidden;
+    box-shadow: var(--td-shadow-1);
 }
 
 .img-item-container.file-item {

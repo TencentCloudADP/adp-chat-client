@@ -343,7 +343,7 @@ defineExpose({
                     tips="">
                     <t-tooltip :content="$t('sender.uploadImg')">
                         <span class="recording-icon">
-                            <CustomizedIcon  name="picture"  />
+                            <CustomizedIcon name="file"  />
                         </span>
                     </t-tooltip>
                 </t-upload>

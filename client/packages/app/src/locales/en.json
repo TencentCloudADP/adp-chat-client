@@ -57,7 +57,7 @@
     "sendError": "Failed to send message, please try again",
     "networkError": "Network connection failed, please check your network and try again",
     "input": {
-      "placeholder": "Ask me here, press shift+enter to start a new line, press enter to send the message",
+      "placeholder": "Please enter your question.",
       "placeholderMobile":"Please enter your message...",
       "deepThinking": "Deep Thinking"
     }
@@ -108,7 +108,7 @@
     "startRecord": "click to start record",
     "stopRecord": "click to stop record",
     "references": "References",
-    "uploadImg": "upload image",
+    "uploadImg": "Upload images or files",
     "uploadError": "upload fail.Please try again.",
     "notSupport":"File type not supported (Supported types: Images, PDF, Word, Excel, PPT, TXT, CSV)",
     "recordTooLong":"oice input up to 60 seconds has been stopped and converted to text",
