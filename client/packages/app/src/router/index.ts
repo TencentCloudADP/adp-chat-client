@@ -11,7 +11,12 @@ const router = createRouter({
   routes: [
     {
       path: '/:conversationId?',
-      name: 'Home',
+      name: 'home',
+      component: () => import('@/pages/Home.vue'),
+    },
+    {
+      path: '/app/:applicationId?',
+      name: 'app',
       component: () => import('@/pages/Home.vue'),
     },
     {
@@ -39,7 +44,7 @@ router.beforeEach(
       if (to.name !== 'login' && !isLoggedIn()) {
         next({ name: 'login' })
       } else if (to.name === 'login' && isLoggedIn()) {
-        next({ name: 'Home' })
+        next({ name: 'home' })
       } else {
         next()
       }

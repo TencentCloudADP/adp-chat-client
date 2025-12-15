@@ -43,7 +43,7 @@ const handleChooseQuestion = (value: string) => {
 </script>
 
 <template>
-  <flex class="greeting-panel">
+  <div class="greeting-panel">
     <t-avatar 
     hideOnLoadFailed 
     v-if="appsStore.currentApplicationAvatar && !uiStore.isMobile" 
@@ -70,7 +70,7 @@ const handleChooseQuestion = (value: string) => {
           
         </t-check-tag>
       </t-space>
-  </flex>
+    </div>
 </template>
 
 <style scoped>
