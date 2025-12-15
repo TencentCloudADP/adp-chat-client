@@ -28,6 +28,19 @@ export const useAppsStore = defineStore('apps', () => {
   }
 
   /**
+   * 设置当前应用Id
+   * @param {string} applicationId - 应用Id
+   */
+  const setCurrentApplicationId = (applicationId: string) => {
+    const appsStore = useAppsStore();
+    let app = appsStore.applications.find(a => a.ApplicationId === applicationId);
+    if (!app) {
+        app = appsStore.applications[0];
+    }
+    appsStore.setCurrentApplication(app);
+  }
+
+  /**
    * 设置应用列表
    * @param {Application[]} apps - 应用选项数组
    */
@@ -40,6 +53,7 @@ export const useAppsStore = defineStore('apps', () => {
     setApplications,
     currentApplication,
     setCurrentApplication,
+    setCurrentApplicationId,
     currentApplicationId,
     currentApplicationAvatar,
     currentApplicationName,
@@ -64,8 +78,4 @@ export const getApplications = async () => {
 // 加载应用列表并设置默认智能体
 export const fetchApplicationInfo = async () => {
   await getApplications();
-  const appsStore = useAppsStore()
-  if (!appsStore.currentApplication && appsStore.applications.length > 0) {
-    appsStore.setCurrentApplication(appsStore.applications[0]);
-  }
 }

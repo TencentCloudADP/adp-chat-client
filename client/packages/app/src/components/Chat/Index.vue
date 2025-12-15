@@ -110,9 +110,7 @@ import { copy } from '@/utils/clipboard';
 import Sender from './Sender.vue'
 import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
-import { useRouter } from 'vue-router'
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
-const router = useRouter()
 const { t } = useI18n()
 
 
@@ -530,11 +528,10 @@ const handleSendData = async (queryVal: string) => {
             success(result) {
                 if (result.type === 'conversation') {
                     //  创建新的对话，重新调用chatlist接口更新列表，根据record的LastActiveAt更新列表排序
-                    fetchChatList(result.data.Id)
+                    fetchChatList()
                     if (result.data.IsNewConversation) {
                         currentChatingConversationId.value = result.data.Id;
                         chatStore.setCurrentConversation(result.data)
-                        router.push({ name: 'Home', query: { conversationId: result.data.Id } })
                     }
                 } else {
                     let record: Record = result.data;

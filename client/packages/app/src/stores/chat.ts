@@ -67,6 +67,30 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   /**
+   * 设置当前聊天会话Id
+   * @param {string} conversationId - 应用Id
+   */
+  const setCurrentConversationId = (conversationId: string|undefined) => {
+    const chatStore = useChatStore()
+    const appsStore = useAppsStore()
+
+    let conversation
+    if (!conversationId) {
+      conversation = {
+        Id: "",
+        AccountId: "",
+        Title: "",
+        LastActiveAt: 0,
+        CreatedAt: 0,
+        ApplicationId: appsStore.currentApplicationId || ''
+      }
+    } else {
+      conversation = chatStore.conversations.find((item) => item['Id'] == conversationId)
+    }
+    conversation && chatStore.setCurrentConversation(conversation)
+  }
+
+  /**
    * 设置聊天会话列表
    * @param {ChatConversation[]} chats - 会话列表
    */
@@ -108,6 +132,7 @@ export const useChatStore = defineStore('chat', () => {
     currentConversationId,
     currentConversation,
     setCurrentConversation,
+    setCurrentConversationId,
     conversations,
     setConversations,
     setCurrentApplication
@@ -116,15 +141,10 @@ export const useChatStore = defineStore('chat', () => {
 
 /**
  * 加载聊天会话列表并更新存储
- * @param {string} [Id] - 可选参数，指定当前会话 ID
  * @returns {Promise<void>}
  */
-export const fetchChatList = async (Id?: string) => {
+export const fetchChatList = async () => {
   const ChatConversation = await handleLoadConversations()
   const chatStore = useChatStore()
   chatStore.setConversations(ChatConversation)
-  if (Id) {
-    let _currentConversation = ChatConversation.find((item) => item['Id'] == Id)
-    _currentConversation && chatStore.setCurrentConversation(_currentConversation)
-  }
 }

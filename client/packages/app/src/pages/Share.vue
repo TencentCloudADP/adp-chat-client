@@ -82,7 +82,7 @@ onMounted(async () => {
     handleGetConversationDetail(ShareId.value);
   }else{
     // 分享地址有误时跳回首页
-    router.push({ name: 'Home' });
+    router.push({ name: 'home' });
   }
 });
 </script>
