@@ -322,10 +322,10 @@ defineExpose({
 <template>
     <TChatSender class="sender-container" :value="inputValue" :textarea-props="{
         placeholder: uiStore.isMobile ? $t('conversation.input.placeholderMobile') : $t('conversation.input.placeholder'),
-        autosize: { minRows: 1, maxRows: 6 },
+        autosize: { minRows: 2, maxRows: 6 },
     }" @stop="onStop" @send="handleSend" @change="handleInput" @paste="handlePaste">
         <template #inner-header>
-                <FileList :fileList="fileList" :onDelete="handleDeleteFile"/>
+            <FileList :fileList="fileList" :onDelete="handleDeleteFile"/>
         </template>
         <template #suffix>
             <!-- 等待中的发送按钮 -->
@@ -407,6 +407,7 @@ defineExpose({
     padding: 0;
 }
 :deep(.t-chat-sender__textarea) {
+    border-color: #6366f1;
     background-color: var(--td-sender-bg);
     border-radius: var(--td-radius-medium);
 }

@@ -46,7 +46,7 @@ const displayTitle = computed(() => {
                     class="header-app__avatar" 
                     shape="round" 
                     :image="chatStore.currentApplicationAvatar || appsStore.currentApplicationAvatar" 
-                    :size="uiStore.isMobile ? 'var(--td-line-height-headline-small)' : 'large'"
+                    :size="uiStore.isMobile ? 'var(--td-line-height-headline-small)' : 'medium'"
                 ></t-avatar>
                 <span class="header-app__title">{{ displayTitle }}</span>
             </div>

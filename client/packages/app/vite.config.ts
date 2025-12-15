@@ -8,11 +8,20 @@ import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { TDesignResolver } from 'unplugin-vue-components/resolvers'
 import path from 'path';
+import fs from 'fs';
+
+// 读取 package.json 的版本号
+const packageJson = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf-8'));
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
     base: './',
+    define: {
+      // 在构建时注入版本号
+      __APP_VERSION__: JSON.stringify(packageJson.version),
+    },
     plugins: [
       vue(),
         createSvgIconsPlugin({
