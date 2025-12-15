@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// import Logo from '@/assets/img/logo.svg';
-import Logo from '@/assets/img/logo.png';
+import Logo from '@/assets/img/logo.svg';
+// import Logo from '@/assets/img/logo.png';
 import SidebarToggle from '@/components/SidebarToggle.vue';
 
 const getLogo = () => {
