@@ -17,6 +17,7 @@
 #### 目录
 
 - [部署](#部署)
+  - [账户体系对接](#账户体系对接)
 - [开发指南](#开发指南)
   - [后端](#后端)
   - [前端](#前端)
@@ -191,6 +192,16 @@ OAuth协议可以帮助实现无缝的身份验证和授权，开发者可以根
 > 1. 以上参数需要分别进行url_encode，详细实现可以参考代码 `server/core/account.py` 内 CoreAccount.customer_auth 部分；生成url的方式可以参考 `server/main.py`的generate_customer_account_url。
 
 > 2. 需要在.env文件中配置CUSTOMER_ACCOUNT_SECRET_KEY，一个随机字符串，可以使用uuidgen命令生成。
+
+### 我希望用户不登录就能直接使用
+
+如果你没有自己的账号体系，希望新用户打开链接就能进入对话界面开始使用，可以通过在.env文件设置`AUTO_CREATE_ACCOUNT`实现:
+
+```
+AUTO_CREATE_ACCOUNT=true
+```
+
+> 📝 **注意**: 这会为每个新用户自动创建账户，虽然本系统有流控设置，但是能不加限制的创建新账户，仍然是很容易突破流控的，不建议在生产系统中使用这个模式
 
 # 开发指南
 

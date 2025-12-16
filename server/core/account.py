@@ -227,7 +227,7 @@ class CoreAccount:
         timestamp: Optional[int],
         extra_info: Optional[str],
         code: Optional[str]
-    ) -> None:
+    ) -> Account:
         provider = 'customer'
 
         # 注意：需要对传入信息进行验证！避免被恶意批量注册
@@ -267,3 +267,19 @@ class CoreAccount:
             )
 
         return account
+
+
+    @staticmethod
+    async def auto_create(
+        db: AsyncSession,
+        name: str,
+        ip_address: Optional[str] = None,
+    ) -> str:
+
+        account = await CoreAccount.register(
+            db,
+            name=name,
+        )
+        token = await CoreAccount.login(db, account, ip_address)
+
+        return token

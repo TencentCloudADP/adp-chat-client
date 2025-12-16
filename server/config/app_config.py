@@ -50,6 +50,11 @@ class TAgenticConfig(
         default=24,
     )
 
+    AUTO_CREATE_ACCOUNT: bool = Field(
+        description="Whether to automatically create an account for new users",
+        default=False,
+    )
+
     CHAT_MESSAGE_PAGE_SIZE: PositiveInt = Field(
         description="Number of messages to load per page when browsing chat history",
         default=100,
