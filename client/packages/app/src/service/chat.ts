@@ -83,6 +83,46 @@ export const handleSendConversation = async (params: object, options: AxiosReque
 }
 
 /**
+ * 删除会话
+ * @param {object} params 删除会话参数
+ * @returns {Promise<any>} 返回删除会话结果的Promise
+ * @throws {Error} 如果请求失败，抛出错误
+ */
+export const handleDeleteConversation = async (params: object) => {
+  try {
+    const response: any = await httpService.post('/chat/conversation/delete', params)
+    return response
+  } catch (error:any) {
+    console.error(t('删除会话失败:'), error)
+    MessagePlugin.error({
+          content: error?.message || t('删除会话失败'),
+          duration: 3000
+    })
+    throw new Error(t('删除会话失败'))
+  }
+}
+
+/**
+ * 更新会话标题
+ * @param {object} params 更新会话标题参数
+ * @returns {Promise<any>} 返回更新会话标题结果的Promise
+ * @throws {Error} 如果请求失败，抛出错误
+ */
+export const handleUpdateConversationTitle = async (params: object) => {
+  try {
+    const response: any = await httpService.put('/chat/conversation/update', params)
+    return response
+  } catch (error:any) {
+    console.error(t('更新会话标题失败:'), error)
+    MessagePlugin.error({
+          content: error?.message || t('更新会话标题失败'),
+          duration: 3000
+    })
+    throw new Error(t('更新会话标题失败'))
+  }
+}
+
+/**
  * 对聊天消息进行评分
  * @param {object} params 评分参数
  * @returns {Promise<any>} 返回评分结果的Promise
