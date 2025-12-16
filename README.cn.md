@@ -23,6 +23,7 @@
 - [专题](#专题)
   - [智能体: 变量-API参数](#智能体-变量-API参数)
   - [部署: 子路径](#部署-子路径)
+  - [部署: 限流](#部署-限流)
 
 # 部署
 
@@ -314,3 +315,13 @@ http {
     }
 }
 ```
+
+## 部署: 限流
+
+本系统基于路径+账户或IP(未登录时基于IP，登录后基于账户)进行限流，可以在.env文件里通过`RATE_LIMIT`更改限制
+
+```
+RATE_LIMIT=100/minute
+```
+
+配置格式参考：[limit string](https://limits.readthedocs.io/en/latest/quickstart.html#rate-limit-string-notation)

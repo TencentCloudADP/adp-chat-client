@@ -313,3 +313,13 @@ http {
     }
 }
 ```
+
+## Deployment: Rate Limiting
+
+This system limits traffic based on path + account or IP address (IP address when not logged in, account address when logged in). The limit can be changed in the .env file using `RATE_LIMIT`.
+
+```
+RATE_LIMIT=100/minute
+```
+
+Configuration format reference: [limit string](https://limits.readthedocs.io/en/latest/quickstart.html#rate-limit-string-notation)
