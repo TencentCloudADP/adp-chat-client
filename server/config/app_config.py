@@ -55,6 +55,11 @@ class TAgenticConfig(
         default=100,
     )
 
+    RATE_LIMIT: str = Field(
+        description="Rate limit configuration in format 'requests/period' (e.g., '100/minute')",
+        default="100/minute",
+    )
+
     model_config = SettingsConfigDict(
         # read from dotenv format config file
         env_file=".env",
