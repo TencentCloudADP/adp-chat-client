@@ -3,7 +3,7 @@
   @description 用于展示和管理用户的聊天会话列表，支持新建、切换和操作会话
 -->
 <script setup lang="tsx">
-import { computed, ref } from 'vue';
+import { computed, ref, nextTick } from 'vue';
 import moment from 'moment';
 import { useI18n } from 'vue-i18n';
 import { useChatStore } from '@/stores/chat';
@@ -77,21 +77,36 @@ const handleClick = (detail: ChatConversation) => {
  */
 const editingId = ref<string | null>(null);
 const editingTitle = ref('');
+const editingInputRef = ref<HTMLInputElement | null>(null);
+
+/**
+ * 删除确认对话框状态
+ */
+const deleteDialogVisible = ref(false);
+const itemToDelete = ref<ChatConversation | null>(null);
+
+/**
+ * 下拉菜单的显示状态映射，用于控制每个菜单的显示/隐藏
+ */
+const dropdownVisible = ref<Record<string, boolean>>({});
 
 /**
  * 开始重命名
  */
-const handleStartRename = (item: ChatConversation, e: MouseEvent) => {
-    e.stopPropagation();
+const handleStartRename = async (item: ChatConversation) => {
+    // 关闭下拉菜单
+    dropdownVisible.value[item.Id] = false;
     editingId.value = item.Id;
     editingTitle.value = item.Title;
+    await nextTick();
+    editingInputRef.value?.focus();
+    editingInputRef.value?.select();
 };
 
 /**
  * 取消重命名
  */
-const handleCancelRename = (e: MouseEvent) => {
-    e.stopPropagation();
+const handleCancelRename = () => {
     editingId.value = null;
     editingTitle.value = '';
 };
@@ -120,18 +135,37 @@ const handleConfirmRename = async (item: ChatConversation) => {
 };
 
 /**
- * 删除会话（带确认）
+ * 显示删除确认对话框
  */
-const handleDelete = async (item: ChatConversation, e: MouseEvent) => {
-    e.stopPropagation();
-    const ok = window.confirm(t('conversation.deleteConfirm') as string);
-    if (!ok) return;
+const handleDelete = (item: ChatConversation) => {
+    // 关闭下拉菜单
+    dropdownVisible.value[item.Id] = false;
+    itemToDelete.value = item;
+    deleteDialogVisible.value = true;
+};
+
+/**
+ * 确认删除会话
+ */
+const handleConfirmDelete = async () => {
+    if (!itemToDelete.value) return;
+    
     try {
-        await handleDeleteConversation({ ConversationId: item.Id });
+        await handleDeleteConversation({ ConversationId: itemToDelete.value.Id });
         await fetchChatList();
+        deleteDialogVisible.value = false;
+        itemToDelete.value = null;
     } catch (e) {
         // 错误提示在 service 层已经处理
     }
+};
+
+/**
+ * 取消删除
+ */
+const handleCancelDelete = () => {
+    deleteDialogVisible.value = false;
+    itemToDelete.value = null;
 };
 </script>
 
@@ -163,26 +197,35 @@ const handleDelete = async (item: ChatConversation, e: MouseEvent) => {
                         </span>
                         <input
                             v-else
+                            :ref="(el: any) => { if (el) editingInputRef = el }"
                             v-model="editingTitle"
                             class="history-title-input"
                             type="text"
                             :placeholder="t('operation.editName')"
                             @click.stop
                             @keyup.enter="handleConfirmRename(item)"
+                            @keyup.esc="editingId = null; editingTitle = ''"
                             @blur="handleConfirmRename(item)"
                         />
                     </div>
                     <div class="history-dropdown" @click.stop>
-                        <t-dropdown trigger="click">
+                        <t-dropdown 
+                            v-model:visible="dropdownVisible[item.Id]"
+                            trigger="click"
+                        >
                             <span class="history-dropdown-trigger">
                                 <CustomizedIcon name="more" size="xs" :showHoverBg="false" />
                             </span>
                             <t-dropdown-menu>
-                                <t-dropdown-item @click.stop="handleStartRename(item, $event as any)">
-                                    {{ t('operation.editName') }}
+                                <t-dropdown-item>
+                                    <div @click.stop="handleStartRename(item)" class="dropdown-item">
+                                        {{ t('operation.editName') }}
+                                    </div>
                                 </t-dropdown-item>
-                                <t-dropdown-item @click.stop="handleDelete(item, $event as any)">
-                                    {{ t('operation.delete') }}
+                                <t-dropdown-item>
+                                    <div @click.stop="handleDelete(item)" class="dropdown-item">
+                                        {{ t('operation.delete') }}
+                                    </div>
                                 </t-dropdown-item>
                             </t-dropdown-menu>
                         </t-dropdown>
@@ -193,6 +236,28 @@ const handleDelete = async (item: ChatConversation, e: MouseEvent) => {
         </div>
 
     </div>
+
+    <!-- 删除确认对话框 -->
+    <t-dialog
+        v-model:visible="deleteDialogVisible"
+        :header="t('operation.delete')"
+        :width="400"
+        :close-on-overlay-click="false"
+        attach="body"
+        @close="handleCancelDelete"
+    >
+        <p>{{ t('conversation.deleteConfirm') }}</p>
+        <template #footer>
+            <t-space>
+                <t-button theme="default" @click="handleCancelDelete">
+                    {{ t('operation.cancel') }}
+                </t-button>
+                <t-button theme="danger" @click="handleConfirmDelete">
+                    {{ t('operation.confirm') }}
+                </t-button>
+            </t-space>
+        </template>
+    </t-dialog>
 </template>
 
 <style scoped>
@@ -287,13 +352,16 @@ const handleDelete = async (item: ChatConversation, e: MouseEvent) => {
 
 .history-title-input {
     width: 100%;
-    border: 1px solid var(--td-brand-color);
-    border-radius: var(--td-radius-small);
+    min-width: 0;
+    border: none;
+    border-bottom: 1px solid var(--td-brand-color);
+    border-radius: 0;
     padding: 2px 4px;
     font-size: var(--td-font-size-body-medium);
     outline: none;
-    background: var(--td-bg-color-container);
+    background: transparent;
     color: var(--td-text-color-primary);
+    flex: 1;
 }
 
 .history-item:hover .history-dropdown {
@@ -302,5 +370,11 @@ const handleDelete = async (item: ChatConversation, e: MouseEvent) => {
 
 .history-title__time {
     font-size: var(--td-font-size-link-small)
+}
+
+.dropdown-item {
+    width: 100%;
+    cursor: pointer;
+    padding: var(--td-comp-paddingTB-xs) var(--td-comp-paddingLR-s);
 }
 </style>

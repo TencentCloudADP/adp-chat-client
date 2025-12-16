@@ -37,6 +37,8 @@
     "delete": "删除",
     "share": "分享",
     "cancelShare": "取消",
+    "cancel": "取消",
+    "confirm": "确认",
     "good": "点赞",
     "bad": "点踩",
     "replay": "重新生成",
@@ -50,6 +52,7 @@
   "conversation": {
     "conversation": "对话",
     "createConversation": "新建对话",
+    "deleteConfirm": "确定要删除此对话吗？删除后无法恢复。",
     "thinking": "思考中",
     "deepThinkingFinished": "已深度思考",
     "deepThinkingExpand":"收起深度思考过程",
