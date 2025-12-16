@@ -69,7 +69,7 @@ export const useAppsStore = defineStore('apps', () => {
  * @returns {Promise<void>} 无返回值
  */
 export const getApplications = async () => {
-  const { Applications } = await handleLoadApplication();
+  const { Applications } = await handleLoadApplication('3');
   console.log('Applications:', Applications);
   const appsStore = useAppsStore();
   appsStore.setApplications(Applications);

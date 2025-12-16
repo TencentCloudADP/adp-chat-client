@@ -20,6 +20,17 @@
 .t-drawer__body {
   padding-top: 0 !important;
 }
+
+/* 创建智能体对话框：缩小内容区域内边距 */
+.create-app-dialog .t-dialog__body {
+  padding: 12px 16px !important;
+}
+
+/* 创建智能体对话框：减小上下内边距 */
+.create-app-dialog .t-dialog--default {
+  padding-top: 16px !important;
+  padding-bottom: 16px !important;
+}
 /* stylelint-enable */
 
 :root[theme-mode='dark']{

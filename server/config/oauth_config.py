@@ -28,3 +28,18 @@ class OAuthConfig(BaseSettings):
         description="OAuth with Microsoft Entra ID, secret, you can obtain it from https://entra.microsoft.com",
         default="",
     )
+
+    OAUTH_WECOM_CLIENT_ID: str = Field(
+        description="OAuth with WeCom, CorpId, you can obtain it from https://developer.work.weixin.qq.com/document/path/90665#corpid",
+        default="",
+    )
+
+    OAUTH_WECOM_SECRET: str = Field(
+        description="OAuth with WeCom, secret, you can obtain it from https://developer.work.weixin.qq.com/document/path/90665#secret",
+        default="",
+    )
+
+    OAUTH_WECOM_AGENT_ID: str = Field(
+        description="OAuth with WeCom, agent id, you can obtain it from https://developer.work.weixin.qq.com/document/path/91022",
+        default="",
+    )

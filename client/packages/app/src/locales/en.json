@@ -1,6 +1,6 @@
 {
   "project": {
-    "projectName": "Tencent Cloud ADP Chat Client"
+    "projectName": "USeek"
   },
   "header": {
     "codeRepository": "Code Repository",
@@ -20,10 +20,13 @@
     "login": "Login",
     "logout": "Logout",
     "inputAccountName": "Please enter your account name",
+    "inputEmail": "Please enter your email",
     "inputPassword": "Please enter your password",
     "defaultName": "Guest",
     "welcome": "Welcome",
-    "systemName": "ADP Chat Client"
+    "systemName": "ADP Chat Client",
+    "loginSuccess": "Login Success",
+    "loginFailed": "Login Failed, please check your email and password"
   },
   "operation": {
     "search": "Search",
@@ -32,6 +35,8 @@
     "delete": "Delete",
     "share": "Share",
     "cancelShare": "cancel",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
     "good": "good",
     "bad": "bad",
     "replay": "replay",
@@ -47,6 +52,7 @@
   "conversation": {
     "conversation": "Conversation",
     "createConversation": "Create Conversation",
+    "deleteConfirm": "Are you sure you want to delete this conversation? This action cannot be undone.",
     "thinking": "Thinking",
     "deepThinkingFinished": "Deep Thinking Finished",
     "deepThinkingExpand": "Collapse the deep thought process",
@@ -54,7 +60,7 @@
     "sendError": "Failed to send message, please try again",
     "networkError": "Network connection failed, please check your network and try again",
     "input": {
-      "placeholder": "Ask me here, press shift+enter to start a new line, press enter to send the message",
+      "placeholder": "Please enter your question.",
       "placeholderMobile":"Please enter your message...",
       "deepThinking": "Deep Thinking"
     }
@@ -62,8 +68,29 @@
   "group": {
     "group": "Group",
     "createGroup": "Create Group",
-    "moveToGroup": "Move to Group"
-  },
+    "moveToGroup": "Move to Group",
+    "createApp": "Manage Apps",
+    "addBuiltInApp": "Add Built-in App",
+    "addBuiltInAppDesc": "Choose from system preset app templates",
+    "createCustomApp": "Create Custom App",
+    "createCustomAppDesc": "Create a custom app according to your needs",
+    "publishedApps": "Agent Marketplace",
+    "myApps": "My Apps",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "published": "Published",
+    "unpublished": "Unpublished",
+    "appAvatar": "Avatar",
+    "appAvatarPlaceholder": "Enter avatar URL or upload later",
+    "appName": "Name",
+    "appNamePlaceholder": "Enter app name",
+    "appPrompt": "Prompt",
+    "appPromptPlaceholder": "Enter prompt, e.g., role, tone and style",
+    "appKnowledge": "Knowledge Base",
+    "appKnowledgePlaceholder": "Hook your knowledge base upload here (supports multiple files)",
+    "confirmCreate": "Create",
+    "uploadAvatar": "Upload Avatar",
+    "uploadKnowledge": "Upload Knowledge Files"  },
   "common": {
     "loading": "loading",
     "thinking": "thinking",
@@ -84,9 +111,9 @@
     "startRecord": "click to start record",
     "stopRecord": "click to stop record",
     "references": "References",
-    "uploadImg": "upload image",
+    "uploadImg": "Upload images or files",
     "uploadError": "upload fail.Please try again.",
-    "notSupport":"File type not supported (Supported types:png、jpg)",
+    "notSupport":"File type not supported (Supported types: Images, PDF, Word, Excel, PPT, TXT, CSV)",
     "recordTooLong":"oice input up to 60 seconds has been stopped and converted to text",
     "answering":"Answering in progress, please wait or click to stop the response."
   },

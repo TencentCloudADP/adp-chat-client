@@ -12,6 +12,7 @@ import { MessagePlugin } from 'tdesign-vue-next';
 import FileList from '@/components/Common/FileList.vue';
 import RecordIcon from '@/components/Common/RecordIcon.vue';
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
+import { uuidv4 } from '@/utils/id';
 
 const { t } = useI18n();
 const uiStore = useUiStore()
@@ -96,28 +97,86 @@ const fileList = ref([] as FileProps[])
  */
 const handleFileSelect = async function (files: UploadFile[]) {
     if (files && files.length <= 0) return;
-    const allowed = ['image/png', 'image/jpg', 'image/jpeg', 'image/bmp']
+    // 支持的图片类型（包括移动端可能返回的 MIME type）
+    const allowedImages = [
+        'image/png', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/gif', 'image/webp',
+        'image/x-png', 'image/pjpeg' // 移动端可能返回的格式
+    ];
+    // 支持的文档类型
+    const allowedDocuments = [
+        'application/pdf',
+        'application/msword', // .doc
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+        'application/vnd.ms-excel', // .xls
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+        'application/vnd.ms-powerpoint', // .ppt
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+        'text/plain', // .txt
+        'text/csv' // .csv
+    ];
+    const allowed = [...allowedImages, ...allowedDocuments];
+    
     files.map(async (item: UploadFile) => {
-        if (!allowed.includes(item.type)) {
+        const file = item.raw || item;
+        const fileType = file.type || '';
+        const fileName = file.name || '';
+        
+        // 检查 MIME type
+        let isAllowed = allowed.includes(fileType);
+        
+        // 如果 MIME type 为空或不匹配，尝试通过文件扩展名判断（移动端兼容）
+        if (!isAllowed && fileName) {
+            const ext = fileName.toLowerCase().split('.').pop() || '';
+            const imageExts = ['png', 'jpg', 'jpeg', 'bmp', 'gif', 'webp'];
+            const docExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv'];
+            isAllowed = imageExts.includes(ext) || docExts.includes(ext);
+        }
+        
+        if (!isAllowed) {
             MessagePlugin.error(t('sender.notSupport'))
             return
         }
-        try{
+        try {
+            const uid = uuidv4() as string;
+            fileList.value.push({
+                uid: uid,
+                name: fileName,
+                status: 'uploading',
+                response: '',
+                url: '',
+                progress: 0,
+                size: file.size,
+            })
+
+            console.log('file size', file.size)
+            console.log('file name', fileName)
+
             const res = await uploadFile({
-                file: item.raw || item  //  t-upload 上传方法，文件信息在raw字段
+                file: item.raw || item,  //  t-upload 上传方法，文件信息在raw字段
+                onProgress: (progressEvent: any) => {
+                    const fileItem = fileList.value.find((item: FileProps) => item.uid === uid);
+                    if (fileItem && progressEvent.total) {
+                        fileItem.progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    }
+                }
             })
             if (res.Url) {
-                fileList.value.push({
-                    uid: res.Url,
-                    name: '',
-                    status: 'done',
-                    response: '',
-                    url: res.Url,
-                })
+                const fileItem = fileList.value.find((item: FileProps) => item.uid === uid);
+                if (fileItem) {
+                    fileItem.status = 'done';
+                    fileItem.url = res.Url;
+                }
+                // fileList.value.push({
+                //     uid: res.Url,
+                //     name: '',
+                //     status: 'done',
+                //     response: '',
+                //     url: res.Url,
+                // })
             }else{
                 MessagePlugin.error(t('sender.uploadError'))
             }
-        }catch(err){
+        } catch(err) {
             MessagePlugin.error(t('sender.uploadError'))
         }
         
@@ -263,10 +322,10 @@ defineExpose({
 <template>
     <TChatSender class="sender-container" :value="inputValue" :textarea-props="{
         placeholder: uiStore.isMobile ? $t('conversation.input.placeholderMobile') : $t('conversation.input.placeholder'),
-        autosize: { minRows: 1, maxRows: 6 },
+        autosize: { minRows: 2, maxRows: 6 },
     }" @stop="onStop" @send="handleSend" @change="handleInput" @paste="handlePaste">
         <template #inner-header>
-                <FileList :fileList="fileList" :onDelete="handleDeleteFile"/>
+            <FileList :fileList="fileList" :onDelete="handleDeleteFile"/>
         </template>
         <template #suffix>
             <!-- 等待中的发送按钮 -->
@@ -280,11 +339,11 @@ defineExpose({
             <div class="sender-control-container">
 
                 <t-upload class="sender-upload" ref="uploadRef1" :max="10" :multiple="true" :request-method="handleFileSelect"
-                    accept="image/*" :showThumbnail="false" :showImageFileName="false" :showUploadProgress="false"
+                    accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/csv" :showThumbnail="false" :showImageFileName="false" :showUploadProgress="false"
                     tips="">
                     <t-tooltip :content="$t('sender.uploadImg')">
                         <span class="recording-icon">
-                            <CustomizedIcon  name="picture"  />
+                            <CustomizedIcon name="file"  />
                         </span>
                     </t-tooltip>
                 </t-upload>
@@ -348,6 +407,7 @@ defineExpose({
     padding: 0;
 }
 :deep(.t-chat-sender__textarea) {
+    border-color: #6366f1;
     background-color: var(--td-sender-bg);
     border-radius: var(--td-radius-medium);
 }

@@ -107,7 +107,8 @@ const handleChooseQuestion = (value: string) => {
   background-color: transparent;
   padding:0;
   margin-top: var(--td-comp-margin-m);
-  color: var(--td-text-color-primary)
+  margin-bottom: var(--td-comp-margin-xl);
+  color: var(--td-text-color-primary);
 }
 .greet-desc {
   color: var(--td-text-color-secondary);
@@ -117,10 +118,11 @@ const handleChooseQuestion = (value: string) => {
   margin-top: var(--td-size-8);
   padding:var(--td-pop-padding-l) var(--td-pop-padding-xl);
   border-radius: var(--td-radius-medium);
+  max-width: 800px;
 }
 .isMobile .greet-tag{
   color: var(--td-text-color-primary);
-  padding:var(--td-pop-padding-xl) var(--td-pop-padding-xxl);
+  padding: var(--td-pop-padding-l) var(--td-pop-padding-xl);
   font-size: var(--td-font-size-title-small);
   font-weight: 400;
 }
@@ -141,7 +143,7 @@ const handleChooseQuestion = (value: string) => {
   margin-right: var(--td-comp-margin-xs);
 }
 .recommend-question-container {
-  margin-top: var(--td-size-6)
+  margin-top: var(--td-size-8)
 }
 
 </style>

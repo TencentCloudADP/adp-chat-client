@@ -2,7 +2,7 @@
 // 国际化工具
 import { useI18n } from 'vue-i18n';
 // Vue 响应式工具
-import { ref } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 // 类型定义
 import type { Record, AgentThought } from '@/model/chat';
 import { ScoreValue } from '@/model/chat';
@@ -59,6 +59,24 @@ const { showActions = true, item, index, isLastMsg, loading, isStreamLoad, onRes
 // 响应式变量
 const record = ref(item);
 const expandStatus = ref(false);
+const reasoningContainerRef = ref<HTMLElement | null>(null);
+
+// 自动滚动到底部的函数
+const scrollToBottom = () => {
+    if (reasoningContainerRef.value && isLastMsg && isStreamLoad) {
+        nextTick(() => {
+            const container = reasoningContainerRef.value;
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        });
+    }
+};
+
+// 监听思考过程内容变化，自动滚动
+watch(() => item.AgentThought?.Procedures, () => {
+    scrollToBottom();
+}, { deep: true });
 
 /**
  * 复制内容到剪贴板
@@ -137,7 +155,14 @@ const renderHeader = () => {
 const renderReasoningContent = (reasoningContent: AgentThought | undefined) => {
     if (!reasoningContent) return <div></div>;
     return (
-        <div>
+        <div 
+            class="reasoning-content-container"
+            ref={(el: any) => {
+                reasoningContainerRef.value = el as HTMLElement | null;
+                // 当容器更新时，自动滚动到底部
+                scrollToBottom();
+            }}
+        >
             {reasoningContent.Procedures?.map((procedure, index) => (
                 <MdContent key={index} content={procedure.Debugging?.DisplayContent || procedure.Debugging?.Content || ''} role="system" />
             ))}
@@ -151,7 +176,7 @@ const renderReasoning = (item: Record) => {
     } else {
         return {
             collapsed: isLastMsg && !isStreamLoad,
-            expandIcon:false,
+            expandIcon: false,
             expandIconPlacement: 'right' as const,
             onExpandChange:(e: boolean) =>{
                 expandStatus.value = e;
@@ -188,12 +213,34 @@ const renderReasoning = (item: Record) => {
                 
                 <div v-if="item.IsFromSelf" class="user-message">
                     <MdContent :content="item.Content" role="user" :quoteInfos="item.QuoteInfos" />
-                    <CustomizedIcon v-if="showActions && !uiStore.isMobile" class="control-icon copy-icon" name="copy" 
+                    <CustomizedIcon size="s" v-if="showActions && !uiStore.isMobile" class="control-icon copy-icon" name="copy" 
                         @click="(e: any) => copyContent(e, item.Content, 'user')" />
-                    <CustomizedIcon v-if="showActions  && !uiStore.isMobile" class="control-icon share-icon" name="share"
+                    <CustomizedIcon size="s" v-if="showActions  && !uiStore.isMobile" class="control-icon share-icon" name="share"
                         @click="share(item)" />
                 </div>
+
                 <MdContent v-else :content="item.Content" role="assistant" :quoteInfos="item.QuoteInfos" />
+                
+                <div v-if="isLastMsg && isStreamLoad && item.TokenStat?.StatusSummary === 'processing'" class="workflow-loading-container">
+                    <t-loading size="small" :loading="true">
+                        <template #text>
+                            <div class="workflow-loading-content">
+                                <span class="workflow-loading-text">
+                                    {{ item.TokenStat?.StatusSummaryTitle }}
+                                </span>
+                                <span class="workflow-loading-dots">
+                                    <span class="dot"></span>
+                                    <span class="dot"></span>
+                                    <span class="dot"></span>
+                                </span>
+                            </div>
+                        </template>
+                        <template #indicator>
+                            <CustomizedIcon class="workflow-loading-icon" name="thinking" />
+                        </template>
+                    </t-loading>
+                </div>
+                
                 <OptionCard v-if="item.OptionCards && item.OptionCards.length" :cards="item.OptionCards" :sendMessage="sendMessage" />
                 <div class="references-container"
                     v-if="item.References && item.References.length > 0 && !(item.IsFinal === false)">
@@ -251,6 +298,7 @@ const renderReasoning = (item: Record) => {
     opacity: 0;
     transition: opacity 0.2s ease;
     cursor: pointer;
+    margin-top: var(--td-comp-margin-s);
 }
 
 .check-circle {
@@ -301,6 +349,35 @@ const renderReasoning = (item: Record) => {
     color: var(--td-text-color-placeholder);
 }
 
+.reasoning-content-container {
+    max-height: 100px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--td-comp-paddingTB-m) var(--td-comp-paddingLR-m);
+    padding-top: var(--td-comp-paddingTB-l);
+    border-radius: var(--td-radius-medium);
+    background: var(--td-bg-color-container);
+    margin-top: var(--td-comp-margin-s);
+}
+
+.reasoning-content-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.reasoning-content-container::-webkit-scrollbar-track {
+    background: var(--td-bg-color-container-hover);
+    border-radius: var(--td-radius-small);
+}
+
+.reasoning-content-container::-webkit-scrollbar-thumb {
+    background: var(--td-component-border);
+    border-radius: var(--td-radius-small);
+}
+
+.reasoning-content-container::-webkit-scrollbar-thumb:hover {
+    background: var(--td-text-color-placeholder);
+}
+
 .references-container {
     margin: 0px var(--td-comp-margin-l) var(--td-comp-margin-xl) var(--td-comp-margin-l);
 }
@@ -324,6 +401,83 @@ const renderReasoning = (item: Record) => {
     height: var(--td-comp-size-xs);
     padding: 0;
     margin-left: var(--td-comp-margin-l);
+}
+
+/* 工作流加载状态样式优化 */
+.workflow-loading-container {
+    padding: var(--td-comp-paddingTB-xs) var(--td-comp-paddingLR-s);
+    margin: var(--td-comp-margin-xs) 0;
+    background: transparent;
+    border-radius: var(--td-radius-small);
+}
+
+:deep(.workflow-loading-container .t-loading) {
+    padding: 0;
+}
+
+:deep(.workflow-loading-container .t-loading__text) {
+    margin-left: var(--td-comp-margin-xxs);
+    font-size: var(--td-font-size-body-small);
+}
+
+.workflow-loading-content {
+    display: flex;
+    align-items: center;
+    gap: var(--td-comp-margin-xxs);
+}
+
+.workflow-loading-text {
+    color: var(--td-text-color-secondary);
+    font-size: var(--td-font-size-body-small);
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+.workflow-loading-dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: 2px;
+}
+
+.workflow-loading-dots .dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--td-text-color-placeholder);
+    animation: dot-pulse 1.4s ease-in-out infinite;
+}
+
+.workflow-loading-dots .dot:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.workflow-loading-dots .dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.workflow-loading-dots .dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+.workflow-loading-icon {
+    animation: rotate 2s linear infinite;
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    color: var(--td-text-color-placeholder);
+    opacity: 0.7;
+}
+
+@keyframes dot-pulse {
+    0%, 80%, 100% {
+        opacity: 0.3;
+        transform: scale(0.8);
+    }
+    40% {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 :deep(.t-chat__actions-margin){
     width: 100%;

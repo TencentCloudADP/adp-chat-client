@@ -10,7 +10,7 @@ from util.warehouse import AsyncWareHouseS3
 from util.helper import to_message, convert_dict_keys_to_pascal
 from core.completion import CoreCompletion
 from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, ConversationCallback, MessageType
-
+from config import tagentic_config
 
 class TCADP(BaseVendor):
 
@@ -170,12 +170,16 @@ class TCADP(BaseVendor):
                 # 生成标题
                 summarize = None
                 if is_new_conversation:
-                    prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n请直接输出提炼结果，不要解释。'
-                    completion = CoreCompletion(
-                        self.tc_config(),
-                        system_prompt = prompt
-                    )
-                    summarize = await completion.chat(f'user: {query}\n\nassistance:')
+                    if tagentic_config.OPENAI_API_KEY:
+                        # 使用OpenAI兼容接口生成标题
+                        summarize = await self._generate_title_with_openai(query)
+                    else:
+                        prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n请直接输出提炼结果，不要解释。'
+                        completion = CoreCompletion(
+                            self.tc_config(),
+                            system_prompt = prompt
+                        )
+                        summarize = await completion.chat(f'user: {query}\n\nassistance:')
                 conversation = await conversation_cb.update(conversation_id=conversation_id, title=summarize)  # 更新会话
                 yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=False)
             except Exception as e:
@@ -232,6 +236,62 @@ class TCADP(BaseVendor):
             "BotAppKey": self.config['AppKey'],
         }
         await tc_request(self.tc_config(), action, payload)
+
+    async def _generate_title_with_openai(self, query: str) -> str:
+        """
+        使用aiohttp库异步调用OpenAI接口对接deepseek生成对话标题
+        """
+        try:
+            # 从配置中获取deepseek的API密钥和base_url
+            api_key = tagentic_config.OPENAI_API_KEY
+            base_url = tagentic_config.OPENAI_BASE_URL
+            model = tagentic_config.OPENAI_MODEL
+
+            print(api_key, base_url, model)
+
+            if not api_key:
+                logging.warning("DeepSeek API key not configured, skipping title generation")
+                return "新对话"
+
+            # 构建API请求
+            url = f"{base_url}/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+
+            prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n请直接输出提炼结果，不要解释。'
+
+            payload = {
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": f"user: {query}\n\nassistance:"}
+                ],
+                "stream": False
+            }
+
+            # 使用aiohttp发送异步HTTP请求
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30)) as session:
+                async with session.post(url, headers=headers, json=payload) as response:
+                    print(f'response: {await response.json()}')
+                    response.raise_for_status()  # 检查HTTP状态码
+
+                    result = await response.json()
+                    title = result["choices"][0]["message"]["content"].strip()
+                    return title if title else "新对话"
+
+        except aiohttp.ClientError as e:
+            import traceback
+            traceback.print_exc()
+            logging.error(f"HTTP request failed: {e}")
+        except (KeyError, IndexError) as e:
+            logging.error(f"Invalid response format: {e}")
+        except Exception as e:
+            logging.error(f"Failed to generate title with DeepSeek: {e}")
+
+        # 如果出错，返回空字符串
+        return "新对话"
 
     def tc_config(self):
         international = False

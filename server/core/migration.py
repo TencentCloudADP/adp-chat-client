@@ -6,6 +6,7 @@ from sqlalchemy import inspect
 from sqlalchemy.sql import text
 from model.account import Account
 from model.chat import ChatRecord, ChatConversation, SharedConversation
+from model.application import Application, SharedApplication
 from util.database import create_db_engine
 
 from app_factory import TAgenticApp
@@ -52,6 +53,8 @@ class Migration:
             ChatRecord,
             ChatConversation,
             SharedConversation,
+            Application,
+            SharedApplication,
         ]
 
     @staticmethod

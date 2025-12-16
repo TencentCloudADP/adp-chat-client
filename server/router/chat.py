@@ -110,8 +110,18 @@ class ChatConversationDeleteApi(HTTPMethodView):
         await CoreConversation.delete(request.ctx.db, request.ctx.account_id, args["ConversationId"])
         return sanic.json({"Success": 1})
 
+class ChatConversationUpdateTitleApi(HTTPMethodView):
+    @login_required
+    async def post(self, request: Request):
+        parser = reqparse.RequestParser()
+        parser.add_argument("ConversationId", type=str, required=True, location="json")
+        parser.add_argument("Title", type=str, required=True, location="json")
+        args = parser.parse_args(request)
+        await CoreConversation.update(request.ctx.db, request.ctx.account_id, args["ConversationId"], args["Title"])
+        return sanic.json({"Success": 1})
 
 app.add_route(ChatMessageApi.as_view(), "/chat/message")
 app.add_route(ChatMessageListApi.as_view(), "/chat/messages")
 app.add_route(ChatConversationListApi.as_view(), "/chat/conversations")
 app.add_route(ChatConversationDeleteApi.as_view(), "/chat/conversation/delete")
+app.add_route(ChatConversationUpdateTitleApi.as_view(), "/chat/conversation/update")

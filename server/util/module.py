@@ -28,7 +28,11 @@ def autodiscover(app, module_names: list[ModuleType], recursive: bool = False):
                 if path not in _imported:
                     name = "module"
                     if "__init__" in path:
-                        *_, name, __ = path.split("/")
+                        # *_, name, __ = path.split("/")
+                        # 解决 Windows 无法启动问题
+                        # Use Path for cross-platform path handling
+                        path_obj = Path(path)
+                        name = path_obj.parent.name
                     spec = util.spec_from_file_location(name, path)
                     specmod = util.module_from_spec(spec)
                     _imported.add(path)
