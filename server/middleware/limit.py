@@ -3,6 +3,7 @@ import logging
 import limits
 from sanic.request.types import Request
 
+from util.helper import get_remote_ip
 from core.error.server import RateLimit
 from app_factory import TAgenticApp
 from router import check_login
@@ -20,13 +21,13 @@ async def limit_handler(request: Request):
     if request.server_path.startswith("/static"):
         return
 
-    ip = request.headers.get('X-Real-IP') or request.client_ip
+    ip = get_remote_ip(request)
     account_id = None
 
     try:
         check_login(request)
         account_id = request.ctx.account_id
-    except:
+    except:  # noqa: E722
         pass
 
     id = account_id or ip
