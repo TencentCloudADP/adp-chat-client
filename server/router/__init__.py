@@ -36,7 +36,11 @@ async def auto_login(request: Request, response: HTTPResponse):
     try:
         check_login(request)
     except:  # pylint: disable=bare-except
-        token = await CoreAccount.auto_create(request.ctx.db, 'User', get_remote_ip(request))
+        account = await CoreAccount.register(
+            request.ctx.db,
+            name='User',
+        )
+        token = await CoreAccount.login(request.ctx.db, account, get_remote_ip(request))
         response.add_cookie(
             "token",
             token,
