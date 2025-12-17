@@ -16,12 +16,14 @@
 #### Table of Contents
 
 - [Deployment](#deployment)
+  - [Account System Integration](#account-system-integration)
 - [Development Guide](#development-guide)
   - [Backend](#backend)
   - [Frontend](#frontend)
 - [Advanced Topics](#advanced-topics)
   - [Agent: Variables - API Parameters](#agent-variables---api-parameters)
   - [Deployment: Subpath](#deployment-subpath)
+  - [Deployment: Rate Limiting](#deployment-rate-limiting)
 
 # Deployment
 
@@ -188,6 +190,16 @@ If you have an existing account system but do not implement a standard OAuth flo
 > 📝 **Note**:
 > 1. The parameters above must be URL-encoded, for more details you can refer to the CoreAccount.customer_auth in `server/core/account.py` file, and generate_customer_account_url in `server/main.py` file for URL generation method.
 > 2. Configure CUSTOMER_ACCOUNT_SECRET_KEY in the .env file, a random string that can be generated using the uuidgen command.
+
+### I want users to be able to use the service directly without logging in.
+
+If you don't have your own account system and want new users to be able to access the chat interface immediately upon opening the link, you can achieve this by setting `AUTO_CREATE_ACCOUNT` in your .env file:
+
+```
+AUTO_CREATE_ACCOUNT=true
+```
+
+> 📝 **Note:** This will automatically create an account for each new user. Although this system has flow control settings, creating new accounts without restrictions makes it easy to bypass flow control. Using this mode in a publicly production system is not recommended.
 
 # Development Guide
 
