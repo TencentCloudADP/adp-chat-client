@@ -227,7 +227,7 @@ class CoreAccount:
         timestamp: Optional[int],
         extra_info: Optional[str],
         code: Optional[str]
-    ) -> None:
+    ) -> Account:
         provider = 'customer'
 
         # 注意：需要对传入信息进行验证！避免被恶意批量注册

@@ -1,5 +1,4 @@
 import logging
-import json
 
 import sanic
 from sanic.views import HTTPMethodView
