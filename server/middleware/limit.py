@@ -27,7 +27,7 @@ async def limit_handler(request: Request):
     try:
         check_login(request)
         account_id = request.ctx.account_id
-    except:  # noqa: E722
+    except:  # pylint: disable=bare-except
         pass
 
     id = account_id or ip

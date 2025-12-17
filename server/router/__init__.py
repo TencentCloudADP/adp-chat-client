@@ -35,7 +35,7 @@ def login_required(view):
 async def auto_login(request: Request, response: HTTPResponse):
     try:
         check_login(request)
-    except:  # noqa: E722
+    except:  # pylint: disable=bare-except
         token = await CoreAccount.auto_create(request.ctx.db, 'User', get_remote_ip(request))
         response.add_cookie(
             "token",
