@@ -267,19 +267,3 @@ class CoreAccount:
             )
 
         return account
-
-
-    @staticmethod
-    async def auto_create(
-        db: AsyncSession,
-        name: str,
-        ip_address: Optional[str] = None,
-    ) -> str:
-
-        account = await CoreAccount.register(
-            db,
-            name=name,
-        )
-        token = await CoreAccount.login(db, account, ip_address)
-
-        return token
