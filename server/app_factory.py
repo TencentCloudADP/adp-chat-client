@@ -5,11 +5,13 @@ from sanic import Sanic
 
 from util.module import autodiscover
 from util.module import autodiscover_vendor
+from util.module import autodiscover_oauth
 from util.json_format import custom_dumps
 from config import tagentic_config
 import router
 import middleware
 from vendor.interface import BaseVendor
+from core.oauth import CoreOAuth
 
 
 class TAgenticApp(Sanic):
@@ -27,6 +29,10 @@ class TAgenticApp(Sanic):
         # 厂商类注册
         self.vendors.update(autodiscover_vendor())
         logging.info(f'vendors: {self.vendors}')
+
+        # OAuth提供方类注册
+        autodiscover_oauth()
+        logging.info(f'activated oauth_providers: {CoreOAuth.providers}')
 
         # 实例化应用配置
         apps = tagentic_config.APP_CONFIGS

@@ -161,6 +161,8 @@ Microsoft Entra ID OAuth is supported by default. You can can configure it as ne
 # you can obtain it from https://entra.microsoft.com
 OAUTH_MICROSOFT_ENTRA_CLIENT_ID=
 OAUTH_MICROSOFT_ENTRA_SECRET=
+# Endpoint (optional, if you have a tenant id, default: common), see: https://learn.microsoft.com/en-us/entra/identity-platform/authentication-national-cloud
+OAUTH_MICROSOFT_ENTRA_ENDPOINT=common
 ```
 > 📝 **Note**：When creating a Microsoft Entra ID OAuth application, fill in the callback URL as：SERVICE_API_URL+/oauth/callback/ms_entra_id, for example: http://localhost:8000/oauth/callback/ms_entra_id
 
