@@ -13,4 +13,4 @@ ENV UV_PROJECT_ENVIRONMENT="/usr/local/"
 
 RUN uv sync
 
-CMD ["bash", "-c", "sanic main:create_app --factory -H 0.0.0.0 -p 8000"]
+CMD ["bash", "-c", "python main.py --check-secret-key; sanic app_factory:create_app --factory -H 0.0.0.0 -p 8000"]
