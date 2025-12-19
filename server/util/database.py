@@ -28,4 +28,6 @@ async def connect_with_retry(db: AsyncSession, retry_times=3, retry_interval=2):
         if retry_times > 0:
             await asyncio.sleep(retry_interval)
             return await connect_with_retry(db, retry_times - 1, retry_interval)
+        else:
+            raise e
     return None
