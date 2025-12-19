@@ -1,3 +1,48 @@
+## v0.2.1 (2025-12-19)
+
+### Feat
+
+- **deploy**: auto generate SECRET_KEY on startup if it's empty
+- **server**: add support for endpoint setting of Microsoft Entra ID
+- **server**: add optinon to automatically create accounts for new users
+- **server**: add traffic rate limiter
+- **client**: add OptionCards support
+- **client**: show error message on chating
+- **client**: migrate icons to sprite sheet and fix retax layout overflow​
+- **client**: refine mobile responsiveness and markdown quote rendering​
+- **vendor**: structure the stored content to include information such as ReasoningContent and RelatedId
+
+### Fix
+
+- **server**: raise orignal exception in connect_with_retry
+- **client**: clear cookie and logout on AccountUnauthorized
+- **deploy**: auto run pod on machine startup
+- **server**: call super init in BaseError
+- **server**: fix the way to get remote ip for rate limiting
+- **client**: fix the relationship bewteen url paramaters <-> store, go back and forward is now working correctly
+- **docs**: upgrade React and Next.js to patch security vulnerabilities
+- **docs**: fix develop commands in the docs
+- **docs**: fix Node.js v25 compatibility and improve Mermaid security
+- **mermaid**: fix(mermaid): set securityLevel to strict to prevent XSS
+- **client**: check key exists before reading value
+- **deploy**: check .env file before deploy
+- **server**: log an error message if the 'Vender' config was not found
+- **vendor**: fallback when failing to retrieve application information
+- **client**: correct data type definitions for thinking mode expansion​
+- **config**: remove unnecessary vite config fallback
+- **vendor**: pagination logic error in fetching records from an OpenAI-compatible vendor
+- **vendor**: wrong way to send the error message
+- **vendor**: disable rating button
+- **vendor**: fix openai compatible vendor incorrectly using SharedConversation
+- **remove-uncessary-docs**: remove uncessary docs
+- **client**: script for client debugging
+
+### Refactor
+
+- **server**: put oauth providers in seperated classes
+- **vendor**: reduce code redundancy
+- **vendor**: use DisplayName instead of Comment in the config of OpenAI compatible model
+
 ## v0.2.0 (2025-10-17)
 
 ### Feat
