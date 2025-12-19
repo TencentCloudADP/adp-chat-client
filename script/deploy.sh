@@ -53,6 +53,10 @@ check_env() {
         echo "Error: .env file not found: `pwd`"
         exit 1
     fi
+    # 检查SECRET_KEY如果为空，则生成一个随机的密钥
+    if grep -q "^SECRET_KEY=$" .env; then
+        sed -i '/^SECRET_KEY=$/s//SECRET_KEY='`uuidgen`'/' .env
+    fi
 }
 
 ### 封装 deploy 逻辑
@@ -63,9 +67,8 @@ deploy_instance() {
     check_env
     source .env
     docker network create adp-chat-client-network-$INSTANCE
-    docker run --name adp-chat-client-db-$INSTANCE -d -e POSTGRES_PASSWORD=$PGSQL_PASSWORD -v ./volume/db:/var/lib/postgresql/data --network adp-chat-client-network-$INSTANCE postgres:17
-    sleep 5
-    docker run --name adp-chat-client-$INSTANCE -d -p $SERVER_HTTP_PORT:8000 -v ./.env:/app/.env --network adp-chat-client-network-$INSTANCE adp-chat-client
+    docker run --name adp-chat-client-db-$INSTANCE -d --restart=unless-stopped -e POSTGRES_PASSWORD=$PGSQL_PASSWORD -v ./volume/db:/var/lib/postgresql/data --network adp-chat-client-network-$INSTANCE postgres:17
+    docker run --name adp-chat-client-$INSTANCE -d --restart=unless-stopped -p $SERVER_HTTP_PORT:8000 -v ./.env:/app/.env --network adp-chat-client-network-$INSTANCE adp-chat-client
 }
 
 ### 封装 debug 逻辑
