@@ -53,6 +53,10 @@ check_env() {
         echo "Error: .env file not found: `pwd`"
         exit 1
     fi
+    # 检查SECRET_KEY如果为空，则生成一个随机的密钥
+    if grep -q "^SECRET_KEY=$" .env; then
+        sed -i '/^SECRET_KEY=$/s//SECRET_KEY='`uuidgen`'/' .env
+    fi
 }
 
 ### 封装 deploy 逻辑
