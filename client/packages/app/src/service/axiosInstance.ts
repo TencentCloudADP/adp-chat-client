@@ -1,5 +1,6 @@
 import axios from 'axios';
 import router from '@/router'
+import { logout } from '@/service/login';
 
 // 根据环境动态设置baseURL
 const isDev = import.meta.env.DEV
@@ -80,7 +81,7 @@ instance.interceptors.response.use(
     }
     console.log('error',error)
     if (error.response && error.response.data && error.response.data.Error && error.response.data.Error.Exception == 'AccountUnauthorized') {
-      router.push({ name: 'login' })
+      logout(() => router.replace({ name: 'login' }));
     }
     return Promise.reject(error)
   },
