@@ -82,4 +82,4 @@ run_client:
 	set -a && source server/.env && set +a; cd client; npm run dev
 
 run_server:
-	source server/.venv/bin/activate; set -a && source server/.env && set +a; cd server; sanic main:create_app --factory --reload --reload-dir=./ -H 0.0.0.0 -p $$SERVER_HTTP_PORT
+	source server/.venv/bin/activate; set -a && source server/.env && set +a; cd server; sanic app_factory:create_app --factory --reload --reload-dir=./ -H 0.0.0.0 -p $$SERVER_HTTP_PORT
