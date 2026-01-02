@@ -43,7 +43,8 @@
                         <div style="width: 100%">
                             <ChatItem :isLastMsg="index === (chatList.length - 1)" :item="item" :index="index"
                                 :loading="loading" :isStreamLoad="isChatting" :onResend="onResend"
-                                :onShare="onShare" />
+                                :onShare="onShare"
+                                :sendMessage="inputEnter" />
                         </div>
                     </div>
                 </div>
@@ -558,11 +559,10 @@ const handleSendData = async (queryVal: string, fileList?: string[]) => {
             success(result) {
                 if (result.type === 'conversation') {
                     //  创建新的对话，重新调用chatlist接口更新列表，根据record的LastActiveAt更新列表排序
-                    fetchChatList(result.data.Id)
+                    fetchChatList()
                     if (result.data.IsNewConversation) {
                         currentChatingConversationId.value = result.data.Id;
                         chatStore.setCurrentConversation(result.data)
-                        router.push({ name: 'Home', query: { conversationId: result.data.Id } })
                     }
                 } else {
                     let record: Record = result.data;

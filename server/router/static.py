@@ -1,6 +1,7 @@
 from sanic import response
 
 from util.helper import get_path_base
+from router import auto_login
 from app_factory import TAgenticApp
 app = TAgenticApp.get_app()
 
@@ -21,7 +22,12 @@ async def handler(request):
     if path.endswith('/'):
         path = path[:-1]
     referrer = request.headers.get("Referer")
-    app = 'static/app/index'
+    app_path = 'static/app/index'
     if referrer and referrer.endswith('static/app0/index'):
-        app = 'static/app0/index'
-    return response.redirect(f'{path}/{app}')
+        app_path = 'static/app0/index'
+
+    resp = response.redirect(f'{path}/{app_path}')
+    if app.config.AUTO_CREATE_ACCOUNT:
+        # 自动创建账户
+        resp = await auto_login(request, resp)
+    return resp

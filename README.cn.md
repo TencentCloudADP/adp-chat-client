@@ -17,12 +17,14 @@
 #### 目录
 
 - [部署](#部署)
+  - [账户体系对接](#账户体系对接)
 - [开发指南](#开发指南)
   - [后端](#后端)
   - [前端](#前端)
 - [专题](#专题)
   - [智能体: 变量-API参数](#智能体-变量-API参数)
   - [部署: 子路径](#部署-子路径)
+  - [部署: 限流](#部署-限流)
 
 # 部署
 
@@ -159,6 +161,8 @@ OAUTH_GITHUB_SECRET=
 # you can obtain it from https://entra.microsoft.com
 OAUTH_MICROSOFT_ENTRA_CLIENT_ID=
 OAUTH_MICROSOFT_ENTRA_SECRET=
+# Endpoint (optional, if you have a tenant id, default: common), see: https://learn.microsoft.com/en-us/entra/identity-platform/authentication-national-cloud
+OAUTH_MICROSOFT_ENTRA_ENDPOINT=common
 ```
 > 📝 **注意**：创建Microsoft Entra ID OAuth应用时，callback URL填写：SERVICE_API_URL+/oauth/callback/ms_entra_id，例如：http://localhost:8000/oauth/callback/ms_entra_id
 
@@ -190,6 +194,16 @@ OAuth协议可以帮助实现无缝的身份验证和授权，开发者可以根
 > 1. 以上参数需要分别进行url_encode，详细实现可以参考代码 `server/core/account.py` 内 CoreAccount.customer_auth 部分；生成url的方式可以参考 `server/main.py`的generate_customer_account_url。
 
 > 2. 需要在.env文件中配置CUSTOMER_ACCOUNT_SECRET_KEY，一个随机字符串，可以使用uuidgen命令生成。
+
+### 我希望用户不登录就能直接使用
+
+如果你没有自己的账号体系，希望新用户打开链接就能进入对话界面开始使用，可以通过在.env文件设置`AUTO_CREATE_ACCOUNT`实现:
+
+```
+AUTO_CREATE_ACCOUNT=true
+```
+
+> 📝 **注意**: 这会为每个新用户自动创建账户，虽然本系统有流控设置，但是能不加限制的创建新账户，仍然是很容易突破流控的，不建议在生产系统中使用这个模式
 
 # 开发指南
 
@@ -314,3 +328,13 @@ http {
     }
 }
 ```
+
+## 部署: 限流
+
+本系统基于路径+账户或IP(未登录时基于IP，登录后基于账户)进行限流，可以在.env文件里通过`RATE_LIMIT`更改限制
+
+```
+RATE_LIMIT=100/minute
+```
+
+配置格式参考：[limit string](https://limits.readthedocs.io/en/latest/quickstart.html#rate-limit-string-notation)

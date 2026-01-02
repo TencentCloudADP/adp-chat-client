@@ -32,7 +32,7 @@ type AppTab = 'published' | 'mine';
 
 const handleClick = (app: Application) => {
     appsStore.setCurrentApplication(app);
-    router.push({ name: 'Home' })
+    // router.push({ name: 'home' })
     chatStore.setCurrentConversation({
         Id: "",
         AccountId: "",

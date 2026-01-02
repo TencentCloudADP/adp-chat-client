@@ -1,7 +1,8 @@
 from typing import Optional
-from sanic.exceptions import SanicException
+from core.error import BaseError
 
 
-class BaseError(SanicException):
+class RateLimit(BaseError):
     def __init__(self, description: Optional[str] = None):
         super().__init__(description)
+        self.status_code = 429

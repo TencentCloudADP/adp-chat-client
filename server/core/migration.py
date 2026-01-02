@@ -7,7 +7,7 @@ from sqlalchemy.sql import text
 from model.account import Account
 from model.chat import ChatRecord, ChatConversation, SharedConversation
 from model.application import Application, SharedApplication
-from util.database import create_db_engine
+from util.database import create_db_engine, connect_with_retry
 
 from app_factory import TAgenticApp
 app = TAgenticApp.get_app()
@@ -18,9 +18,10 @@ class Migration:
     async def check_tables(db: AsyncSession):
         exist_tables = []
         try:
-            async with db.bind.connect() as conn:
-                exist_tables = await conn.run_sync(lambda sync_conn: inspect(sync_conn).get_table_names())
-                await conn.commit()
+            conn = await connect_with_retry(db)
+            exist_tables = await conn.run_sync(lambda sync_conn: inspect(sync_conn).get_table_names())
+            await conn.commit()
+            await conn.close()
         except InvalidCatalogNameError as e:  # asyncpg.exceptions.UndefinedTableError:
             logging.error(f"[check_tables] {e}")
 

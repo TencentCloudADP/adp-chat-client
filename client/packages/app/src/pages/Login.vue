@@ -145,7 +145,7 @@ const handleLogin = async ({ validateResult }: any) => {
     MessagePlugin.success(t('account.loginSuccess'));
     // 登录成功后跳转到首页
     setTimeout(() => {
-      router.push({ name: 'Home' });
+      router.push({ name: 'home' });
     }, 300);
   } catch (error: any) {
     errorMessage.value = error.message || t('account.loginFailed');

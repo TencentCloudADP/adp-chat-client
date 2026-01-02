@@ -66,3 +66,14 @@ def autodiscover_vendor():
                 logging.info(f'  registered vendor: {vendor_name}')
 
     return vendors
+
+
+def autodiscover_oauth():
+    import oauth_provider
+
+    for _, name, _ in pkgutil.iter_modules(oauth_provider.__path__):
+        module = import_module(f'oauth_provider.{name}')
+        if hasattr(module, 'get_class'):
+            logging.info(f'loading oauth_provider class: {name}')
+            cls = module.get_class()
+            cls()
