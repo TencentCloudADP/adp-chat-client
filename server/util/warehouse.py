@@ -3,12 +3,18 @@ from botocore.client import Config
 
 
 class AsyncWareHouseS3():
-    def __init__(self, secretId, secretKey, tmpToken, region, bucket):
+    def __init__(self, secretId, secretKey, tmpToken, region, bucket, config):
         self.dict = {
             's3access': secretId,
             's3secret': secretKey,
-            's3ep': f'http://cos.{region}.myqcloud.com',
-            's3ep_full': f'http://{bucket}.cos.{region}.myqcloud.com',
+            's3ep': config.get(
+                'ep',
+                'http://cos.{region}.myqcloud.com'
+            ).format(bucket=bucket, region=region),
+            's3ep_full': config.get(
+                'access',
+                'http://{bucket}.cos.{region}.myqcloud.com'
+            ).format(bucket=bucket, region=region),
             's3bucket': bucket,
         }
         self.session = aioboto3.Session(
