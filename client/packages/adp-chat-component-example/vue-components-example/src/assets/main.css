@@ -1,0 +1,33 @@
+@import '@/assets/base.css';
+@import '@/assets/tdRefine.css';
+
+.app {
+  margin: 0 auto;
+  font-weight: normal;
+}
+
+a,
+.green {
+  text-decoration: none;
+  color: hsla(160, 100%, 37%, 1);
+  transition: .4s;
+  padding: 3px;
+}
+
+@media (hover: hover) {
+  a:hover {
+    background-color: hsla(160, 100%, 37%, .2);
+  }
+}
+
+@media (min-width: 1024px) {
+  body {
+    display: flex;
+    place-items: center;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}

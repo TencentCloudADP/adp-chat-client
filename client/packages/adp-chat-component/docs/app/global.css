@@ -1,0 +1,45 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+@import 'remixicon/fonts/remixicon.css';
+
+:root {
+  --color-fd-primary: #3b82f6;
+}
+
+.dark {
+  --color-fd-primary: #60a5fa;
+}
+
+/* API Table Styles */
+.api-table {
+  @apply w-full text-sm;
+}
+
+.api-table th {
+  @apply text-left font-semibold py-2 px-3 bg-fd-muted/50 border-b border-fd-border;
+}
+
+.api-table td {
+  @apply py-2 px-3 border-b border-fd-border align-top;
+}
+
+.api-table tr:last-child td {
+  @apply border-b-0;
+}
+
+.api-table code {
+  @apply text-xs px-1.5 py-0.5 rounded bg-fd-muted text-fd-primary;
+}
+
+.prop-name {
+  @apply font-mono text-fd-primary font-medium;
+}
+
+.prop-required {
+  @apply text-red-500 ml-1;
+}
+
+.prop-default {
+  @apply text-fd-muted-foreground;
+}

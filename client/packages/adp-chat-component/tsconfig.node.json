@@ -6,6 +6,10 @@
     "module": "ESNext",
     "types": ["node"],
     "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@vitejs/*": ["../../node_modules/@vitejs/*"]
+    },
 
     /* Bundler mode */
     "moduleResolution": "bundler",

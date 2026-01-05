@@ -1,0 +1,198 @@
+---
+title: 快速开始
+description: 快速上手 ADP Chat Component
+---
+
+# 快速开始
+
+本指南将帮助你快速集成 ADP Chat Component 到你的项目中。
+
+## 安装
+
+```bash
+npm install adp-chat-component
+# 或
+pnpm add adp-chat-component
+# 或
+yarn add adp-chat-component
+```
+
+## 基础使用
+
+### 方式一：Vue 组件引入
+
+```vue
+<template>
+  <ChatLayout
+    :applications="applications"
+    :current-application="currentApp"
+    :conversations="conversations"
+    :current-conversation="currentConversation"
+    :chat-list="chatList"
+    :user="userInfo"
+    theme="light"
+    @send="handleSend"
+    @select-application="handleSelectApp"
+    @select-conversation="handleSelectConversation"
+  />
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { ChatLayout } from 'adp-chat-component'
+import 'adp-chat-component/dist/style.css'
+
+const applications = ref([])
+const currentApp = ref(null)
+const conversations = ref([])
+const currentConversation = ref(null)
+const chatList = ref([])
+const userInfo = ref({})
+
+const handleSend = (query, fileList, conversationId, applicationId) => {
+  // 处理发送消息
+}
+
+const handleSelectApp = (app) => {
+  currentApp.value = app
+}
+
+const handleSelectConversation = (conversation) => {
+  currentConversation.value = conversation
+}
+</script>
+```
+
+### 方式二：API 模式
+
+如果你的后端 API 符合规范，可以使用 API 模式自动加载数据：
+
+```vue
+<template>
+  <ChatLayout
+    :api-config="apiConfig"
+    :auto-load="true"
+    @data-loaded="handleDataLoaded"
+    @send="handleSend"
+  />
+</template>
+
+<script setup lang="ts">
+import { ChatLayout } from 'adp-chat-component'
+import 'adp-chat-component/dist/style.css'
+
+const apiConfig = {
+  applicationListApi: '/api/applications',
+  conversationListApi: '/api/conversations',
+  conversationDetailApi: '/api/conversation/detail',
+  sendMessageApi: '/api/message/send',
+  userInfoApi: '/api/user/info'
+}
+
+const handleDataLoaded = (type, data) => {
+  console.log(`${type} loaded:`, data)
+}
+
+const handleSend = (query, fileList, conversationId, applicationId) => {
+  // 处理发送消息
+}
+</script>
+```
+
+### 方式三：动态挂载
+
+适用于非 Vue 项目或需要动态创建组件的场景：
+
+```typescript
+import { ChatLayoutMounter } from 'adp-chat-component'
+import 'adp-chat-component/dist/style.css'
+
+// 挂载组件
+const instanceId = ChatLayoutMounter.mount('#chat-container', {
+  theme: 'dark',
+  applications: [...],
+  onSend: (query, files, conversationId, appId) => {
+    // 处理发送
+  }
+})
+
+// 卸载组件
+ChatLayoutMounter.unmount(instanceId)
+```
+
+## 配置 HTTP 服务
+
+你可以配置 axios 实例以添加认证信息等：
+
+```typescript
+import { configureAxios, setRequestInterceptor, setResponseInterceptor } from 'adp-chat-component'
+
+// 配置 axios
+configureAxios({
+  baseURL: 'https://api.example.com',
+  timeout: 30000
+})
+
+// 添加请求拦截器
+setRequestInterceptor(
+  (config) => {
+    config.headers.Authorization = `Bearer ${token}`
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// 添加响应拦截器
+setResponseInterceptor(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // 处理认证失败
+    }
+    return Promise.reject(error)
+  }
+)
+```
+
+## 主题切换
+
+组件支持亮色和暗色主题：
+
+```vue
+<template>
+  <ChatLayout
+    :theme="theme"
+    @toggle-theme="toggleTheme"
+  />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const theme = ref('light')
+
+const toggleTheme = () => {
+  theme.value = theme.value === 'light' ? 'dark' : 'light'
+}
+</script>
+```
+
+## 国际化
+
+通过 i18n 相关 props 自定义文本：
+
+```vue
+<template>
+  <ChatLayout
+    :chat-i18n="{
+      loading: 'Loading...',
+      thinking: 'Thinking...',
+      sendError: 'Send failed'
+    }"
+    :sender-i18n="{
+      placeholder: 'Type your message...',
+      uploadImg: 'Upload image'
+    }"
+  />
+</template>
+```

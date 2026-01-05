@@ -3,17 +3,44 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "./dist/adp-chat-component.umd.js",
+  "module": "./dist/adp-chat-component.es.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "import": "./dist/adp-chat-component.es.js",
+      "require": "./dist/adp-chat-component.umd.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./style.css": "./dist/style.css",
+    "./src/*": "./src/*"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
+    "build:lib": "vite build --mode lib",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tdesign-vue-next/chat": "^0.5.0-alpha.10",
+    "highlight.js": "^11.11.1",
+    "katex": "^0.16.22",
+    "markdown-it": "^14.1.0",
+    "moment": "^2.30.1",
+    "tdesign-vue-next": "^1.17.7",
+    "vite-plugin-svg-icons": "^2.0.1",
     "vue": "^3.5.22"
   },
   "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
     "@types/node": "^24.6.0",
     "@vitejs/plugin-vue": "^6.0.1",
+    "@vitejs/plugin-vue-jsx": "^5.1.2",
     "@vue/tsconfig": "^0.8.1",
     "typescript": "~5.9.3",
     "vite": "^7.1.7",

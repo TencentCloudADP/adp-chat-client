@@ -7,15 +7,19 @@ import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { TDesignResolver } from 'unplugin-vue-components/resolvers'
+import mkcert from 'vite-plugin-mkcert'
 import path from 'path';
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  // 通过环境变量判断是否启用 HTTPS
+  const isHttps = process.env.VITE_HTTPS === 'true'
+  
   return {
     base: './',
     plugins: [
       vue(),
-        createSvgIconsPlugin({
+      createSvgIconsPlugin({
         // 指定需要缓存的图标文件夹（绝对路径）
         iconDirs: [path.resolve(process.cwd(), 'src/assets/icons')],
         // 指定 symbolId 的生成格式
@@ -42,6 +46,8 @@ export default defineConfig(({ mode }) => {
           }),
         ],
       }),
+      // 仅在 HTTPS 模式下启用 mkcert
+      ...(isHttps ? [mkcert()] : []),
     ],
     resolve: {
       alias: {
@@ -50,7 +56,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: '0.0.0.0',
-      port: 5173,
+      port: isHttps ? 5174 : 5173,
       strictPort: true,
       proxy: {
         '/api': {
