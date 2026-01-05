@@ -1,0 +1,34 @@
+---
+title: OptionCard
+description: 选项卡片组件
+---
+
+# OptionCard
+
+展示可点击的选项卡片列表，常用于 AI 回复中的快捷选项。
+
+## 基础用法
+
+```vue
+<template>
+  <OptionCard
+    :cards="options"
+    :send-message="handleSendMessage"
+  />
+</template>
+
+<script setup>
+const options = ['选项一', '选项二', '选项三']
+
+const handleSendMessage = (text) => {
+  console.log('发送消息:', text)
+}
+</script>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'cards', type: 'string[]', required: true, description: '选项卡片列表' },
+  { name: 'sendMessage', type: '(text: string) => void', description: '发送消息回调' },
+]} />

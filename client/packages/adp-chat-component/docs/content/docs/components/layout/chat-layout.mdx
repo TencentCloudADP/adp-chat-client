@@ -1,0 +1,157 @@
+---
+title: ChatLayout
+description: 完整聊天布局组件，包含侧边栏和主内容区
+---
+
+# ChatLayout
+
+完整聊天布局组件，包含侧边栏和主内容区，支持 API 模式自动加载数据。
+
+## 基础用法
+
+```vue
+<template>
+  <ChatLayout
+    :applications="applications"
+    :current-application="currentApp"
+    :conversations="conversations"
+    :current-conversation="currentConversation"
+    :chat-list="chatList"
+    :user="userInfo"
+    theme="light"
+    @send="handleSend"
+    @select-application="handleSelectApp"
+    @select-conversation="handleSelectConversation"
+  />
+</template>
+```
+
+## API 模式
+
+```vue
+<template>
+  <ChatLayout
+    :api-config="apiConfig"
+    :auto-load="true"
+    @data-loaded="handleDataLoaded"
+  />
+</template>
+
+<script setup>
+const apiConfig = {
+  applicationListApi: '/api/applications',
+  conversationListApi: '/api/conversations',
+  conversationDetailApi: '/api/conversation/detail',
+  sendMessageApi: '/api/message/send',
+  userInfoApi: '/api/user/info'
+}
+</script>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'applications', type: 'Application[]', default: '[]', description: '应用列表' },
+  { name: 'currentApplication', type: 'Application', description: '当前选中的应用' },
+  { name: 'conversations', type: 'ChatConversation[]', default: '[]', description: '会话列表' },
+  { name: 'currentConversation', type: 'ChatConversation', description: '当前选中的会话' },
+  { name: 'chatList', type: 'Record[]', default: '[]', description: '聊天消息列表' },
+  { name: 'isChatting', type: 'boolean', default: 'false', description: '是否正在聊天中' },
+  { name: 'user', type: 'UserInfo', default: '{}', description: '用户信息' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: '主题模式' },
+  { name: 'languageOptions', type: 'LanguageOption[]', default: '中英文', description: '语言选项列表' },
+  { name: 'isMobile', type: 'boolean', default: 'false', description: '是否为移动端' },
+  { name: 'logoUrl', type: 'string', default: "''", description: 'Logo URL' },
+  { name: 'logoTitle', type: 'string', default: "''", description: 'Logo 标题' },
+  { name: 'modelOptions', type: 'any[]', default: '[]', description: '模型选项列表' },
+  { name: 'selectModel', type: 'any', description: '当前选中的模型' },
+  { name: 'isDeepThinking', type: 'boolean', default: 'true', description: '是否启用深度思考模式' },
+  { name: 'maxAppLen', type: 'number', default: '4', description: '最大应用显示数量' },
+  { name: 'showCloseButton', type: 'boolean', default: 'false', description: '是否显示关闭按钮' },
+  { name: 'aiWarningText', type: 'string', default: "'内容由AI生成，仅供参考'", description: 'AI警告文本' },
+  { name: 'createConversationText', type: 'string', default: "'新建对话'", description: '新建对话提示文本' },
+  { name: 'sideI18n', type: 'object', description: '侧边栏国际化文本' },
+  { name: 'chatI18n', type: 'object', description: '聊天国际化文本' },
+  { name: 'chatItemI18n', type: 'object', description: 'ChatItem 国际化文本' },
+  { name: 'senderI18n', type: 'object', description: 'Sender 国际化文本' },
+  { name: 'apiConfig', type: 'ApiConfig', description: 'API 配置（传入则启用 API 模式）' },
+  { name: 'autoLoad', type: 'boolean', default: 'true', description: '是否自动加载数据' },
+]} />
+
+<EventsTable data={[
+  { name: 'selectApplication', params: 'Application', description: '选择应用' },
+  { name: 'selectConversation', params: 'ChatConversation', description: '选择会话' },
+  { name: 'createConversation', description: '新建会话' },
+  { name: 'toggleTheme', description: '切换主题' },
+  { name: 'changeLanguage', params: 'string', description: '切换语言' },
+  { name: 'logout', description: '退出登录' },
+  { name: 'userClick', description: '点击用户信息' },
+  { name: 'close', description: '关闭' },
+  { name: 'send', params: '(query, fileList, conversationId, applicationId)', description: '发送消息' },
+  { name: 'stop', description: '停止生成' },
+  { name: 'loadMore', params: '(conversationId, lastRecordId)', description: '加载更多' },
+  { name: 'rate', params: '(conversationId, recordId, score)', description: '评分' },
+  { name: 'share', params: '(conversationId, applicationId, recordIds)', description: '分享' },
+  { name: 'copy', params: '(content, type)', description: '复制' },
+  { name: 'modelChange', params: 'option', description: '切换模型' },
+  { name: 'toggleDeepThinking', description: '切换深度思考' },
+  { name: 'uploadFile', params: 'File[]', description: '上传文件' },
+  { name: 'startRecord', description: '开始录音' },
+  { name: 'stopRecord', description: '停止录音' },
+  { name: 'message', params: '(type, message)', description: '消息提示' },
+  { name: 'conversationChange', params: 'conversationId', description: '会话变化' },
+  { name: 'dataLoaded', params: '(type, data)', description: '数据加载完成' },
+]} />
+
+<SlotsTable data={[
+  { name: 'sider-logo', description: '侧边栏 Logo 区域' },
+]} />
+
+<MethodsTable data={[
+  { name: 'loadApplications', description: '加载应用列表' },
+  { name: 'loadConversations', description: '加载会话列表' },
+  { name: 'loadConversationDetail', params: 'conversationId', description: '加载会话详情' },
+  { name: 'loadUserInfo', description: '加载用户信息' },
+]} />
+
+## 类型定义
+
+### ApiConfig
+
+```typescript
+interface ApiConfig {
+  applicationListApi?: string;
+  conversationListApi?: string;
+  conversationDetailApi?: string;
+  sendMessageApi?: string;
+  rateApi?: string;
+  shareApi?: string;
+  userInfoApi?: string;
+  uploadApi?: string;
+}
+```
+
+### Application
+
+```typescript
+interface Application {
+  ApplicationId: string;
+  Name: string;
+  Avatar: string;
+  Greeting: string;
+  OpeningQuestions: string[];
+}
+```
+
+### ChatConversation
+
+```typescript
+interface ChatConversation {
+  Id: string;
+  AccountId: string;
+  Title: string;
+  LastActiveAt: number;
+  CreatedAt: number;
+  ApplicationId: string;
+}
+```

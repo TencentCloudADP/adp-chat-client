@@ -36,22 +36,22 @@ onMounted(() => {
     gap: var(--td-comp-paddingLR-s);
 }
 /* content自定义 */
-:deep(.t-chat__detail-reasoning[role='assistant'] .t-collapse-panel__body){
+:deep(.t-chat__detail-reasoning .t-collapse-panel__body){
     background: transparent;
     background-color: transparent;
 }
-:deep(.t-chat__detail-reasoning[role='assistant'] .t-collapse-panel__wrapper){
+:deep(.t-chat__detail-reasoning .t-collapse-panel__wrapper){
     background: transparent;
     background-color: transparent;
 }
-:deep(.t-chat__detail-reasoning[role='assistant'] .t-collapse-panel__content){
+:deep(.t-chat__detail-reasoning .t-collapse-panel__content){
     background: transparent;
     background-color: transparent;
 }
-:deep(.t-chat__detail-reasoning[role='assistant'] .t-collapse-panel__header--blank){
+:deep(.t-chat__detail-reasoning .t-collapse-panel__header--blank){
   display: none;
 }
-:deep(.t-chat__detail-reasoning[role='assistant'] .t-collapse-panel__icon){
+:deep(.t-chat__detail-reasoning .t-collapse-panel__icon){
   transform: rotate(180deg);
 }
 :deep(.assistant .t-chat__detail) {
@@ -72,6 +72,19 @@ onMounted(() => {
 }
 :deep(.t-chat__text--variant--text .t-chat__detail-reasoning){
   padding-top: 0;
+}
+:deep(.t-chat.t-chat--normal .t-chat__to-bottom){
+  display: none;
+}
+:deep(.t-chat__text .other__model-change){
+  background-color: transparent;
+  padding-left:var(--td-comp-paddingTB-s)0;
+  text-align: left;
+}
+:deep(.t-chat__text .other__system){
+  background-color: transparent;
+  padding-left: var(--td-comp-paddingTB-s);
+  text-align: left;
 }
 /* 自定义滚动条样式 */
 @-moz-document url-prefix(){

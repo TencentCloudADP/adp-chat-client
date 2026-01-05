@@ -1,0 +1,11 @@
+{
+  "title": "组件",
+  "icon": "apps-line",
+  "pages": [
+    "index",
+    "layout",
+    "chat",
+    "basic",
+    "common"
+  ]
+}

@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:https": "cross-env VITE_HTTPS=true vite",
+    "dev:all": "concurrently -n HTTP,HTTPS -c blue,green \"npm run dev\" \"npm run dev:https\"",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",
@@ -18,7 +20,7 @@
     "docs:preview": "vitepress preview docs"
   },
   "dependencies": {
-    "@tdesign-vue-next/chat": "^0.4.5",
+    "@tdesign-vue-next/chat": "^0.5.0-alpha.10",
     "axios": "^1.11.0",
     "moment": "^2.30.1",
     "pinia": "^3.0.3",
@@ -42,6 +44,8 @@
     "@vue/eslint-config-typescript": "^14.5.1",
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.7.0",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
     "eslint": "^9.29.0",
     "eslint-plugin-playwright": "^2.2.0",
     "eslint-plugin-vue": "~10.2.0",
@@ -57,6 +61,7 @@
     "unplugin-auto-import": "^19.3.0",
     "unplugin-vue-components": "^28.8.0",
     "vite": "^7.0.0",
+    "vite-plugin-mkcert": "^1.17.9",
     "vite-plugin-svg-icons": "^2.0.1",
     "vite-plugin-vue-devtools": "^7.7.7",
     "vitepress": "^1.6.4",

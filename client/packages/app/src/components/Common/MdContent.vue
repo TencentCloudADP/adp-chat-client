@@ -1,7 +1,26 @@
 <template>
   <div :class="['markdown-body', theme, 'md-content-container', role]">
-    <div class="md-content" v-html="renderedMarkdown"></div>
+    <TChatContent :options="options" :class="['markdown-container', theme, role]" 
+    :markdown-props="{
+      engine: 'cherry-markdown',
+      options: {
+        themeSettings: {
+          codeBlockTheme: theme,
+        },
+        engine: {
+          syntax: {
+            mathBlock: {
+              engine: 'katex',
+            },
+            inlineMath: {
+              engine: 'katex',
+            },
+          }
+        }
+      }
+    }" :role="role" :content="processedContent" />
   </div>
+
 </template>
 
 
@@ -11,19 +30,27 @@ import { computed } from "vue";
 import type { QuoteInfo } from '@/model/chat'
 import { storeToRefs } from 'pinia'
 import { useUiStore } from '@/stores/ui'
-import MarkdownIt from 'markdown-it';
-import { katex } from "@mdit/plugin-katex";
-import markdownItHighlightjs from 'markdown-it-highlightjs';
-import 'katex/dist/katex.min.css';
-import './github-markdown.css';
-import 'highlight.js/styles/default.css';
+import { ChatContent as TChatContent } from '@tdesign-vue-next/chat'
+import 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
 
 const uiStore = useUiStore()
 const { theme } = storeToRefs(uiStore)
+const options = computed(() => ({
+  engine: {
+    syntax: {
+          mathBlock: {
+            engine: 'katex' as const,
+          },
+          inlineMath: {
+            engine: 'katex' as const,
+          },
+        }
+  },
+}));
 
-// message rendering
+// 插入角标引用，使用 markdown 上标语法
 function insertReference(content: string, quotes?: QuoteInfo[]): string {
-  if (!quotes) {
+  if (!quotes || quotes.length === 0) {
     return content
   }
   // 1. 将QuoteInfo数组按Position降序排序，这样从后往前插入不会影响前面的位置
@@ -32,52 +59,53 @@ function insertReference(content: string, quotes?: QuoteInfo[]): string {
   // 2. 将字符串转为数组便于操作
   let contentArray = [...content]
 
-  // 3. 遍历每个QuoteInfo并插入角标
+  // 3. 遍历每个QuoteInfo并插入角标（使用 markdown 上标语法 ^[n]^）
   for (const quote of sortedQuotes) {
     const { Index, Position } = quote
-    // 在指定位置插入角标
-    contentArray.splice(Position, 0, `<sup>[${Index}]</sup>`)
+    // cherry-markdown 支持 ^上标^ 语法
+    contentArray.splice(Position, 0, `^[${Index}]^`)
   }
 
   // 4. 将数组转回字符串
   return contentArray.join('')
 }
 
-const { content, role, quoteInfos } = defineProps<{
+type RoleType = 'user' | 'assistant' | 'system'
+
+const props = defineProps<{
   quoteInfos?: QuoteInfo[];
   content: string | undefined;
-  role?: string   //  user/assistant/error/model-change/system
+  role?: RoleType;
 }>();
-const mdIt = MarkdownIt({
-  html: true,
-  breaks: true,
-  linkify: true,
-  typographer: true,
-})
-  .use(katex)
-  .use(markdownItHighlightjs)
 
-const renderedMarkdown = computed(() => {
-  return content && mdIt.render(insertReference(content || '', quoteInfos));
-});
+// 处理后的内容，包含角标
+const processedContent = computed(() => {
+  return insertReference(props.content || '', props.quoteInfos)
+})
 
 </script>
 
 
 
 <style scoped>
-.md-content{
+.md-content {
   position: relative;
 }
-.md-content-container {
-  padding: var(--td-comp-paddingTB-s);
+
+.md-content-container.user {
+  padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingTB-l);
 }
 
 .md-content-container.system {
   background-color: transparent;
-  padding-bottom:0;
-  border-left:1px solid var(--td-component-stroke);
+  padding-bottom: 0;
+  border-left: 1px solid var(--td-component-stroke);
 }
+
+.markdown-container.t-chat__text {
+  padding: 0;
+}
+
 
 .md-content-container.user {
   border-radius: var(--td-radius-large);
@@ -93,10 +121,11 @@ const renderedMarkdown = computed(() => {
   font: var(--td-font-body-medium);
 }
 
-.md-content-container.assistant{
+.md-content-container.assistant {
   padding: var(--td-comp-paddingTB-s) 0;
   margin-left: 0;
 }
+
 :deep(.md-content-container img) {
   width: 150px;
   display: inline-block;

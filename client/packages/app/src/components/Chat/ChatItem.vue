@@ -8,7 +8,6 @@ import type { Record, AgentThought } from '@/model/chat';
 import { ScoreValue } from '@/model/chat';
 // TDesign Vue 组件
 import {
-    ChatContent as TChatContent,
     ChatItem as TChatItem,
     ChatLoading as TChatLoading,
 } from '@tdesign-vue-next/chat';
