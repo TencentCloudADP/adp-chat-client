@@ -1,7 +1,6 @@
 import { createApp, type App, type Component } from 'vue'
 
 // 导入组件
-import Button from './components/Button.vue'
 import AIWarning from './components/AIWarning.vue'
 import ApplicationList from './components/ApplicationList.vue'
 import CreateConversation from './components/CreateConversation.vue'
@@ -24,8 +23,7 @@ import ChatLayout from './components/layout/Index.vue'
 import MainLayout from './components/layout/MainLayout.vue'
 import SideLayout from './components/layout/SideLayout.vue'
 
-// 导入类型
-import type { ButtonConfig } from './model/type'
+
 
 /**
  * 组件挂载配置接口
@@ -120,8 +118,6 @@ function createComponentMounter<T extends MountConfig>(
 }
 
 // ==================== 组件配置类型 ====================
-
-export interface ButtonMountConfig extends ButtonConfig {}
 
 export interface AIWarningConfig extends MountConfig {
   text?: string
@@ -316,7 +312,6 @@ export interface SideLayoutConfig extends MountConfig {
 
 // ==================== 组件挂载器 ====================
 
-export const ButtonMounter = createComponentMounter<ButtonMountConfig>(Button, 'adp-button')
 export const AIWarningMounter = createComponentMounter<AIWarningConfig>(AIWarning, 'adp-ai-warning')
 export const ApplicationListMounter = createComponentMounter<ApplicationListConfig>(ApplicationList, 'adp-application-list')
 export const CreateConversationMounter = createComponentMounter<CreateConversationConfig>(CreateConversation, 'adp-create-conversation')

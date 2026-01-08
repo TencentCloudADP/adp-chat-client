@@ -9,12 +9,65 @@ This guide will help you quickly integrate ADP Chat Component into your project.
 
 ## Installation
 
+The component library is not yet published to npm. You need to install it locally.
+
+### Option 1: Local File Reference
+
+1. Copy the `adp-chat-component` directory to your project
+2. Add local dependency in `package.json`:
+
+```json
+{
+  "dependencies": {
+    "adp-chat-component": "file:./path/to/adp-chat-component"
+  }
+}
+```
+
+3. Install dependencies:
+
 ```bash
-npm install adp-chat-component
+npm install
 # or
-pnpm add adp-chat-component
-# or
-yarn add adp-chat-component
+pnpm install
+```
+
+### Option 2: Monorepo Workspace
+
+If your project uses pnpm workspace or other monorepo solutions, place the component library in the packages directory:
+
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - 'packages/*'
+```
+
+Then reference it in your project:
+
+```json
+{
+  "dependencies": {
+    "adp-chat-component": "workspace:*"
+  }
+}
+```
+
+### Option 3: Direct Build Output Import
+
+If you only need to use the built output, you can directly import files from the dist directory:
+
+```html
+<!-- In HTML -->
+<link rel="stylesheet" href="path/to/adp-chat-component/dist/style.css">
+<script src="path/to/adp-chat-component/dist/adp-chat-component.umd.js"></script>
+```
+
+Or in JavaScript:
+
+```javascript
+// ES Module
+import ADPChatComponent from 'path/to/adp-chat-component/dist/adp-chat-component.es.js'
+import 'path/to/adp-chat-component/dist/style.css'
 ```
 
 ## Basic Usage
