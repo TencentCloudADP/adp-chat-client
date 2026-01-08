@@ -1,0 +1,53 @@
+---
+title: FileList
+description: File list component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# FileList
+
+Display uploaded file list.
+
+## Basic Usage
+
+```vue
+<template>
+  <FileList
+    :file-list="files"
+    :on-delete="handleDelete"
+  />
+</template>
+
+<script setup>
+const files = [
+  { uid: '1', url: 'https://example.com/file1.png', name: 'file1.png' },
+  { uid: '2', url: 'https://example.com/file2.pdf', name: 'file2.pdf' },
+]
+
+const handleDelete = (index) => {
+  files.splice(index, 1)
+}
+</script>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'fileList', type: 'FileProps[]', required: true, description: 'File list' },
+  { name: 'onDelete', type: '(index: number) => void', required: true, description: 'Delete callback' },
+]} />
+
+## Type Definitions
+
+### FileProps
+
+```typescript
+interface FileProps {
+  uid: string;
+  url: string;
+  name?: string;
+  status?: string;
+  response?: string;
+}
+```

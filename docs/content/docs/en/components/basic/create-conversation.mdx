@@ -1,0 +1,31 @@
+---
+title: CreateConversation
+description: Create conversation button component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# CreateConversation
+
+Quick button to create new conversation.
+
+## Basic Usage
+
+```vue
+<template>
+  <CreateConversation
+    tooltip-text="New Chat"
+    @create="handleCreate"
+  />
+</template>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'tooltipText', type: 'string', default: "'New Chat'", description: 'Tooltip text' },
+]} />
+
+<EventsTable data={[
+  { name: 'create', description: 'Triggered on create click' },
+]} />

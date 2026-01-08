@@ -186,7 +186,7 @@ const handleSendMessage = (message: string) => {
                     <span class="title">{{ i18n.references }}: </span>
                     <ol>
                         <li v-for="(reference, idx) in item.References" :key="idx">
-                            <t-link theme="primary" :href="reference.Url" target="_blank">{{ reference.Name }}</t-link>
+                            <t-link theme="primary" :href="reference.Url" target="_blank" rel="noopener noreferrer">{{ reference.Name }}</t-link>
                         </li>
                     </ol>
                 </div>

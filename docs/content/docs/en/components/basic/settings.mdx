@@ -1,0 +1,51 @@
+---
+title: Settings
+description: Settings component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# Settings
+
+Settings dropdown menu with theme switch, language selection, logout.
+
+## Basic Usage
+
+```vue
+<template>
+  <Settings
+    :theme="theme"
+    :language-options="languageOptions"
+    @toggle-theme="handleToggleTheme"
+    @change-language="handleChangeLanguage"
+    @logout="handleLogout"
+  />
+</template>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: 'Theme mode' },
+  { name: 'languageOptions', type: 'LanguageOption[]', default: "[{key:'zh-CN',value:'简体中文'},{key:'en-US',value:'English'}]", description: 'Language options' },
+  { name: 'switchThemeText', type: 'string', default: "'Switch Theme'", description: 'Switch theme text' },
+  { name: 'selectLanguageText', type: 'string', default: "'Select Language'", description: 'Select language text' },
+  { name: 'logoutText', type: 'string', default: "'Logout'", description: 'Logout text' },
+]} />
+
+<EventsTable data={[
+  { name: 'toggleTheme', description: 'Triggered on theme toggle' },
+  { name: 'changeLanguage', params: 'string (key)', description: 'Triggered on language change' },
+  { name: 'logout', description: 'Triggered on logout' },
+]} />
+
+## Type Definitions
+
+### LanguageOption
+
+```typescript
+interface LanguageOption {
+  key: string;
+  value: string;
+}
+```

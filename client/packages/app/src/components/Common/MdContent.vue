@@ -31,7 +31,9 @@ import type { QuoteInfo } from '@/model/chat'
 import { storeToRefs } from 'pinia'
 import { useUiStore } from '@/stores/ui'
 import { ChatContent as TChatContent } from '@tdesign-vue-next/chat'
-import 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+import 'katex/dist/katex.min.css'
+import 'katex/dist/katex.min.js'
+
 
 const uiStore = useUiStore()
 const { theme } = storeToRefs(uiStore)

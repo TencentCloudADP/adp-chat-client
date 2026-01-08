@@ -26,7 +26,8 @@
 import { computed } from "vue";
 import type { QuoteInfo } from '../../model/chat'
 import { ChatContent as TChatContent } from '@tdesign-vue-next/chat'
-import 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+import 'katex/dist/katex.min.css'
+import 'katex/dist/katex.min.js'
 
 interface Props {
   /** 引用信息数组 */

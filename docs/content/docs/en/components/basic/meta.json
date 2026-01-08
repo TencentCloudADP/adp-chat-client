@@ -1,0 +1,17 @@
+{
+  "title": "Basic Components",
+  "icon": "apps-2-line",
+  "pages": [
+    "button",
+    "ai-warning",
+    "application-list",
+    "history-list",
+    "settings",
+    "search",
+    "personal-account",
+    "logo-area",
+    "create-conversation",
+    "customized-icon",
+    "sidebar-toggle"
+  ]
+}

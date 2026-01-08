@@ -1,0 +1,198 @@
+---
+title: Quick Start
+description: Get started with ADP Chat Component quickly
+---
+
+# Quick Start
+
+This guide will help you quickly integrate ADP Chat Component into your project.
+
+## Installation
+
+```bash
+npm install adp-chat-component
+# or
+pnpm add adp-chat-component
+# or
+yarn add adp-chat-component
+```
+
+## Basic Usage
+
+### Method 1: Vue Component Import
+
+```vue
+<template>
+  <ChatLayout
+    :applications="applications"
+    :current-application="currentApp"
+    :conversations="conversations"
+    :current-conversation="currentConversation"
+    :chat-list="chatList"
+    :user="userInfo"
+    theme="light"
+    @send="handleSend"
+    @select-application="handleSelectApp"
+    @select-conversation="handleSelectConversation"
+  />
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { ChatLayout } from 'adp-chat-component'
+import 'adp-chat-component/dist/style.css'
+
+const applications = ref([])
+const currentApp = ref(null)
+const conversations = ref([])
+const currentConversation = ref(null)
+const chatList = ref([])
+const userInfo = ref({})
+
+const handleSend = (query, fileList, conversationId, applicationId) => {
+  // Handle send message
+}
+
+const handleSelectApp = (app) => {
+  currentApp.value = app
+}
+
+const handleSelectConversation = (conversation) => {
+  currentConversation.value = conversation
+}
+</script>
+```
+
+### Method 2: API Mode
+
+If your backend API conforms to the specification, you can use API mode to automatically load data:
+
+```vue
+<template>
+  <ChatLayout
+    :api-config="apiConfig"
+    :auto-load="true"
+    @data-loaded="handleDataLoaded"
+    @send="handleSend"
+  />
+</template>
+
+<script setup lang="ts">
+import { ChatLayout } from 'adp-chat-component'
+import 'adp-chat-component/dist/style.css'
+
+const apiConfig = {
+  applicationListApi: '/api/applications',
+  conversationListApi: '/api/conversations',
+  conversationDetailApi: '/api/conversation/detail',
+  sendMessageApi: '/api/message/send',
+  userInfoApi: '/api/user/info'
+}
+
+const handleDataLoaded = (type, data) => {
+  console.log(`${type} loaded:`, data)
+}
+
+const handleSend = (query, fileList, conversationId, applicationId) => {
+  // Handle send message
+}
+</script>
+```
+
+### Method 3: Dynamic Mounting
+
+Suitable for non-Vue projects or scenarios that require dynamic component creation:
+
+```typescript
+import { ChatLayoutMounter } from 'adp-chat-component'
+import 'adp-chat-component/dist/style.css'
+
+// Mount component
+const instanceId = ChatLayoutMounter.mount('#chat-container', {
+  theme: 'dark',
+  applications: [...],
+  onSend: (query, files, conversationId, appId) => {
+    // Handle send
+  }
+})
+
+// Unmount component
+ChatLayoutMounter.unmount(instanceId)
+```
+
+## Configure HTTP Service
+
+You can configure axios instance to add authentication info:
+
+```typescript
+import { configureAxios, setRequestInterceptor, setResponseInterceptor } from 'adp-chat-component'
+
+// Configure axios
+configureAxios({
+  baseURL: 'https://api.example.com',
+  timeout: 30000
+})
+
+// Add request interceptor
+setRequestInterceptor(
+  (config) => {
+    config.headers.Authorization = `Bearer ${token}`
+    return config
+  },
+  (error) => Promise.reject(error)
+)
+
+// Add response interceptor
+setResponseInterceptor(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Handle authentication failure
+    }
+    return Promise.reject(error)
+  }
+)
+```
+
+## Theme Switching
+
+Components support light and dark themes:
+
+```vue
+<template>
+  <ChatLayout
+    :theme="theme"
+    @toggle-theme="toggleTheme"
+  />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const theme = ref('light')
+
+const toggleTheme = () => {
+  theme.value = theme.value === 'light' ? 'dark' : 'light'
+}
+</script>
+```
+
+## Internationalization
+
+Customize text through i18n related props:
+
+```vue
+<template>
+  <ChatLayout
+    :chat-i18n="{
+      loading: 'Loading...',
+      thinking: 'Thinking...',
+      sendError: 'Send failed'
+    }"
+    :sender-i18n="{
+      placeholder: 'Type your message...',
+      uploadImg: 'Upload image'
+    }"
+  />
+</template>
+```
