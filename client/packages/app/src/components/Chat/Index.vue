@@ -6,7 +6,7 @@
     <!-- 聊天内容容器 -->
     <div id="chat-content" class="chat-box">
         <!-- 聊天组件 -->
-        <TChat ref="chatRef" :reverse="false" style="height: 100%" :clear-history="false" @scroll="handleChatScroll"
+        <TChat :class="{ isChatting: isChatting }" :reverse="false" style="height: 100%" :clear-history="false"
             @clear="clearConfirm">
             <!-- 默认问题提示 -->
             <template v-if="chatList.length <= 0 && !messageLoading && !chatId">
@@ -52,9 +52,6 @@
             </template>
             <!-- 底部发送区域 -->
             <template #footer>
-                <!-- 回到底部按钮 -->
-                <BackToBottom v-show="chatId && ((isShowToBottom && !isStreamLoad) || hasUserScrolled)"
-                    :loading="isChatting" :backToBottom="handleClickBackToBottom" />
                 <t-card v-if="isSelecting" size="small" class="share-setting-container" shadow
                     bodyClassName="share-setting-card">
                     <div class="share-setting-content">
@@ -86,13 +83,13 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, watch, nextTick, computed } from 'vue'
+import { ref, watch, nextTick, computed, onMounted, onUnmounted } from 'vue'
 import InfiniteLoading from 'vue-infinite-loading'
 import { storeToRefs } from 'pinia'
 import type { AxiosRequestConfig } from 'axios'
 import { useI18n } from 'vue-i18n'
 import AppType from '@/components/Chat/AppType.vue'
-import { Chat as TChat } from '@tdesign-vue-next/chat'
+import { ChatList as TChat } from '@tdesign-vue-next/chat'
 import { Checkbox, MessagePlugin } from 'tdesign-vue-next'
 import { fetchSSE } from '@/model/sseRequest-reasoning'
 import { mergeRecord } from '@/utils/util'
@@ -108,7 +105,6 @@ import { useAppsStore } from '@/stores/apps'
 import { copy } from '@/utils/clipboard';
 
 import Sender from './Sender.vue'
-import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
 import CustomizedIcon from '@/components/CustomizedIcon.vue';
 const { t } = useI18n()
@@ -184,9 +180,6 @@ const messageLoading = ref(false)
  */
 const isStreamLoad = ref(false)
 
-const lastScrollTop = ref(0)
-const hasUserScrolled = ref(false)
-
 /**
  * 中止控制器，用于取消请求
  * @type {AbortController | null}
@@ -194,15 +187,40 @@ const hasUserScrolled = ref(false)
 let abort = null as AbortController | null
 
 /**
- * 聊天组件引用
- * @type {Ref<{ scrollToBottom?: (options?: { behavior?: string }) => void } | null>}
+ * footer高度观察器
  */
-const chatRef = ref<{ scrollToBottom?: (options?: { behavior?: string }) => void } | null>(null)
+let footerResizeObserver: ResizeObserver | null = null
+
 /**
- * 是否显示回到底部按钮
- * @type {Ref<boolean>}
+ * 更新footer高度CSS变量
  */
-const isShowToBottom = ref(false)
+const updateFooterHeight = () => {
+    const footer = document.querySelector('.t-chat__footer') as HTMLElement
+    if (footer) {
+        const height = footer.offsetHeight
+        document.documentElement.style.setProperty('--chat-footer-height', `${height + 60}px`)
+    }
+}
+
+onMounted(() => {
+    nextTick(() => {
+        const footer = document.querySelector('.t-chat__footer') as HTMLElement
+        if (footer) {
+            updateFooterHeight()
+            footerResizeObserver = new ResizeObserver(() => {
+                updateFooterHeight()
+            })
+            footerResizeObserver.observe(footer)
+        }
+    })
+})
+
+onUnmounted(() => {
+    if (footerResizeObserver) {
+        footerResizeObserver.disconnect()
+        footerResizeObserver = null
+    }
+})
 
 /**
  * 加载聊天会话详情
@@ -232,60 +250,12 @@ const handleGetConversationDetail = async (chatId: string, status?: { loaded: ()
         } else {
             status && status.complete();
         }
-        nextTick(() => {
-            // 仅首次加载滚动到最底部
-            !LastRecordId && backToBottom()
-        })
     } catch (err) {
         status && status.complete();
     }
 }
 
-/**
- * 通用节流函数
- * @param {Function} fn - 需要节流的函数
- * @param {number} delay - 节流时间（毫秒）
- * @returns {Function} - 节流后的函数
- */
-const throttle = (fn: Function, delay: number) => {
-    let lastCallTime = 0;
-    return function (this: any, ...args: any[]) {
-        const now = Date.now();
-        if (now - lastCallTime < delay) {
-            return;
-        }
-        lastCallTime = now;
-        return fn.apply(this, args);
-    };
-};
 
-/**
- * 滚动到底部
- * @returns {void}
- */
-const backToBottom = () => {
-     if (!(chatRef.value && chatRef.value.scrollToBottom)) return;
-    if (hasUserScrolled.value) return;
-    chatRef.value.scrollToBottom({
-        behavior: 'smooth',
-    });
-}
-// const backToBottom = throttle(() => {
-//     if (!(chatRef.value && chatRef.value.scrollToBottom)) return;
-//     if (hasUserScrolled.value) return;
-//     chatRef.value.scrollToBottom({
-//         behavior: 'smooth',
-//     });
-// }, 500);
-
-/**
- * 点击回到底部按钮
- * @returns {void}
- */
-const handleClickBackToBottom = () => {
-    hasUserScrolled.value = false;
-    backToBottom()
-}
 
 /**
  * 设置默认问题
@@ -362,28 +332,6 @@ const infiniteHandler = function ($state: any) {
 }
 
 /**
- * 聊天滚动事件
- * @param {{ e: Event }} param0 - 滚动事件对象
- * @returns {void}
- */
-const handleChatScroll = function ({ e }: { e: Event }) {
-    if (messageLoading.value) return;
-    const scrollTop = (e.target as HTMLElement).scrollTop
-    const clientHeight = (e.target as HTMLElement).clientHeight
-    const scrollHeight = (e.target as HTMLElement).scrollHeight
-    const isToBottom = clientHeight + scrollTop < scrollHeight - 2
-    isShowToBottom.value = isToBottom
-
-    if (lastScrollTop.value - scrollTop > 4 && isChatting.value) {
-        hasUserScrolled.value = true
-    }
-    if (!isToBottom) {
-        hasUserScrolled.value = false
-    }
-    lastScrollTop.value = scrollTop
-}
-
-/**
  * 发送消息
  * @param {string} [queryVal] - 消息内容
  * @param {FileProps[]} [fileList] - 文件列表
@@ -420,9 +368,6 @@ const inputEnter = function (queryVal: string | undefined, fileList?: FileProps[
         IsFromSelf: false
     }
     chatList.value.push(params2)
-    nextTick(() => {
-        backToBottom()
-    })
     handleSendData(_query)
     senderRef.value && senderRef.value.changeSenderVal('', [])
 }
@@ -508,7 +453,6 @@ const handleSendData = async (queryVal: string) => {
     abort = new AbortController()
     loading.value = true
     isStreamLoad.value = true
-    hasUserScrolled.value = false
     chatStore.setIsChatting(true)
     await fetchSSE(
         () => {
@@ -554,21 +498,16 @@ const handleSendData = async (queryVal: string) => {
 
                     loading.value = false
                 }
-                nextTick(() => {
-                    backToBottom()
-                })
             },
-            complete(isOk, msg) {
+            complete(isOk) {
                 if (isOk) {
                     loading.value = false
                     chatStore.setIsChatting(false)
                     currentChatingConversationId.value = ''
                     nextTick(() => {
-                        backToBottom();
                         setTimeout(() => {
-                            hasUserScrolled.value = false;  //  结束后取消自动滚动
                             isStreamLoad.value = false;
-                        }, 500);    //  自动滚动到底有操作延迟，确认触底后取消状态位
+                        }, 500);
                     })
                     
                 }
@@ -608,7 +547,7 @@ const handleSendData = async (queryVal: string) => {
 // 监听chatId变化
 watch(
     chatId,
-    (newId, oldId) => {
+    (newId) => {
         // sse新建对话中不处理变化
         if (isChatting.value && (newId && currentChatingConversationId.value && newId === currentChatingConversationId.value)) {
             return

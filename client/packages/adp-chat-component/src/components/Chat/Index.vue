@@ -6,7 +6,7 @@
     <!-- 聊天内容容器 -->
     <div id="chat-content" class="chat-box">
         <!-- 聊天组件 -->
-        <TChat ref="chatRef" :reverse="false" style="height: 100%" :clear-history="false" @scroll="handleChatScroll"
+        <TChat :reverse="false" style="height: 100%" :clear-history="false"
             @clear="clearConfirm">
             <!-- 默认问题提示 -->
             <template v-if="chatList.length <= 0 && !messageLoading && !chatId">
@@ -59,9 +59,6 @@
             </template>
             <!-- 底部发送区域 -->
             <template #footer>
-                <!-- 回到底部按钮 -->
-                <BackToBottom v-show="chatId && ((isShowToBottom && !isStreamLoad) || hasUserScrolled)"
-                    :loading="isChatting" @click="handleClickBackToBottom" />
                 <t-card v-if="isSelecting" size="small" class="share-setting-container" shadow
                     bodyClassName="share-setting-card">
                     <div class="share-setting-content">
@@ -106,7 +103,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, watch, nextTick, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { ChatList as TChat } from '@tdesign-vue-next/chat'
 import { Checkbox } from 'tdesign-vue-next'
 import type { Record } from '../../model/chat'
@@ -116,7 +113,6 @@ import { modelOptions as defaultModelOptions, defaultModel } from '../../model/m
 
 import AppType from './AppType.vue'
 import Sender from './Sender.vue'
-import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
 import CustomizedIcon from '../CustomizedIcon.vue';
 
@@ -303,38 +299,6 @@ const messageLoading = ref(false)
  */
 const isStreamLoad = ref(false)
 
-const lastScrollTop = ref(0)
-const hasUserScrolled = ref(false)
-
-/**
- * 聊天组件引用
- */
-const chatRef = ref<{ scrollToBottom?: (options?: { behavior?: string }) => void } | null>(null)
-
-/**
- * 是否显示回到底部按钮
- */
-const isShowToBottom = ref(false)
-
-/**
- * 滚动到底部
- */
-const backToBottom = () => {
-    if (!(chatRef.value && chatRef.value.scrollToBottom)) return;
-    if (hasUserScrolled.value) return;
-    chatRef.value.scrollToBottom({
-        behavior: 'smooth',
-    });
-}
-
-/**
- * 点击回到底部按钮
- */
-const handleClickBackToBottom = () => {
-    hasUserScrolled.value = false;
-    backToBottom()
-}
-
 /**
  * 设置默认问题
  */
@@ -368,32 +332,6 @@ const clearConfirm = function () {
  */
 const onStop = function () {
     emit('stop');
-}
-
-/**
- * 聊天滚动事件
- */
-const handleChatScroll = function ({ e }: { e: Event }) {
-    if (messageLoading.value) return;
-    const scrollTop = (e.target as HTMLElement).scrollTop
-    const clientHeight = (e.target as HTMLElement).clientHeight
-    const scrollHeight = (e.target as HTMLElement).scrollHeight
-    const isToBottom = clientHeight + scrollTop < scrollHeight - 2
-    isShowToBottom.value = isToBottom
-
-    if (lastScrollTop.value - scrollTop > 4 && props.isChatting) {
-        hasUserScrolled.value = true
-    }
-    if (!isToBottom) {
-        hasUserScrolled.value = false
-    }
-    lastScrollTop.value = scrollTop
-    
-    // 滚动到顶部时加载更多
-    const firstRecord = chatList.value[0];
-    if (scrollTop < 50 && props.chatId && firstRecord) {
-        emit('loadMore', props.chatId, firstRecord.RecordId);
-    }
 }
 
 /**
@@ -511,12 +449,10 @@ const handleMessage = (type: 'warning' | 'error' | 'info', message: string) => {
 // 监听chatId变化
 watch(
     () => props.chatId,
-    (newId, oldId) => {
-        if (newId !== oldId) {
-            isSelecting.value = false;
-            selectedIds.value = [];
-            emit('conversationChange', newId);
-        }
+    (newId) => {
+        isSelecting.value = false;
+        selectedIds.value = [];
+        emit('conversationChange', newId);
     },
     { immediate: true },
 )
@@ -525,7 +461,6 @@ watch(
  * 暴露给父组件的方法
  */
 defineExpose({
-    backToBottom,
     clearConfirm,
     getSenderRef: () => senderRef.value
 })
