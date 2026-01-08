@@ -9,12 +9,65 @@ description: 快速上手 ADP Chat Component
 
 ## 安装
 
+当前组件库暂未发布到 npm，需要通过本地方式引入。
+
+### 方式一：本地文件引入
+
+1. 将 `adp-chat-component` 目录复制到你的项目中
+2. 在 `package.json` 中添加本地依赖：
+
+```json
+{
+  "dependencies": {
+    "adp-chat-component": "file:./path/to/adp-chat-component"
+  }
+}
+```
+
+3. 安装依赖：
+
 ```bash
-npm install adp-chat-component
+npm install
 # 或
-pnpm add adp-chat-component
-# 或
-yarn add adp-chat-component
+pnpm install
+```
+
+### 方式二：Monorepo 工作区引入
+
+如果你的项目使用 pnpm workspace 或其他 monorepo 方案，可以将组件库放入 packages 目录：
+
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - 'packages/*'
+```
+
+然后在项目中引用：
+
+```json
+{
+  "dependencies": {
+    "adp-chat-component": "workspace:*"
+  }
+}
+```
+
+### 方式三：构建产物直接引入
+
+如果只需要使用构建后的产物，可以直接引入 dist 目录中的文件：
+
+```html
+<!-- 在 HTML 中引入 -->
+<link rel="stylesheet" href="path/to/adp-chat-component/dist/style.css">
+<script src="path/to/adp-chat-component/dist/adp-chat-component.umd.js"></script>
+```
+
+或在 JavaScript 中：
+
+```javascript
+// ES Module
+import ADPChatComponent from 'path/to/adp-chat-component/dist/adp-chat-component.es.js'
+import 'path/to/adp-chat-component/dist/style.css'
 ```
 
 ## 基础使用

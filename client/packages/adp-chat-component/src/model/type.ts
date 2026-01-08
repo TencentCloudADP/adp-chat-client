@@ -2,16 +2,6 @@ import type { Application } from './application'
 import type { ChatConversation, Record } from './chat'
 import type { ApiConfig } from '../service/api'
 
-export interface ButtonConfig {
-  container: string
-  type?: 'primary' | 'secondary' | 'danger'
-  size?: 'small' | 'medium' | 'large'
-  disabled?: boolean
-  loading?: boolean
-  text?: string
-  onClick?: (event: MouseEvent) => void
-}
-
 export interface LanguageOption {
   key: string
   value: string

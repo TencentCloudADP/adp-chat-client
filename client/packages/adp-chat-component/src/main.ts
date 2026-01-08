@@ -11,7 +11,6 @@ import {
   unmountComponent,
   getMountedApps,
   // 组件挂载器
-  ButtonMounter,
   AIWarningMounter,
   ApplicationListMounter,
   CreateConversationMounter,
@@ -71,7 +70,6 @@ function init(container?: string, config?: ChatConfig) {
 const ADPChatComponent = {
   init,
   unmount: unmountComponent,
-  Button: ButtonMounter,
   AIWarning: AIWarningMounter,
   ApplicationList: ApplicationListMounter,
   CreateConversation: CreateConversationMounter,

@@ -1,6 +1,5 @@
 // 基础组件导出
 export { default as AIWarning } from './components/AIWarning.vue'
-export { default as Button } from './components/Button.vue'
 export { default as ApplicationList } from './components/ApplicationList.vue'
 export { default as CreateConversation } from './components/CreateConversation.vue'
 export { default as CustomizedIcon } from './components/CustomizedIcon.vue'
@@ -30,7 +29,7 @@ export { default as MainLayout } from './components/layout/MainLayout.vue'
 export { default as SideLayout } from './components/layout/SideLayout.vue'
 
 // 类型导出
-export type { ChatConfig, ButtonConfig } from './model/type'
+export type { ChatConfig } from './model/type'
 export type { Application } from './model/application'
 export type { ChatConversation, Record, AgentThought } from './model/chat'
 export type { FileProps } from './model/file'
