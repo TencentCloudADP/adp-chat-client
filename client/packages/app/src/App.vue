@@ -74,7 +74,25 @@ onMounted(() => {
   padding-top: 0;
 }
 :deep(.t-chat.t-chat--normal .t-chat__to-bottom){
-  display: none;
+  bottom: var(--chat-footer-height, 100px);
+}
+:deep(.t-chat.isChatting .t-chat__to-bottom){
+  position: relative;
+}
+:deep(.t-chat.isChatting .t-chat__to-bottom::before){
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('@/assets/icons/loading.svg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  animation: rotate 2s linear infinite;
+  z-index: 2;
+  border-radius: 9999px;
 }
 :deep(.t-chat__text .other__model-change){
   background-color: transparent;

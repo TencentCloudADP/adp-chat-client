@@ -275,6 +275,82 @@ const handleClose = () => {
     background: transparent;
     background-color: transparent;
 }
+:deep(.t-chat-sender){
+  padding:0;
+}
+:deep(.dropdown-item){
+    gap: var(--td-comp-paddingLR-s);
+}
+/* content自定义 */
+:deep(.t-chat__detail-reasoning .t-collapse-panel__body){
+    background: transparent;
+    background-color: transparent;
+}
+:deep(.t-chat__detail-reasoning .t-collapse-panel__wrapper){
+    background: transparent;
+    background-color: transparent;
+}
+:deep(.t-chat__detail-reasoning .t-collapse-panel__content){
+    background: transparent;
+    background-color: transparent;
+}
+:deep(.t-chat__detail-reasoning .t-collapse-panel__header--blank){
+  display: none;
+}
+:deep(.t-chat__detail-reasoning .t-collapse-panel__icon){
+  transform: rotate(180deg);
+}
+:deep(.assistant .t-chat__detail) {
+    max-width: 100%;
+    width: 100%;
+}
+:deep(.isMobile .t-chat__content) {
+    margin-left: 0;
+}
+:deep(.t-chat__detail-reasoning .t-collapse-panel){
+  margin-left: 0;
+}
+:deep(.t-chat__detail-reasoning .t-collapse-panel__header){
+  padding: 0;
+}
+:deep(.t-chat__detail-reasoning .t-collapse-panel__content){
+  padding: 0 0 var(--td-comp-paddingTB-m) 0;
+}
+:deep(.t-chat__text--variant--text .t-chat__detail-reasoning){
+  padding-top: 0;
+}
+:deep(.t-chat.t-chat--normal .t-chat__to-bottom){
+  bottom: var(--chat-footer-height, 100px);
+}
+:deep(.t-chat.isChatting .t-chat__to-bottom){
+  position: relative;
+}
+:deep(.t-chat.isChatting .t-chat__to-bottom::before){
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('@/assets/icons/loading.svg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  animation: rotate 2s linear infinite;
+  z-index: 2;
+  border-radius: 9999px;
+}
+:deep(.t-chat__text .other__model-change){
+  background-color: transparent;
+  padding-left:var(--td-comp-paddingTB-s)0;
+  text-align: left;
+}
+:deep(.t-chat__text .other__system){
+  background-color: transparent;
+  padding-left: var(--td-comp-paddingTB-s);
+  text-align: left;
+}
+
 .content {
     display: flex;
 }
