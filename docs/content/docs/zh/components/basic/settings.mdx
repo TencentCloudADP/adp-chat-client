@@ -1,0 +1,51 @@
+---
+title: Settings
+description: 设置组件
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# Settings
+
+设置下拉菜单，包含主题切换、语言选择、退出登录等功能。
+
+## 基础用法
+
+```vue
+<template>
+  <Settings
+    :theme="theme"
+    :language-options="languageOptions"
+    @toggle-theme="handleToggleTheme"
+    @change-language="handleChangeLanguage"
+    @logout="handleLogout"
+  />
+</template>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: '主题模式' },
+  { name: 'languageOptions', type: 'LanguageOption[]', default: "[{key:'zh-CN',value:'简体中文'},{key:'en-US',value:'English'}]", description: '语言选项列表' },
+  { name: 'switchThemeText', type: 'string', default: "'切换主题'", description: '切换主题文本' },
+  { name: 'selectLanguageText', type: 'string', default: "'选择语言'", description: '选择语言文本' },
+  { name: 'logoutText', type: 'string', default: "'退出登录'", description: '退出登录文本' },
+]} />
+
+<EventsTable data={[
+  { name: 'toggleTheme', description: '切换主题时触发' },
+  { name: 'changeLanguage', params: 'string (key)', description: '切换语言时触发' },
+  { name: 'logout', description: '退出登录时触发' },
+]} />
+
+## 类型定义
+
+### LanguageOption
+
+```typescript
+interface LanguageOption {
+  key: string;
+  value: string;
+}
+```

@@ -1,0 +1,28 @@
+---
+title: CustomizedIcon
+description: Customized icon component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# CustomizedIcon
+
+SVG sprite icon component.
+
+## Basic Usage
+
+```vue
+<template>
+  <CustomizedIcon name="chat" size="m" />
+</template>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'name', type: 'string', required: true, description: 'Icon name' },
+  { name: 'size', type: "'xs' | 's' | 'm' | 'l' | 'xl'", default: "'m'", description: 'Icon size' },
+  { name: 'nativeIcon', type: 'boolean', default: 'false', description: 'Use native icon style (no theme filter)' },
+  { name: 'showHoverBg', type: 'boolean', default: 'true', description: 'Show background on hover' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: 'Theme mode' },
+]} />

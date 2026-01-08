@@ -1,0 +1,37 @@
+---
+title: Button
+description: Button component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# Button
+
+General button component.
+
+## Basic Usage
+
+```vue
+<template>
+  <Button type="primary" @click="handleClick">
+    Click Button
+  </Button>
+</template>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'type', type: "'primary' | 'secondary' | 'danger'", default: "'primary'", description: 'Button type' },
+  { name: 'size', type: "'small' | 'medium' | 'large'", default: "'medium'", description: 'Button size' },
+  { name: 'disabled', type: 'boolean', default: 'false', description: 'Whether disabled' },
+  { name: 'loading', type: 'boolean', default: 'false', description: 'Whether loading' },
+]} />
+
+<EventsTable data={[
+  { name: 'click', params: 'MouseEvent', description: 'Click event' },
+]} />
+
+<SlotsTable data={[
+  { name: 'default', description: 'Button content' },
+]} />

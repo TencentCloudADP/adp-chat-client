@@ -1,0 +1,50 @@
+---
+title: ApplicationList
+description: Application list component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# ApplicationList
+
+Display and switch application list.
+
+## Basic Usage
+
+```vue
+<template>
+  <ApplicationList
+    :applications="applications"
+    :current-application-id="currentAppId"
+    @select="handleSelect"
+  />
+</template>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'applications', type: 'Application[]', default: '[]', description: 'Application list' },
+  { name: 'currentApplicationId', type: 'string', default: "''", description: 'Current application ID' },
+  { name: 'maxAppLen', type: 'number', default: '4', description: 'Max display count' },
+  { name: 'moreText', type: 'string', default: "'More'", description: 'More text' },
+  { name: 'collapseText', type: 'string', default: "'Collapse'", description: 'Collapse text' },
+]} />
+
+<EventsTable data={[
+  { name: 'select', params: 'Application', description: 'Triggered on select' },
+]} />
+
+## Type Definitions
+
+### Application
+
+```typescript
+interface Application {
+  ApplicationId: string;
+  Name: string;
+  Avatar: string;
+  Greeting: string;
+  OpeningQuestions: string[];
+}
+```

@@ -1,0 +1,34 @@
+---
+title: PersonalAccount
+description: Personal account component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# PersonalAccount
+
+Display user avatar and name.
+
+## Basic Usage
+
+```vue
+<template>
+  <PersonalAccount
+    :avatar-url="avatarUrl"
+    :name="userName"
+    @click="handleClick"
+  />
+</template>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'avatarUrl', type: 'string', default: "''", description: 'User avatar URL' },
+  { name: 'avatarName', type: 'string', default: "''", description: 'Avatar text (shown when no avatar)' },
+  { name: 'name', type: 'string', default: "''", description: 'User name' },
+]} />
+
+<EventsTable data={[
+  { name: 'click', description: 'Triggered on click' },
+]} />

@@ -1,0 +1,50 @@
+---
+title: SideLayout
+description: Sidebar layout component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# SideLayout
+
+Sidebar layout containing application list, conversation list, user info and settings.
+
+## Basic Usage
+
+```vue
+<template>
+  <SideLayout
+    :visible="sidebarVisible"
+    :applications="applications"
+    :current-application-id="currentAppId"
+    :conversations="conversations"
+    :current-conversation-id="currentConversationId"
+    :user-name="userName"
+    :user-avatar-url="userAvatar"
+    @select-application="handleSelectApp"
+    @select-conversation="handleSelectConversation"
+  />
+</template>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'visible', type: 'boolean', default: 'true', description: 'Whether sidebar visible' },
+  { name: 'applications', type: 'Application[]', default: '[]', description: 'Application list' },
+  { name: 'currentApplicationId', type: 'string', default: "''", description: 'Current application ID' },
+  { name: 'conversations', type: 'ChatConversation[]', default: '[]', description: 'Conversation list' },
+  { name: 'currentConversationId', type: 'string', default: "''", description: 'Current conversation ID' },
+  { name: 'userAvatarUrl', type: 'string', default: "''", description: 'User avatar URL' },
+  { name: 'userAvatarName', type: 'string', default: "''", description: 'User avatar text' },
+  { name: 'userName', type: 'string', default: "''", description: 'User name' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: 'Theme mode' },
+  { name: 'languageOptions', type: 'LanguageOption[]', default: 'zh/en', description: 'Language options' },
+  { name: 'isMobile', type: 'boolean', default: 'false', description: 'Whether mobile' },
+  { name: 'maxAppLen', type: 'number', default: '4', description: 'Max application display count' },
+  { name: 'i18n', type: 'object', description: 'i18n text' },
+]} />
+
+<SlotsTable data={[
+  { name: 'sider-logo', description: 'Logo area' },
+]} />

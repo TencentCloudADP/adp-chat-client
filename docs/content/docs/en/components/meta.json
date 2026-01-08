@@ -1,0 +1,12 @@
+{
+  "title": "Components",
+  "icon": "apps-line",
+  "pages": [
+    "index",
+    "quick-start",
+    "layout",
+    "chat",
+    "basic",
+    "common"
+  ]
+}

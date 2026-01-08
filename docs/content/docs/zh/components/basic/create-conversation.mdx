@@ -1,0 +1,31 @@
+---
+title: CreateConversation
+description: 新建对话按钮组件
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# CreateConversation
+
+新建对话的快捷按钮。
+
+## 基础用法
+
+```vue
+<template>
+  <CreateConversation
+    tooltip-text="新建对话"
+    @create="handleCreate"
+  />
+</template>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'tooltipText', type: 'string', default: "'新建对话'", description: '提示文本' },
+]} />
+
+<EventsTable data={[
+  { name: 'create', description: '点击新建时触发' },
+]} />

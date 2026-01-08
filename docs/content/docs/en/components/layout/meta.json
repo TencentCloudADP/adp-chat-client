@@ -1,0 +1,9 @@
+{
+  "title": "Layout Components",
+  "icon": "layout-line",
+  "pages": [
+    "chat-layout",
+    "main-layout",
+    "side-layout"
+  ]
+}

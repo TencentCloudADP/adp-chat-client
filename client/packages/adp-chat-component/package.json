@@ -28,16 +28,13 @@
   },
   "dependencies": {
     "@tdesign-vue-next/chat": "^0.5.0-alpha.10",
-    "highlight.js": "^11.11.1",
     "katex": "^0.16.22",
-    "markdown-it": "^14.1.0",
     "moment": "^2.30.1",
     "tdesign-vue-next": "^1.17.7",
     "vite-plugin-svg-icons": "^2.0.1",
     "vue": "^3.5.22"
   },
   "devDependencies": {
-    "@types/markdown-it": "^14.1.2",
     "@types/node": "^24.6.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vitejs/plugin-vue-jsx": "^5.1.2",

@@ -199,7 +199,7 @@ const renderReasoning = (item: Record) => {
                     <span class="title">{{ $t('sender.references') }}: </span>
                     <ol>
                         <li v-for="(reference, index) in item.References">
-                            <t-link theme="primary" :href="reference.Url" target="_blank">{{ reference.Name }}</t-link>
+                            <t-link theme="primary" :href="reference.Url" target="_blank" rel="noopener noreferrer">{{ reference.Name }}</t-link>
                         </li>
                     </ol>
                 </div>
