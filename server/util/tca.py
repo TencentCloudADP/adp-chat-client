@@ -66,7 +66,8 @@ def tc_request_prepare(config: dict, action: str, payload: str, service = "lke")
     secret_key = tagentic_config.TC_SECRET_KEY
     token = ""
 
-    host = config[service]['host']
+    url = config[service]['url']
+    host = url.split('//')[1].split('/')[0]
     version = config[service]['version']
     region = config[service]['region']
     algorithm = "TC3-HMAC-SHA256"
@@ -121,16 +122,16 @@ def tc_request_prepare(config: dict, action: str, payload: str, service = "lke")
         headers["X-TC-Region"] = region
     if token:
         headers["X-TC-Token"] = token
-    return headers, host
+    return headers, url
 
 
 async def tc_request(config: dict, action: str, payload: dict = None, service = "lke") -> str:
     if payload is None:
         payload = {}
     payload = json.dumps(payload)
-    headers, host = tc_request_prepare(config, action, payload, service)
+    headers, url = tc_request_prepare(config, action, payload, service)
     async with aiohttp.ClientSession() as session:
-        async with session.post(f'https://{host}/', headers=headers, data=payload) as resp:
+        async with session.post(f'{url}/', headers=headers, data=payload) as resp:
             return await resp.json()
 
 
@@ -138,9 +139,9 @@ async def tc_request_sse(config: dict, action: str, payload: dict = None, servic
     if payload is None:
         payload = {}
     payload = json.dumps(payload)
-    headers, host = tc_request_prepare(config, action, payload, service)
+    headers, url = tc_request_prepare(config, action, payload, service)
     async with aiohttp.ClientSession() as session:
-        async with session.post(f'https://{host}/', headers=headers, data=payload) as resp:
+        async with session.post(f'{url}/', headers=headers, data=payload) as resp:
             try:
                 while True:
                     raw_line = await resp.content.readline()
