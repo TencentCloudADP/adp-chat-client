@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Application } from '@/model/application'
+import type { Application } from 'adp-chat-component'
 
 /**
  * 定义应用商店，管理应用相关状态

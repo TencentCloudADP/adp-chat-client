@@ -2,6 +2,8 @@
 import { ref, computed } from 'vue';
 import type { Record, AgentThought } from '../../model/chat';
 import { ScoreValue } from '../../model/chat';
+import type { CommonLayoutProps, ChatItemI18n } from '../../model/type';
+import { commonLayoutPropsDefaults, defaultChatItemI18n } from '../../model/type';
 import {
     ChatItem as TChatItem,
 } from '@tdesign-vue-next/chat';
@@ -10,22 +12,7 @@ import OptionCard from '../Common/OptionCard.vue';
 import MdContent from '../Common/MdContent.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
 
-// 默认 i18n 配置
-const defaultI18n = {
-    thinking: '思考中',
-    deepThinkingFinished: '深度思考完成',
-    deepThinkingExpand: '展开深度思考',
-    copy: '复制',
-    replay: '重新生成',
-    share: '分享',
-    good: '点赞',
-    bad: '踩',
-    thxForGood: '感谢您的反馈',
-    thxForBad: '感谢您的反馈',
-    references: '参考来源'
-};
-
-interface Props {
+interface Props extends CommonLayoutProps {
     /** 当前聊天记录项 */
     item: Record;
     /** 当前项的索引 */
@@ -38,37 +25,20 @@ interface Props {
     isStreamLoad: boolean;
     /** 是否显示操作按钮 */
     showActions?: boolean;
-    /** 是否为移动端 */
-    isMobile?: boolean;
-    /** 主题模式 */
-    theme?: 'light' | 'dark';
     /** 国际化文本 */
-    i18n?: {
-        thinking?: string;
-        deepThinkingFinished?: string;
-        deepThinkingExpand?: string;
-        copy?: string;
-        replay?: string;
-        share?: string;
-        good?: string;
-        bad?: string;
-        thxForGood?: string;
-        thxForBad?: string;
-        references?: string;
-    };
+    i18n?: ChatItemI18n;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     isLastMsg: false,
     showActions: true,
-    isMobile: false,
-    theme: 'light',
+    ...commonLayoutPropsDefaults,
     i18n: () => ({})
 });
 
 // 合并默认值和传入值
 const i18n = computed(() => ({
-    ...defaultI18n,
+    ...defaultChatItemI18n,
     ...props.i18n
 }));
 

@@ -1,9 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import type { ChatConversation } from '@/model/chat'
+import type { ChatConversation, Application } from 'adp-chat-component'
 import { useAppsStore } from '@/stores/apps'
 import { useUiStore } from '@/stores/ui'
-import type { Application } from '@/model/application'
 
 /**
  * 定义聊天相关的全局状态存储

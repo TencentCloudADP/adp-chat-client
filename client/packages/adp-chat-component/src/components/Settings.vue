@@ -1,14 +1,9 @@
 <script setup lang="tsx">
 import CustomizedIcon from './CustomizedIcon.vue';
+import type { ThemeProps, LanguageOption } from '../model/type';
+import { themePropsDefaults, defaultLanguageOptions } from '../model/type';
 
-interface LanguageOption {
-    key: string;
-    value: string;
-}
-
-interface Props {
-    /** 主题模式 */
-    theme?: 'light' | 'dark';
+interface Props extends ThemeProps {
     /** 语言选项列表 */
     languageOptions?: LanguageOption[];
     /** 切换主题文本 */
@@ -20,11 +15,8 @@ interface Props {
 }
 
 withDefaults(defineProps<Props>(), {
-    theme: 'light',
-    languageOptions: () => [
-        { key: 'zh-CN', value: '简体中文' },
-        { key: 'en-US', value: 'English' }
-    ],
+    ...themePropsDefaults,
+    languageOptions: () => defaultLanguageOptions,
     switchThemeText: '切换主题',
     selectLanguageText: '选择语言',
     logoutText: '退出登录'

@@ -21,6 +21,8 @@
  */
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
+import type { ThemeProps } from '../model/type';
+import { themePropsDefaults } from '../model/type';
 
 // 静态导入所有 SVG 文件（使用相对路径）
 import arrow_down_medium from '../assets/icons/arrow_down_medium.svg?raw';
@@ -105,7 +107,7 @@ const svgMap: Record<string, string> = {
 /**
  * 组件属性接口
  */
-interface Props {
+interface Props extends ThemeProps {
     /** SVG图标的名称，对应 src/assets/icons 目录下的文件名（不含扩展名） */
     name: string;
     /** 图标尺寸，可选值：'xs' | 's' | 'm' | 'l' | 'xl' */
@@ -114,15 +116,13 @@ interface Props {
     nativeIcon?: boolean;
     /** hover是否显示背景色 */
     showHoverBg?: boolean;
-    /** 主题模式，用于控制暗色模式下的图标显示 */
-    theme?: 'light' | 'dark';
 }
 
 const props = withDefaults(defineProps<Props>(), {
   size: 'm',
   nativeIcon: false,
   showHoverBg: true,
-  theme: 'light'
+  ...themePropsDefaults,
 })
 
 /**

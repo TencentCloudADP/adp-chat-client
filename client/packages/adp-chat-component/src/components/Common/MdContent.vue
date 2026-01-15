@@ -25,24 +25,24 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { QuoteInfo } from '../../model/chat'
+import type { ThemeProps } from '../../model/type';
+import { themePropsDefaults } from '../../model/type';
 import { ChatContent as TChatContent } from '@tdesign-vue-next/chat'
 import 'katex/dist/katex.min.css'
 import 'katex/dist/katex.min.js'
 
-interface Props {
+interface Props extends ThemeProps {
   /** 引用信息数组 */
   quoteInfos?: QuoteInfo[];
   /** 内容文本 */
   content: string | undefined;
   /** 角色类型 */
   role?: 'user' | 'assistant' | 'system';
-  /** 主题模式 */
-  theme?: 'light' | 'dark';
 }
 
 const props = withDefaults(defineProps<Props>(), {
   role: 'assistant',
-  theme: 'light'
+  ...themePropsDefaults,
 });
 
 const options = computed(() => ({

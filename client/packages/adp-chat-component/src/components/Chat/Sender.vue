@@ -4,6 +4,8 @@ import { ChatSender as TChatSender, Attachments as TAttachments } from '@tdesign
 import { MessagePlugin } from 'tdesign-vue-next'
 import type { FileProps } from '../../model/file';
 import { MessageCode, getMessage } from '../../model/messages';
+import type { ChatRelatedProps, SenderI18n } from '../../model/type';
+import { chatRelatedPropsDefaults, defaultSenderI18n } from '../../model/type';
 import RecordIcon from '../Common/RecordIcon.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import WebRecorder from '../../utils/webRecorder';
@@ -18,65 +20,28 @@ interface AttachmentItem {
     [key: string]: any;
 }
 
-interface Props {
-    /** 模型选项列表 */
-    modelOptions?: any[];
-    /** 当前选中的模型 */
-    selectModel?: any;
-    /** 是否启用深度思考模式 */
-    isDeepThinking?: boolean;
+interface Props extends ChatRelatedProps {
     /** 是否正在流式加载 */
     isStreamLoad?: boolean;
-    /** 是否为移动端 */
-    isMobile?: boolean;
-    /** 主题模式 */
-    theme?: 'light' | 'dark';
     /** 是否使用内部录音处理（API 模式） */
     useInternalRecord?: boolean;
     /** ASR URL API 路径 */
     asrUrlApi?: string;
     /** 国际化文本 */
-    i18n?: {
-        placeholder?: string;
-        placeholderMobile?: string;
-        uploadImg?: string;
-        startRecord?: string;
-        stopRecord?: string;
-        answering?: string;
-        notSupport?: string;
-        uploadError?: string;
-        recordTooLong?: string;
-    };
+    i18n?: SenderI18n;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    modelOptions: () => [],
-    selectModel: null,
-    isDeepThinking: true,
+    ...chatRelatedPropsDefaults,
     isStreamLoad: false,
-    isMobile: false,
-    theme: 'light',
     useInternalRecord: false,
     asrUrlApi: '',
     i18n: () => ({})
 });
 
-// 默认 i18n 配置
-const defaultI18n = {
-    placeholder: '请输入您的问题',
-    placeholderMobile: '请输入',
-    uploadImg: '上传图片',
-    startRecord: '开始录音',
-    stopRecord: '停止录音',
-    answering: '正在回答中...',
-    notSupport: '不支持的文件格式',
-    uploadError: '上传失败',
-    recordTooLong: '录音时间过长'
-};
-
 // 合并默认值和传入值
 const i18n = computed(() => ({
-    ...defaultI18n,
+    ...defaultSenderI18n,
     ...props.i18n
 }));
 
