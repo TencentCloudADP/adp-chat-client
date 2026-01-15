@@ -13,6 +13,7 @@
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "preserve",
+    "tsBuildInfoFile": "./dist/tsconfig.app.tsbuildinfo",
 
     /* Linting */
     "strict": true,
