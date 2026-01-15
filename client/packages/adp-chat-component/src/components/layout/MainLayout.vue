@@ -10,8 +10,10 @@ import AIWarning from '../AIWarning.vue';
 import SidebarToggle from '../SidebarToggle.vue';
 import CreateConversation from '../CreateConversation.vue';
 import { Avatar as TAvatar, Layout as TLayout, Content as TContent, Header as THeader, Footer as TFooter } from 'tdesign-vue-next';
+import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type';
+import { chatRelatedPropsDefaults } from '../../model/type';
 
-interface Props {
+interface Props extends ChatRelatedProps {
     /** 当前应用信息 */
     currentApplication?: Application;
     /** 当前应用头像 */
@@ -32,16 +34,6 @@ interface Props {
     chatList?: Record[];
     /** 是否正在聊天中 */
     isChatting?: boolean;
-    /** 模型选项列表 */
-    modelOptions?: any[];
-    /** 当前选中的模型 */
-    selectModel?: any;
-    /** 是否启用深度思考模式 */
-    isDeepThinking?: boolean;
-    /** 是否为移动端 */
-    isMobile?: boolean;
-    /** 主题模式 */
-    theme?: 'light' | 'dark';
     /** 是否显示侧边栏切换按钮 */
     showSidebarToggle?: boolean;
     /** AI警告文本 */
@@ -49,42 +41,11 @@ interface Props {
     /** 新建对话提示文本 */
     createConversationText?: string;
     /** 国际化文本 */
-    i18n?: {
-        loading?: string;
-        thinking?: string;
-        checkAll?: string;
-        shareFor?: string;
-        copyUrl?: string;
-        cancelShare?: string;
-        sendError?: string;
-        networkError?: string;
-    };
+    i18n?: ChatI18n;
     /** ChatItem 国际化文本 */
-    chatItemI18n?: {
-        thinking?: string;
-        deepThinkingFinished?: string;
-        deepThinkingExpand?: string;
-        copy?: string;
-        replay?: string;
-        share?: string;
-        good?: string;
-        bad?: string;
-        thxForGood?: string;
-        thxForBad?: string;
-        references?: string;
-    };
+    chatItemI18n?: ChatItemI18n;
     /** Sender 国际化文本 */
-    senderI18n?: {
-        placeholder?: string;
-        placeholderMobile?: string;
-        uploadImg?: string;
-        startRecord?: string;
-        stopRecord?: string;
-        answering?: string;
-        notSupport?: string;
-        uploadError?: string;
-        recordTooLong?: string;
-    };
+    senderI18n?: SenderI18n;
     /** 是否使用内部录音处理（API 模式） */
     useInternalRecord?: boolean;
     /** ASR URL API 路径 */
@@ -92,6 +53,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    ...chatRelatedPropsDefaults,
     size: 'small',
     currentApplicationAvatar: '',
     currentApplicationName: '',
@@ -101,11 +63,6 @@ const props = withDefaults(defineProps<Props>(), {
     chatId: '',
     chatList: () => [],
     isChatting: false,
-    modelOptions: () => [],
-    selectModel: null,
-    isDeepThinking: true,
-    isMobile: false,
-    theme: 'light',
     showSidebarToggle: true,
     aiWarningText: '内容由AI生成，仅供参考',
     createConversationText: '新建对话'

@@ -187,7 +187,7 @@ export const defaultChatI18n: Required<ChatI18n> = {
   loading: '加载中',
   thinking: '思考中',
   checkAll: '全选',
-  shareFor: '分享',
+  shareFor: '分享至',
   copyUrl: '复制链接',
   cancelShare: '取消分享',
   sendError: '发送失败',

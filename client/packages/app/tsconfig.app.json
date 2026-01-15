@@ -5,6 +5,7 @@
     "module": "ESNext",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
+    "types": ["vite/client"],
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -20,6 +21,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
+    "noImplicitAny": false,
 
     /* Paths */
     "baseUrl": ".",
@@ -27,5 +29,5 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "src/**/*.d.ts"]
 }
