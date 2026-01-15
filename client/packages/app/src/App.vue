@@ -2,13 +2,13 @@
 import { RouterView } from 'vue-router'
 import { onMounted, computed } from 'vue'
 import { initUI, useUiStore } from '@/stores/ui'
-import { ConfigProvider as TConfigProvider } from 'tdesign-vue-next'
+import { ConfigProvider as TConfigProvider, type GlobalConfigProvider } from 'tdesign-vue-next'
 import enConfig from 'tdesign-vue-next/es/locale/en_US'
 import zhConfig from 'tdesign-vue-next/es/locale/zh_CN'
 const uiStore = useUiStore()
 
-const tDesignLocale = computed(() => {
-  return uiStore.language === 'en' ? enConfig : zhConfig;
+const tDesignLocale = computed<GlobalConfigProvider>(() => {
+  return JSON.parse(JSON.stringify(uiStore.language === 'en' ? enConfig : zhConfig));
 });
 
 onMounted(() => {

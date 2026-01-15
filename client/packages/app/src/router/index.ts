@@ -36,7 +36,7 @@ const router = createRouter({
 })
 
 router.beforeEach(
-  (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+  (to: RouteLocationNormalized, _from: RouteLocationNormalized, next: NavigationGuardNext) => {
     if(to.meta.unauthorized){
       next()
     }else{

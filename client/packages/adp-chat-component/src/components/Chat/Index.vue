@@ -124,13 +124,15 @@ import { ScoreValue } from '../../model/chat'
 import type { FileProps } from '../../model/file';
 import { MessageCode } from '../../model/messages';
 import { modelOptions as defaultModelOptions, defaultModel } from '../../model/models'
+import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type'
+import { chatRelatedPropsDefaults, defaultChatI18n, defaultChatItemI18n, defaultSenderI18n } from '../../model/type'
 
 import AppType from './AppType.vue'
 import Sender from './Sender.vue'
 import ChatItem from './ChatItem.vue'
 import CustomizedIcon from '../CustomizedIcon.vue';
 
-interface Props {
+interface Props extends ChatRelatedProps {
     /** 当前会话ID */
     chatId?: string;
     /** 聊天消息列表 */
@@ -147,53 +149,12 @@ interface Props {
     currentApplicationGreeting?: string;
     /** 当前应用推荐问题列表 */
     currentApplicationOpeningQuestions?: string[];
-    /** 模型选项列表 */
-    modelOptions?: any[];
-    /** 当前选中的模型 */
-    selectModel?: any;
-    /** 是否启用深度思考模式 */
-    isDeepThinking?: boolean;
-    /** 是否为移动端 */
-    isMobile?: boolean;
-    /** 主题模式 */
-    theme?: 'light' | 'dark';
     /** 国际化文本 */
-    i18n?: {
-        loading?: string;
-        thinking?: string;
-        checkAll?: string;
-        shareFor?: string;
-        copyUrl?: string;
-        cancelShare?: string;
-        sendError?: string;
-        networkError?: string;
-    };
+    i18n?: ChatI18n;
     /** ChatItem 国际化文本 */
-    chatItemI18n?: {
-        thinking?: string;
-        deepThinkingFinished?: string;
-        deepThinkingExpand?: string;
-        copy?: string;
-        replay?: string;
-        share?: string;
-        good?: string;
-        bad?: string;
-        thxForGood?: string;
-        thxForBad?: string;
-        references?: string;
-    };
+    chatItemI18n?: ChatItemI18n;
     /** Sender 国际化文本 */
-    senderI18n?: {
-        placeholder?: string;
-        placeholderMobile?: string;
-        uploadImg?: string;
-        startRecord?: string;
-        stopRecord?: string;
-        answering?: string;
-        notSupport?: string;
-        uploadError?: string;
-        recordTooLong?: string;
-    };
+    senderI18n?: SenderI18n;
     /** 是否使用内部录音处理（API 模式） */
     useInternalRecord?: boolean;
     /** ASR URL API 路径 */
@@ -201,6 +162,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    ...chatRelatedPropsDefaults,
     chatId: '',
     chatList: () => [],
     isChatting: false,
@@ -211,53 +173,12 @@ const props = withDefaults(defineProps<Props>(), {
     currentApplicationOpeningQuestions: () => [],
     modelOptions: () => defaultModelOptions,
     selectModel: () => defaultModel,
-    isDeepThinking: true,
-    isMobile: false,
-    theme: 'light',
     i18n: () => ({}),
     chatItemI18n: () => ({}),
     senderI18n: () => ({}),
     useInternalRecord: false,
     asrUrlApi: ''
 });
-
-// 默认 i18n 配置
-const defaultI18n = {
-    loading: '加载中',
-    thinking: '思考中',
-    checkAll: '全选',
-    shareFor: '分享至',
-    copyUrl: '复制链接',
-    cancelShare: '取消分享',
-    sendError: '发送失败',
-    networkError: '网络错误'
-};
-
-const defaultChatItemI18n = {
-    thinking: '思考中',
-    deepThinkingFinished: '深度思考完成',
-    deepThinkingExpand: '展开深度思考',
-    copy: '复制',
-    replay: '重新生成',
-    share: '分享',
-    good: '点赞',
-    bad: '踩',
-    thxForGood: '感谢您的反馈',
-    thxForBad: '感谢您的反馈',
-    references: '参考来源'
-};
-
-const defaultSenderI18n = {
-    placeholder: '请输入您的问题',
-    placeholderMobile: '请输入',
-    uploadImg: '上传图片',
-    startRecord: '开始录音',
-    stopRecord: '停止录音',
-    answering: '正在回答中...',
-    notSupport: '不支持的文件格式',
-    uploadError: '上传失败',
-    recordTooLong: '录音时间过长'
-};
 
 // 解构 props 以便在模板中使用
 const { 
@@ -279,7 +200,7 @@ const {
 
 // 合并默认值和传入值
 const i18n = computed(() => ({
-    ...defaultI18n,
+    ...defaultChatI18n,
     ...props.i18n
 }));
 

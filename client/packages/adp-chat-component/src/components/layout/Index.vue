@@ -25,13 +25,27 @@ import { MessageCode, getMessage } from '../../model/messages';
 import { fetchSSE } from '../../model/sseRequest-reasoning';
 import { mergeRecord } from '../../utils/util';
 import { copyToClipboard } from '../../utils/clipboard';
+import type { 
+    LanguageOption, 
+    UserInfo,
+    SideI18n, 
+    ChatI18n, 
+    ChatItemI18n, 
+    SenderI18n,
+    CommonLayoutProps,
+    FullscreenProps,
+    DeepThinkingProps,
+    ModelSelectProps
+} from '../../model/type';
+import { 
+    defaultLanguageOptions,
+    commonLayoutPropsDefaults,
+    fullscreenPropsDefaults,
+    deepThinkingPropsDefaults,
+    modelSelectPropsDefaults
+} from '../../model/type';
 
-interface LanguageOption {
-    key: string;
-    value: string;
-}
-
-interface Props {
+interface Props extends CommonLayoutProps, FullscreenProps, DeepThinkingProps, ModelSelectProps {
     /** 应用列表 */
     applications?: Application[];
     /** 当前选中的应用 */
@@ -45,86 +59,29 @@ interface Props {
     /** 是否正在聊天中 */
     isChatting?: boolean;
     /** 用户信息 */
-    user?: {
-        avatarUrl?: string;
-        avatarName?: string;
-        name?: string;
-    };
-    /** 主题模式 */
-    theme?: 'light' | 'dark';
+    user?: UserInfo;
     /** 语言选项列表 */
     languageOptions?: LanguageOption[];
-    /** 是否为移动端 */
-    isMobile?: boolean;
     /** Logo URL */
     logoUrl?: string;
     /** Logo 标题 */
     logoTitle?: string;
-    /** 模型选项列表 */
-    modelOptions?: any[];
-    /** 当前选中的模型 */
-    selectModel?: any;
-    /** 是否启用深度思考模式 */
-    isDeepThinking?: boolean;
     /** 最大应用显示数量 */
     maxAppLen?: number;
     /** 是否显示关闭按钮 */
     showCloseButton?: boolean;
-    /** 是否显示全屏按钮 */
-    showFullscreenButton?: boolean;
-    /** 是否处于全屏状态 */
-    isFullscreen?: boolean;
     /** AI警告文本 */
     aiWarningText?: string;
     /** 新建对话提示文本 */
     createConversationText?: string;
     /** 侧边栏国际化文本 */
-    sideI18n?: {
-        more?: string;
-        collapse?: string;
-        today?: string;
-        recent?: string;
-        switchTheme?: string;
-        selectLanguage?: string;
-        logout?: string;
-    };
+    sideI18n?: SideI18n;
     /** 聊天国际化文本 */
-    chatI18n?: {
-        loading?: string;
-        thinking?: string;
-        checkAll?: string;
-        shareFor?: string;
-        copyUrl?: string;
-        cancelShare?: string;
-        sendError?: string;
-        networkError?: string;
-    };
+    chatI18n?: ChatI18n;
     /** ChatItem 国际化文本 */
-    chatItemI18n?: {
-        thinking?: string;
-        deepThinkingFinished?: string;
-        deepThinkingExpand?: string;
-        copy?: string;
-        replay?: string;
-        share?: string;
-        good?: string;
-        bad?: string;
-        thxForGood?: string;
-        thxForBad?: string;
-        references?: string;
-    };
+    chatItemI18n?: ChatItemI18n;
     /** Sender 国际化文本 */
-    senderI18n?: {
-        placeholder?: string;
-        placeholderMobile?: string;
-        uploadImg?: string;
-        startRecord?: string;
-        stopRecord?: string;
-        answering?: string;
-        notSupport?: string;
-        uploadError?: string;
-        recordTooLong?: string;
-    };
+    senderI18n?: SenderI18n;
     /** API 配置 - 如果传入则使用 HTTP 请求获取数据 */
     apiConfig?: ApiConfig;
     /** 是否自动加载数据（仅在使用 apiConfig 时生效） */
@@ -132,26 +89,20 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    ...commonLayoutPropsDefaults,
+    ...fullscreenPropsDefaults,
+    ...deepThinkingPropsDefaults,
+    ...modelSelectPropsDefaults,
     applications: () => [],
     conversations: () => [],
     chatList: () => [],
     isChatting: false,
     user: () => ({}),
-    theme: 'light',
-    languageOptions: () => [
-        { key: 'zh-CN', value: '简体中文' },
-        { key: 'en-US', value: 'English' }
-    ],
-    isMobile: false,
+    languageOptions: () => defaultLanguageOptions,
     logoUrl: '',
     logoTitle: '',
-    modelOptions: () => [],
-    selectModel: null,
-    isDeepThinking: true,
     maxAppLen: 4,
     showCloseButton: false,
-    showFullscreenButton: false,
-    isFullscreen: false,
     aiWarningText: '内容由AI生成，仅供参考',
     createConversationText: '新建对话',
     apiConfig: undefined,

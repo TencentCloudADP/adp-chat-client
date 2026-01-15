@@ -116,7 +116,7 @@ const updateUrl = () => {
 
 // 事件处理函数
 const handleSelectApplication = (app: Application) => {
-    currentApplicationId.value = app.ApplicationId;
+    currentApplicationId.value = app.ApplicationId || '';
     currentConversationId.value = '';
     updateUrl();
 };

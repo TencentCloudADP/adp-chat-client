@@ -42,7 +42,8 @@ configureAxios({
 setResponseInterceptor(
   (response) => response.data,
   async (error) => {
-    if (error.response?.data?.Error?.Exception === 'AccountUnauthorized') {
+    const responseData = error.response?.data as { Error?: { Exception?: string } } | undefined
+    if (responseData?.Error?.Exception === 'AccountUnauthorized') {
       logout(() => router.replace({ name: 'login' }))
     }
     return Promise.reject(error)

@@ -9,13 +9,23 @@ import { ScoreValue } from './model/chat';
 import type { ApiConfig } from './service/api';
 import { defaultApiConfig } from './service/api';
 import { computeIsMobile } from './utils/device';
+import type { 
+    LanguageOption, 
+    UserInfo,
+    SideI18n, 
+    ChatI18n, 
+    ChatItemI18n, 
+    SenderI18n,
+    ChatRelatedProps,
+    FullscreenProps
+} from './model/type';
+import { 
+    defaultLanguageOptions,
+    chatRelatedPropsDefaults,
+    fullscreenPropsDefaults
+} from './model/type';
 
-interface LanguageOption {
-    key: string;
-    value: string;
-}
-
-interface Props {
+interface Props extends ChatRelatedProps, FullscreenProps {
     /** 挂载容器选择器 */
     container?: string;
     /** 是否可停靠模式 */
@@ -39,33 +49,15 @@ interface Props {
     /** 是否正在聊天中 */
     isChatting?: boolean;
     /** 用户信息 */
-    user?: {
-        avatarUrl?: string;
-        avatarName?: string;
-        name?: string;
-    };
-    /** 主题模式 */
-    theme?: 'light' | 'dark';
+    user?: UserInfo;
     /** 语言选项列表 */
     languageOptions?: LanguageOption[];
-    /** 是否为移动端 */
-    isMobile?: boolean;
     /** Logo URL */
     logoUrl?: string;
     /** Logo 标题 */
     logoTitle?: string;
-    /** 模型选项列表 */
-    modelOptions?: any[];
-    /** 当前选中的模型 */
-    selectModel?: any;
-    /** 是否启用深度思考模式 */
-    isDeepThinking?: boolean;
     /** 最大应用显示数量 */
     maxAppLen?: number;
-    /** 是否显示全屏按钮 */
-    showFullscreenButton?: boolean;
-    /** 是否处于全屏状态 */
-    isFullscreen?: boolean;
     /** 全屏状态切换回调 */
     onFullscreen?: (isFullscreen: boolean) => void;
     /** 是否展开面板（仅在 canPark 模式下生效） */
@@ -79,52 +71,13 @@ interface Props {
     /** 新建对话提示文本 */
     createConversationText?: string;
     /** 侧边栏国际化文本 */
-    sideI18n?: {
-        more?: string;
-        collapse?: string;
-        today?: string;
-        recent?: string;
-        switchTheme?: string;
-        selectLanguage?: string;
-        logout?: string;
-    };
+    sideI18n?: SideI18n;
     /** 聊天国际化文本 */
-    chatI18n?: {
-        loading?: string;
-        thinking?: string;
-        checkAll?: string;
-        shareFor?: string;
-        copyUrl?: string;
-        cancelShare?: string;
-        sendError?: string;
-        networkError?: string;
-    };
+    chatI18n?: ChatI18n;
     /** ChatItem 国际化文本 */
-    chatItemI18n?: {
-        thinking?: string;
-        deepThinkingFinished?: string;
-        deepThinkingExpand?: string;
-        copy?: string;
-        replay?: string;
-        share?: string;
-        good?: string;
-        bad?: string;
-        thxForGood?: string;
-        thxForBad?: string;
-        references?: string;
-    };
+    chatItemI18n?: ChatItemI18n;
     /** Sender 国际化文本 */
-    senderI18n?: {
-        placeholder?: string;
-        placeholderMobile?: string;
-        uploadImg?: string;
-        startRecord?: string;
-        stopRecord?: string;
-        answering?: string;
-        notSupport?: string;
-        uploadError?: string;
-        recordTooLong?: string;
-    };
+    senderI18n?: SenderI18n;
     /** API 配置 - 如果传入则使用 HTTP 请求获取数据 */
     apiConfig?: ApiConfig;
     /** 是否自动加载数据（仅在使用 apiConfig 时生效） */
@@ -132,6 +85,8 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    ...chatRelatedPropsDefaults,
+    ...fullscreenPropsDefaults,
     container: 'body',
     canPark: false,
     modelType: 'full',
@@ -142,20 +97,11 @@ const props = withDefaults(defineProps<Props>(), {
     chatList: () => [],
     isChatting: false,
     user: () => ({}),
-    theme: 'light',
-    languageOptions: () => [
-        { key: 'zh-CN', value: '简体中文' },
-        { key: 'en-US', value: 'English' }
-    ],
+    languageOptions: () => defaultLanguageOptions,
     isMobile: undefined,
     logoUrl: '',
     logoTitle: '',
-    modelOptions: () => [],
-    selectModel: null,
-    isDeepThinking: true,
     maxAppLen: 4,
-    showFullscreenButton: false,
-    isFullscreen: false,
     onFullscreen: undefined,
     open: undefined,
     onOpenChange: undefined,
