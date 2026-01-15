@@ -55,8 +55,10 @@ const apiConfig = {
 <PropsTable data={[
   { name: 'applications', type: 'Application[]', default: '[]', description: 'Application list' },
   { name: 'currentApplication', type: 'Application', description: 'Currently selected application' },
+  { name: 'currentApplicationId', type: 'string', default: "''", description: 'Currently selected application ID (higher priority than currentApplication)' },
   { name: 'conversations', type: 'ChatConversation[]', default: '[]', description: 'Conversation list' },
   { name: 'currentConversation', type: 'ChatConversation', description: 'Currently selected conversation' },
+  { name: 'currentConversationId', type: 'string', default: "''", description: 'Currently selected conversation ID (higher priority than currentConversation)' },
   { name: 'chatList', type: 'Record[]', default: '[]', description: 'Chat message list' },
   { name: 'isChatting', type: 'boolean', default: 'false', description: 'Whether chatting' },
   { name: 'user', type: 'UserInfo', default: '{}', description: 'User info' },
@@ -68,6 +70,8 @@ const apiConfig = {
   { name: 'modelOptions', type: 'any[]', default: '[]', description: 'Model options' },
   { name: 'selectModel', type: 'any', description: 'Selected model' },
   { name: 'isDeepThinking', type: 'boolean', default: 'true', description: 'Enable deep thinking mode' },
+  { name: 'showFullscreenButton', type: 'boolean', default: 'false', description: 'Show fullscreen button' },
+  { name: 'isFullscreen', type: 'boolean', default: 'false', description: 'Whether in fullscreen mode' },
   { name: 'maxAppLen', type: 'number', default: '4', description: 'Max application display count' },
   { name: 'showCloseButton', type: 'boolean', default: 'false', description: 'Show close button' },
   { name: 'aiWarningText', type: 'string', default: "'AI generated content'", description: 'AI warning text' },
@@ -89,6 +93,7 @@ const apiConfig = {
   { name: 'logout', description: 'Logout' },
   { name: 'userClick', description: 'User info click' },
   { name: 'close', description: 'Close' },
+  { name: 'fullscreen', params: 'isFullscreen: boolean', description: 'Fullscreen state change' },
   { name: 'send', params: '(query, fileList, conversationId, applicationId)', description: 'Send message' },
   { name: 'stop', description: 'Stop generation' },
   { name: 'loadMore', params: '(conversationId, lastRecordId)', description: 'Load more' },
@@ -106,7 +111,9 @@ const apiConfig = {
 ]} />
 
 <SlotsTable data={[
-  { name: 'sider-logo', description: 'Sidebar logo area' },
+  { name: 'sider-logo', description: 'Sidebar logo area, shows external content if provided, otherwise shows default LogoArea (requires logoUrl or logoTitle)' },
+  { name: 'header-fullscreen-content', description: 'Header fullscreen button area, shows external content if provided, otherwise shows default fullscreen icon (requires showFullscreenButton to be true)' },
+  { name: 'header-close-content', description: 'Header close button area, shows external content if provided, otherwise shows default close icon (requires showCloseButton to be true)' },
 ]} />
 
 <MethodsTable data={[

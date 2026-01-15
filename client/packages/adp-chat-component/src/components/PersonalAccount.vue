@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Avatar as TAvatar } from 'tdesign-vue-next';
+
 interface Props {
     /** 用户头像URL */
     avatarUrl?: string;

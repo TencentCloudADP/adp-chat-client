@@ -50,10 +50,14 @@ interface Props extends CommonLayoutProps, FullscreenProps, DeepThinkingProps, M
     applications?: Application[];
     /** 当前选中的应用 */
     currentApplication?: Application;
+    /** 当前选中的应用 ID（优先级高于 currentApplication） */
+    currentApplicationId?: string;
     /** 会话列表 */
     conversations?: ChatConversation[];
     /** 当前选中的会话 */
     currentConversation?: ChatConversation;
+    /** 当前选中的会话 ID（优先级高于 currentConversation） */
+    currentConversationId?: string;
     /** 聊天消息列表 */
     chatList?: Record[];
     /** 是否正在聊天中 */
@@ -94,7 +98,9 @@ const props = withDefaults(defineProps<Props>(), {
     ...deepThinkingPropsDefaults,
     ...modelSelectPropsDefaults,
     applications: () => [],
+    currentApplicationId: '',
     conversations: () => [],
+    currentConversationId: '',
     chatList: () => [],
     isChatting: false,
     user: () => ({}),
@@ -137,11 +143,6 @@ const emit = defineEmits<{
 
 const sidebarVisible = ref(!props.isMobile);
 const mainLayoutRef = ref<InstanceType<typeof MainLayout> | null>(null);
-
-// 监听 isMobile 变化，自动调整侧边栏状态
-watch(() => props.isMobile, (newVal) => {
-    sidebarVisible.value = !newVal;
-});
 
 // 内部数据状态（当使用 API 时）
 const internalApplications = ref<Application[]>([]);
@@ -543,6 +544,72 @@ const handleInternalUploadFile = async (files: File[]) => {
     emit('uploadFile', files);
 };
 
+// 监听外部传入的 currentApplicationId 变化，从列表中查找对应应用
+watch([() => props.currentApplicationId, () => actualApplications.value], ([newId, apps]) => {
+    if (newId && apps.length > 0) {
+        const found = apps.find(app => app.ApplicationId === newId);
+        if (found) {
+            internalCurrentApplication.value = found;
+        }
+    }
+}, { immediate: true });
+
+// 监听外部传入的 currentConversationId 变化，从列表中查找对应会话并加载详情
+watch([() => props.currentConversationId, () => actualConversations.value, () => actualApplications.value], async ([newId, conversations, apps]) => {
+    if (newId && conversations.length > 0) {
+        const found = conversations.find(conv => conv.Id === newId);
+        if (found && found.Id !== internalCurrentConversation.value?.Id) {
+            internalCurrentConversation.value = found;
+            // 同时更新对应的应用
+            if (found.ApplicationId && apps.length > 0) {
+                const foundApp = apps.find(app => app.ApplicationId === found.ApplicationId);
+                if (foundApp) {
+                    internalCurrentApplication.value = foundApp;
+                }
+            }
+            // 如果是 API 模式，自动加载会话详情
+            if (useApiMode.value) {
+                internalChatList.value = [];
+                await loadConversationDetail(found.Id);
+            }
+        }
+    } else if (!newId) {
+        // ID 为空时清空当前会话
+        internalCurrentConversation.value = undefined;
+    }
+}, { immediate: true });
+
+// 监听外部传入的 currentApplication 对象变化，同步内部状态
+watch(() => props.currentApplication, (newApp) => {
+    if (newApp) {
+        internalCurrentApplication.value = newApp;
+    }
+}, { immediate: true });
+
+// 监听外部传入的 currentConversation 对象变化，同步内部状态并加载会话详情
+watch([() => props.currentConversation, () => actualApplications.value], async ([newConversation, apps]) => {
+    if (newConversation && newConversation.Id !== internalCurrentConversation.value?.Id) {
+        internalCurrentConversation.value = newConversation;
+        // 同时更新对应的应用
+        if (newConversation.ApplicationId && apps.length > 0) {
+            const foundApp = apps.find(app => app.ApplicationId === newConversation.ApplicationId);
+            if (foundApp) {
+                internalCurrentApplication.value = foundApp;
+            }
+        }
+        // 如果是 API 模式，自动加载会话详情
+        if (useApiMode.value) {
+            internalChatList.value = [];
+            await loadConversationDetail(newConversation.Id);
+        }
+    }
+}, { immediate: true });
+
+// 监听 isMobile 变化，自动调整侧边栏状态
+watch(() => props.isMobile, (newVal) => {
+    sidebarVisible.value = !newVal;
+});
+
 // 组件挂载时自动加载数据
 onMounted(async () => {
     if (useApiMode.value && props.autoLoad) {
@@ -596,9 +663,9 @@ defineExpose({
                 @logout="emit('logout')"
                 @userClick="emit('userClick')"
             >
-                <template #sider-logo>
+                <template #sider-logo v-if="(logoUrl || logoTitle) || $slots['sider-logo']">
                     <slot name="sider-logo">
-                        <LogoArea :logoUrl="logoUrl" :title="logoTitle" />
+                        <LogoArea v-if="logoUrl || logoTitle" :logoUrl="logoUrl" :title="logoTitle" />
                     </slot>
                 </template>
             </SideLayout>
@@ -642,11 +709,15 @@ defineExpose({
                 @message="(code: MessageCode, message: string) => emit('message', code, message)"
                 @conversationChange="(conversationId: string) => emit('conversationChange', conversationId)"
             >
-                <template #header-fullscreen-content v-if="showFullscreenButton">
-                    <CustomizedIcon name="fullscreen" :theme="theme" @click="handleFullscreen"/>
+                <template #header-fullscreen-content v-if="showFullscreenButton || $slots['header-fullscreen-content']">
+                    <slot name="header-fullscreen-content">
+                        <CustomizedIcon v-if="showFullscreenButton" name="fullscreen" :theme="theme" @click="handleFullscreen"/>
+                    </slot>
                 </template>
-                <template #header-close-content v-if="showCloseButton">
-                    <CustomizedIcon name="logout_close" :theme="theme" @click="handleClose"/>
+                <template #header-close-content v-if="showCloseButton || $slots['header-close-content']">
+                    <slot name="header-close-content">
+                        <CustomizedIcon v-if="showCloseButton" name="logout_close" :theme="theme" @click="handleClose"/>
+                    </slot>
                 </template>
             </MainLayout>
         </t-content>

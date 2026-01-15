@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import CustomizedIcon from './CustomizedIcon.vue';
+import { Input as TInput } from 'tdesign-vue-next';
 
 interface Props {
     /** 占位符文本 */

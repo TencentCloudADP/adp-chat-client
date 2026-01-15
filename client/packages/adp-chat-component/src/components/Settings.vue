@@ -2,6 +2,7 @@
 import CustomizedIcon from './CustomizedIcon.vue';
 import type { ThemeProps, LanguageOption } from '../model/type';
 import { themePropsDefaults, defaultLanguageOptions } from '../model/type';
+import { Space as TSpace, Dropdown as TDropdown, DropdownMenu as TDropdownMenu, DropdownItem as TDropdownItem, Button as TButton } from 'tdesign-vue-next';
 
 interface Props extends ThemeProps {
     /** 语言选项列表 */

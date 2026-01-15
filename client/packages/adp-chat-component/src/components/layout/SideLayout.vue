@@ -68,6 +68,7 @@ const emit = defineEmits<{
 }>();
 
 const mode = computed(() => props.isMobile ? 'overlay' : 'push');
+const drawerSize = computed(() => props.isMobile ? '240px' : '280px');
 
 const handleToggleSidebar = () => {
     emit('toggleSidebar');
@@ -102,7 +103,7 @@ const handleUserClick = () => {
     <div class="custome-drawer-container" :class="{ 'drawer-open': visible, 'drawer-closed': !visible, 'is-mobile': isMobile }">
         <t-drawer 
             drawerClassName="custome-drawer" 
-            size="280px" 
+            :size="drawerSize" 
             :visible="visible" 
             placement="left" 
             :mode="mode"
@@ -206,9 +207,14 @@ const handleUserClick = () => {
     justify-content: space-between;
     align-items: center;
 }
+
 .custome-drawer-container{
     position: relative;
     width: 280px;
+    margin-left: 0 !important;
+}
+.custome-drawer-container.is-mobile {
+    width: 240px;
     margin-left: 0 !important;
     transition: all 0.3s ease;
 }
@@ -229,7 +235,7 @@ const handleUserClick = () => {
     height: 100%;
 }
 .custome-drawer-container.is-mobile.drawer-open {
-    width: 280px;
+    width: 240px;
 }
 .custome-drawer-container.is-mobile.drawer-closed {
     width: 0;
@@ -242,5 +248,8 @@ const handleUserClick = () => {
 }
 :deep(.t-drawer__body) {
     padding-right: 0;
+}
+:deep(.t-drawer__content-wrapper){
+width: 100% !important;
 }
 </style>

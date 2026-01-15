@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChatLayout, type ApiConfig, type Application, type ChatConversation } from 'adp-chat-component';
-import { computed, ref, watch } from 'vue'
+import { onMounted, computed, ref, watch } from 'vue'
 import { useUiStore } from '@/stores/ui'
 import { logout } from '@/service/login';
 import { useRoute, useRouter } from 'vue-router'
@@ -89,8 +89,28 @@ const senderI18n = computed(() => ({
     recordTooLong: t('sender.recordTooLong'),
 }));
 
+/**
+ * 页面挂载时执行的生命周期钩子
+ * 1. 获取用户信息
+ * 2. 初始化应用列表
+ * 3. 更新聊天列表
+ */
+onMounted(async () => {
+    console.log('[onMounted]');
+
+    // url参数 -> store
+    updateFromUrl();
+});
+
+/**
+ * 页面url路径、参数处理
+ * 1. url参数处理应该在pages层面，不能在组件里读写url参数（组件需要通过store，或者组件参数间接使用url参数）
+ * 2. url参数和store应该保持一致，优先级：url参数 > store
+ */
+
 // URL 参数处理
 const updateFromUrl = () => {
+    console.log('updateFromUrl',route.params)
     if (!route.params.conversationId) {
         currentApplicationId.value = route.params.applicationId as string || '';
         currentConversationId.value = '';
@@ -149,11 +169,11 @@ const handleLogout = () => {
 const handleDataLoaded = (type: 'applications' | 'conversations' | 'chatList' | 'user', data: any) => {
     // 初始化时从 URL 同步状态
     if (type === 'applications' && data.length > 0) {
-        updateFromUrl();
         // 如果 URL 没有指定应用，默认选中第一个
         if (!currentApplicationId.value && !currentConversationId.value) {
             currentApplicationId.value = data[0].ApplicationId;
         }
+        updateUrl();
     }
 };
 
@@ -172,6 +192,8 @@ const handleConversationChange = (conversationId: string) => {
         :languageOptions="languageOptions"
         :isMobile="uiStore.isMobile"
         :logoUrl="Logo"
+        :currentApplicationId="currentApplicationId"
+        :currentConversationId="currentConversationId"
         :aiWarningText="t('common.aiWarning')"
         :createConversationText="t('conversation.createConversation')"
         :sideI18n="sideI18n"
