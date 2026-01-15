@@ -2,7 +2,7 @@
 import { useChat } from '../../shared/useChat'
 import '../../shared/styles.css'
 
-const { openChat, closeChat, isFullscreen } = useChat({
+const { isFullscreen } = useChat({
   getConfig: ({ isFullscreen }) => ({
     modelType: 'compact',
     width: 400,
