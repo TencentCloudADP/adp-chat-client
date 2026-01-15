@@ -25,7 +25,7 @@
                     <InfiniteLoading v-if="chatId" :identifier="chatId" direction="top" @infinite="infiniteHandler">
                         <template #spinner>
                             <div>
-                                <t-loading size="small">
+                                <TLoading size="small">
                                     <template #text>
                                         <span class="thinking-text">
                                             {{ `${i18n.loading}...` }}
@@ -34,7 +34,7 @@
                                     <template #indicator>
                                         <CustomizedIcon class="thinking-icon" name="thinking" :theme="theme" />
                                     </template>
-                                </t-loading>
+                                </TLoading>
                             </div>
                         </template>
                         <template #no-more>
@@ -69,12 +69,12 @@
             </template>
             <!-- 底部发送区域 -->
             <template #footer>
-                <t-card v-if="isSelecting" size="small" class="share-setting-container" shadow
+                <TCard v-if="isSelecting" size="small" class="share-setting-container" shadow
                     bodyClassName="share-setting-card">
                     <div class="share-setting-content">
-                        <t-checkbox :indeterminate="selectedIds.length !== chatList.length && selectedIds.length !== 0"
-                            :checked="checkall" @change="handleCheckAll">{{ i18n.checkAll }}</t-checkbox>
-                        <t-divider layout="vertical"></t-divider>
+                        <TCheckbox :indeterminate="selectedIds.length !== chatList.length && selectedIds.length !== 0"
+                            :checked="checkall" @change="handleCheckAll">{{ i18n.checkAll }}</TCheckbox>
+                        <TDivider layout="vertical"></TDivider>
                         <div class="share-text">
                             {{ i18n.shareFor }}
                             <div class="icon__share-copy" :class="{ disabled: selectedIds.length <= 0 }"
@@ -83,12 +83,12 @@
                                 <span>{{ i18n.copyUrl }}</span>
                             </div>
                         </div>
-                        <t-divider layout="vertical"></t-divider>
+                        <TDivider layout="vertical"></TDivider>
                         <div class="icon__share-close" @click="handleCloseShare()">
                             <span>{{ i18n.cancelShare }}</span>
                         </div>
                     </div>
-                </t-card>
+                </TCard>
                 <Sender 
                     ref="senderRef" 
                     :modelOptions="modelOptions" 
@@ -118,7 +118,7 @@
 import { ref, watch, computed, onMounted, onUnmounted, nextTick, toRefs } from 'vue'
 import InfiniteLoading from 'vue-infinite-loading'
 import { ChatList as TChat } from '@tdesign-vue-next/chat'
-import { Checkbox } from 'tdesign-vue-next'
+import { Checkbox, Loading as TLoading, Card as TCard, Checkbox as TCheckbox, Divider as TDivider } from 'tdesign-vue-next'
 import type { Record } from '../../model/chat'
 import { ScoreValue } from '../../model/chat'
 import type { FileProps } from '../../model/file';

@@ -2,7 +2,7 @@
     <div ref="fileViewRef" v-if="fileList.length > 0" class="file-upload-container">
         <div ref="scrollViewRef" class="img-scrollview-container">
             <div v-for="(img, index) in fileList" :key="img.uid" class="img-item-container">
-                <t-image fit="contain" :src="img.url" :style="{ width: '70px', height: '70px' }" />
+                <TImage fit="contain" :src="img.url" :style="{ width: '70px', height: '70px' }" />
                 <span class="delete-container" @click="onDelete(index)">
                     <CustomizedIcon name="delete"/>
                 </span>
@@ -22,6 +22,8 @@ import { ref, watch } from 'vue'
 import CustomizedIcon from '../CustomizedIcon.vue';
 import type { FileProps } from '../../model/file';
 import { Image as TImage } from 'tdesign-vue-next';
+
+// TImage 已导入，模板中使用 TImage 组件
 
 interface Props {
     /** 文件列表 */

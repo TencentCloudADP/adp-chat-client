@@ -10,6 +10,8 @@ import AIWarning from '../AIWarning.vue';
 import SidebarToggle from '../SidebarToggle.vue';
 import CreateConversation from '../CreateConversation.vue';
 import { Avatar as TAvatar, Layout as TLayout, Content as TContent, Header as THeader, Footer as TFooter } from 'tdesign-vue-next';
+
+// TAvatar, TLayout, TContent, THeader, TFooter 已导入，模板中使用对应组件
 import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type';
 import { chatRelatedPropsDefaults } from '../../model/type';
 
@@ -119,14 +121,14 @@ defineExpose({
 </script>
 
 <template>
-    <t-layout class="main-layout">
-        <t-header class="layout-header">
+    <TLayout class="main-layout">
+        <THeader class="layout-header">
             <div class="header-app-container">
                 <SidebarToggle v-if="showSidebarToggle" @toggle="handleToggleSidebar" />
-                <t-avatar :imageProps="{
+                <TAvatar :imageProps="{
                     lazy: true,
                     loading: ''
-                }" class="header-app__avatar" shape="round" :image="currentApplicationAvatar" :size="isMobile ? 'var(--td-line-height-headline-small)' : 'large'"></t-avatar>
+                }" class="header-app__avatar" shape="round" :image="currentApplicationAvatar" :size="isMobile ? 'var(--td-line-height-headline-small)' : 'large'"></TAvatar>
                 <span class="header-app__title">{{ currentApplicationName }}</span>
             </div>
             <div class="header-app-settings">
@@ -134,8 +136,8 @@ defineExpose({
                 <slot name="header-fullscreen-content"></slot>
                 <slot name="header-close-content"></slot>
             </div>
-        </t-header>
-        <t-content class="layout-content">
+        </THeader>
+        <TContent class="layout-content">
             <Chat 
                 ref="chatRef"
                 :chatId="chatId"
@@ -174,11 +176,11 @@ defineExpose({
                     <slot name="empty-content"></slot>
                 </template>
             </Chat>
-        </t-content>
-        <t-footer class="layout-footer">
+        </TContent>
+        <TFooter class="layout-footer">
             <AIWarning :text="aiWarningText" />
-        </t-footer>
-    </t-layout>
+        </TFooter>
+    </TLayout>
 </template>
 
 <style scoped>

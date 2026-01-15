@@ -5,6 +5,8 @@
  */
 import { ref, toRefs } from 'vue';
 import { Space as TSpace, CheckTag as TCheckTag, Avatar as TAvatar } from 'tdesign-vue-next';
+
+// TSpace, TCheckTag, TAvatar 已导入，模板中使用对应组件
 import type { MobileProps } from '../../model/type';
 import { mobilePropsDefaults } from '../../model/type';
 
@@ -59,7 +61,7 @@ const handleChooseQuestion = (value: string) => {
 
 <template>
   <div class="greeting-panel" :class="{ isMobile: isMobile }">
-    <t-avatar 
+    <TAvatar 
       hideOnLoadFailed 
       v-if="currentApplicationAvatar && !isMobile" 
       class="greet-avatar" 
@@ -70,19 +72,19 @@ const handleChooseQuestion = (value: string) => {
         lazy: true,
         loading: ''
       }"
-    ></t-avatar>
+    ></TAvatar>
     <span v-if="currentApplicationName" class="greet-name">{{ currentApplicationName }}</span>
     <div class="greet-desc" v-if="currentApplicationGreeting">
         {{ currentApplicationGreeting }}
     </div>
-    <t-space :direction="isMobile ? 'vertical' : 'horizontal'" gap="8" class="recommend-question-container" v-if="currentApplicationOpeningQuestions && currentApplicationOpeningQuestions.length > 0">
-        <t-check-tag theme="default" class="greet-tag" v-for="question in currentApplicationOpeningQuestions" :key="question" variant="outline"
+    <TSpace :direction="isMobile ? 'vertical' : 'horizontal'" gap="8" class="recommend-question-container" v-if="currentApplicationOpeningQuestions && currentApplicationOpeningQuestions.length > 0">
+        <TCheckTag theme="default" class="greet-tag" v-for="question in currentApplicationOpeningQuestions" :key="question" variant="outline"
           @click="handleChooseQuestion(question)">
           <span class="greet-tag-text">
             {{ question }}
           </span>
-        </t-check-tag>
-      </t-space>
+        </TCheckTag>
+      </TSpace>
     </div>
 </template>
 

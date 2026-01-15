@@ -2,6 +2,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { Layout as TLayout, Content as TContent, MessagePlugin } from 'tdesign-vue-next';
+
+// TLayout, TContent 已导入，模板中使用对应组件
 import MainLayout from './MainLayout.vue';
 import SideLayout from './SideLayout.vue';
 import LogoArea from '../LogoArea.vue';
@@ -530,6 +532,7 @@ const handleInternalUploadFile = async (files: File[]) => {
             const senderRef = mainLayoutRef.value?.getChatRef()?.getSenderRef();
             if (senderRef && response) {
                 senderRef.addFile({
+                    uid: `${Date.now()}-${file.name}`,
                     name: file.name,
                     url: response.Url || response.url,
                     status: 'done',
@@ -544,40 +547,55 @@ const handleInternalUploadFile = async (files: File[]) => {
     emit('uploadFile', files);
 };
 
-// 监听外部传入的 currentApplicationId 变化，从列表中查找对应应用
-watch([() => props.currentApplicationId, () => actualApplications.value], ([newId, apps]) => {
-    if (newId && apps.length > 0) {
-        const found = apps.find(app => app.ApplicationId === newId);
-        if (found) {
-            internalCurrentApplication.value = found;
-        }
-    }
-}, { immediate: true });
+// 记录上一次的 ID 值，用于判断变化
+let prevConvId: string | undefined = undefined;
 
-// 监听外部传入的 currentConversationId 变化，从列表中查找对应会话并加载详情
-watch([() => props.currentConversationId, () => actualConversations.value, () => actualApplications.value], async ([newId, conversations, apps]) => {
-    if (newId && conversations.length > 0) {
-        const found = conversations.find(conv => conv.Id === newId);
-        if (found && found.Id !== internalCurrentConversation.value?.Id) {
-            internalCurrentConversation.value = found;
-            // 同时更新对应的应用
-            if (found.ApplicationId && apps.length > 0) {
-                const foundApp = apps.find(app => app.ApplicationId === found.ApplicationId);
-                if (foundApp) {
-                    internalCurrentApplication.value = foundApp;
+// 监听外部传入的 currentApplicationId 和 currentConversationId 变化
+watch(
+    [
+        () => props.currentApplicationId,
+        () => props.currentConversationId,
+        () => actualApplications.value,
+        () => actualConversations.value
+    ],
+    async ([appId, convId, apps, conversations]) => {
+        // 处理应用 ID 变化
+        if (appId && apps.length > 0) {
+            const foundApp = apps.find(app => app.ApplicationId === appId);
+            if (foundApp && foundApp.ApplicationId !== internalCurrentApplication.value?.ApplicationId) {
+                internalCurrentApplication.value = foundApp;
+            }
+        }
+
+        // 处理会话 ID 变化
+        if (convId && conversations.length > 0) {
+            const foundConv = conversations.find(conv => conv.Id === convId);
+            if (foundConv && foundConv.Id !== internalCurrentConversation.value?.Id) {
+                internalCurrentConversation.value = foundConv;
+                // 如果会话有关联的应用，且未指定 appId，则自动切换应用
+                if (!appId && foundConv.ApplicationId && apps.length > 0) {
+                    const convApp = apps.find(app => app.ApplicationId === foundConv.ApplicationId);
+                    if (convApp) {
+                        internalCurrentApplication.value = convApp;
+                    }
+                }
+                // 如果是 API 模式，自动加载会话详情
+                if (useApiMode.value) {
+                    internalChatList.value = [];
+                    await loadConversationDetail(foundConv.Id);
                 }
             }
-            // 如果是 API 模式，自动加载会话详情
-            if (useApiMode.value) {
-                internalChatList.value = [];
-                await loadConversationDetail(found.Id);
-            }
+        } else if (!convId && prevConvId) {
+            // ID 从有值变为空时，清空当前会话
+            internalCurrentConversation.value = undefined;
+            internalChatList.value = [];
         }
-    } else if (!newId) {
-        // ID 为空时清空当前会话
-        internalCurrentConversation.value = undefined;
-    }
-}, { immediate: true });
+
+        // 更新上一次的值
+        prevConvId = convId;
+    },
+    { immediate: true }
+);
 
 // 监听外部传入的 currentApplication 对象变化，同步内部状态
 watch(() => props.currentApplication, (newApp) => {
@@ -633,8 +651,8 @@ defineExpose({
 </script>
 
 <template>
-    <t-layout class="page-container">
-        <t-content class="content">
+    <TLayout class="page-container">
+        <TContent class="content">
             <!-- 移动端毛玻璃遮罩 -->
             <div 
                 v-if="isMobile && sidebarVisible" 
@@ -720,8 +738,8 @@ defineExpose({
                     </slot>
                 </template>
             </MainLayout>
-        </t-content>
-    </t-layout>
+        </TContent>
+    </TLayout>
 </template>
 
 <style scoped>

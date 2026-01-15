@@ -1,11 +1,13 @@
 <template>
     <div class="flex gap-2">
-        <Button v-for="txt in cards" :key="txt" @click="sendMessage && sendMessage(txt)" shape="round" variant="outline" theme="primary">{{ txt }}</Button>
+        <TButton v-for="txt in cards" :key="txt" @click="sendMessage && sendMessage(txt)" shape="round" variant="outline" theme="primary">{{ txt }}</TButton>
     </div>
 </template>
 
 <script setup lang="ts">
-import { Button } from 'tdesign-vue-next';
+import { Button as TButton } from 'tdesign-vue-next';
+
+// TButton 已导入，模板中使用 TButton 组件
 
 interface Props {
     /** 选项卡片列表 */

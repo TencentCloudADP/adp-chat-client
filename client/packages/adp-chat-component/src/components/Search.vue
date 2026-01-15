@@ -2,6 +2,9 @@
 import { ref } from 'vue';
 import CustomizedIcon from './CustomizedIcon.vue';
 import { Input as TInput } from 'tdesign-vue-next';
+import type { InputValue } from 'tdesign-vue-next';
+
+// TInput 已导入，模板中使用 TInput 组件
 
 interface Props {
     /** 占位符文本 */
@@ -31,14 +34,14 @@ const changeSearchFocus = (value: boolean) => {
     isSearchFocus.value = value;
 };
 
-const handleInput = (value: string) => {
-    searchData.value = value;
-    emit('search', value);
+const handleInput = (value: InputValue) => {
+    searchData.value = String(value);
+    emit('search', String(value));
 };
 </script>
 
 <template>
-    <t-input 
+    <TInput 
         :placeholder="placeholder" 
         :value="searchData"
         @blur="changeSearchFocus(false)" 
@@ -49,7 +52,7 @@ const handleInput = (value: string) => {
         <template #prefix-icon>
             <CustomizedIcon name="search"/> 
         </template>
-    </t-input>
+    </TInput>
 </template>
 
 <style scoped></style>

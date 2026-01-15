@@ -8,6 +8,8 @@ import PersonalAccount from '../PersonalAccount.vue';
 import Settings from '../Settings.vue';
 import SidebarToggle from '../SidebarToggle.vue';
 import { Drawer as TDrawer, Divider as TDivider } from 'tdesign-vue-next';
+
+// TDrawer, TDivider 已导入，模板中使用 TDrawer, TDivider 组件
 import type { LanguageOption, SideI18n, CommonLayoutProps } from '../../model/type';
 import { defaultLanguageOptions, defaultSideI18n, commonLayoutPropsDefaults } from '../../model/type';
 
@@ -101,7 +103,7 @@ const handleUserClick = () => {
 
 <template>
     <div class="custome-drawer-container" :class="{ 'drawer-open': visible, 'drawer-closed': !visible, 'is-mobile': isMobile }">
-        <t-drawer 
+        <TDrawer 
             drawerClassName="custome-drawer" 
             :size="drawerSize" 
             :visible="visible" 
@@ -123,7 +125,7 @@ const handleUserClick = () => {
                         :collapseText="i18n.collapse"
                         @select="handleSelectApplication"
                     />
-                    <t-divider />
+                    <TDivider />
                     <HistoryList 
                         :conversations="conversations" 
                         :currentConversationId="currentConversationId"
@@ -156,7 +158,7 @@ const handleUserClick = () => {
                     />
                 </div>
             </template>
-        </t-drawer>
+        </TDrawer>
     </div>
 </template>
 
