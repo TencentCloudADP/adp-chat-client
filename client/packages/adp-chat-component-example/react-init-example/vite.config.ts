@@ -17,10 +17,6 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           main: path.resolve(__dirname, 'index.html'),
-          full: path.resolve(__dirname, 'src/pages/full/index.html'),
-          compact: path.resolve(__dirname, 'src/pages/compact/index.html'),
-          popup: path.resolve(__dirname, 'src/pages/popup/index.html'),
-          fullscreen: path.resolve(__dirname, 'src/pages/fullscreen/index.html'),
         },
       },
     },

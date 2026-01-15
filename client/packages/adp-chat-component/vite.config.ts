@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
+import dts from 'vite-plugin-dts'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -12,6 +13,22 @@ export default defineConfig({
   plugins: [
     vue(), 
     vueJsx(),
+    dts({
+      // 指定要编译的 TypeScript 配置文件
+      tsconfigPath: './tsconfig.app.json',
+      // 输出目录
+      outDir: 'dist',
+      // 包含的文件
+      include: ['src/**/*.ts', 'src/**/*.tsx', 'src/**/*.vue'],
+      // 排除的文件
+      exclude: ['src/**/*.spec.ts', 'src/**/*.test.ts'],
+      // 在构建后清理输出目录
+      cleanVueFileName: true,
+      // 生成类型声明文件后的回调
+      afterBuild: () => {
+        console.log('Type declarations generated successfully!')
+      }
+    }),
     createSvgIconsPlugin({
       // 指定需要缓存的图标文件夹（绝对路径）
       iconDirs: [path.resolve(__dirname, 'src/assets/icons')],
