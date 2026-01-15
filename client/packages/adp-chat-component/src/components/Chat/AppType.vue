@@ -6,8 +6,10 @@
 import { ref, toRefs } from 'vue';
 import { Space as TSpace, CheckTag as TCheckTag, Avatar as TAvatar } from 'tdesign-vue-next';
 import CustomizedIcon from '../CustomizedIcon.vue';
+import type { MobileProps } from '../../model/type';
+import { mobilePropsDefaults } from '../../model/type';
 
-interface Props {
+interface Props extends MobileProps {
   /** 当前应用头像 */
   currentApplicationAvatar?: string;
   /** 当前应用名称 */
@@ -16,8 +18,6 @@ interface Props {
   currentApplicationGreeting?: string;
   /** 当前应用推荐问题列表 */
   currentApplicationOpeningQuestions?: string[];
-  /** 是否为移动端 */
-  isMobile?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -25,7 +25,7 @@ const props = withDefaults(defineProps<Props>(), {
   currentApplicationName: '',
   currentApplicationGreeting: '',
   currentApplicationOpeningQuestions: () => [],
-  isMobile: false
+  ...mobilePropsDefaults,
 });
 
 // 解构 props 以便在模板中使用

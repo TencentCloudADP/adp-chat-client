@@ -1,13 +1,10 @@
 <script setup lang="ts">
-import { ChatLayout, type ApiConfig } from 'adp-chat-component';
+import { ChatLayout, type ApiConfig, type Application, type ChatConversation } from 'adp-chat-component';
 import { computed, ref, watch } from 'vue'
 import { useUiStore } from '@/stores/ui'
 import { logout } from '@/service/login';
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n';
-import { MessagePlugin } from 'tdesign-vue-next';
-import type { Application } from '@/model/application';
-import type { ChatConversation } from '@/model/chat';
 import { languageMap } from '@/i18n';
 import Logo from '@/assets/img/favicon.ico';
 

@@ -27,9 +27,54 @@ export { default as MainLayout } from './components/layout/MainLayout.vue'
 export { default as SideLayout } from './components/layout/SideLayout.vue'
 
 // 类型导出
-export type { ChatConfig } from './model/type'
+export type {
+    ChatConfig,
+    ThemeType,
+    ThemeProps,
+    MobileProps,
+    DeepThinkingProps,
+    FullscreenProps,
+    ModelSelectProps,
+    CommonLayoutProps,
+    ChatRelatedProps,
+    LanguageOption,
+    UserInfo,
+    SideI18n,
+    ChatI18n,
+    ChatItemI18n,
+    SenderI18n,
+} from './model/type'
+export {
+    themePropsDefaults,
+    mobilePropsDefaults,
+    deepThinkingPropsDefaults,
+    fullscreenPropsDefaults,
+    modelSelectPropsDefaults,
+    commonLayoutPropsDefaults,
+    chatRelatedPropsDefaults,
+    defaultLanguageOptions,
+    defaultSideI18n,
+    defaultChatI18n,
+    defaultChatItemI18n,
+    defaultSenderI18n,
+} from './model/type'
 export type { Application } from './model/application'
-export type { ChatConversation, Record, AgentThought } from './model/chat'
+export type {
+    ChatConversation,
+    ChatConversationProps,
+    Record,
+    AgentThought,
+    Debugging,
+    Procedure,
+    ExtraInfo,
+    QuoteInfo,
+    Reference,
+    TokenStat,
+    TokenStatProcedure,
+    ChatItemData,
+    WorkFlow,
+} from './model/chat'
+export { ScoreValue } from './model/chat'
 export type { FileProps } from './model/file'
 export type { ApiConfig } from './service/api'
 

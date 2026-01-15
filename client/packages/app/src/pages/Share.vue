@@ -16,9 +16,8 @@
 import { onMounted, ref } from 'vue';
 import { Chat as TChat } from '@tdesign-vue-next/chat';
 import { Layout as TLayout, LoadingPlugin } from 'tdesign-vue-next';
-import { ChatItem } from 'adp-chat-component';
+import { ChatItem, type Record } from 'adp-chat-component';
 import { useRoute, useRouter } from 'vue-router';
-import type { Record } from '@/model/chat';
 import { handleLoadConversationDetail } from '@/service/chat';
 const router = useRouter();
 const route = useRoute();

@@ -159,7 +159,7 @@ export interface Record {
 }
 
 
-export interface ChatItem {
+export interface ChatItemData {
   avatar: string
   name: string
   datetime: string
