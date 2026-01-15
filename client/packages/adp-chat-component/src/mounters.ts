@@ -15,7 +15,6 @@ import Chat from './components/Chat/Index.vue'
 import ChatItem from './components/Chat/ChatItem.vue'
 import ChatSender from './components/Chat/Sender.vue'
 import ChatAppType from './components/Chat/AppType.vue'
-import BackToBottom from './components/Chat/BackToBottom.vue'
 import FileList from './components/Common/FileList.vue'
 import OptionCard from './components/Common/OptionCard.vue'
 import RecordIcon from './components/Common/RecordIcon.vue'
@@ -252,11 +251,6 @@ export interface ChatAppTypeConfig extends MountConfig {
   onSelectQuestion?: (question: string) => void
 }
 
-export interface BackToBottomConfig extends MountConfig {
-  loading?: boolean
-  onClick?: () => void
-}
-
 export interface FileListConfig extends MountConfig {
   fileList?: any[]
   onRemove?: (index: number) => void
@@ -290,6 +284,8 @@ export interface ChatLayoutConfig extends MountConfig {
   isDeepThinking?: boolean
   maxAppLen?: number
   showCloseButton?: boolean
+  showFullscreenButton?: boolean
+  isFullscreen?: boolean
   aiWarningText?: string
   createConversationText?: string
   sideI18n?: any
@@ -298,6 +294,7 @@ export interface ChatLayoutConfig extends MountConfig {
   senderI18n?: any
   apiConfig?: any
   autoLoad?: boolean
+  onFullscreen?: (isFullscreen: boolean) => void
 }
 
 export interface MainLayoutConfig extends MountConfig {
@@ -326,7 +323,6 @@ export const ChatMounter = createComponentMounter<ChatComponentConfig>(Chat, 'ad
 export const ChatItemMounter = createComponentMounter<ChatItemConfig>(ChatItem, 'adp-chat-item')
 export const ChatSenderMounter = createComponentMounter<ChatSenderConfig>(ChatSender, 'adp-chat-sender')
 export const ChatAppTypeMounter = createComponentMounter<ChatAppTypeConfig>(ChatAppType, 'adp-chat-app-type')
-export const BackToBottomMounter = createComponentMounter<BackToBottomConfig>(BackToBottom, 'adp-back-to-bottom')
 export const FileListMounter = createComponentMounter<FileListConfig>(FileList, 'adp-file-list')
 export const OptionCardMounter = createComponentMounter<OptionCardConfig>(OptionCard, 'adp-option-card')
 export const RecordIconMounter = createComponentMounter<RecordIconConfig>(RecordIcon, 'adp-record-icon')

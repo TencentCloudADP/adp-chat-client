@@ -1,0 +1,299 @@
+---
+title: Dynamic Mounting
+description: Dynamically mount chat component using the init method
+---
+
+import { PropsTable, EventsTable } from '@/components/docs/api-table';
+
+# Dynamic Mounting
+
+Besides using as a Vue component, ADP Chat Component also supports dynamic mounting to any DOM container via the `init` method, suitable for non-Vue projects or scenarios requiring dynamic chat interface creation.
+
+## Basic Usage
+
+### Via CDN
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://unpkg.com/adp-chat-component/dist/style.css">
+</head>
+<body>
+  <div id="chat-container"></div>
+  
+  <script src="https://unpkg.com/adp-chat-component/dist/adp-chat-component.umd.js"></script>
+  <script>
+    // Initialize chat component
+    ADPChatComponent.init('#chat-container', {
+      theme: 'light',
+      logoTitle: 'AI Assistant'
+    });
+  </script>
+</body>
+</html>
+```
+
+### Via NPM
+
+```javascript
+import ADPChatComponent from 'adp-chat-component'
+import 'adp-chat-component/dist/style.css'
+
+// Initialize chat component
+ADPChatComponent.init('#chat-container', {
+  theme: 'light',
+  logoTitle: 'AI Assistant'
+})
+```
+
+## init Method
+
+```typescript
+function init(container?: string, config?: ChatConfig): ComponentInstance
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| container | `string` | `'body'` | CSS selector for mount container |
+| config | `ChatConfig` | - | Configuration options |
+
+### Return Value
+
+Returns Vue component instance for subsequent operations.
+
+## ChatConfig Options
+
+<PropsTable data={[
+  { name: 'container', type: 'string', default: "'body'", description: 'Mount container selector' },
+  { name: 'canPark', type: 'boolean', default: 'false', description: 'Enable dock mode (show floating button)' },
+  { name: 'modelType', type: "'full' | 'compact'", default: "'full'", description: 'Mode type: full-fullscreen, compact-fixed size' },
+  { name: 'width', type: 'string | number', default: '400', description: 'Width (only in compact mode)' },
+  { name: 'height', type: 'string | number', default: '600', description: 'Height (only in compact mode)' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: 'Theme mode' },
+  { name: 'logoUrl', type: 'string', default: "''", description: 'Logo image URL' },
+  { name: 'logoTitle', type: 'string', default: "''", description: 'Logo title text' },
+  { name: 'applications', type: 'Application[]', default: '[]', description: 'Application list' },
+  { name: 'currentApplication', type: 'Application', description: 'Currently selected application' },
+  { name: 'conversations', type: 'ChatConversation[]', default: '[]', description: 'Conversation list' },
+  { name: 'currentConversation', type: 'ChatConversation', description: 'Currently selected conversation' },
+  { name: 'chatList', type: 'Record[]', default: '[]', description: 'Chat message list' },
+  { name: 'isChatting', type: 'boolean', default: 'false', description: 'Whether chatting' },
+  { name: 'user', type: 'UserInfo', default: '{}', description: 'User info' },
+  { name: 'languageOptions', type: 'LanguageOption[]', default: 'zh/en', description: 'Language options' },
+  { name: 'isMobile', type: 'boolean', default: 'false', description: 'Whether mobile' },
+  { name: 'modelOptions', type: 'any[]', default: '[]', description: 'Model options' },
+  { name: 'selectModel', type: 'any', description: 'Selected model' },
+  { name: 'isDeepThinking', type: 'boolean', default: 'true', description: 'Enable deep thinking mode' },
+  { name: 'maxAppLen', type: 'number', default: '4', description: 'Max application display count' },
+  { name: 'showFullscreenButton', type: 'boolean', default: 'false', description: 'Show fullscreen button' },
+  { name: 'isFullscreen', type: 'boolean', default: 'false', description: 'Whether in fullscreen' },
+  { name: 'onFullscreen', type: '(isFullscreen: boolean) => void', description: 'Fullscreen toggle callback' },
+  { name: 'open', type: 'boolean', description: 'Whether panel is open (canPark mode only)' },
+  { name: 'onOpenChange', type: '(open: boolean) => void', description: 'Panel open state change callback' },
+  { name: 'showToggleButton', type: 'boolean', default: 'true', description: 'Show floating toggle button' },
+  { name: 'aiWarningText', type: 'string', default: "'AI generated content'", description: 'AI warning text' },
+  { name: 'createConversationText', type: 'string', default: "'New Chat'", description: 'New conversation text' },
+  { name: 'sideI18n', type: 'object', description: 'Sidebar i18n text' },
+  { name: 'chatI18n', type: 'object', description: 'Chat i18n text' },
+  { name: 'chatItemI18n', type: 'object', description: 'ChatItem i18n text' },
+  { name: 'senderI18n', type: 'object', description: 'Sender i18n text' },
+  { name: 'apiConfig', type: 'ApiConfig', description: 'API config (enables API mode)' },
+  { name: 'autoLoad', type: 'boolean', default: 'true', description: 'Auto load data' },
+]} />
+
+## i18n Configuration
+
+### sideI18n
+
+```typescript
+{
+  more?: string           // More
+  collapse?: string       // Collapse
+  today?: string          // Today
+  recent?: string         // Recent
+  switchTheme?: string    // Switch Theme
+  selectLanguage?: string // Select Language
+  logout?: string         // Logout
+}
+```
+
+### chatI18n
+
+```typescript
+{
+  loading?: string      // Loading
+  thinking?: string     // Thinking
+  checkAll?: string     // Select All
+  shareFor?: string     // Share to
+  copyUrl?: string      // Copy Link
+  cancelShare?: string  // Cancel Share
+  sendError?: string    // Send Failed
+  networkError?: string // Network Error
+}
+```
+
+### chatItemI18n
+
+```typescript
+{
+  thinking?: string             // Thinking
+  deepThinkingFinished?: string // Deep thinking finished
+  deepThinkingExpand?: string   // Expand deep thinking
+  copy?: string                 // Copy
+  replay?: string               // Regenerate
+  share?: string                // Share
+  good?: string                 // Like
+  bad?: string                  // Dislike
+  thxForGood?: string           // Thanks for liking
+  thxForBad?: string            // Thanks for feedback
+  references?: string           // References
+}
+```
+
+### senderI18n
+
+```typescript
+{
+  placeholder?: string       // Input placeholder
+  placeholderMobile?: string // Mobile input placeholder
+  uploadImg?: string         // Upload image
+  startRecord?: string       // Start recording
+  stopRecord?: string        // Stop recording
+  answering?: string         // Answering
+  notSupport?: string        // Not supported
+  uploadError?: string       // Upload failed
+  recordTooLong?: string     // Recording too long
+}
+```
+
+## API Mode Configuration
+
+Configure API paths via `apiConfig`, the component will automatically fetch data via HTTP requests:
+
+```javascript
+ADPChatComponent.init('#chat-container', {
+  apiConfig: {
+    applicationListApi: '/api/applications',
+    conversationListApi: '/api/conversations',
+    conversationDetailApi: '/api/conversation/detail',
+    sendMessageApi: '/api/message/send',
+    rateApi: '/api/feedback/rate',
+    shareApi: '/api/share/create',
+    userInfoApi: '/api/user/info',
+    uploadApi: '/api/upload/file',
+    asrUrlApi: '/api/helper/asr/url'
+  },
+  autoLoad: true
+})
+```
+
+### ApiConfig
+
+```typescript
+interface ApiConfig {
+  applicationListApi?: string   // Application list API
+  conversationListApi?: string  // Conversation list API
+  conversationDetailApi?: string // Conversation detail API
+  sendMessageApi?: string       // Send message API
+  rateApi?: string              // Rate API
+  shareApi?: string             // Share API
+  userInfoApi?: string          // User info API
+  uploadApi?: string            // File upload API
+  asrUrlApi?: string            // ASR URL API
+}
+```
+
+## Mode Description
+
+### Full Mode
+
+Component fills the entire container, suitable for standalone pages:
+
+```javascript
+ADPChatComponent.init('#chat-container', {
+  modelType: 'full'
+})
+```
+
+### Compact Mode
+
+Component displays with fixed dimensions, suitable for embedding in existing pages:
+
+```javascript
+ADPChatComponent.init('#chat-container', {
+  modelType: 'compact',
+  width: 400,
+  height: 600
+})
+```
+
+### Dock Mode (canPark)
+
+Shows a floating button, click to expand chat panel:
+
+```javascript
+ADPChatComponent.init('#chat-container', {
+  canPark: true,
+  showToggleButton: true,
+  open: false,
+  onOpenChange: (open) => {
+    console.log('Panel state:', open)
+  }
+})
+```
+
+## Unmount Component
+
+```javascript
+// Unmount component from specified container
+ADPChatComponent.unmount('#chat-container')
+```
+
+## Type Definitions
+
+### UserInfo
+
+```typescript
+interface UserInfo {
+  avatarUrl?: string   // Avatar URL
+  avatarName?: string  // Avatar display name
+  name?: string        // Username
+}
+```
+
+### LanguageOption
+
+```typescript
+interface LanguageOption {
+  key: string    // Language identifier, e.g., 'en-US'
+  value: string  // Display name, e.g., 'English'
+}
+```
+
+### Application
+
+```typescript
+interface Application {
+  ApplicationId: string
+  Name: string
+  Avatar: string
+  Greeting: string
+  OpeningQuestions: string[]
+}
+```
+
+### ChatConversation
+
+```typescript
+interface ChatConversation {
+  Id: string
+  AccountId: string
+  Title: string
+  LastActiveAt: number
+  CreatedAt: number
+  ApplicationId: string
+}
+```

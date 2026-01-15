@@ -1,6 +1,6 @@
 import { httpService } from './httpService'
-import type { ChatConversation, ChatConversationProps, Record, ScoreValue } from '@/model/chat'
-import type { AxiosRequestConfig,AxiosError } from 'axios'
+import type { ChatConversation, ChatConversationProps, Record } from '@/model/chat'
+import type { AxiosRequestConfig } from 'axios'
 import { MessagePlugin } from 'tdesign-vue-next';
 import { t } from '@/i18n'
 

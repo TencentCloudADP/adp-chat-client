@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import type { ChatConversation } from '@/model/chat'
-import { handleLoadConversations } from '@/service/chat'
 import { useAppsStore } from '@/stores/apps'
 import { useUiStore } from '@/stores/ui'
 import type { Application } from '@/model/application'
@@ -114,7 +113,6 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   onMounted(() => {
-    console.log('chat.onMounted')
   })
 
   onUnmounted(() => {
@@ -138,13 +136,3 @@ export const useChatStore = defineStore('chat', () => {
     setCurrentApplication
   }
 })
-
-/**
- * 加载聊天会话列表并更新存储
- * @returns {Promise<void>}
- */
-export const fetchChatList = async () => {
-  const ChatConversation = await handleLoadConversations()
-  const chatStore = useChatStore()
-  chatStore.setConversations(ChatConversation)
-}

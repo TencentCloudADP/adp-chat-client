@@ -29,6 +29,17 @@ export default defineConfig(({ mode }) => {
       include: ['tdesign-vue-next', '@tdesign-vue-next/chat'],
       exclude: ['adp-chat-component'],
     },
+    build: {
+      rollupOptions: {
+        input: {
+          main: path.resolve(__dirname, 'index.html'),
+          full: path.resolve(__dirname, 'src/pages/full/index.html'),
+          compact: path.resolve(__dirname, 'src/pages/compact/index.html'),
+          popup: path.resolve(__dirname, 'src/pages/popup/index.html'),
+          fullscreen: path.resolve(__dirname, 'src/pages/fullscreen/index.html'),
+        },
+      },
+    },
     server: {
       host: '0.0.0.0',
       port: 5175,

@@ -1,10 +1,22 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { ChatSender as TChatSender } from '@tdesign-vue-next/chat'
+import { ref, computed } from 'vue'
+import { ChatSender as TChatSender, Attachments as TAttachments } from '@tdesign-vue-next/chat'
+import { MessagePlugin } from 'tdesign-vue-next'
 import type { FileProps } from '../../model/file';
-import FileList from '../Common/FileList.vue';
+import { MessageCode, getMessage } from '../../model/messages';
 import RecordIcon from '../Common/RecordIcon.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
+import WebRecorder from '../../utils/webRecorder';
+import { getAsrUrl } from '../../service/api';
+
+// TAttachments 组件的文件项类型
+interface AttachmentItem {
+    name?: string;
+    url?: string;
+    status?: 'success' | 'fail' | 'progress' | 'waiting';
+    key?: string;
+    [key: string]: any;
+}
 
 interface Props {
     /** 模型选项列表 */
@@ -19,6 +31,10 @@ interface Props {
     isMobile?: boolean;
     /** 主题模式 */
     theme?: 'light' | 'dark';
+    /** 是否使用内部录音处理（API 模式） */
+    useInternalRecord?: boolean;
+    /** ASR URL API 路径 */
+    asrUrlApi?: string;
     /** 国际化文本 */
     i18n?: {
         placeholder?: string;
@@ -40,18 +56,29 @@ const props = withDefaults(defineProps<Props>(), {
     isStreamLoad: false,
     isMobile: false,
     theme: 'light',
-    i18n: () => ({
-        placeholder: '请输入您的问题',
-        placeholderMobile: '请输入',
-        uploadImg: '上传图片',
-        startRecord: '开始录音',
-        stopRecord: '停止录音',
-        answering: '正在回答中...',
-        notSupport: '不支持的文件格式',
-        uploadError: '上传失败',
-        recordTooLong: '录音时间过长'
-    })
+    useInternalRecord: false,
+    asrUrlApi: '',
+    i18n: () => ({})
 });
+
+// 默认 i18n 配置
+const defaultI18n = {
+    placeholder: '请输入您的问题',
+    placeholderMobile: '请输入',
+    uploadImg: '上传图片',
+    startRecord: '开始录音',
+    stopRecord: '停止录音',
+    answering: '正在回答中...',
+    notSupport: '不支持的文件格式',
+    uploadError: '上传失败',
+    recordTooLong: '录音时间过长'
+};
+
+// 合并默认值和传入值
+const i18n = computed(() => ({
+    ...defaultI18n,
+    ...props.i18n
+}));
 
 const emit = defineEmits<{
     (e: 'stop'): void;
@@ -61,13 +88,18 @@ const emit = defineEmits<{
     (e: 'uploadFile', files: File[]): void;
     (e: 'startRecord'): void;
     (e: 'stopRecord'): void;
-    (e: 'message', type: 'warning' | 'error' | 'info', message: string): void;
+    (e: 'message', code: MessageCode, message: string): void;
 }>();
 
 /**
  * 输入框内容
  */
 const inputValue = ref('')
+
+/**
+ * 开始语音时输入框内容
+ */
+const inputValueBefore = ref('')
 
 /**
  * 是否正在录音
@@ -78,6 +110,34 @@ const recording = ref(false)
  * 文件列表
  */
 const fileList = ref([] as FileProps[])
+
+/**
+ * 转换为 TAttachments 组件需要的格式
+ */
+const attachmentsList = computed<AttachmentItem[]>(() => {
+    return fileList.value.map((file, index) => ({
+        key: file.uid || file.url || String(index),
+        name: file.name || '',
+        url: file.url || '',
+        status: file.status === 'done' ? 'success' : (file.status as 'success' | 'fail' | 'progress' | 'waiting'),
+    }));
+})
+
+/**
+ * WebRecorder 实例引用
+ */
+const recorder = ref<WebRecorder | null>(null)
+
+/**
+ * ASR WebSocket 连接引用
+ */
+const asrWebSocket = ref<WebSocket | null>(null)
+
+/**
+ * 录音超时时间，单位 s
+ */
+const recordMaxTime = 60;
+const recordRef = ref<ReturnType<typeof setTimeout> | null>(null);
 
 /**
  * 处理输入内容变化
@@ -97,7 +157,9 @@ const handleFileSelect = async function (files: any[]) {
     files.forEach((item: any) => {
         const file = item.raw || item;
         if (!allowed.includes(file.type)) {
-            emit('message', 'error', props.i18n.notSupport || '不支持的文件格式');
+            const text = i18n.value.notSupport || getMessage(MessageCode.FILE_FORMAT_NOT_SUPPORT).message;
+            MessagePlugin.error(text);
+            emit('message', MessageCode.FILE_FORMAT_NOT_SUPPORT, text);
             return;
         }
         validFiles.push(file);
@@ -109,11 +171,17 @@ const handleFileSelect = async function (files: any[]) {
 }
 
 /**
- * 删除文件
+ * 删除文件 - 适配 TAttachments 组件的 onRemove 事件
  */
-const handleDeleteFile = async function (index: number) {
-    fileList.value.splice(index, 1);
-    fileList.value = [...fileList.value];
+const handleDeleteFile = (event: CustomEvent<AttachmentItem>) => {
+    const item = event.detail;
+    const index = fileList.value.findIndex(
+        (file) => (file.uid || file.url) === (item.key || item.url)
+    );
+    if (index !== -1) {
+        fileList.value.splice(index, 1);
+        fileList.value = [...fileList.value];
+    }
 }
 
 /**
@@ -121,12 +189,27 @@ const handleDeleteFile = async function (index: number) {
  */
 const handleSend = async function (value: string) {
     if (props.isStreamLoad) {
-        emit('message', 'warning', props.i18n.answering || '正在回答中...');
+        const text = i18n.value.answering || getMessage(MessageCode.ANSWERING).message;
+        MessagePlugin.warning(text);
+        emit('message', MessageCode.ANSWERING, text);
         return
     }
     // 用户点击发送动作时结束录音
     handleStopRecord();
-    emit('send', value, fileList.value);
+    
+    // 将图片处理成 markdown 格式拼接到消息内容前面
+    let _query = '';
+    for (const file of fileList.value) {
+        if (file.status === 'done' && file.url) {
+            _query += `![](${file.url})`;
+        }
+    }
+    _query += value;
+    
+    emit('send', _query, fileList.value);
+    // 发送后清空输入框和文件列表
+    inputValue.value = '';
+    fileList.value = [];
 }
 
 /**
@@ -134,7 +217,75 @@ const handleSend = async function (value: string) {
  */
 const handleStartRecord = async () => {
     recording.value = true;
+    
+    // 如果使用内部录音处理（API 模式）
+    if (props.useInternalRecord) {
+        try {
+            const res = await getAsrUrl(props.asrUrlApi || undefined);
+            inputValueBefore.value = inputValue.value;
+            const url = res.url;
+            asrWebSocket.value = new WebSocket(url);
+            
+            asrWebSocket.value.onopen = () => {
+                startRecording();
+                recordRef.value = setTimeout(() => {
+                    if (recording.value) {
+                        const text = i18n.value.recordTooLong || getMessage(MessageCode.RECORD_TOO_LONG).message;
+                        MessagePlugin.warning(text);
+                        emit('message', MessageCode.RECORD_TOO_LONG, text);
+                        handleStopRecord();
+                    }
+                }, recordMaxTime * 1000);
+            };
+            
+            asrWebSocket.value.onmessage = (event) => {
+                if (!recording.value) return;
+                const msg = JSON.parse(event.data);
+                if ('result' in msg) {
+                    inputValue.value = inputValueBefore.value + msg['result']['voice_text_str'];
+                }
+                if ('message' in msg && 'code' in msg && msg['code'] != 0) {
+                    MessagePlugin.error(msg['message']);
+                    emit('message', MessageCode.ASR_SERVICE_FAILED, msg['message']);
+                }
+            };
+            
+            asrWebSocket.value.onclose = () => {
+                recording.value = false;
+                if (recordRef.value) {
+                    clearTimeout(recordRef.value);
+                    recordRef.value = null;
+                }
+            };
+        } catch (error) {
+            recording.value = false;
+            const msg = getMessage(MessageCode.ASR_SERVICE_FAILED);
+            MessagePlugin[msg.type](msg.message);
+            emit('message', MessageCode.ASR_SERVICE_FAILED, msg.message);
+        }
+    }
+    
     emit('startRecord');
+}
+
+/**
+ * 开始录音（内部方法）
+ */
+const startRecording = () => {
+    const requestId = '0';
+    recorder.value = new WebRecorder({ requestId });
+    recorder.value.OnReceivedData = (data) => {
+        if (asrWebSocket.value?.readyState === WebSocket.OPEN) {
+            asrWebSocket.value?.send(data);
+        }
+    };
+    recorder.value.OnError = (err) => {
+        const errMsg = typeof err === 'string' ? err : getMessage(MessageCode.RECORD_FAILED).message;
+        MessagePlugin.error(errMsg);
+        emit('message', MessageCode.RECORD_FAILED, errMsg);
+        recording.value = false;
+    };
+    recorder.value.start();
 }
 
 /**
@@ -143,6 +294,20 @@ const handleStartRecord = async () => {
 const handleStopRecord = () => {
     if (!recording.value) return;
     recording.value = false;
+    
+    // 如果使用内部录音处理
+    if (props.useInternalRecord) {
+        console.log('[asr] stop');
+        recorder.value?.stop();
+        recorder.value = null;
+        asrWebSocket.value?.close();
+        asrWebSocket.value = null;
+        if (recordRef.value) {
+            clearTimeout(recordRef.value);
+            recordRef.value = null;
+        }
+    }
+    
     emit('stopRecord');
 }
 
@@ -212,17 +377,17 @@ defineExpose({
         autosize: { minRows: 1, maxRows: 6 },
     }" @stop="emit('stop')" @send="handleSend" @change="handleInput" @paste="handlePaste">
         <template #inner-header>
-            <FileList :fileList="fileList" :onDelete="handleDeleteFile"/>
+            <TAttachments overflow="scrollX" v-if="attachmentsList.length > 0" :items="attachmentsList" :onRemove="handleDeleteFile"/>
         </template>
         <template #suffix>
             <!-- 等待中的发送按钮 -->
-            <CustomizedIcon class="send-icon waiting" v-if="!isStreamLoad && !inputValue" nativeIcon :name="theme === 'dark' ? 'send_dark' : 'send'" @click="handleSend(inputValue)" />
+            <CustomizedIcon class="send-icon waiting" v-if="!isStreamLoad && !inputValue" nativeIcon :showHoverBg="false" :name="theme === 'dark' ? 'send_dark' : 'send'" @click="handleSend(inputValue)" />
             <!-- 可用的发送按钮 -->
-            <CustomizedIcon class="send-icon success" v-if="!isStreamLoad && inputValue" nativeIcon name="send_fill" @click="handleSend(inputValue)" />
+            <CustomizedIcon class="send-icon success" v-if="!isStreamLoad && inputValue" nativeIcon :showHoverBg="false" name="send_fill" @click="handleSend(inputValue)" />
             <!-- 停止发送按钮 -->
-            <CustomizedIcon class="send-icon stop" v-if="isStreamLoad" :name="theme === 'dark' ? 'pause_dark' : 'pause'" nativeIcon @click="emit('stop')" />
+            <CustomizedIcon class="send-icon stop" v-if="isStreamLoad" nativeIcon :showHoverBg="false" :name="theme === 'dark' ? 'pause_dark' : 'pause'" @click="emit('stop')" />
         </template>
-        <template #prefix>
+        <template #footer-prefix>
             <div class="sender-control-container">
                 <t-upload class="sender-upload" ref="uploadRef1" :max="10" :multiple="true" :request-method="handleFileSelect"
                     accept="image/*" :showThumbnail="false" :showImageFileName="false" :showUploadProgress="false"
@@ -281,14 +446,12 @@ defineExpose({
 .customeized-icon {
     cursor: pointer;
 }
-.send-icon.waiting{
-    padding: 0;
-}
-.send-icon.success{
-    padding: 0;
-}
-.send-icon.stop{
-    padding: 0;
+.send-icon {
+    padding: 0 !important;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 :deep(.t-chat-sender__textarea) {
     background-color: var(--td-sender-bg);

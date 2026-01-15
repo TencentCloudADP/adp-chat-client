@@ -1,6 +1,5 @@
 import { createApp } from 'vue'
 import './style.css'
-import 'virtual:svg-icons-register'
 
 import AppComponent from './App.vue'
 import type { ChatConfig } from './model/type'
@@ -25,7 +24,6 @@ import {
   ChatItemMounter,
   ChatSenderMounter,
   ChatAppTypeMounter,
-  BackToBottomMounter,
   FileListMounter,
   OptionCardMounter,
   RecordIconMounter,
@@ -84,7 +82,6 @@ const ADPChatComponent = {
   ChatItem: ChatItemMounter,
   ChatSender: ChatSenderMounter,
   ChatAppType: ChatAppTypeMounter,
-  BackToBottom: BackToBottomMounter,
   FileList: FileListMounter,
   OptionCard: OptionCardMounter,
   RecordIcon: RecordIconMounter,

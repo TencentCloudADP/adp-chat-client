@@ -27,6 +27,8 @@ export interface ApiConfig {
     userInfoApi?: string;
     /** 文件上传接口路径 */
     uploadApi?: string;
+    /** ASR 语音识别 URL 接口路径 */
+    asrUrlApi?: string;
 }
 
 /**
@@ -41,6 +43,7 @@ export const defaultApiConfig: ApiConfig = {
     shareApi: '/share/create',
     userInfoApi: '/account/info',
     uploadApi: '/upload/file',
+    asrUrlApi: '/helper/asr/url',
 };
 
 /**
@@ -164,19 +167,40 @@ export const fetchUserInfo = async (apiPath?: string): Promise<{ Name: string; A
 /**
  * 上传文件
  * @param file 文件
+ * @param applicationId 应用ID
  * @param apiPath API 路径
  */
-export const uploadFile = async (file: File, apiPath?: string): Promise<any> => {
-    const url = apiPath || defaultApiConfig.uploadApi!;
-    const formData = new FormData();
-    formData.append('file', file);
+export const uploadFile = async (file: File, applicationId?: string, apiPath?: string): Promise<any> => {
+    const basePath = apiPath || defaultApiConfig.uploadApi!;
+    // 构建带参数的 URL
+    const params = new URLSearchParams();
+    if (applicationId) {
+        params.append('ApplicationId', applicationId);
+    }
+    if (file.type) {
+        params.append('Type', file.type);
+    }
+    const url = params.toString() ? `${basePath}?${params.toString()}` : basePath;
     try {
-        const response = await httpService.post(url, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        });
+        const response = await httpService.post(url, file);
         return response;
     } catch (error) {
         console.error('文件上传失败:', error);
+        throw error;
+    }
+};
+
+/**
+ * 获取 ASR 语音识别 URL
+ * @param apiPath API 路径
+ */
+export const getAsrUrl = async (apiPath?: string): Promise<{ url: string }> => {
+    const url = apiPath || defaultApiConfig.asrUrlApi!;
+    try {
+        const response = await httpService.get(url);
+        return response;
+    } catch (error) {
+        console.error('获取ASR URL失败:', error);
         throw error;
     }
 };

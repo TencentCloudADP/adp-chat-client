@@ -73,7 +73,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
   { name: 'uploadFile', params: 'File[]', description: '上传文件' },
   { name: 'startRecord', description: '开始录音' },
   { name: 'stopRecord', description: '停止录音' },
-  { name: 'message', params: '(type, message)', description: '消息提示' },
+  { name: 'message', params: '(code: MessageCode, message: string)', description: '消息提示，code 为消息码常量' },
   { name: 'conversationChange', params: 'conversationId', description: '会话变化' },
 ]} />
 
@@ -82,3 +82,37 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
   { name: 'clearConfirm', description: '清空聊天' },
   { name: 'getSenderRef', returns: 'Ref', description: '获取发送器引用' },
 ]} />
+
+## 类型定义
+
+### MessageCode
+
+消息码常量，用于 `message` 事件的 `code` 参数：
+
+```typescript
+const MessageCode = {
+  // 成功类
+  COPY_SUCCESS: 'COPY_SUCCESS',
+  
+  // 错误类
+  COPY_FAILED: 'COPY_FAILED',
+  SHARE_FAILED: 'SHARE_FAILED',
+  FILE_UPLOAD_FAILED: 'FILE_UPLOAD_FAILED',
+  FILE_FORMAT_NOT_SUPPORT: 'FILE_FORMAT_NOT_SUPPORT',
+  GET_APP_LIST_FAILED: 'GET_APP_LIST_FAILED',
+  GET_CONVERSATION_LIST_FAILED: 'GET_CONVERSATION_LIST_FAILED',
+  GET_CONVERSATION_DETAIL_FAILED: 'GET_CONVERSATION_DETAIL_FAILED',
+  SEND_MESSAGE_FAILED: 'SEND_MESSAGE_FAILED',
+  NETWORK_ERROR: 'NETWORK_ERROR',
+  LOAD_MORE_FAILED: 'LOAD_MORE_FAILED',
+  RATE_FAILED: 'RATE_FAILED',
+  ASR_SERVICE_FAILED: 'ASR_SERVICE_FAILED',
+  RECORD_FAILED: 'RECORD_FAILED',
+  
+  // 警告类
+  ANSWERING: 'ANSWERING',
+  RECORD_TOO_LONG: 'RECORD_TOO_LONG',
+} as const;
+
+type MessageCode = typeof MessageCode[keyof typeof MessageCode];
+```

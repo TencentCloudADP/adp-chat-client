@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed } from 'vue';
 import type { Application } from '../../model/application';
 import type { ChatConversation } from '../../model/chat';
 import ApplicationList from '../ApplicationList.vue';
@@ -67,16 +67,25 @@ const props = withDefaults(defineProps<Props>(), {
     ],
     isMobile: false,
     maxAppLen: 4,
-    i18n: () => ({
-        more: '更多',
-        collapse: '收起',
-        today: '今天',
-        recent: '最近',
-        switchTheme: '切换主题',
-        selectLanguage: '选择语言',
-        logout: '退出登录'
-    })
+    i18n: () => ({})
 });
+
+// 默认 i18n 配置
+const defaultI18n = {
+    more: '更多',
+    collapse: '收起',
+    today: '今天',
+    recent: '最近',
+    switchTheme: '切换主题',
+    selectLanguage: '选择语言',
+    logout: '退出登录'
+};
+
+// 合并默认值和传入值
+const i18n = computed(() => ({
+    ...defaultI18n,
+    ...props.i18n
+}));
 
 const emit = defineEmits<{
     (e: 'toggleSidebar'): void;
@@ -88,7 +97,7 @@ const emit = defineEmits<{
     (e: 'userClick'): void;
 }>();
 
-const mode = props.isMobile ? 'overlay' : 'push';
+const mode = computed(() => props.isMobile ? 'overlay' : 'push');
 
 const handleToggleSidebar = () => {
     emit('toggleSidebar');
@@ -120,7 +129,7 @@ const handleUserClick = () => {
 </script>
 
 <template>
-    <div class="custome-drawer-container" :class="{ 'drawer-open': visible, 'drawer-closed': !visible }">
+    <div class="custome-drawer-container" :class="{ 'drawer-open': visible, 'drawer-closed': !visible, 'is-mobile': isMobile }">
         <t-drawer 
             drawerClassName="custome-drawer" 
             size="280px" 
@@ -134,22 +143,24 @@ const handleUserClick = () => {
                 <div class="drawer-control">
                     <SidebarToggle @toggle="handleToggleSidebar" />
                 </div>
-                <ApplicationList 
-                    :applications="applications" 
-                    :currentApplicationId="currentApplicationId"
-                    :maxAppLen="maxAppLen"
-                    :moreText="i18n.more"
-                    :collapseText="i18n.collapse"
-                    @select="handleSelectApplication"
-                />
-                <t-divider />
-                <HistoryList 
-                    :conversations="conversations" 
-                    :currentConversationId="currentConversationId"
-                    :todayText="i18n.today"
-                    :recentText="i18n.recent"
-                    @select="handleSelectConversation"
-                />
+                <div class="drawer-scrollable">
+                    <ApplicationList 
+                        :applications="applications" 
+                        :currentApplicationId="currentApplicationId"
+                        :maxAppLen="maxAppLen"
+                        :moreText="i18n.more"
+                        :collapseText="i18n.collapse"
+                        @select="handleSelectApplication"
+                    />
+                    <t-divider />
+                    <HistoryList 
+                        :conversations="conversations" 
+                        :currentConversationId="currentConversationId"
+                        :todayText="i18n.today"
+                        :recentText="i18n.recent"
+                        @select="handleSelectConversation"
+                    />
+                </div>
             </div>
             <template #header>
                 <slot name="sider-logo"></slot>
@@ -182,11 +193,42 @@ const handleUserClick = () => {
 .drawer-content {
     display: flex;
     flex-direction: column;
+    height: 100%;
+    overflow: hidden;
 }
 
 .drawer-control {
     display: flex;
     justify-content: flex-start;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: inherit;
+}
+
+.drawer-scrollable {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-color: var(--td-scrollbar-color) transparent;
+    scrollbar-width: thin;
+}
+
+.drawer-scrollable::-webkit-scrollbar {
+    width: var(--td-size-4);
+    background: transparent;
+}
+
+.drawer-scrollable::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    background-clip: content-box;
+    background-color: var(--td-scrollbar-color);
+    border-radius: 15px;
+}
+
+.drawer-scrollable::-webkit-scrollbar-thumb:hover {
+    background-color: var(--td-scrollbar-hover-color);
 }
 
 .drawer-footer {
@@ -210,10 +252,25 @@ const handleUserClick = () => {
     width: 0;
     overflow: hidden;
 }
+/* 移动端 overlay 模式 */
+.custome-drawer-container.is-mobile {
+    position: absolute;
+    z-index: 100;
+    height: 100%;
+}
+.custome-drawer-container.is-mobile.drawer-open {
+    width: 280px;
+}
+.custome-drawer-container.is-mobile.drawer-closed {
+    width: 0;
+}
 :deep(.custome-drawer .t-drawer__content-wrapper){
     box-shadow: none;
 }
 :deep(.t-drawer__header ){
     border-bottom: none !important;
+}
+:deep(.t-drawer__body) {
+    padding-right: 0;
 }
 </style>

@@ -18,7 +18,7 @@
           }
         }
       }
-    }" :role="role" :content="processedContent" />
+    }" :role="role === 'system' ? 'system'  : 'assistant'" :content="processedContent" />
   </div>
 </template>
 

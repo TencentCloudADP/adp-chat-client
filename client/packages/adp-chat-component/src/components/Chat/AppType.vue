@@ -3,7 +3,8 @@
  * 智能体选择组件
  * 功能：展示当前智能体的欢迎语和推荐问题
  */
-import { ref } from 'vue';
+import { ref, toRefs } from 'vue';
+import { Space as TSpace, CheckTag as TCheckTag, Avatar as TAvatar } from 'tdesign-vue-next';
 import CustomizedIcon from '../CustomizedIcon.vue';
 
 interface Props {
@@ -26,6 +27,15 @@ const props = withDefaults(defineProps<Props>(), {
   currentApplicationOpeningQuestions: () => [],
   isMobile: false
 });
+
+// 解构 props 以便在模板中使用
+const { 
+  currentApplicationAvatar, 
+  currentApplicationName, 
+  currentApplicationGreeting, 
+  currentApplicationOpeningQuestions,
+  isMobile 
+} = toRefs(props);
 
 const emit = defineEmits<{
   (e: 'selectQuestion', question: string): void;
@@ -62,7 +72,7 @@ const handleChooseQuestion = (value: string) => {
         loading: ''
       }"
     ></t-avatar>
-    <span v-if="currentApplicationName && !isMobile" class="greet-name">{{ currentApplicationName }}</span>
+    <span v-if="currentApplicationName" class="greet-name">{{ currentApplicationName }}</span>
     <div class="greet-desc" v-if="currentApplicationGreeting">
         {{ currentApplicationGreeting }}
     </div>
@@ -70,7 +80,6 @@ const handleChooseQuestion = (value: string) => {
         <t-check-tag theme="default" class="greet-tag" v-for="question in currentApplicationOpeningQuestions" :key="question" variant="outline"
           @click="handleChooseQuestion(question)">
           <span class="greet-tag-text">
-            <CustomizedIcon name="star" v-if="isMobile" nativeIcon class="star-icon" />
             {{ question }}
           </span>
         </t-check-tag>
@@ -131,7 +140,6 @@ const handleChooseQuestion = (value: string) => {
 }
 .greet-tag {
   padding:var(--td-pop-padding-l) var(--td-pop-padding-xl);
-  color:var(--td-brand-color);
   height: var(--td-comp-size-m);
   font-weight:500;
   font-size: var(--td-font-size-link-small);
@@ -140,6 +148,7 @@ const handleChooseQuestion = (value: string) => {
 }
 .greet-tag-text{
   display: flex;
+  color: #0052d9;
   align-items: center;
 }
 .greet-tag-text .star-icon{

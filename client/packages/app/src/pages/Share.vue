@@ -1,29 +1,27 @@
 <template>
-  <t-layout class="page-container">
+  <TLayout class="page-container">
     <!-- 分享聊天内容容器 -->
     <div class="share-container">
       <!-- 聊天组件，用于展示分享的聊天记录 -->
       <TChat ref="chatRef" :reverse="false" style="height: 100%" :clear-history="false">
         <!-- 遍历聊天记录列表，渲染每条消息 -->
-        <ChatItem v-for="(item, index) in chatList" :isLastMsg="index === (chatList.length - 1)" :item="item"
+        <ChatItem v-for="(item, index) in chatList" :key="item.RecordId" :isLastMsg="index === (chatList.length - 1)" :item="item"
           :index="index" :loading="loading" :isStreamLoad="isStreamLoad" :showActions="false" />
       </TChat>
     </div>
-  </t-layout>
+  </TLayout>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
 import { Chat as TChat } from '@tdesign-vue-next/chat';
+import { Layout as TLayout, LoadingPlugin } from 'tdesign-vue-next';
+import { ChatItem } from 'adp-chat-component';
 import { useRoute, useRouter } from 'vue-router';
-import ChatItem from '@/components/Chat/ChatItem.vue';
 import type { Record } from '@/model/chat';
-import { LoadingPlugin,MessagePlugin } from 'tdesign-vue-next';
 import { handleLoadConversationDetail } from '@/service/chat';
 const router = useRouter();
 const route = useRoute();
-const { t } = useI18n();
 
 /**
  * 分享ID
@@ -54,8 +52,8 @@ const isStreamLoad = ref(false);
  * @param {string} ShareId - 分享ID
  * @returns {Promise<void>}
  */
-const handleGetConversationDetail = async (ShareId: string) => {
-  if (!ShareId) return
+const handleGetConversationDetail = async (shareId: string) => {
+  if (!shareId) return
   const loadingInstance = LoadingPlugin({
     attach: '#chat-content',
     size: 'medium',
@@ -64,23 +62,23 @@ const handleGetConversationDetail = async (ShareId: string) => {
   loading.value = true;
   try {
     const ChatConversation = await handleLoadConversationDetail({
-      ShareId: ShareId
+      ShareId: shareId
     });
     loading.value = false;
     chatList.value = ChatConversation?.Response.Records;
     loadingInstance.hide();
-  } catch (err) {
-    console.log('handleGetConversationDetail',err)
+  } catch {
     loadingInstance.hide();
   }
 };
 
 onMounted(async () => {
-  console.log('ShareId',route.query.ShareId)
-  if (route.query.ShareId) {
-    ShareId.value = route.query.ShareId?.toString();
+  // 优先从 params 获取 shareId，兼容 query 参数
+  const shareIdParam = route.params.shareId || route.query.ShareId;
+  if (shareIdParam) {
+    ShareId.value = shareIdParam.toString();
     handleGetConversationDetail(ShareId.value);
-  }else{
+  } else {
     // 分享地址有误时跳回首页
     router.push({ name: 'home' });
   }
