@@ -5,7 +5,6 @@
  */
 import { ref, toRefs } from 'vue';
 import { Space as TSpace, CheckTag as TCheckTag, Avatar as TAvatar } from 'tdesign-vue-next';
-import CustomizedIcon from '../CustomizedIcon.vue';
 import type { MobileProps } from '../../model/type';
 import { mobilePropsDefaults } from '../../model/type';
 

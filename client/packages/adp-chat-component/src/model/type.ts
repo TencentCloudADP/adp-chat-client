@@ -235,10 +235,14 @@ export interface ChatConfig extends ChatRelatedProps, FullscreenProps {
   applications?: Application[]
   /** 当前选中的应用 */
   currentApplication?: Application
+  /** 当前选中的应用 ID（优先级高于 currentApplication） */
+  currentApplicationId?: string
   /** 会话列表 */
   conversations?: ChatConversation[]
   /** 当前选中的会话 */
   currentConversation?: ChatConversation
+  /** 当前选中的会话 ID（优先级高于 currentConversation） */
+  currentConversationId?: string
   /** 聊天消息列表 */
   chatList?: Record[]
   /** 是否正在聊天中 */

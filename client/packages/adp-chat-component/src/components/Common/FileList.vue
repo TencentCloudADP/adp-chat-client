@@ -21,6 +21,7 @@
 import { ref, watch } from 'vue'
 import CustomizedIcon from '../CustomizedIcon.vue';
 import type { FileProps } from '../../model/file';
+import { Image as TImage } from 'tdesign-vue-next';
 
 interface Props {
     /** 文件列表 */

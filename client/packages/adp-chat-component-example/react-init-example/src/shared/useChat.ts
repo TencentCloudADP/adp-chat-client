@@ -18,7 +18,7 @@ export function useChat(options: UseChatOptions) {
   const stateRef = useRef({ isOpen, isFullscreen })
   stateRef.current = { isOpen, isFullscreen }
 
-  const initChat = useCallback((open: boolean, fullscreen: boolean) => {
+  const initChat = useCallback(() => {
     if (instanceRef.current) {
       try {
         ADPChatComponent.unmount('chat-container-app')
@@ -27,43 +27,48 @@ export function useChat(options: UseChatOptions) {
       }
     }
 
-    const userConfig = getConfig({ isOpen: open, isFullscreen: fullscreen })
+    const userConfig = getConfig({ isOpen: stateRef.current.isOpen, isFullscreen: stateRef.current.isFullscreen })
     
     instanceRef.current = ADPChatComponent.init(containerId, {
       ...defaultConfig,
-      open,
-      isFullscreen: fullscreen,
+      open: stateRef.current.isOpen,
+      isFullscreen: stateRef.current.isFullscreen,
       ...userConfig,
       onOpenChange: (newOpen: boolean) => {
         setIsOpen(newOpen)
+        stateRef.current.isOpen = newOpen
         ;(userConfig.onOpenChange as ((open: boolean) => void) | undefined)?.(newOpen)
       },
       onFullscreen: (newFullscreen: boolean) => {
         setIsFullscreen(newFullscreen)
+        stateRef.current.isFullscreen = newFullscreen
         ;(userConfig.onFullscreen as ((fullscreen: boolean) => void) | undefined)?.(newFullscreen)
-        setTimeout(() => initChat(stateRef.current.isOpen, newFullscreen), 0)
+        initChat()
       },
     })
   }, [containerId, getConfig])
 
   const openChat = useCallback(() => {
     setIsOpen(true)
-    initChat(true, stateRef.current.isFullscreen)
+    stateRef.current.isOpen = true
+    initChat()
   }, [initChat])
 
   const closeChat = useCallback(() => {
     setIsOpen(false)
-    initChat(false, stateRef.current.isFullscreen)
+    stateRef.current.isOpen = false
+    initChat()
   }, [initChat])
 
   const toggleFullscreen = useCallback(() => {
     const newFullscreen = !stateRef.current.isFullscreen
     setIsFullscreen(newFullscreen)
-    initChat(stateRef.current.isOpen, newFullscreen)
+    stateRef.current.isFullscreen = newFullscreen
+    initChat()
   }, [initChat])
 
   useEffect(() => {
-    initChat(isOpen, isFullscreen)
+    initChat()
     return () => {
       if (instanceRef.current) {
         try {

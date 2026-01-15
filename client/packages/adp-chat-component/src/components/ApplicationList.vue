@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import type { Application } from '../model/application';
 import CustomizedIcon from './CustomizedIcon.vue';
+import { Avatar as TAvatar } from 'tdesign-vue-next';
 
 interface Props {
     /** 应用列表 */

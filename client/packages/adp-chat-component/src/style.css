@@ -91,3 +91,35 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* TDesign component overrides */
+/* stylelint-disable */
+.t-drawer__header {
+  border-bottom: none !important;
+}
+
+.t-drawer__footer {
+  border-top: none !important;
+  background: var(--td-bg-color-secondarycontainer) !important;
+}
+
+.t-drawer__content-wrapper {
+  background: var(--td-bg-color-secondarycontainer) !important;
+}
+
+.t-divider--horizontal {
+  margin: var(--td-comp-margin-l) 0 !important;
+  border-top: 1px solid var(--td-border-level-2-color) !important;
+}
+
+.t-drawer__body {
+  padding-top: 0 !important;
+}
+/* stylelint-enable */
+
+:root[theme-mode='dark']{
+  --td-sender-bg:rgba(255, 255, 255, 0.22);
+}
+:root[theme-mode='light']{
+  --td-sender-bg:rgba(255, 255, 255, 1);
+}

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import CustomizedIcon from './CustomizedIcon.vue';
+import { Tooltip as TTooltip, Button as TButton } from 'tdesign-vue-next';
 
 interface Props {
     /** 提示文本 */
