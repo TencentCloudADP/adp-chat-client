@@ -6,7 +6,7 @@
     <!-- 聊天内容容器 -->
     <div id="chat-content" class="chat-box">
         <!-- 聊天组件 -->
-        <TChat :reverse="false" style="height: 100%" :clear-history="false"
+        <TChat :class="{ isChatting: isChatting }" :reverse="false" style="height: 100%" :clear-history="false"
             @clear="clearConfirm">
             <!-- 默认问题提示 -->
             <template v-if="chatList.length <= 0 && !messageLoading && !chatId">
@@ -22,18 +22,28 @@
             <!-- 聊天消息列表 -->
             <template v-else>
                 <div class="content selectable" :class="{ isMobile: isMobile, isFull: chatList.length <= 0 }">
-                    <div v-if="messageLoading" class="loading-more">
-                        <t-loading size="small">
-                            <template #text>
-                                <span class="thinking-text">
-                                    {{ `${i18n.loading}...` }}
-                                </span>
-                            </template>
-                            <template #indicator>
-                                <CustomizedIcon class="thinking-icon" name="thinking" :theme="theme" />
-                            </template>
-                        </t-loading>
-                    </div>
+                    <InfiniteLoading v-if="chatId" :identifier="chatId" direction="top" @infinite="infiniteHandler">
+                        <template #spinner>
+                            <div>
+                                <t-loading size="small">
+                                    <template #text>
+                                        <span class="thinking-text">
+                                            {{ `${i18n.loading}...` }}
+                                        </span>
+                                    </template>
+                                    <template #indicator>
+                                        <CustomizedIcon class="thinking-icon" name="thinking" :theme="theme" />
+                                    </template>
+                                </t-loading>
+                            </div>
+                        </template>
+                        <template #no-more>
+                            <div></div>
+                        </template>
+                        <template #no-results>
+                            <div></div>
+                        </template>
+                    </InfiniteLoading>
                     <div class="chat-item__content" v-for="(item, index) in chatList" :key="item.RecordId">
                         <Checkbox class="share-checkbox" :checked="selectedIds?.includes(item.RecordId)"
                             v-if="isSelecting" @change="(e) => onSelectIds(item.RecordId, e)" />
@@ -84,10 +94,12 @@
                     :modelOptions="modelOptions" 
                     :selectModel="selectModel"
                     :isDeepThinking="isDeepThinking" 
-                    :isStreamLoad="isStreamLoad" 
+                    :isStreamLoad="isChatting" 
                     :isMobile="isMobile"
                     :theme="theme"
                     :i18n="senderI18n"
+                    :useInternalRecord="useInternalRecord"
+                    :asrUrlApi="asrUrlApi"
                     @stop="onStop"
                     @send="handleSend" 
                     @modelChange="handleModelChange"
@@ -103,12 +115,14 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted, onUnmounted, nextTick, toRefs } from 'vue'
+import InfiniteLoading from 'vue-infinite-loading'
 import { ChatList as TChat } from '@tdesign-vue-next/chat'
 import { Checkbox } from 'tdesign-vue-next'
 import type { Record } from '../../model/chat'
 import { ScoreValue } from '../../model/chat'
 import type { FileProps } from '../../model/file';
+import { MessageCode } from '../../model/messages';
 import { modelOptions as defaultModelOptions, defaultModel } from '../../model/models'
 
 import AppType from './AppType.vue'
@@ -180,6 +194,10 @@ interface Props {
         uploadError?: string;
         recordTooLong?: string;
     };
+    /** 是否使用内部录音处理（API 模式） */
+    useInternalRecord?: boolean;
+    /** ASR URL API 路径 */
+    asrUrlApi?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -196,41 +214,84 @@ const props = withDefaults(defineProps<Props>(), {
     isDeepThinking: true,
     isMobile: false,
     theme: 'light',
-    i18n: () => ({
-        loading: '加载中',
-        thinking: '思考中',
-        checkAll: '全选',
-        shareFor: '分享至',
-        copyUrl: '复制链接',
-        cancelShare: '取消分享',
-        sendError: '发送失败',
-        networkError: '网络错误'
-    }),
-    chatItemI18n: () => ({
-        thinking: '思考中',
-        deepThinkingFinished: '深度思考完成',
-        deepThinkingExpand: '展开深度思考',
-        copy: '复制',
-        replay: '重新生成',
-        share: '分享',
-        good: '点赞',
-        bad: '踩',
-        thxForGood: '感谢您的反馈',
-        thxForBad: '感谢您的反馈',
-        references: '参考来源'
-    }),
-    senderI18n: () => ({
-        placeholder: '请输入您的问题',
-        placeholderMobile: '请输入',
-        uploadImg: '上传图片',
-        startRecord: '开始录音',
-        stopRecord: '停止录音',
-        answering: '正在回答中...',
-        notSupport: '不支持的文件格式',
-        uploadError: '上传失败',
-        recordTooLong: '录音时间过长'
-    })
+    i18n: () => ({}),
+    chatItemI18n: () => ({}),
+    senderI18n: () => ({}),
+    useInternalRecord: false,
+    asrUrlApi: ''
 });
+
+// 默认 i18n 配置
+const defaultI18n = {
+    loading: '加载中',
+    thinking: '思考中',
+    checkAll: '全选',
+    shareFor: '分享至',
+    copyUrl: '复制链接',
+    cancelShare: '取消分享',
+    sendError: '发送失败',
+    networkError: '网络错误'
+};
+
+const defaultChatItemI18n = {
+    thinking: '思考中',
+    deepThinkingFinished: '深度思考完成',
+    deepThinkingExpand: '展开深度思考',
+    copy: '复制',
+    replay: '重新生成',
+    share: '分享',
+    good: '点赞',
+    bad: '踩',
+    thxForGood: '感谢您的反馈',
+    thxForBad: '感谢您的反馈',
+    references: '参考来源'
+};
+
+const defaultSenderI18n = {
+    placeholder: '请输入您的问题',
+    placeholderMobile: '请输入',
+    uploadImg: '上传图片',
+    startRecord: '开始录音',
+    stopRecord: '停止录音',
+    answering: '正在回答中...',
+    notSupport: '不支持的文件格式',
+    uploadError: '上传失败',
+    recordTooLong: '录音时间过长'
+};
+
+// 解构 props 以便在模板中使用
+const { 
+    chatId,
+    currentApplicationAvatar, 
+    currentApplicationName, 
+    currentApplicationGreeting, 
+    currentApplicationOpeningQuestions,
+    currentApplicationId,
+    isChatting,
+    isMobile,
+    theme,
+    modelOptions,
+    selectModel,
+    isDeepThinking,
+    useInternalRecord,
+    asrUrlApi
+} = toRefs(props);
+
+// 合并默认值和传入值
+const i18n = computed(() => ({
+    ...defaultI18n,
+    ...props.i18n
+}));
+
+const chatItemI18n = computed(() => ({
+    ...defaultChatItemI18n,
+    ...props.chatItemI18n
+}));
+
+const senderI18n = computed(() => ({
+    ...defaultSenderI18n,
+    ...props.senderI18n
+}));
 
 const emit = defineEmits<{
     (e: 'send', query: string, fileList: FileProps[], conversationId: string, applicationId: string): void;
@@ -244,7 +305,7 @@ const emit = defineEmits<{
     (e: 'uploadFile', files: File[]): void;
     (e: 'startRecord'): void;
     (e: 'stopRecord'): void;
-    (e: 'message', type: 'warning' | 'error' | 'info' | 'success', message: string): void;
+    (e: 'message', code: MessageCode, message: string): void;
     (e: 'conversationChange', conversationId: string): void;
 }>();
 
@@ -295,9 +356,40 @@ const loading = ref(false)
 const messageLoading = ref(false)
 
 /**
- * 是否流式加载中
+ * footer高度观察器
  */
-const isStreamLoad = ref(false)
+let footerResizeObserver: ResizeObserver | null = null
+
+/**
+ * 更新footer高度CSS变量
+ */
+const updateFooterHeight = () => {
+    const footer = document.querySelector('.t-chat__footer') as HTMLElement
+    if (footer) {
+        const height = footer.offsetHeight
+        document.documentElement.style.setProperty('--chat-footer-height', `${height + 60}px`)
+    }
+}
+
+onMounted(() => {
+    nextTick(() => {
+        const footer = document.querySelector('.t-chat__footer') as HTMLElement
+        if (footer) {
+            updateFooterHeight()
+            footerResizeObserver = new ResizeObserver(() => {
+                updateFooterHeight()
+            })
+            footerResizeObserver.observe(footer)
+        }
+    })
+})
+
+onUnmounted(() => {
+    if (footerResizeObserver) {
+        footerResizeObserver.disconnect()
+        footerResizeObserver = null
+    }
+})
 
 /**
  * 设置默认问题
@@ -335,10 +427,74 @@ const onStop = function () {
 }
 
 /**
+ * 是否正在加载更多
+ */
+const isLoadingMore = ref(false);
+
+/**
+ * 无限加载状态引用
+ */
+const infiniteLoadingState = ref<{ loaded: () => void; complete: () => void } | null>(null)
+
+/**
+ * 无限加载处理函数
+ */
+const infiniteHandler = function ($state: { loaded: () => void; complete: () => void }) {
+    // 如果没有 chatId，直接返回
+    if (!props.chatId) {
+        return
+    }
+    
+    // 如果正在聊天中，直接完成加载
+    if (props.isChatting) {
+        $state.complete()
+        return
+    }
+    
+    // 如果正在加载更多，忽略此次调用（不保存状态，让之前的加载继续）
+    if (isLoadingMore.value) {
+        return
+    }
+    
+    isLoadingMore.value = true
+    messageLoading.value = true
+    
+    // 保存状态引用，供外部调用
+    infiniteLoadingState.value = $state
+    
+    // 获取最早的记录ID
+    const firstRecord = chatList.value[0]
+    const lastRecordId = chatList.value.length > 0 && firstRecord ? (firstRecord.RecordId ?? '') : ''
+    
+    // 触发 loadMore 事件，由父组件处理数据加载
+    emit('loadMore', props.chatId, lastRecordId)
+}
+
+/**
+ * 通知无限加载已加载更多数据
+ */
+const notifyLoaded = () => {
+    isLoadingMore.value = false
+    messageLoading.value = false
+    infiniteLoadingState.value?.loaded()
+    infiniteLoadingState.value = null
+}
+
+/**
+ * 通知无限加载已完成（没有更多数据）
+ */
+const notifyComplete = () => {
+    isLoadingMore.value = false
+    messageLoading.value = false
+    infiniteLoadingState.value?.complete()
+    infiniteLoadingState.value = null
+}
+
+/**
  * 发送消息
  */
 const inputEnter = function (queryVal: string | undefined, fileList?: FileProps[]) {
-    if (isStreamLoad.value) {
+    if (props.isChatting) {
         return
     }
     if (!queryVal) return
@@ -442,8 +598,8 @@ const handleStopRecord = () => {
 /**
  * 处理消息提示
  */
-const handleMessage = (type: 'warning' | 'error' | 'info', message: string) => {
-    emit('message', type, message);
+const handleMessage = (code: MessageCode, message: string) => {
+    emit('message', code, message);
 }
 
 // 监听chatId变化
@@ -452,6 +608,8 @@ watch(
     (newId) => {
         isSelecting.value = false;
         selectedIds.value = [];
+        isLoadingMore.value = false;
+        infiniteLoadingState.value = null;
         emit('conversationChange', newId);
     },
     { immediate: true },
@@ -462,7 +620,9 @@ watch(
  */
 defineExpose({
     clearConfirm,
-    getSenderRef: () => senderRef.value
+    getSenderRef: () => senderRef.value,
+    notifyLoaded,
+    notifyComplete
 })
 </script>
 
@@ -475,12 +635,6 @@ defineExpose({
 .chat-item__content {
     display: flex;
     align-items: self-start;
-}
-
-.loading-more {
-    display: flex;
-    justify-content: center;
-    padding: var(--td-comp-paddingTB-l);
 }
 
 .share-setting-container {
@@ -572,6 +726,11 @@ defineExpose({
 :deep(.t-chat__list) {
     padding: 0 calc(var(--td-comp-paddingLR-xl) - var(--td-size-4));
     overflow-y: scroll;
+}
+
+/* 确保 AppType 组件容器有足够高度实现垂直居中 */
+:deep(.t-chat__list > div) {
+    height: 100%;
 }
 
 :deep(.t-chat__list .content) {

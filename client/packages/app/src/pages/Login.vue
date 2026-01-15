@@ -6,7 +6,7 @@
           <div class="login-title">{{ $t('account.welcome') }}👋</div>
           <div class="login-title">{{ $t('account.systemName') }}</div>
         </template>
-        <div v-for="provider, index in oauthProviders" class="oauth-button-wrapper">
+        <div v-for="(provider, index) in oauthProviders" :key="index" class="oauth-button-wrapper">
           <t-button variant="outline" size="large" :href="provider['url']">{{ provider['name'] }}</t-button>
         </div>
       </t-card>

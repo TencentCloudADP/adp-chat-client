@@ -4,6 +4,7 @@
   "pages": [
     "index",
     "quick-start",
+    "init-mount",
     "layout",
     "chat",
     "basic",

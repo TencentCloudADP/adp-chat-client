@@ -1,7 +1,7 @@
 <!-- 控制尺寸、展开和收起 -->
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
-import { Layout as TLayout, Content as TContent } from 'tdesign-vue-next';
+import { Layout as TLayout, Content as TContent, MessagePlugin } from 'tdesign-vue-next';
 import MainLayout from './MainLayout.vue';
 import SideLayout from './SideLayout.vue';
 import LogoArea from '../LogoArea.vue';
@@ -19,7 +19,12 @@ import {
     rateMessage,
     createShare,
     fetchUserInfo,
+    uploadFile,
 } from '../../service/api';
+import { MessageCode, getMessage } from '../../model/messages';
+import { fetchSSE } from '../../model/sseRequest-reasoning';
+import { mergeRecord } from '../../utils/util';
+import { copyToClipboard } from '../../utils/clipboard';
 
 interface LanguageOption {
     key: string;
@@ -65,6 +70,10 @@ interface Props {
     maxAppLen?: number;
     /** 是否显示关闭按钮 */
     showCloseButton?: boolean;
+    /** 是否显示全屏按钮 */
+    showFullscreenButton?: boolean;
+    /** 是否处于全屏状态 */
+    isFullscreen?: boolean;
     /** AI警告文本 */
     aiWarningText?: string;
     /** 新建对话提示文本 */
@@ -141,6 +150,8 @@ const props = withDefaults(defineProps<Props>(), {
     isDeepThinking: true,
     maxAppLen: 4,
     showCloseButton: false,
+    showFullscreenButton: false,
+    isFullscreen: false,
     aiWarningText: '内容由AI生成，仅供参考',
     createConversationText: '新建对话',
     apiConfig: undefined,
@@ -156,6 +167,7 @@ const emit = defineEmits<{
     (e: 'logout'): void;
     (e: 'userClick'): void;
     (e: 'close'): void;
+    (e: 'fullscreen', isFullscreen: boolean): void;
     (e: 'send', query: string, fileList: FileProps[], conversationId: string, applicationId: string): void;
     (e: 'stop'): void;
     (e: 'loadMore', conversationId: string, lastRecordId: string): void;
@@ -167,12 +179,18 @@ const emit = defineEmits<{
     (e: 'uploadFile', files: File[]): void;
     (e: 'startRecord'): void;
     (e: 'stopRecord'): void;
-    (e: 'message', type: 'warning' | 'error' | 'info' | 'success', message: string): void;
+    (e: 'message', code: MessageCode, message: string): void;
     (e: 'conversationChange', conversationId: string): void;
     (e: 'dataLoaded', type: 'applications' | 'conversations' | 'chatList' | 'user', data: any): void;
 }>();
 
-const sidebarVisible = ref(true);
+const sidebarVisible = ref(!props.isMobile);
+const mainLayoutRef = ref<InstanceType<typeof MainLayout> | null>(null);
+
+// 监听 isMobile 变化，自动调整侧边栏状态
+watch(() => props.isMobile, (newVal) => {
+    sidebarVisible.value = !newVal;
+});
 
 // 内部数据状态（当使用 API 时）
 const internalApplications = ref<Application[]>([]);
@@ -230,7 +248,9 @@ const loadApplications = async () => {
         }
         emit('dataLoaded', 'applications', data);
     } catch (error) {
-        emit('message', 'error', '获取应用列表失败');
+        const msg = getMessage(MessageCode.GET_APP_LIST_FAILED);
+        MessagePlugin[msg.type](msg.message);
+        emit('message', MessageCode.GET_APP_LIST_FAILED, msg.message);
     }
 };
 
@@ -241,7 +261,9 @@ const loadConversations = async () => {
         internalConversations.value = data;
         emit('dataLoaded', 'conversations', data);
     } catch (error) {
-        emit('message', 'error', '获取会话列表失败');
+        const msg = getMessage(MessageCode.GET_CONVERSATION_LIST_FAILED);
+        MessagePlugin[msg.type](msg.message);
+        emit('message', MessageCode.GET_CONVERSATION_LIST_FAILED, msg.message);
     }
 };
 
@@ -255,7 +277,9 @@ const loadConversationDetail = async (conversationId: string) => {
         internalChatList.value = response?.Response?.Records || [];
         emit('dataLoaded', 'chatList', internalChatList.value);
     } catch (error) {
-        emit('message', 'error', '获取会话详情失败');
+        const msg = getMessage(MessageCode.GET_CONVERSATION_DETAIL_FAILED);
+        MessagePlugin[msg.type](msg.message);
+        emit('message', MessageCode.GET_CONVERSATION_DETAIL_FAILED, msg.message);
     }
 };
 
@@ -284,9 +308,9 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
 
     internalIsChatting.value = true;
 
-    // 创建用户消息
+    // 创建用户消息占位
     const userRecord: Record = {
-        RecordId: `user-${Date.now()}`,
+        RecordId: 'placeholder-user',
         Content: query,
         IsFromSelf: true,
         Timestamp: Date.now(),
@@ -296,87 +320,94 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
 
     // 创建助手消息占位
     const assistantRecord: Record = {
-        RecordId: `assistant-${Date.now()}`,
+        RecordId: 'placeholder-agent',
         Content: '',
         IsFromSelf: false,
         Timestamp: Date.now(),
     };
     internalChatList.value.push(assistantRecord);
 
-    try {
-        abortController.value = new AbortController();
-        const response: any = await sendMessage(
-            {
-                Query: query,
-                ConversationId: conversationId || undefined,
-                ApplicationId: applicationId,
-                FileInfos: fileList,
-            },
-            { signal: abortController.value.signal },
-            props.apiConfig?.sendMessageApi
-        );
+    abortController.value = new AbortController();
 
-        // 处理 SSE 流式响应
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
-
-            for (const line of lines) {
-                if (line.startsWith('data:')) {
-                    try {
-                        const data = JSON.parse(line.slice(5));
+    await fetchSSE(
+        () => {
+            return sendMessage(
+                {
+                    Query: query,
+                    ConversationId: conversationId || undefined,
+                    ApplicationId: applicationId,
+                    FileInfos: fileList,
+                },
+                { signal: abortController.value?.signal },
+                props.apiConfig?.sendMessageApi
+            );
+        },
+        {
+            success(result) {
+                if (result.type === 'conversation') {
+                    // 创建新的对话，重新调用 chatlist 接口更新列表
+                    loadConversations();
+                    if (result.data.IsNewConversation) {
+                        internalCurrentConversation.value = result.data;
+                    }
+                } else {
+                    const record: Record = result.data;
+                    if (result.type === 'reply' && record.IsFromSelf) {
+                        // 替换用户消息占位
+                        const index = internalChatList.value.findIndex(item => item.RecordId === 'placeholder-user');
+                        if (index !== -1) {
+                            internalChatList.value.splice(index, 1, record);
+                        }
+                    } else {
                         const lastIndex = internalChatList.value.length - 1;
                         const lastRecord = internalChatList.value[lastIndex];
-                        if (lastRecord) {
-                            if (data.Content) {
-                                lastRecord.Content = (lastRecord.Content || '') + data.Content;
-                            }
-                            if (data.RecordId) {
-                                lastRecord.RecordId = data.RecordId;
-                            }
-                            if (data.ConversationId && !conversationId) {
-                                // 新会话，更新会话列表
-                                await loadConversations();
-                                const newConversation = internalConversations.value.find(
-                                    c => c.Id === data.ConversationId
-                                );
-                                if (newConversation) {
-                                    internalCurrentConversation.value = newConversation;
-                                }
-                            }
-                            if (data.AgentThought) {
-                                lastRecord.AgentThought = data.AgentThought;
-                            }
-                            if (data.References) {
-                                lastRecord.References = data.References;
-                            }
-                            if (data.IsFinal) {
-                                lastRecord.IsFinal = data.IsFinal;
-                            }
+                        if (lastRecord && lastRecord.RecordId === 'placeholder-agent') {
+                            lastRecord.RecordId = record.RecordId;
                         }
-                    } catch (e) {
-                        // 解析失败，忽略
+                        if (lastIndex >= 0 && lastRecord && lastRecord.RecordId === record.RecordId) {
+                            mergeRecord(lastRecord, record, result.type);
+                        } else {
+                            internalChatList.value.push(record);
+                        }
                     }
+                }
+            },
+            complete(isOk, msg) {
+                if (isOk) {
+                    internalIsChatting.value = false;
+                    abortController.value = null;
+                }
+                if (msg) {
+                    MessagePlugin.error(msg);
+                    emit('message', MessageCode.SEND_MESSAGE_FAILED, msg);
+                }
+            },
+            fail(msg) {
+                // 判断是否为 AbortError（用户取消请求）
+                if (msg && typeof msg === 'object' &&
+                    (
+                        ('name' in msg && msg.name === 'AbortError') ||
+                        ('code' in msg && msg.code === 'ERR_CANCELED')
+                    )
+                ) {
+                    return;
+                }
+                // 判断是否为 AxiosError（网络错误）
+                if (msg && typeof msg === 'object' && ('code' in msg && msg.code === 'ERR_NETWORK')) {
+                    const networkMsg = getMessage(MessageCode.NETWORK_ERROR);
+                    MessagePlugin[networkMsg.type](networkMsg.message);
+                    emit('message', MessageCode.NETWORK_ERROR, networkMsg.message);
+                } else if (msg && typeof msg === 'string') {
+                    MessagePlugin.error(msg);
+                    emit('message', MessageCode.SEND_MESSAGE_FAILED, msg);
+                } else {
+                    const sendMsg = getMessage(MessageCode.SEND_MESSAGE_FAILED);
+                    MessagePlugin[sendMsg.type](sendMsg.message);
+                    emit('message', MessageCode.SEND_MESSAGE_FAILED, sendMsg.message);
                 }
             }
         }
-    } catch (error: any) {
-        if (error.name !== 'AbortError') {
-            console.error('发送消息失败:', error);
-            emit('message', 'error', '发送消息失败');
-        }
-    } finally {
-        internalIsChatting.value = false;
-        abortController.value = null;
-    }
+    );
 };
 
 // 内部停止处理（API 模式）
@@ -401,9 +432,17 @@ const handleInternalLoadMore = async (conversationId: string, lastRecordId: stri
             props.apiConfig?.conversationDetailApi
         );
         const newRecords = response?.Response?.Records || [];
-        internalChatList.value = [...newRecords, ...internalChatList.value];
+        if (newRecords.length > 0) {
+            internalChatList.value = [...newRecords, ...internalChatList.value];
+            mainLayoutRef.value?.notifyLoaded();
+        } else {
+            mainLayoutRef.value?.notifyComplete();
+        }
     } catch (error) {
-        emit('message', 'error', '加载更多失败');
+        mainLayoutRef.value?.notifyComplete();
+        const msg = getMessage(MessageCode.LOAD_MORE_FAILED);
+        MessagePlugin[msg.type](msg.message);
+        emit('message', MessageCode.LOAD_MORE_FAILED, msg.message);
     }
 };
 
@@ -425,7 +464,9 @@ const handleInternalRate = async (conversationId: string, recordId: string, scor
             record.Score = score;
         }
     } catch (error) {
-        emit('message', 'error', '评分失败');
+        const msg = getMessage(MessageCode.RATE_FAILED);
+        MessagePlugin[msg.type](msg.message);
+        emit('message', MessageCode.RATE_FAILED, msg.message);
     }
 };
 
@@ -442,10 +483,21 @@ const handleInternalShare = async (conversationId: string, applicationId: string
             props.apiConfig?.shareApi
         );
         const shareUrl = `${window.location.origin}${window.location.pathname}#/share?ShareId=${response.ShareId}`;
-        await navigator.clipboard.writeText(shareUrl);
-        emit('message', 'success', '链接已复制');
+        await copyToClipboard(shareUrl, {
+            onSuccess: () => {
+                const msg = getMessage(MessageCode.COPY_SUCCESS);
+                MessagePlugin[msg.type](msg.message);
+            },
+            onError: () => {
+                const msg = getMessage(MessageCode.COPY_FAILED);
+                MessagePlugin[msg.type](msg.message);
+                emit('message', MessageCode.COPY_FAILED, msg.message);
+            },
+        });
     } catch (error) {
-        emit('message', 'error', '分享失败');
+        const msg = getMessage(MessageCode.SHARE_FAILED);
+        MessagePlugin[msg.type](msg.message);
+        emit('message', MessageCode.SHARE_FAILED, msg.message);
     }
 };
 
@@ -454,10 +506,15 @@ const handleToggleSidebar = () => {
 };
 
 const handleSelectApplication = (app: Application) => {
+    console.log('handleSelectApplication',app)
     if (useApiMode.value) {
         internalCurrentApplication.value = app;
         internalCurrentConversation.value = undefined;
         internalChatList.value = [];
+    }
+    // 移动端选择应用后收起侧边栏
+    if (props.isMobile) {
+        sidebarVisible.value = false;
     }
     emit('selectApplication', app);
 };
@@ -465,7 +522,12 @@ const handleSelectApplication = (app: Application) => {
 const handleSelectConversation = async (conversation: ChatConversation) => {
     if (useApiMode.value) {
         internalCurrentConversation.value = conversation;
-        await loadConversationDetail(conversation.Id);
+        // 清空聊天列表，让 InfiniteLoading 来加载数据
+        internalChatList.value = [];
+    }
+    // 移动端选择对话后收起侧边栏
+    if (props.isMobile) {
+        sidebarVisible.value = false;
     }
     emit('selectConversation', conversation);
 };
@@ -482,15 +544,53 @@ const handleClose = () => {
     emit('close');
 };
 
-// 监听会话变化，自动加载详情
-watch(
-    () => actualCurrentConversation.value?.Id,
-    async (newId) => {
-        if (useApiMode.value && newId) {
-            await loadConversationDetail(newId);
+const handleFullscreen = () => {
+    emit('fullscreen', !props.isFullscreen);
+};
+
+// 内部复制处理
+const handleInternalCopy = async (content: string | undefined, type: string) => {
+    await copyToClipboard(content, {
+        onSuccess: () => {
+            const msg = getMessage(MessageCode.COPY_SUCCESS);
+            MessagePlugin[msg.type](msg.message);
+        },
+        onError: () => {
+            const msg = getMessage(MessageCode.COPY_FAILED);
+            MessagePlugin[msg.type](msg.message);
+            emit('message', MessageCode.COPY_FAILED, msg.message);
+        },
+    });
+    emit('copy', content, type);
+};
+
+// 内部文件上传处理（API 模式）
+const handleInternalUploadFile = async (files: File[]) => {
+    if (!useApiMode.value) {
+        emit('uploadFile', files);
+        return;
+    }
+
+    for (const file of files) {
+        try {
+            const response = await uploadFile(file, currentApplicationId.value, props.apiConfig?.uploadApi);
+            // 上传成功后添加到文件列表
+            const senderRef = mainLayoutRef.value?.getChatRef()?.getSenderRef();
+            if (senderRef && response) {
+                senderRef.addFile({
+                    name: file.name,
+                    url: response.Url || response.url,
+                    status: 'done',
+                });
+            }
+        } catch (error) {
+            const msg = getMessage(MessageCode.FILE_UPLOAD_FAILED);
+            MessagePlugin[msg.type](msg.message);
+            emit('message', MessageCode.FILE_UPLOAD_FAILED, msg.message);
         }
     }
-);
+    emit('uploadFile', files);
+};
 
 // 组件挂载时自动加载数据
 onMounted(async () => {
@@ -509,12 +609,20 @@ defineExpose({
     loadConversations,
     loadConversationDetail,
     loadUserInfo,
+    notifyLoaded: () => mainLayoutRef.value?.notifyLoaded(),
+    notifyComplete: () => mainLayoutRef.value?.notifyComplete(),
 });
 </script>
 
 <template>
     <t-layout class="page-container">
         <t-content class="content">
+            <!-- 移动端毛玻璃遮罩 -->
+            <div 
+                v-if="isMobile && sidebarVisible" 
+                class="mobile-overlay" 
+                @click="handleToggleSidebar"
+            ></div>
             <SideLayout 
                 :visible="sidebarVisible"
                 :applications="actualApplications"
@@ -544,6 +652,7 @@ defineExpose({
                 </template>
             </SideLayout>
             <MainLayout 
+                ref="mainLayoutRef"
                 :currentApplicationAvatar="currentApplicationAvatar"
                 :currentApplicationName="currentApplicationName"
                 :currentApplicationGreeting="currentApplicationGreeting"
@@ -563,6 +672,8 @@ defineExpose({
                 :i18n="chatI18n"
                 :chatItemI18n="chatItemI18n"
                 :senderI18n="senderI18n"
+                :useInternalRecord="useApiMode"
+                :asrUrlApi="apiConfig?.asrUrlApi"
                 @toggleSidebar="handleToggleSidebar"
                 @createConversation="handleCreateConversation"
                 @close="handleClose"
@@ -571,15 +682,18 @@ defineExpose({
                 @loadMore="handleInternalLoadMore"
                 @rate="handleInternalRate"
                 @share="handleInternalShare"
-                @copy="(content: string | undefined, type: string) => emit('copy', content, type)"
+                @copy="handleInternalCopy"
                 @modelChange="(option: any) => emit('modelChange', option)"
                 @toggleDeepThinking="emit('toggleDeepThinking')"
-                @uploadFile="(files: File[]) => emit('uploadFile', files)"
+                @uploadFile="handleInternalUploadFile"
                 @startRecord="emit('startRecord')"
                 @stopRecord="emit('stopRecord')"
-                @message="(type: 'warning' | 'error' | 'info' | 'success', message: string) => emit('message', type, message)"
+                @message="(code: MessageCode, message: string) => emit('message', code, message)"
                 @conversationChange="(conversationId: string) => emit('conversationChange', conversationId)"
             >
+                <template #header-fullscreen-content v-if="showFullscreenButton">
+                    <CustomizedIcon name="fullscreen" :theme="theme" @click="handleFullscreen"/>
+                </template>
                 <template #header-close-content v-if="showCloseButton">
                     <CustomizedIcon name="logout_close" :theme="theme" @click="handleClose"/>
                 </template>
@@ -596,5 +710,18 @@ defineExpose({
 .content {
     display: flex;
     height: 100%;
+    position: relative;
+}
+/* 移动端毛玻璃遮罩 */
+.mobile-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 99;
 }
 </style>

@@ -83,7 +83,7 @@ export const fetchSSE = async (fetchFn: FetchFn, options: FetchSSEOptions): Prom
  * @yields {string} 处理后的单行数据
  * @description 将SSE流数据按行分割的异步生成器函数
  */
-async function* chunkSplitter(src: any): AsyncGenerator<string> {
+export async function* chunkSplitter(src: any): AsyncGenerator<string> {
   let buffer = new Uint8Array(0)
   const textDecoder = new TextDecoder('utf-8')
   const newlineChar = '\n'.charCodeAt(0)

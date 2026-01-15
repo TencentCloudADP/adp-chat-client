@@ -54,6 +54,18 @@ export interface ChatConfig {
   isDeepThinking?: boolean
   /** 最大应用显示数量 */
   maxAppLen?: number
+  /** 是否显示全屏按钮 */
+  showFullscreenButton?: boolean
+  /** 是否处于全屏状态 */
+  isFullscreen?: boolean
+  /** 全屏状态切换回调 */
+  onFullscreen?: (isFullscreen: boolean) => void
+  /** 是否展开面板（仅在 canPark 模式下生效） */
+  open?: boolean
+  /** 面板展开状态变化回调 */
+  onOpenChange?: (open: boolean) => void
+  /** 是否显示悬浮切换按钮 */
+  showToggleButton?: boolean
   /** AI警告文本 */
   aiWarningText?: string
   /** 新建对话提示文本 */

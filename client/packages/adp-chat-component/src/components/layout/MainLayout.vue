@@ -4,11 +4,11 @@ import type { Application } from '../../model/application';
 import type { Record } from '../../model/chat';
 import type { FileProps } from '../../model/file';
 import { ScoreValue } from '../../model/chat';
+import { MessageCode } from '../../model/messages';
 import Chat from '../Chat/Index.vue';
 import AIWarning from '../AIWarning.vue';
 import SidebarToggle from '../SidebarToggle.vue';
 import CreateConversation from '../CreateConversation.vue';
-import CustomizedIcon from '../CustomizedIcon.vue';
 import { Avatar as TAvatar, Layout as TLayout, Content as TContent, Header as THeader, Footer as TFooter } from 'tdesign-vue-next';
 
 interface Props {
@@ -85,6 +85,10 @@ interface Props {
         uploadError?: string;
         recordTooLong?: string;
     };
+    /** 是否使用内部录音处理（API 模式） */
+    useInternalRecord?: boolean;
+    /** ASR URL API 路径 */
+    asrUrlApi?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -122,7 +126,7 @@ const emit = defineEmits<{
     (e: 'uploadFile', files: File[]): void;
     (e: 'startRecord'): void;
     (e: 'stopRecord'): void;
-    (e: 'message', type: 'warning' | 'error' | 'info' | 'success', message: string): void;
+    (e: 'message', code: MessageCode, message: string): void;
     (e: 'conversationChange', conversationId: string): void;
 }>();
 
@@ -135,6 +139,26 @@ const handleToggleSidebar = () => {
 const handleCreateConversation = () => {
     emit('createConversation');
 };
+
+/**
+ * 通知无限加载已加载更多数据
+ */
+const notifyLoaded = () => {
+    chatRef.value?.notifyLoaded();
+};
+
+/**
+ * 通知无限加载已完成（没有更多数据）
+ */
+const notifyComplete = () => {
+    chatRef.value?.notifyComplete();
+};
+
+defineExpose({
+    notifyLoaded,
+    notifyComplete,
+    getChatRef: () => chatRef.value
+});
 </script>
 
 <template>
@@ -150,6 +174,7 @@ const handleCreateConversation = () => {
             </div>
             <div class="header-app-settings">
                 <CreateConversation :tooltipText="createConversationText" @create="handleCreateConversation" />
+                <slot name="header-fullscreen-content"></slot>
                 <slot name="header-close-content"></slot>
             </div>
         </t-header>
@@ -172,6 +197,8 @@ const handleCreateConversation = () => {
                 :i18n="i18n"
                 :chatItemI18n="chatItemI18n"
                 :senderI18n="senderI18n"
+                :useInternalRecord="useInternalRecord"
+                :asrUrlApi="asrUrlApi"
                 @send="(query, fileList, conversationId, applicationId) => emit('send', query, fileList, conversationId, applicationId)"
                 @stop="emit('stop')"
                 @loadMore="(conversationId, lastRecordId) => emit('loadMore', conversationId, lastRecordId)"
@@ -183,7 +210,7 @@ const handleCreateConversation = () => {
                 @uploadFile="(files) => emit('uploadFile', files)"
                 @startRecord="emit('startRecord')"
                 @stopRecord="emit('stopRecord')"
-                @message="(type, message) => emit('message', type, message)"
+                @message="(code, message) => emit('message', code, message)"
                 @conversationChange="(conversationId) => emit('conversationChange', conversationId)"
             >
                 <template #empty-content>
@@ -199,7 +226,8 @@ const handleCreateConversation = () => {
 
 <style scoped>
 .main-layout {
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
     background: var(--td-bg-color-container);

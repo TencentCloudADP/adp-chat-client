@@ -8,6 +8,7 @@ import type { FileProps } from './model/file';
 import { ScoreValue } from './model/chat';
 import type { ApiConfig } from './service/api';
 import { defaultApiConfig } from './service/api';
+import { computeIsMobile } from './utils/device';
 
 interface LanguageOption {
     key: string;
@@ -61,6 +62,18 @@ interface Props {
     isDeepThinking?: boolean;
     /** 最大应用显示数量 */
     maxAppLen?: number;
+    /** 是否显示全屏按钮 */
+    showFullscreenButton?: boolean;
+    /** 是否处于全屏状态 */
+    isFullscreen?: boolean;
+    /** 全屏状态切换回调 */
+    onFullscreen?: (isFullscreen: boolean) => void;
+    /** 是否展开面板（仅在 canPark 模式下生效） */
+    open?: boolean;
+    /** 面板展开状态变化回调 */
+    onOpenChange?: (open: boolean) => void;
+    /** 是否显示悬浮切换按钮 */
+    showToggleButton?: boolean;
     /** AI警告文本 */
     aiWarningText?: string;
     /** 新建对话提示文本 */
@@ -134,13 +147,19 @@ const props = withDefaults(defineProps<Props>(), {
         { key: 'zh-CN', value: '简体中文' },
         { key: 'en-US', value: 'English' }
     ],
-    isMobile: false,
+    isMobile: undefined,
     logoUrl: '',
     logoTitle: '',
     modelOptions: () => [],
     selectModel: null,
     isDeepThinking: true,
     maxAppLen: 4,
+    showFullscreenButton: false,
+    isFullscreen: false,
+    onFullscreen: undefined,
+    open: undefined,
+    onOpenChange: undefined,
+    showToggleButton: true,
     aiWarningText: '内容由AI生成，仅供参考',
     createConversationText: '新建对话',
     apiConfig: () => defaultApiConfig,
@@ -170,10 +189,33 @@ const emit = defineEmits<{
     (e: 'message', type: 'warning' | 'error' | 'info' | 'success', message: string): void;
     (e: 'conversationChange', conversationId: string): void;
     (e: 'dataLoaded', type: 'applications' | 'conversations' | 'chatList' | 'user', data: any): void;
+    (e: 'fullscreen', isFullscreen: boolean): void;
+    (e: 'openChange', open: boolean): void;
 }>();
 
 const popup = ref(!props.canPark);
-const open = ref(false);
+// 内部 open 状态，初始化时使用用户传入的值
+const internalOpen = ref(props.open ?? false);
+
+// 计算实际的 open 状态 - 始终使用内部状态，因为 createApp 传入的 props 是静态的
+const isOpen = computed(() => internalOpen.value);
+
+// 设置 open 状态
+const setOpen = (value: boolean) => {
+    internalOpen.value = value;
+    props.onOpenChange?.(value);
+    emit('openChange', value);
+};
+
+// 计算是否为移动端模式
+const computedIsMobile = computed(() => {
+    return computeIsMobile({
+        isMobile: props.isMobile,
+        modelType: props.modelType,
+        width: props.width,
+        height: props.height,
+    });
+});
 
 // 计算 panel-park 在 compact 模式下的样式
 const panelParkStyle = computed(() => {
@@ -189,20 +231,25 @@ const panelParkStyle = computed(() => {
 });
 
 const handleClose = () => {
-    open.value = false;
+    setOpen(false);
     emit('close');
+};
+
+const handleFullscreen = (isFullscreen: boolean) => {
+    emit('fullscreen', isFullscreen);
+    props.onFullscreen?.(isFullscreen);
 };
 </script>
 
 <template>
     <Teleport to="body">
-        <div v-if="!open" class="toggle-btn" @click="open = !open">
+        <div v-if="showToggleButton && !isOpen" class="toggle-btn" @click="setOpen(true)">
             <span class="toggle-btn__icon"></span>
         </div>
     </Teleport>
 
     <Teleport :to="container">
-        <div v-show="open" @keydown.esc="open = false" tabindex="0"
+        <div v-show="isOpen" @keydown.esc="setOpen(false)" tabindex="0"
             :class="[{ 'panel-popup': popup, 'panel-park': !popup, 'panel-park--full': !popup && modelType === 'full', 'panel-park--compact': !popup && modelType === 'compact' }]"
             :style="!popup && modelType === 'compact' ? panelParkStyle : {}">
             <MainApp 
@@ -215,7 +262,7 @@ const handleClose = () => {
                 :user="user"
                 :theme="theme"
                 :languageOptions="languageOptions"
-                :isMobile="isMobile"
+                :isMobile="computedIsMobile"
                 :logoUrl="logoUrl"
                 :logoTitle="logoTitle"
                 :modelOptions="modelOptions"
@@ -223,6 +270,8 @@ const handleClose = () => {
                 :isDeepThinking="isDeepThinking"
                 :maxAppLen="maxAppLen"
                 :showCloseButton="canPark"
+                :showFullscreenButton="showFullscreenButton"
+                :isFullscreen="isFullscreen"
                 :aiWarningText="aiWarningText"
                 :createConversationText="createConversationText"
                 :sideI18n="sideI18n"
@@ -239,6 +288,7 @@ const handleClose = () => {
                 @logout="emit('logout')"
                 @userClick="emit('userClick')"
                 @close="handleClose"
+                @fullscreen="handleFullscreen"
                 @send="(query: string, fileList: FileProps[], conversationId: string, applicationId: string) => emit('send', query, fileList, conversationId, applicationId)"
                 @stop="emit('stop')"
                 @loadMore="(conversationId: string, lastRecordId: string) => emit('loadMore', conversationId, lastRecordId)"
@@ -262,77 +312,65 @@ const handleClose = () => {
     </Teleport>
 </template>
 
-<style scoped>
+<!-- 全局样式 - 用于 Teleport 传送后的组件 -->
+<style>
 /* 根据设计要求重构td */
-:deep(.t-chat-sender){
-  padding:0;
-}
-:deep(.dropdown-item){
-    gap: var(--td-comp-paddingLR-s);
-}
-/* content自定义 */
-:deep(.t-chat__detail-reasoning .t-collapse-panel__body){
-    background: transparent;
-    background-color: transparent;
-}
-:deep(.t-chat-sender){
-  padding:0;
-}
-:deep(.dropdown-item){
-    gap: var(--td-comp-paddingLR-s);
-}
-/* content自定义 */
-:deep(.t-chat__detail-reasoning .t-collapse-panel__body){
-    background: transparent;
-    background-color: transparent;
-}
-:deep(.t-chat__detail-reasoning .t-collapse-panel__wrapper){
-    background: transparent;
-    background-color: transparent;
-}
-:deep(.t-chat__detail-reasoning .t-collapse-panel__content){
-    background: transparent;
-    background-color: transparent;
-}
-:deep(.t-chat__detail-reasoning .t-collapse-panel__header--blank){
-  display: none;
-}
-:deep(.t-chat__detail-reasoning .t-collapse-panel__icon){
-  transform: rotate(180deg);
-}
-:deep(.assistant .t-chat__detail) {
-    max-width: 100%;
-    width: 100%;
-}
-:deep(.isMobile .t-chat__content) {
-    margin-left: 0;
-}
-:deep(.t-chat__detail-reasoning .t-collapse-panel){
-  margin-left: 0;
-}
-:deep(.t-chat__detail-reasoning .t-collapse-panel__header){
+.t-chat-sender {
   padding: 0;
 }
-:deep(.t-chat__detail-reasoning .t-collapse-panel__content){
+.dropdown-item {
+  gap: var(--td-comp-paddingLR-s);
+}
+/* content自定义 */
+.t-chat__detail-reasoning .t-collapse-panel__body {
+  background: transparent;
+  background-color: transparent;
+}
+.t-chat__detail-reasoning .t-collapse-panel__wrapper {
+  background: transparent;
+  background-color: transparent;
+}
+.t-chat__detail-reasoning .t-collapse-panel__content {
+  background: transparent;
+  background-color: transparent;
   padding: 0 0 var(--td-comp-paddingTB-m) 0;
 }
-:deep(.t-chat__text--variant--text .t-chat__detail-reasoning){
+.t-chat__detail-reasoning .t-collapse-panel__header--blank {
+  display: none;
+}
+.t-chat__detail-reasoning .t-collapse-panel__icon {
+  transform: rotate(180deg);
+}
+.assistant .t-chat__detail {
+  max-width: 100%;
+  width: 100%;
+}
+.isMobile .t-chat__content {
+  margin-left: 0;
+}
+.t-chat__detail-reasoning .t-collapse-panel {
+  margin-left: 0;
+}
+.t-chat__detail-reasoning .t-collapse-panel__header {
+  padding: 0;
+}
+.t-chat__text--variant--text .t-chat__detail-reasoning {
   padding-top: 0;
 }
-:deep(.t-chat.t-chat--normal .t-chat__to-bottom){
+.t-chat.t-chat--normal .t-chat__to-bottom {
   bottom: var(--chat-footer-height, 100px);
 }
-:deep(.t-chat.isChatting .t-chat__to-bottom){
+.t-chat.isChatting .t-chat__to-bottom {
   position: relative;
 }
-:deep(.t-chat.isChatting .t-chat__to-bottom::before){
+.t-chat.isChatting .t-chat__to-bottom::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url('@/assets/icons/loading.svg');
+  background-image: url('./assets/icons/loading.svg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -340,17 +378,49 @@ const handleClose = () => {
   z-index: 2;
   border-radius: 9999px;
 }
-:deep(.t-chat__text .other__model-change){
+.t-chat__text .other__model-change {
   background-color: transparent;
-  padding-left:var(--td-comp-paddingTB-s)0;
+  padding-left: var(--td-comp-paddingTB-s);
   text-align: left;
 }
-:deep(.t-chat__text .other__system){
+.t-chat__text .other__system {
   background-color: transparent;
   padding-left: var(--td-comp-paddingTB-s);
   text-align: left;
 }
 
+/* 自定义滚动条样式 */
+@-moz-document url-prefix(){
+  .t-chat__list {
+    scrollbar-color: var(--td-scrollbar-color) transparent;
+    scrollbar-width: thin;
+  }
+}
+.t-chat__list::-webkit-scrollbar {
+  width: var(--td-size-4);
+  background: transparent;
+}
+.t-chat__list::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  background-clip: content-box;
+  background-color: var(--td-scrollbar-color);
+  border-radius: 15px;
+}
+.t-chat__list::-webkit-scrollbar-thumb:hover {
+  background-color: var(--td-scrollbar-hover-color);
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+</style>
+
+<style scoped>
 .content {
     display: flex;
 }

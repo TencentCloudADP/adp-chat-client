@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { handleLoadApplication } from '@/service/application';
 import type { Application } from '@/model/application'
 
 /**
@@ -61,21 +60,3 @@ export const useAppsStore = defineStore('apps', () => {
     currentApplicationOpeningQuestions
   }
 })
-
-/**
- * 获取应用列表并更新到store中
- * 调用handleLoadApplication接口获取应用数据
- * 将数据格式化为应用选项列表并存储
- * @returns {Promise<void>} 无返回值
- */
-export const getApplications = async () => {
-  const { Applications } = await handleLoadApplication();
-  console.log('Applications:', Applications);
-  const appsStore = useAppsStore();
-  appsStore.setApplications(Applications);
-}
-
-// 加载应用列表并设置默认智能体
-export const fetchApplicationInfo = async () => {
-  await getApplications();
-}

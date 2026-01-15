@@ -15,8 +15,6 @@ export { default as Chat } from './components/Chat/Index.vue'
 export { default as ChatItem } from './components/Chat/ChatItem.vue'
 export { default as ChatSender } from './components/Chat/Sender.vue'
 export { default as ChatAppType } from './components/Chat/AppType.vue'
-export { default as BackToBottom } from './components/Chat/BackToBottom.vue'
-
 // Common 组件导出
 export { default as FileList } from './components/Common/FileList.vue'
 export { default as MdContent } from './components/Common/MdContent.vue'
@@ -51,6 +49,16 @@ export {
     fetchUserInfo,
     uploadFile,
 } from './service'
+
+// Utils 导出
+export {
+    computeIsMobile,
+    detectMobileByScreen,
+    detectMobileBySize,
+    isMobileUA,
+    hasTouch,
+    isSmallScreen,
+} from './utils/device'
 
 // 默认导出 (用于全局挂载)
 export { default } from './main'

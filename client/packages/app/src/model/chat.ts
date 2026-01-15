@@ -163,10 +163,10 @@ export interface ChatItem {
   avatar: string
   name: string
   datetime: string
-  reasoning?: string // 推理内容，可选
+  reasoning?: string
   content: string
   role: 'user' | 'assistant' | 'error' | 'model-change' | 'system' | undefined
-  duration?: number // 推理内容持续时间，可选
+  duration?: number
 }
 
 export interface WorkFlow {
