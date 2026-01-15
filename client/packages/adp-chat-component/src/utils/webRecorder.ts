@@ -47,7 +47,7 @@ export function to16BitPCM(input: Float32Array): DataView {
     const dataView = new DataView(dataBuffer);
     let offset = 0;
     for (let i = 0; i < input.length; i++, offset += 2) {
-        const s = Math.max(-1, Math.min(1, input[i]));
+        const s = Math.max(-1, Math.min(1, input[i]!));
         dataView.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
     }
     return dataView;
@@ -58,15 +58,15 @@ export function to16kHz(audioData: Float32Array | number[], sampleRate: number =
     const fitCount = Math.round(data.length * (16000 / sampleRate));
     const newData = new Float32Array(fitCount);
     const springFactor = (data.length - 1) / (fitCount - 1);
-    newData[0] = data[0];
+    newData[0] = data[0]!;
     for (let i = 1; i < fitCount - 1; i++) {
         const tmp = i * springFactor;
         const before = Math.floor(tmp);
         const after = Math.ceil(tmp);
         const atPoint = tmp - before;
-        newData[i] = data[before] + (data[after] - data[before]) * atPoint;
+        newData[i] = data[before]! + (data[after]! - data[before]!) * atPoint;
     }
-    newData[fitCount - 1] = data[data.length - 1];
+    newData[fitCount - 1] = data[data.length - 1]!;
     return newData;
 }
 
@@ -277,7 +277,9 @@ export default class WebRecorder {
 
         this.audioTrack = stream.getAudioTracks()[0];
         const mediaStream = new MediaStream();
-        mediaStream.addTrack(this.audioTrack);
+        if (this.audioTrack) {
+            mediaStream.addTrack(this.audioTrack);
+        }
         this.mediaStreamSource = this.audioContext.createMediaStreamSource(mediaStream);
 
         if (WebRecorder.isSupportMediaStreamSource(this.audioContext)) {

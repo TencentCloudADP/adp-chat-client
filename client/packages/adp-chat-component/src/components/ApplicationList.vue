@@ -4,6 +4,8 @@ import type { Application } from '../model/application';
 import CustomizedIcon from './CustomizedIcon.vue';
 import { Avatar as TAvatar } from 'tdesign-vue-next';
 
+// TAvatar 已导入，模板中使用 TAvatar 组件
+
 interface Props {
     /** 应用列表 */
     applications: Application[];
@@ -69,7 +71,7 @@ const handleCollapseClick = () => {
     <div class="application-list">
         <div v-for="app in displayedApps" :key="app.ApplicationId" class="application-item"
             :class="{ active: currentApplicationId === app.ApplicationId }" @click="handleClick(app)">
-            <t-avatar :imageProps="{
+            <TAvatar :imageProps="{
                 lazy: true,
                 loading: ''
             }" :image="app.Avatar" size="20px" class="application-avatar" />

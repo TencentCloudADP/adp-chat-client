@@ -7,7 +7,7 @@ import { commonLayoutPropsDefaults, defaultChatItemI18n } from '../../model/type
 import {
     ChatItem as TChatItem,
 } from '@tdesign-vue-next/chat';
-import { Tooltip } from 'tdesign-vue-next';
+import { Tooltip, Loading as TLoading, Link as TLink } from 'tdesign-vue-next';
 import OptionCard from '../Common/OptionCard.vue';
 import MdContent from '../Common/MdContent.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
@@ -139,7 +139,7 @@ const handleSendMessage = (message: string) => {
         <!-- 内容插槽 -->
         <template #content>
             <div v-if="isLastMsg && isStreamLoad && !item.Content && !item.AgentThought" class="loading-container">
-                <t-loading size="small">
+                <TLoading size="small">
                     <template #text>
                         <span class="thinking-text">
                             {{ `${i18n.thinking}...` }}
@@ -148,7 +148,7 @@ const handleSendMessage = (message: string) => {
                     <template #indicator>
                         <CustomizedIcon class="thinking-icon" name="thinking" :theme="theme" />
                     </template>
-                </t-loading>
+                </TLoading>
             </div>
             <div v-else>
                 <div v-if="item.IsFromSelf" class="user-message">
@@ -165,7 +165,7 @@ const handleSendMessage = (message: string) => {
                     <span class="title">{{ i18n.references }}: </span>
                     <ol>
                         <li v-for="(reference, idx) in item.References" :key="idx">
-                            <t-link theme="primary" :href="reference.Url" target="_blank" rel="noopener noreferrer">{{ reference.Name }}</t-link>
+                            <TLink theme="primary" :href="reference.Url" target="_blank" rel="noopener noreferrer">{{ reference.Name }}</TLink>
                         </li>
                     </ol>
                 </div>

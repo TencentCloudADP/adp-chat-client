@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ChatSender as TChatSender, Attachments as TAttachments } from '@tdesign-vue-next/chat'
-import { MessagePlugin } from 'tdesign-vue-next'
+import { MessagePlugin, Upload as TUpload, Tooltip as TTooltip } from 'tdesign-vue-next'
+import type { UploadFile, RequestMethodResponse } from 'tdesign-vue-next'
 import type { FileProps } from '../../model/file';
 import { MessageCode, getMessage } from '../../model/messages';
 import type { ChatRelatedProps, SenderI18n } from '../../model/type';
@@ -114,25 +115,29 @@ const handleInput = (value: string) => {
 /**
  * 处理文件选择事件
  */
-const handleFileSelect = async function (files: any[]) {
-    if (files && files.length <= 0) return;
+const handleFileSelect = async function (files: UploadFile | UploadFile[]): Promise<RequestMethodResponse> {
+    const fileArray = Array.isArray(files) ? files : [files];
+    if (fileArray.length <= 0) return { status: 'success', response: {} };
     const allowed = ['image/png', 'image/jpg', 'image/jpeg', 'image/bmp']
     const validFiles: File[] = [];
     
-    files.forEach((item: any) => {
+    fileArray.forEach((item: UploadFile) => {
         const file = item.raw || item;
-        if (!allowed.includes(file.type)) {
+        if (file instanceof File && !allowed.includes(file.type)) {
             const text = i18n.value.notSupport || getMessage(MessageCode.FILE_FORMAT_NOT_SUPPORT).message;
             MessagePlugin.error(text);
             emit('message', MessageCode.FILE_FORMAT_NOT_SUPPORT, text);
             return;
         }
-        validFiles.push(file);
+        if (file instanceof File) {
+            validFiles.push(file);
+        }
     });
     
     if (validFiles.length > 0) {
         emit('uploadFile', validFiles);
     }
+    return { status: 'success', response: {} };
 }
 
 /**
@@ -354,26 +359,25 @@ defineExpose({
         </template>
         <template #footer-prefix>
             <div class="sender-control-container">
-                <t-upload class="sender-upload" ref="uploadRef1" :max="10" :multiple="true" :request-method="handleFileSelect"
-                    accept="image/*" :showThumbnail="false" :showImageFileName="false" :showUploadProgress="false"
-                    tips="">
-                    <t-tooltip :content="i18n.uploadImg">
+                <TUpload class="sender-upload" ref="uploadRef1" :max="10" :multiple="true" :request-method="handleFileSelect"
+                    accept="image/*" theme="custom">
+                    <TTooltip :content="i18n.uploadImg">
                         <span class="recording-icon">
                             <CustomizedIcon name="picture" :theme="theme" />
                         </span>
-                    </t-tooltip>
-                </t-upload>
-                <t-tooltip v-if="!recording" :content="i18n.startRecord">
+                    </TTooltip>
+                </TUpload>
+                <TTooltip v-if="!recording" :content="i18n.startRecord">
                     <span class="recording-icon" @click="handleStartRecord">
                         <CustomizedIcon name="voice_input" :theme="theme" />
                     </span>
-                </t-tooltip>
+                </TTooltip>
 
-                <t-tooltip v-if="recording" :content="i18n.stopRecord">
+                <TTooltip v-if="recording" :content="i18n.stopRecord">
                     <span class="recording-icon stop-icon" @click="handleStopRecord">
                         <RecordIcon />
                     </span>
-                </t-tooltip>
+                </TTooltip>
             </div>
         </template>
     </TChatSender>

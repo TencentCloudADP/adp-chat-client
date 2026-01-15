@@ -42,7 +42,7 @@ export const defaultApiConfig: ApiConfig = {
     rateApi: '/feedback/rate',
     shareApi: '/share/create',
     userInfoApi: '/account/info',
-    uploadApi: '/upload/file',
+    uploadApi: '/file/upload',
     asrUrlApi: '/helper/asr/url',
 };
 
