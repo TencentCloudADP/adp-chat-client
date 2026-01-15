@@ -76,10 +76,13 @@ url:
 # ----------------- dev -----------------
 
 dev:
-	npx concurrently "make run_client" "make run_server" --names ui,server --prefix-colors blue,green --kill-others
+	npx concurrently "make run_server" "make run_client" "make run_component_example" --names server,ui,component --prefix-colors blue,green,yellow --kill-others
 
 run_client:
 	set -a && source server/.env && set +a; cd client; npm run dev
+
+run_component_example:
+	set -a && source server/.env && set +a; cd client/packages/adp-chat-component-example/vue-init-example; npm run dev
 
 run_server:
 	source server/.venv/bin/activate; set -a && source server/.env && set +a; cd server; sanic app_factory:create_app --factory --reload --reload-dir=./ -H 0.0.0.0 -p $$SERVER_HTTP_PORT
