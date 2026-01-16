@@ -1,253 +1,38 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ADP Chat Component - Side Panel Example</title>
-    <link rel="stylesheet" href="adp-chat-component.css">
+<html>
+    <head>
+        <meta charset="UTF-8">
+    </head>
+    <body>
+        <script src="adp-chat-component.umd.js"></script>
+        <link rel="stylesheet" href="adp-chat-component.css">
+        <script>
+            window.onload = function() {
+                ADPChatComponent.init('#chat-panel')
+            }
+        </script>
+        <div id="container">
+            <div id="main">
+            </div>
+            <div id="chat-panel">
+            </div>
+        </div>
+    </body>
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html, body {
-            width: 100%;
-            height: 100%;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        }
-
         #container {
             display: flex;
             flex-direction: row;
             width: 100vw;
             height: 100vh;
         }
-
         #main {
             flex-grow: 1;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-            position: relative;
+            background-image: repeating-linear-gradient(45deg, #f0f0f0, #f0f0f0 100px, #ffffff 100px, #ffffff 200px);
         }
-
-        .main-content {
-            text-align: center;
-            max-width: 600px;
-        }
-
-        .main-content h1 {
-            font-size: 2.5rem;
-            color: #1a1a1a;
-            margin-bottom: 16px;
-            font-weight: 700;
-        }
-
-        .main-content p {
-            font-size: 1.1rem;
-            color: #666;
-            line-height: 1.6;
-            margin-bottom: 24px;
-        }
-
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            margin-top: 40px;
-        }
-
-        .feature-card {
-            background: #fff;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-            text-align: left;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-        }
-
-        .feature-card .icon {
-            font-size: 2rem;
-            margin-bottom: 12px;
-        }
-
-        .feature-card h3 {
-            font-size: 1.1rem;
-            color: #1a1a1a;
-            margin-bottom: 8px;
-        }
-
-        .feature-card p {
-            font-size: 0.9rem;
-            color: #888;
-            margin-bottom: 0;
-        }
-
-        .toggle-btn {
-            position: fixed;
-            bottom: 24px;
-            left: 24px;
-            padding: 12px 24px;
-            background: #0052d9;
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0, 82, 217, 0.3);
-            transition: all 0.2s;
-            z-index: 1000;
-        }
-
-        .toggle-btn:hover {
-            background: #0040b0;
-            box-shadow: 0 6px 16px rgba(0, 82, 217, 0.4);
-        }
-
         #chat-panel {
             width: fit-content;
             height: 100vh;
-            flex-shrink: 0;
-            transition: width 0.3s ease;
-        }
-
-        #chat-panel.collapsed {
-            width: 0;
-            overflow: hidden;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .main-content h1 {
-                font-size: 1.75rem;
-            }
-
-            .feature-grid {
-                grid-template-columns: 1fr;
-            }
-
-            #chat-panel {
-                position: fixed;
-                right: 0;
-                top: 0;
-                z-index: 100;
-            }
         }
     </style>
-</head>
-<body>
-    <div id="container">
-        <div id="main">
-            <div class="main-content">
-                <h1>Side Panel Demo</h1>
-                <p>
-                    This example demonstrates how to integrate ADP Chat Component as a side panel 
-                    alongside your main application content. The chat panel can be toggled on/off.
-                </p>
-
-                <div class="feature-grid">
-                    <div class="feature-card">
-                        <div class="icon">🎨</div>
-                        <h3>Seamless Integration</h3>
-                        <p>Easily embed the chat component into any existing web application</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="icon">⚡</div>
-                        <h3>Lightweight</h3>
-                        <p>Optimized bundle size for fast loading and smooth performance</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="icon">🔧</div>
-                        <h3>Customizable</h3>
-                        <p>Configure themes, i18n, and behavior to match your needs</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="icon">📱</div>
-                        <h3>Responsive</h3>
-                        <p>Works great on desktop and mobile devices</p>
-                    </div>
-                </div>
-            </div>
-
-            <button class="toggle-btn" onclick="togglePanel()">Toggle Chat Panel</button>
-        </div>
-        <div id="chat-panel"></div>
-    </div>
-
-    <script src="adp-chat-component.umd.js"></script>
-    <script>
-        (function() {
-            'use strict';
-
-            var isPanelVisible = true;
-            var chatInstance = null;
-
-            // Initialize chat panel
-            function initChat() {
-                chatInstance = ADPChatComponent.init('#chat-panel', {
-                    modelType: 'full',
-                    theme: 'light',
-                    logoTitle: 'ADP Assistant',
-                    aiWarningText: 'Content generated by AI, for reference only',
-                    createConversationText: 'New Chat',
-                    sideI18n: {
-                        more: 'More',
-                        collapse: 'Collapse',
-                        today: 'Today',
-                        recent: 'Recent',
-                        switchTheme: 'Switch Theme',
-                        selectLanguage: 'Select Language',
-                        logout: 'Logout',
-                    },
-                    chatI18n: {
-                        loading: 'Loading...',
-                        thinking: 'Thinking...',
-                        sendError: 'Send failed',
-                        networkError: 'Network error',
-                    },
-                    chatItemI18n: {
-                        thinking: 'Thinking',
-                        copy: 'Copy',
-                        replay: 'Regenerate',
-                        share: 'Share',
-                        good: 'Helpful',
-                        bad: 'Not helpful',
-                    },
-                    senderI18n: {
-                        placeholder: 'Type your question...',
-                        uploadImg: 'Upload image',
-                        answering: 'Answering...',
-                    },
-                });
-            }
-
-            // Toggle panel visibility
-            window.togglePanel = function() {
-                var panel = document.getElementById('chat-panel');
-                isPanelVisible = !isPanelVisible;
-
-                if (isPanelVisible) {
-                    panel.classList.remove('collapsed');
-                } else {
-                    panel.classList.add('collapsed');
-                }
-            };
-
-            // Initialize on page load
-            window.onload = function() {
-                initChat();
-            };
-        })();
-    </script>
-</body>
 </html>
