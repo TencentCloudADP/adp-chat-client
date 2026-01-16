@@ -4,7 +4,6 @@
 -->
 <script setup lang="tsx">
 import { computed } from 'vue';
-import moment from 'moment';
 import type { ChatConversation } from '../model/chat';
 
 interface Props {
@@ -37,10 +36,18 @@ interface ConversationHistoryItem {
     data: ChatConversation[]
 }
 
-const conversationsHistoryList = computed<ConversationHistoryItem[]>(() => {
-    const now = moment();
-    const isToday = (timestamp: number) => moment(timestamp * 1000).isSame(now, 'day');
+/**
+ * 判断时间戳是否是今天
+ */
+const isToday = (timestamp: number): boolean => {
+    const date = new Date(timestamp * 1000);
+    const today = new Date();
+    return date.getFullYear() === today.getFullYear() &&
+           date.getMonth() === today.getMonth() &&
+           date.getDate() === today.getDate();
+};
 
+const conversationsHistoryList = computed<ConversationHistoryItem[]>(() => {
     const { today, history } = props.conversations.reduce(
         (acc, chat) => {
             isToday(chat.LastActiveAt) ? acc.today.push(chat) : acc.history.push(chat);

@@ -23,13 +23,33 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, watch } from "vue";
 import type { QuoteInfo } from '../../model/chat'
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
 import { ChatContent as TChatContent } from '@tdesign-vue-next/chat'
-import 'katex/dist/katex.min.css'
-import 'katex/dist/katex.min.js'
+
+// 检测内容是否包含数学公式
+const hasMathContent = (content: string): boolean => {
+  // 检测 LaTeX 数学公式标记: $...$, $$...$$, \[...\], \(...\)
+  return /\$\$[\s\S]+?\$\$|\$[^$\n]+?\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)/.test(content);
+};
+
+// 懒加载 katex 样式和脚本
+let katexLoaded = false;
+const loadKatex = async () => {
+  if (katexLoaded) return;
+  try {
+    await Promise.all([
+      import('katex/dist/katex.min.css'),
+      // @ts-ignore - katex.min.js 没有类型声明
+      import('katex/dist/katex.min.js'),
+    ]);
+    katexLoaded = true;
+  } catch (e) {
+    console.warn('[MdContent] Failed to load katex:', e);
+  }
+};
 
 interface Props extends ThemeProps {
   /** 引用信息数组 */
@@ -43,6 +63,20 @@ interface Props extends ThemeProps {
 const props = withDefaults(defineProps<Props>(), {
   role: 'assistant',
   ...themePropsDefaults,
+});
+
+// 按需加载 katex
+onMounted(() => {
+  if (props.content && hasMathContent(props.content)) {
+    loadKatex();
+  }
+});
+
+// 监听 content 变化，按需加载
+watch(() => props.content, (newContent) => {
+  if (newContent && hasMathContent(newContent)) {
+    loadKatex();
+  }
 });
 
 const options = computed(() => ({

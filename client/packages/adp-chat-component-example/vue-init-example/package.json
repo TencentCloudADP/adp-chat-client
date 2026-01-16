@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "adp-chat-component": "file:../../adp-chat-component",
-    "@tdesign-vue-next/chat": "^0.5.0-alpha.10",
     "tdesign-vue-next": "^1.17.7",
     "vue": "^3.5.22"
   },

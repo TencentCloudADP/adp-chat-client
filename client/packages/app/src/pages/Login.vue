@@ -32,6 +32,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
+// TDesign 组件由 unplugin-vue-components 自动按需导入
 import { fetchLoginProviders } from '@/service/login';
 const { t } = useI18n();
 

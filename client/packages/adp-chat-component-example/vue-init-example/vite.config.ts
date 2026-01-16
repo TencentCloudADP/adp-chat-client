@@ -23,10 +23,10 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
-      dedupe: ['vue', 'tdesign-vue-next', '@tdesign-vue-next/chat'],
+      dedupe: ['vue', 'tdesign-vue-next'],
     },
     optimizeDeps: {
-      include: ['tdesign-vue-next', '@tdesign-vue-next/chat'],
+      include: ['tdesign-vue-next'],
       exclude: ['adp-chat-component'],
     },
     build: {

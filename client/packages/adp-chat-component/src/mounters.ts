@@ -15,12 +15,12 @@ import Chat from './components/Chat/Index.vue'
 import ChatItem from './components/Chat/ChatItem.vue'
 import ChatSender from './components/Chat/Sender.vue'
 import ChatAppType from './components/Chat/AppType.vue'
-import FileList from './components/Common/FileList.vue'
 import OptionCard from './components/Common/OptionCard.vue'
 import RecordIcon from './components/Common/RecordIcon.vue'
 import ChatLayout from './components/layout/Index.vue'
 import MainLayout from './components/layout/MainLayout.vue'
 import SideLayout from './components/layout/SideLayout.vue'
+import ShareChat from './components/ShareChat.vue'
 
 
 
@@ -251,11 +251,6 @@ export interface ChatAppTypeConfig extends MountConfig {
   onSelectQuestion?: (question: string) => void
 }
 
-export interface FileListConfig extends MountConfig {
-  fileList?: any[]
-  onRemove?: (index: number) => void
-}
-
 export interface OptionCardConfig extends MountConfig {
   title?: string
   description?: string
@@ -307,6 +302,14 @@ export interface SideLayoutConfig extends MountConfig {
   collapsed?: boolean
 }
 
+export interface ShareChatConfig extends MountConfig {
+  shareId: string
+  theme?: 'light' | 'dark'
+  apiPath?: string
+  onLoadComplete?: (records: any[]) => void
+  onLoadError?: (error: Error) => void
+}
+
 // ==================== 组件挂载器 ====================
 
 export const AIWarningMounter = createComponentMounter<AIWarningConfig>(AIWarning, 'adp-ai-warning')
@@ -323,9 +326,9 @@ export const ChatMounter = createComponentMounter<ChatComponentConfig>(Chat, 'ad
 export const ChatItemMounter = createComponentMounter<ChatItemConfig>(ChatItem, 'adp-chat-item')
 export const ChatSenderMounter = createComponentMounter<ChatSenderConfig>(ChatSender, 'adp-chat-sender')
 export const ChatAppTypeMounter = createComponentMounter<ChatAppTypeConfig>(ChatAppType, 'adp-chat-app-type')
-export const FileListMounter = createComponentMounter<FileListConfig>(FileList, 'adp-file-list')
 export const OptionCardMounter = createComponentMounter<OptionCardConfig>(OptionCard, 'adp-option-card')
 export const RecordIconMounter = createComponentMounter<RecordIconConfig>(RecordIcon, 'adp-record-icon')
 export const ChatLayoutMounter = createComponentMounter<ChatLayoutConfig>(ChatLayout, 'adp-chat-layout')
 export const MainLayoutMounter = createComponentMounter<MainLayoutConfig>(MainLayout, 'adp-main-layout')
 export const SideLayoutMounter = createComponentMounter<SideLayoutConfig>(SideLayout, 'adp-side-layout')
+export const ShareChatMounter = createComponentMounter<ShareChatConfig>(ShareChat, 'adp-share-chat')

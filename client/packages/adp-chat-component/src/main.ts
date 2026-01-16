@@ -24,12 +24,12 @@ import {
   ChatItemMounter,
   ChatSenderMounter,
   ChatAppTypeMounter,
-  FileListMounter,
   OptionCardMounter,
   RecordIconMounter,
   ChatLayoutMounter,
   MainLayoutMounter,
   SideLayoutMounter,
+  ShareChatMounter,
 } from './mounters'
 
 // 重新导出挂载器模块的所有内容
@@ -82,12 +82,12 @@ const ADPChatComponent = {
   ChatItem: ChatItemMounter,
   ChatSender: ChatSenderMounter,
   ChatAppType: ChatAppTypeMounter,
-  FileList: FileListMounter,
   OptionCard: OptionCardMounter,
   RecordIcon: RecordIconMounter,
   ChatLayout: ChatLayoutMounter,
   MainLayout: MainLayoutMounter,
   SideLayout: SideLayoutMounter,
+  ShareChat: ShareChatMounter,
 }
 
 // 挂载到全局对象
