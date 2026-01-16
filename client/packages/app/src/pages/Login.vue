@@ -1,16 +1,16 @@
 <template>
-  <t-layout class="page-container">
+  <TLayout class="page-container">
     <div class="login-container">
-      <t-card class="login-card">
+      <TCard class="login-card">
         <template #title>
           <div class="login-title">{{ $t('account.welcome') }}👋</div>
           <div class="login-title">{{ $t('account.systemName') }}</div>
         </template>
         <div v-for="(provider, index) in oauthProviders" :key="index" class="oauth-button-wrapper">
-          <t-button variant="outline" size="large" :href="provider['url']">{{ provider['name'] }}</t-button>
+          <TButton variant="outline" size="large" :href="provider['url']">{{ provider['name'] }}</TButton>
         </div>
-      </t-card>
-      <t-dialog
+      </TCard>
+      <TDialog
         v-model:visible="showEmptyDialog"
         theme="warning"
         :footer="false"
@@ -22,18 +22,19 @@
         :closeOnOverlayClick="false"
       >
       {{ t('login.according')  }} 
-      <t-link theme="primary" target="_blank" size="small" href="https://github.com/TencentCloudADP/adp-chat-client/blob/main/README.cn.md#%E8%B4%A6%E6%88%B7%E4%BD%93%E7%B3%BB%E5%AF%B9%E6%8E%A5"> README </t-link>  
+      <TLink theme="primary" target="_blank" size="small" href="https://github.com/TencentCloudADP/adp-chat-client/blob/main/README.cn.md#%E8%B4%A6%E6%88%B7%E4%BD%93%E7%B3%BB%E5%AF%B9%E6%8E%A5"> README </TLink>  
       {{ t('login.Guidelines') }}
-      </t-dialog>
+      </TDialog>
     </div>
-  </t-layout>
+  </TLayout>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-// TDesign 组件由 unplugin-vue-components 自动按需导入
 import { fetchLoginProviders } from '@/service/login';
+import { Card as TCard ,Dialog as TDialog,Link as TLink,Button as TButton} from 'tdesign-vue-next';
+
 const { t } = useI18n();
 
 const oauthProviders = ref([])
