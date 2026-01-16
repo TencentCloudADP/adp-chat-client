@@ -16,7 +16,6 @@ export { default as ChatItem } from './components/Chat/ChatItem.vue'
 export { default as ChatSender } from './components/Chat/Sender.vue'
 export { default as ChatAppType } from './components/Chat/AppType.vue'
 // Common 组件导出
-export { default as FileList } from './components/Common/FileList.vue'
 export { default as MdContent } from './components/Common/MdContent.vue'
 export { default as OptionCard } from './components/Common/OptionCard.vue'
 export { default as RecordIcon } from './components/Common/RecordIcon.vue'
@@ -25,6 +24,9 @@ export { default as RecordIcon } from './components/Common/RecordIcon.vue'
 export { default as ChatLayout } from './components/layout/Index.vue'
 export { default as MainLayout } from './components/layout/MainLayout.vue'
 export { default as SideLayout } from './components/layout/SideLayout.vue'
+
+// 功能组件导出
+export { default as ShareChat } from './components/ShareChat.vue'
 
 // 类型导出
 export type {

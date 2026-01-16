@@ -13,7 +13,8 @@
       "require": "./dist/adp-chat-component.umd.js",
       "types": "./dist/index.d.ts"
     },
-    "./style.css": "./dist/style.css",
+    "./style.css": "./dist/adp-chat-component.css",
+    "./dist/*": "./dist/*",
     "./src/*": "./src/*"
   },
   "files": [
@@ -24,13 +25,13 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "build:lib": "vite build --mode lib",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "analyze": "vite build --mode analyze"
   },
   "dependencies": {
     "@tdesign-vue-next/chat": "^0.5.0-alpha.10",
     "axios": "^1.13.2",
     "katex": "^0.16.22",
-    "moment": "^2.30.1",
     "tdesign-vue-next": "^1.17.7",
     "vite-plugin-svg-icons": "^2.0.1"
   },

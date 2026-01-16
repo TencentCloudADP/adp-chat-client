@@ -735,7 +735,6 @@ ChatLayoutMounter.unmount(id)
 - `ChatSenderMounter`
 - `ChatAppTypeMounter`
 - `BackToBottomMounter`
-- `FileListMounter`
 - `OptionCardMounter`
 - `RecordIconMounter`
 - `ChatLayoutMounter`

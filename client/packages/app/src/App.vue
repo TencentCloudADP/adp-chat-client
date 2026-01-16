@@ -2,7 +2,8 @@
 import { RouterView } from 'vue-router'
 import { onMounted, computed } from 'vue'
 import { initUI, useUiStore } from '@/stores/ui'
-import { ConfigProvider as TConfigProvider, type GlobalConfigProvider } from 'tdesign-vue-next'
+// TDesign 组件由 unplugin-vue-components 自动按需导入，但类型和 locale 配置需手动引入
+import type { GlobalConfigProvider } from 'tdesign-vue-next'
 import enConfig from 'tdesign-vue-next/es/locale/en_US'
 import zhConfig from 'tdesign-vue-next/es/locale/zh_CN'
 const uiStore = useUiStore()

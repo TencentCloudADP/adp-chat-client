@@ -8,11 +8,11 @@
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
-    "type-check": "vue-tsc --build"
+    "type-check": "vue-tsc --build",
+    "analyze": "vite build --mode analyze"
   },
   "dependencies": {
     "adp-chat-component": "file:../adp-chat-component",
-    "@tdesign-vue-next/chat": "^0.5.0-alpha.10",
     "axios": "^1.11.0",
     "js-cookie": "^3.0.5",
     "mitt": "^3.0.1",
@@ -31,7 +31,10 @@
     "@vue/tsconfig": "^0.8.1",
     "less": "^4.4.0",
     "npm-run-all2": "^8.0.4",
+    "rollup-plugin-visualizer": "^6.0.5",
     "typescript": "~5.9.3",
+    "unplugin-auto-import": "^19.2.0",
+    "unplugin-vue-components": "^28.7.0",
     "vite": "^7.1.7",
     "vite-plugin-svg-icons": "^2.0.1",
     "vue-tsc": "^3.1.0"
