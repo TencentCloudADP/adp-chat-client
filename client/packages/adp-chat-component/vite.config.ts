@@ -65,8 +65,10 @@ export default defineConfig(({ mode }) => {
         formats: ['es', 'umd'],
       },
       rollupOptions: {
-        // 外部化依赖，不打包进库
-        external: ['vue', 'tdesign-vue-next', '@tdesign-vue-next/chat'],
+        // 外部化依赖，不打包进库（仅 vue 和 tdesign-vue-next）
+        // @tdesign-vue-next/chat 没有 CDN UMD 版本，需要打包进产物
+        // external: ['vue', 'tdesign-vue-next'],
+        external: [],
         output: [
           // ES 格式 - 支持代码分割和按需加载
           {
@@ -119,3 +121,4 @@ export default defineConfig(({ mode }) => {
     },
   }
 })
+
