@@ -47,7 +47,7 @@ import {
     modelSelectPropsDefaults
 } from '../../model/type';
 
-interface Props extends CommonLayoutProps, FullscreenProps, DeepThinkingProps, ModelSelectProps {
+export interface Props extends CommonLayoutProps, FullscreenProps, DeepThinkingProps, ModelSelectProps {
     /** 应用列表 */
     applications?: Application[];
     /** 当前选中的应用 */
