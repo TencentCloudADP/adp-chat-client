@@ -132,7 +132,7 @@ import Sender from './Sender.vue'
 import ChatItem from './ChatItem.vue'
 import CustomizedIcon from '../CustomizedIcon.vue';
 
-interface Props extends ChatRelatedProps {
+export interface Props extends ChatRelatedProps {
     /** 当前会话ID */
     chatId?: string;
     /** 聊天消息列表 */

@@ -15,7 +15,7 @@ import { Avatar as TAvatar, Layout as TLayout, Content as TContent, Header as TH
 import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type';
 import { chatRelatedPropsDefaults } from '../../model/type';
 
-interface Props extends ChatRelatedProps {
+export interface Props extends ChatRelatedProps {
     /** 当前应用信息 */
     currentApplication?: Application;
     /** 当前应用头像 */

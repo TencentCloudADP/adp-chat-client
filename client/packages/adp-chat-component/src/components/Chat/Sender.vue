@@ -21,7 +21,7 @@ interface AttachmentItem {
     [key: string]: any;
 }
 
-interface Props extends ChatRelatedProps {
+export interface Props extends ChatRelatedProps {
     /** 是否正在流式加载 */
     isStreamLoad?: boolean;
     /** 是否使用内部录音处理（API 模式） */
