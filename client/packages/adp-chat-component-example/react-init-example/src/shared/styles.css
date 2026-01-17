@@ -13,12 +13,8 @@ html, body, #root {
 
 /* Container */
 #container {
-  position: relative;
   width: 100vw;
   height: 100vh;
-}
-
-#container.container--fullscreen {
   display: flex;
   flex-direction: row;
 }
@@ -27,7 +23,6 @@ html, body, #root {
 #main {
   flex-grow: 1;
   width: 100%;
-  height: 100%;
   background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
   display: flex;
   flex-direction: column;
@@ -57,30 +52,17 @@ html, body, #root {
 
 /* Default: floating half-screen mode */
 #chat-container {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  top: auto;
-  left: auto;
-  z-index: 1000;
-  pointer-events: none;
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-end;
-}
-
-#chat-container * {
-  pointer-events: auto;
+  width: 0px;
+  height: 100vh;
 }
 
 /* Fullscreen: squeeze layout */
 #chat-container.chat-container--fullscreen {
-  position: static;
-  width: fit-content;
-  height: 100vh;
-  flex-shrink: 0;
+  width: 400px;
+}
+
+#chat-container * {
   pointer-events: auto;
-  display: block;
 }
 
 @media (max-width: 768px) {

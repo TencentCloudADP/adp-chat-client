@@ -91,7 +91,7 @@ const props = withDefaults(defineProps<Props>(), {
     canPark: false,
     modelType: 'full',
     width: 400,
-    height: 600,
+    height: '80vh',
     applications: () => [],
     conversations: () => [],
     chatList: () => [],
@@ -139,7 +139,8 @@ const emit = defineEmits<{
     (e: 'openChange', open: boolean): void;
 }>();
 
-const popup = ref(!props.canPark);
+const isFullscreen = ref(props.isFullscreen);
+
 // 内部 open 状态，初始化时使用用户传入的值
 const internalOpen = ref(props.open ?? false);
 
@@ -181,9 +182,10 @@ const handleClose = () => {
     emit('close');
 };
 
-const handleFullscreen = (isFullscreen: boolean) => {
-    emit('fullscreen', isFullscreen);
-    props.onFullscreen?.(isFullscreen);
+const handleFullscreen = (_isFullscreen: boolean) => {
+    isFullscreen.value = _isFullscreen;
+    emit('fullscreen', _isFullscreen);
+    props.onFullscreen?.(_isFullscreen);
 };
 </script>
 
@@ -196,8 +198,8 @@ const handleFullscreen = (isFullscreen: boolean) => {
 
     <Teleport :to="container">
         <div v-show="isOpen" @keydown.esc="setOpen(false)" tabindex="0"
-            :class="[{ 'panel-popup': popup, 'panel-park': !popup, 'panel-park--full': !popup && modelType === 'full', 'panel-park--compact': !popup && modelType === 'compact' }]"
-            :style="!popup && modelType === 'compact' ? panelParkStyle : {}">
+            :class="[{ 'panel-park--full': isFullscreen, 'panel-park--compact': !isFullscreen }]"
+            :style="!isFullscreen ? panelParkStyle : {}">
             <MainApp 
                 :applications="applications"
                 :currentApplication="currentApplication"
@@ -433,15 +435,11 @@ const handleFullscreen = (isFullscreen: boolean) => {
     /* 宽高由 style 动态设置 */
     border-radius: 8px;
     box-shadow: 0 4px 16px #00000026;
-}
 
-.panel-popup {
     position: fixed;
     z-index: 999;
     bottom: 0%;
     right: 0%;
-    width: 400px;
-    height: 600px;
     margin: 24px;
     background-color: white;
     border-radius: 8px;
