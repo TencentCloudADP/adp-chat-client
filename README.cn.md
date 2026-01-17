@@ -25,6 +25,7 @@
   - [智能体: 变量-API参数](#智能体-变量-API参数)
   - [部署: 子路径](#部署-子路径)
   - [部署: 限流](#部署-限流)
+  - [部署: CORS](#部署-cors)
 
 # 部署
 
@@ -97,6 +98,7 @@ APP_CONFIGS='[
 
 # JWT密钥，一个随机字符串，可以使用uuidgen命令生成
 SECRET_KEY=
+
 ```
 
 > ⚠️ **注意**：
@@ -348,3 +350,13 @@ RATE_LIMIT=100/minute
 ```
 
 配置格式参考：[limit string](https://limits.readthedocs.io/en/latest/quickstart.html#rate-limit-string-notation)
+
+## 部署: CORS
+
+如果前端和后端部署在不同域名/端口下，需要在`.env`中配置`CORS_ORIGINS`，允许浏览器进行跨域请求。
+
+多个 origin 用英文逗号分隔：
+
+```
+CORS_ORIGINS=http://localhost,http://127.0.0.1:3000
+```

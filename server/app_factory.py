@@ -55,6 +55,7 @@ def create_app_with_configs() -> TAgenticApp:
     create a sanic app and load configs from .env file
     """
     tagentic_app = TAgenticApp(__name__)
+    tagentic_app.config.CORS_ORIGINS = tagentic_config.CORS_ORIGINS
 
     return tagentic_app
 
