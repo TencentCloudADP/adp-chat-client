@@ -4,10 +4,10 @@ import './shared/styles.css'
 
 const App: React.FC = () => {
   const { isFullscreen } = useChat({
-    getConfig: ({ isFullscreen }) => ({
+    getConfig: () => ({
       modelType: 'compact',
       width: 420,
-      height: isFullscreen ? '100vh' : 600,
+      height: '80vh',
       logoTitle: 'ADP Chat',
       showFullscreenButton: true,
       showToggleButton: true,
@@ -15,7 +15,7 @@ const App: React.FC = () => {
   })
 
   return (
-    <div id="container" className={isFullscreen ? 'container--fullscreen' : ''}>
+    <div id="container">
       <div id="main">
         <div className="main-content">
           <h1>ADP Chat Demo</h1>

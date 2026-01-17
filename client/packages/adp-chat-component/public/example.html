@@ -1,20 +1,30 @@
-=<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
     <body>
         <script src="adp-chat-component.umd.js"></script>
         <link rel="stylesheet" href="adp-chat-component.css">
         <script>
             window.onload = function() {
-                ADPChatComponent.init('#chat-panel')
+                ADPChatComponent.init('#chat-container', {
+                    showFullscreenButton: true,
+                    modelType: 'compact',
+                    onFullscreen: (isFullscreen) => {
+                        document.getElementById('chat-container').classList.toggle('chat-container--fullscreen', isFullscreen);
+                    }
+                })
             }
         </script>
         <div id="container">
             <div id="main">
+                <div class="main-content">
+                    <h1>ADP Chat Demo</h1>
+                </div>
             </div>
-            <div id="chat-panel">
+            <div id="chat-container">
             </div>
         </div>
     </body>
@@ -26,13 +36,43 @@
             width: 100vw;
             height: 100vh;
         }
+        #chat-container {
+            width: 0px;
+            height: 100vh;
+        }
+        /* 弹出模式：覆盖在container上 */
+        /* 全屏模式：和container分享页面宽度 */
+        #chat-container.chat-container--fullscreen {
+            width: 400px;
+        }
         #main {
             flex-grow: 1;
-            background-image: repeating-linear-gradient(45deg, #f0f0f0, #f0f0f0 100px, #ffffff 100px, #ffffff 200px);
+            width: 100vw;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
         }
-        #chat-panel {
-            width: fit-content;
-            height: 100vh;
+        .main-content {
+            text-align: center;
+            max-width: 600px;
+        }
+        .main-content h1 {
+            font-size: 2.5rem;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+        .main-content p {
+            font-size: 1.1rem;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+        body {
+            overflow: hidden;
         }
     </style>
 </html>
