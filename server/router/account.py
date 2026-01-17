@@ -5,7 +5,7 @@ from sanic.request.types import Request
 from util.helper import get_remote_ip, get_path_base
 from core.account import CoreAccount, CoreAccountProvider
 from config import tagentic_config
-from router import login_required
+from router import check_login, auto_login
 from app_factory import TAgenticApp
 app = TAgenticApp.get_app()
 
@@ -59,14 +59,23 @@ class AccountProviderListApi(HTTPMethodView):
 
 
 class AccountInfoApi(HTTPMethodView):
-    @login_required
     async def get(self, request: Request):
+        on_response = None
+        if app.config.AUTO_CREATE_ACCOUNT:
+            # 自动创建账户
+            on_response = await auto_login(request)
+        else:
+            check_login(request)
+
         account = await CoreAccount.get(request.ctx.db, request.ctx.account_id)
 
         account.Password = None
         account.PasswordSalt = None
 
-        return json({"Info": account.to_dict()})
+        resp = json({"Info": account.to_dict()})
+        if on_response:
+            resp = on_response(resp)
+        return resp
 
 
 app.add_route(AccountProviderListApi.as_view(), "/account/providers")
