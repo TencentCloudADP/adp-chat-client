@@ -631,10 +631,11 @@ watch(() => props.isMobile, (newVal) => {
 // 组件挂载时自动加载数据
 onMounted(async () => {
     if (useApiMode.value && props.autoLoad) {
+        // 先加载用户信息，因为如果配置了AUTO_CREATE_ACCOUNT，会在加载用户信息时创建账户
+        await loadUserInfo()
         await Promise.all([
             loadApplications(),
             loadConversations(),
-            loadUserInfo(),
         ]);
     }
 });
