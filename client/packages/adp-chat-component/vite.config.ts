@@ -12,6 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const isAnalyze = mode === 'analyze'
+  const isUmd = mode === 'umd'
   return {
     plugins: [
       vue(), 
@@ -20,7 +21,7 @@ export default defineConfig(({ mode }) => {
         // 指定要编译的 TypeScript 配置文件
         tsconfigPath: './tsconfig.app.json',
         // 输出目录
-        outDir: 'dist',
+        outDir: 'dist/types',
         // 包含的文件
         include: ['src/**/*.ts', 'src/**/*.tsx', 'src/**/*.vue'],
         // 排除的文件
@@ -59,17 +60,32 @@ export default defineConfig(({ mode }) => {
       port: 3000,
     },
     build: {
+      outDir: isUmd ? "dist/umd" : "dist/es",
       lib: {
         entry: path.resolve(__dirname, 'src/index.ts'),
         name: 'ADPChatComponent',
-        formats: ['es', 'umd'],
       },
       rollupOptions: {
-        // 外部化依赖，不打包进库（仅 vue 和 tdesign-vue-next）
-        // @tdesign-vue-next/chat 没有 CDN UMD 版本，需要打包进产物
-        // external: ['vue', 'tdesign-vue-next'],
-        external: [],
+        // 外部化依赖，不打包进库
+        external: isUmd ? [] : ['vue', 'tdesign-vue-next', '@tdesign-vue-next/chat'],
         output: [
+          isUmd ? {
+            format: 'umd',
+            name: 'ADPChatComponent',
+            entryFileNames: 'adp-chat-component.umd.js',
+            globals: {
+              vue: 'Vue',
+              'tdesign-vue-next': 'TDesign',
+              '@tdesign-vue-next/chat': 'TDesignChat',
+            },
+            assetFileNames: (assetInfo) => {
+              if (assetInfo.name === 'style.css') return 'adp-chat-component.css'
+              return assetInfo.name || 'assets/[name]-[hash][extname]'
+            },
+            // UMD 不支持 manualChunks，动态导入会被内联
+            inlineDynamicImports: true,
+          }
+          :
           // ES 格式 - 支持代码分割和按需加载
           {
             format: 'es',
@@ -94,23 +110,6 @@ export default defineConfig(({ mode }) => {
                 return 'katex'
               }
             },
-          },
-          // UMD 格式 - 不支持代码分割，所有内容打包到一起
-          {
-            format: 'umd',
-            name: 'ADPChatComponent',
-            entryFileNames: 'adp-chat-component.umd.js',
-            globals: {
-              vue: 'Vue',
-              'tdesign-vue-next': 'TDesign',
-              '@tdesign-vue-next/chat': 'TDesignChat',
-            },
-            assetFileNames: (assetInfo) => {
-              if (assetInfo.name === 'style.css') return 'adp-chat-component.css'
-              return assetInfo.name || 'assets/[name]-[hash][extname]'
-            },
-            // UMD 不支持 manualChunks，动态导入会被内联
-            inlineDynamicImports: true,
           },
         ],
       },

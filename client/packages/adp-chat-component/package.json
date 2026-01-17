@@ -3,15 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "main": "./dist/adp-chat-component.umd.js",
-  "module": "./dist/adp-chat-component.es.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/umd/adp-chat-component.umd.js",
+  "module": "./dist/es/adp-chat-component.es.js",
+  "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
       "development": "./src/index.ts",
-      "import": "./dist/adp-chat-component.es.js",
-      "require": "./dist/adp-chat-component.umd.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/adp-chat-component.es.js",
+      "require": "./dist/umd/adp-chat-component.umd.js"
     },
     "./style.css": "./dist/adp-chat-component.css",
     "./dist/*": "./dist/*",
@@ -23,8 +23,9 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build",
-    "build:lib": "vite build --mode lib",
+    "build": "rm -rf dist && vue-tsc -b && npm run build:es && npm run build:umd",
+    "build:es": "vite build --mode es",
+    "build:umd": "vite build --mode umd",
     "preview": "vite preview",
     "analyze": "vite build --mode analyze"
   },
