@@ -24,6 +24,7 @@
   - [Agent: Variables - API Parameters](#agent-variables---api-parameters)
   - [Deployment: Subpath](#deployment-subpath)
   - [Deployment: Rate Limiting](#deployment-rate-limiting)
+  - [Deployment: CORS](#deployment-cors)
 
 # Deployment
 
@@ -95,6 +96,7 @@ APP_CONFIGS='[
 
 # JWT secret key, a random string, can be generated using the uuidgen command
 SECRET_KEY=
+
 ```
 
 > ⚠️ **Note**:
@@ -347,3 +349,13 @@ RATE_LIMIT=100/minute
 ```
 
 Configuration format reference: [limit string](https://limits.readthedocs.io/en/latest/quickstart.html#rate-limit-string-notation)
+
+## Deployment: CORS
+
+If your frontend and backend are on different domains/ports, configure `CORS_ORIGINS` in `.env` to allow the browser to make cross-origin requests.
+
+Multiple origins are separated by commas:
+
+```
+CORS_ORIGINS=http://localhost,http://127.0.0.1:3000
+```
