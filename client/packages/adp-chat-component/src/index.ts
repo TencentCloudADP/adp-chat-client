@@ -34,9 +34,7 @@ export type {
     ThemeType,
     ThemeProps,
     MobileProps,
-    DeepThinkingProps,
     FullscreenProps,
-    ModelSelectProps,
     CommonLayoutProps,
     ChatRelatedProps,
     LanguageOption,
@@ -49,9 +47,7 @@ export type {
 export {
     themePropsDefaults,
     mobilePropsDefaults,
-    deepThinkingPropsDefaults,
     fullscreenPropsDefaults,
-    modelSelectPropsDefaults,
     commonLayoutPropsDefaults,
     chatRelatedPropsDefaults,
     defaultLanguageOptions,
@@ -78,7 +74,7 @@ export type {
 } from './model/chat'
 export { ScoreValue } from './model/chat'
 export type { FileProps } from './model/file'
-export type { ApiConfig } from './service/api'
+export type { ApiConfig, ApiDetailConfig } from './service/api'
 
 // Service 导出
 export {
@@ -86,7 +82,7 @@ export {
     configureAxios,
     setRequestInterceptor,
     setResponseInterceptor,
-    defaultApiConfig,
+    defaultApiDetailConfig,
     fetchApplicationList,
     fetchConversationList,
     fetchConversationDetail,
@@ -105,6 +101,13 @@ export {
     isMobileUA,
     hasTouch,
     isSmallScreen,
+    isSmallContainer,
+    parseSize,
+    normalizeSize,
+    normalizeWidth,
+    normalizeHeight,
+    getViewportWidth,
+    getViewportHeight,
 } from './utils/device'
 
 // 默认导出 (用于全局挂载)

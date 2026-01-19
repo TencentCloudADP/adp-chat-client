@@ -67,7 +67,7 @@ Complete chat interface component with message list, sender, sharing and more.
   { name: 'loadMore', params: '(conversationId, lastRecordId)', description: 'Load more history' },
   { name: 'rate', params: '(conversationId, recordId, score)', description: 'Rate (like/dislike)' },
   { name: 'share', params: '(conversationId, applicationId, recordIds)', description: 'Share message' },
-  { name: 'copy', params: '(content, type)', description: 'Copy content' },
+  { name: 'copy', params: '(rowtext, content, type)', description: 'Copy content, rowtext is rendered plain text, content is raw markdown' },
   { name: 'modelChange', params: 'option', description: 'Change model' },
   { name: 'toggleDeepThinking', description: 'Toggle deep thinking mode' },
   { name: 'uploadFile', params: 'File[]', description: 'Upload file' },

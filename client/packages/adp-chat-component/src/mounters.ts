@@ -1,4 +1,6 @@
 import { createApp, type App, type Component } from 'vue'
+import { configureAxios } from './service/httpService'
+import type { ApiConfig } from './service/api'
 
 // 导入组件
 import AIWarning from './components/AIWarning.vue'
@@ -98,6 +100,12 @@ function createComponentMounter<T extends MountConfig>(
     const div = createContainerElement(container, id)
     if (!div) return undefined
 
+    // 如果配置中包含 apiConfig，则配置 axios（apiConfig 现在直接是 AxiosRequestConfig）
+    const apiConfig = (props as any).apiConfig as ApiConfig | undefined
+    if (apiConfig) {
+      configureAxios(apiConfig)
+    }
+
     const app = createApp(component, props)
     app.mount(`#${id}`)
     mountedApps.set(id, app)
@@ -189,9 +197,6 @@ export interface ChatComponentConfig extends MountConfig {
   currentApplicationName?: string
   currentApplicationGreeting?: string
   currentApplicationOpeningQuestions?: string[]
-  modelOptions?: any[]
-  selectModel?: any
-  isDeepThinking?: boolean
   isMobile?: boolean
   theme?: 'light' | 'dark'
   i18n?: any
@@ -202,9 +207,7 @@ export interface ChatComponentConfig extends MountConfig {
   onLoadMore?: (conversationId: string, lastRecordId: string) => void
   onRate?: (conversationId: string, recordId: string, score: any) => void
   onShare?: (conversationId: string, applicationId: string, recordIds: string[]) => void
-  onCopy?: (content: string | undefined, type: string) => void
-  onModelChange?: (option: any) => void
-  onToggleDeepThinking?: () => void
+  onCopy?: (rowtext: string | undefined, content: string | undefined, type: string) => void
   onUploadFile?: (files: File[]) => void
   onStartRecord?: () => void
   onStopRecord?: () => void
@@ -225,17 +228,12 @@ export interface ChatItemConfig extends MountConfig {
 }
 
 export interface ChatSenderConfig extends MountConfig {
-  modelOptions?: any[]
-  selectModel?: any
-  isDeepThinking?: boolean
   isStreamLoad?: boolean
   isMobile?: boolean
   theme?: 'light' | 'dark'
   i18n?: any
   onSend?: (value: string, fileList: any[]) => void
   onStop?: () => void
-  onModelChange?: (option: any) => void
-  onToggleDeepThinking?: () => void
   onUploadFile?: (files: File[]) => void
   onStartRecord?: () => void
   onStopRecord?: () => void
@@ -274,12 +272,9 @@ export interface ChatLayoutConfig extends MountConfig {
   isMobile?: boolean
   logoUrl?: string
   logoTitle?: string
-  modelOptions?: any[]
-  selectModel?: any
-  isDeepThinking?: boolean
   maxAppLen?: number
-  showCloseButton?: boolean
-  showFullscreenButton?: boolean
+  isShowCloseButton?: boolean
+  isShowFullscreenButton?: boolean
   isFullscreen?: boolean
   aiWarningText?: string
   createConversationText?: string
@@ -287,7 +282,7 @@ export interface ChatLayoutConfig extends MountConfig {
   chatI18n?: any
   chatItemI18n?: any
   senderI18n?: any
-  apiConfig?: any
+  apiConfig?: ApiConfig
   autoLoad?: boolean
   onFullscreen?: (isFullscreen: boolean) => void
 }

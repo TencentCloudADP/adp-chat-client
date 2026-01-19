@@ -68,10 +68,10 @@ function init(container?: string, config?: ChatConfig): ComponentInstance
 
 <PropsTable data={[
   { name: 'container', type: 'string', default: "'body'", description: '挂载容器选择器' },
-  { name: 'canPark', type: 'boolean', default: 'false', description: '是否可停靠模式（显示悬浮按钮）' },
-  { name: 'modelType', type: "'full' | 'compact'", default: "'full'", description: '模式类型：full-全屏模式，compact-紧凑模式' },
-  { name: 'width', type: 'string | number', default: '400', description: '宽度（仅在 compact 模式生效）' },
-  { name: 'height', type: 'string | number', default: '600', description: '高度（仅在 compact 模式生效）' },
+  { name: 'isOverlay', type: 'boolean', default: 'false', description: '是否为浮层模式：true-使用 width/height 浮动在容器上，false-撑满容器' },
+  { name: 'width', type: 'string | number', default: '400', description: '宽度（仅在 isOverlay 为 true 时生效）' },
+  { name: 'height', type: 'string | number', default: "'80vh'", description: '高度（仅在 isOverlay 为 true 时生效）' },
+  { name: 'isShowCloseButton', type: 'boolean', default: 'true', description: '是否显示关闭按钮' },
   { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: '主题模式' },
   { name: 'logoUrl', type: 'string', default: "''", description: 'Logo 图片 URL' },
   { name: 'logoTitle', type: 'string', default: "''", description: 'Logo 标题文字' },
@@ -83,17 +83,12 @@ function init(container?: string, config?: ChatConfig): ComponentInstance
   { name: 'isChatting', type: 'boolean', default: 'false', description: '是否正在聊天中' },
   { name: 'user', type: 'UserInfo', default: '{}', description: '用户信息' },
   { name: 'languageOptions', type: 'LanguageOption[]', default: '中英文', description: '语言选项列表' },
-  { name: 'isMobile', type: 'boolean', default: 'false', description: '是否为移动端' },
-  { name: 'modelOptions', type: 'any[]', default: '[]', description: '模型选项列表' },
-  { name: 'selectModel', type: 'any', description: '当前选中的模型' },
-  { name: 'isDeepThinking', type: 'boolean', default: 'true', description: '是否启用深度思考模式' },
   { name: 'maxAppLen', type: 'number', default: '4', description: '最大应用显示数量' },
-  { name: 'showFullscreenButton', type: 'boolean', default: 'false', description: '是否显示全屏按钮' },
-  { name: 'isFullscreen', type: 'boolean', default: 'false', description: '是否处于全屏状态' },
+  { name: 'showFullscreenButton', type: 'boolean', default: 'true', description: '是否显示全屏按钮' },
   { name: 'onFullscreen', type: '(isFullscreen: boolean) => void', description: '全屏状态切换回调' },
-  { name: 'open', type: 'boolean', description: '是否展开面板（仅 canPark 模式）' },
-  { name: 'onOpenChange', type: '(open: boolean) => void', description: '面板展开状态变化回调' },
-  { name: 'showToggleButton', type: 'boolean', default: 'true', description: '是否显示悬浮切换按钮' },
+  { name: 'isOpen', type: 'boolean', description: '是否展开面板' },
+  { name: 'onOpenChange', type: '(isOpen: boolean) => void', description: '面板展开状态变化回调' },
+  { name: 'isShowToggleButton', type: 'boolean', default: 'true', description: '是否显示悬浮切换按钮' },
   { name: 'aiWarningText', type: 'string', default: "'内容由AI生成，仅供参考'", description: 'AI 警告文本' },
   { name: 'createConversationText', type: 'string', default: "'新建对话'", description: '新建对话提示文本' },
   { name: 'sideI18n', type: 'object', description: '侧边栏国际化文本' },
@@ -101,7 +96,6 @@ function init(container?: string, config?: ChatConfig): ComponentInstance
   { name: 'chatItemI18n', type: 'object', description: 'ChatItem 国际化文本' },
   { name: 'senderI18n', type: 'object', description: 'Sender 国际化文本' },
   { name: 'apiConfig', type: 'ApiConfig', description: 'API 配置（传入则启用 API 模式）' },
-  { name: 'autoLoad', type: 'boolean', default: 'true', description: '是否自动加载数据' },
 ]} />
 
 ## 国际化配置
@@ -185,8 +179,7 @@ ADPChatComponent.init('#chat-container', {
     userInfoApi: '/api/user/info',
     uploadApi: '/api/upload/file',
     asrUrlApi: '/api/helper/asr/url'
-  },
-  autoLoad: true
+  }
 })
 ```
 
@@ -208,40 +201,25 @@ interface ApiConfig {
 
 ## 模式说明
 
-### 全屏模式 (full)
+### 撑满容器模式
 
 组件占满整个容器，适用于独立页面：
 
 ```javascript
 ADPChatComponent.init('#chat-container', {
-  modelType: 'full'
+  isOverlay: false
 })
 ```
 
-### 紧凑模式 (compact)
+### 浮层模式
 
-组件以固定宽高显示，适用于嵌入到现有页面：
+组件以固定宽高浮动显示，适用于嵌入到现有页面：
 
 ```javascript
 ADPChatComponent.init('#chat-container', {
-  modelType: 'compact',
+  isOverlay: true,
   width: 400,
-  height: 600
-})
-```
-
-### 停靠模式 (canPark)
-
-显示悬浮按钮，点击后展开聊天面板：
-
-```javascript
-ADPChatComponent.init('#chat-container', {
-  canPark: true,
-  showToggleButton: true,
-  open: false,
-  onOpenChange: (open) => {
-    console.log('面板状态:', open)
-  }
+  height: '80vh'
 })
 ```
 

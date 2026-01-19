@@ -12,7 +12,7 @@ import type { Application } from '../../model/application';
 import type { ChatConversation, Record } from '../../model/chat';
 import type { FileProps } from '../../model/file';
 import { ScoreValue } from '../../model/chat';
-import type { ApiConfig } from '../../service/api';
+import type { ApiConfig, ApiDetailConfig } from '../../service/api';
 import {
     fetchApplicationList,
     fetchConversationList,
@@ -22,11 +22,14 @@ import {
     createShare,
     fetchUserInfo,
     uploadFile,
+    defaultApiDetailConfig,
 } from '../../service/api';
 import { MessageCode, getMessage } from '../../model/messages';
 import { fetchSSE } from '../../model/sseRequest-reasoning';
 import { mergeRecord } from '../../utils/util';
 import { copyToClipboard } from '../../utils/clipboard';
+import { configureAxios } from '../../service/httpService';
+import { computeIsMobile } from '../../utils/device';
 import type { 
     LanguageOption, 
     UserInfo,
@@ -34,20 +37,26 @@ import type {
     ChatI18n, 
     ChatItemI18n, 
     SenderI18n,
-    CommonLayoutProps,
-    FullscreenProps,
-    DeepThinkingProps,
-    ModelSelectProps
+    ThemeProps,
+    FullscreenProps
 } from '../../model/type';
 import { 
     defaultLanguageOptions,
-    commonLayoutPropsDefaults,
-    fullscreenPropsDefaults,
-    deepThinkingPropsDefaults,
-    modelSelectPropsDefaults
+    themePropsDefaults,
+    fullscreenPropsDefaults
 } from '../../model/type';
 
-export interface Props extends CommonLayoutProps, FullscreenProps, DeepThinkingProps, ModelSelectProps {
+export interface Props extends ThemeProps, FullscreenProps {
+    /** 是否为浮层模式 */
+    isOverlay?: boolean;
+    /** 宽度（仅在 isOverlay 为 true 时用于计算 isMobile） */
+    width?: string | number;
+    /** 高度（仅在 isOverlay 为 true 时用于计算 isMobile） */
+    height?: string | number;
+    /** 容器选择器（仅在非 isOverlay 模式用于计算 isMobile） */
+    container?: string;
+    /** 侧边栏是否使用overlay模式 */
+    isSidePanelOverlay?: boolean;
     /** 应用列表 */
     applications?: Application[];
     /** 当前选中的应用 */
@@ -75,7 +84,7 @@ export interface Props extends CommonLayoutProps, FullscreenProps, DeepThinkingP
     /** 最大应用显示数量 */
     maxAppLen?: number;
     /** 是否显示关闭按钮 */
-    showCloseButton?: boolean;
+    isShowCloseButton?: boolean;
     /** AI警告文本 */
     aiWarningText?: string;
     /** 新建对话提示文本 */
@@ -95,10 +104,13 @@ export interface Props extends CommonLayoutProps, FullscreenProps, DeepThinkingP
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    ...commonLayoutPropsDefaults,
+    ...themePropsDefaults,
     ...fullscreenPropsDefaults,
-    ...deepThinkingPropsDefaults,
-    ...modelSelectPropsDefaults,
+    isOverlay: false,
+    width: 0,
+    height: 0,
+    container: 'body',
+    isSidePanelOverlay: false,
     applications: () => [],
     currentApplicationId: '',
     conversations: () => [],
@@ -110,10 +122,10 @@ const props = withDefaults(defineProps<Props>(), {
     logoUrl: '',
     logoTitle: '',
     maxAppLen: 4,
-    showCloseButton: false,
+    isShowCloseButton: true,
     aiWarningText: '内容由AI生成，仅供参考',
     createConversationText: '新建对话',
-    apiConfig: undefined,
+    apiConfig: () => ({}),
     autoLoad: true,
 });
 
@@ -132,9 +144,7 @@ const emit = defineEmits<{
     (e: 'loadMore', conversationId: string, lastRecordId: string): void;
     (e: 'rate', conversationId: string, recordId: string, score: typeof ScoreValue[keyof typeof ScoreValue]): void;
     (e: 'share', conversationId: string, applicationId: string, recordIds: string[]): void;
-    (e: 'copy', content: string | undefined, type: string): void;
-    (e: 'modelChange', option: any): void;
-    (e: 'toggleDeepThinking'): void;
+    (e: 'copy', rowtext: string | undefined, content: string | undefined, type: string): void;
     (e: 'uploadFile', files: File[]): void;
     (e: 'startRecord'): void;
     (e: 'stopRecord'): void;
@@ -143,8 +153,18 @@ const emit = defineEmits<{
     (e: 'dataLoaded', type: 'applications' | 'conversations' | 'chatList' | 'user', data: any): void;
 }>();
 
-const sidebarVisible = ref(!props.isMobile);
+const sidebarVisible = ref(!props.isSidePanelOverlay);
 const mainLayoutRef = ref<InstanceType<typeof MainLayout> | null>(null);
+
+// 计算是否为移动端模式（内部计算，不再依赖外部传入）
+const isMobile = computed(() => {
+    return computeIsMobile({
+        isOverlay: props.isOverlay,
+        width: props.width,
+        height: props.height,
+        container: props.container,
+    });
+});
 
 // 内部数据状态（当使用 API 时）
 const internalApplications = ref<Application[]>([]);
@@ -156,8 +176,14 @@ const internalCurrentConversation = ref<ChatConversation | undefined>(undefined)
 const internalIsChatting = ref(false);
 const abortController = ref<AbortController | null>(null);
 
-// 判断是否使用 API 模式
-const useApiMode = computed(() => !!props.apiConfig);
+// 判断是否使用 API 模式（始终启用）
+const useApiMode = computed(() => true);
+
+// 合并后的 API 详细配置（用户配置 + 默认配置）
+const mergedApiDetailConfig = computed<ApiDetailConfig>(() => ({
+    ...defaultApiDetailConfig,
+    ...props.apiConfig?.apiDetailConfig,
+}));
 
 // 实际使用的数据（优先使用 props，否则使用内部数据）
 const actualApplications = computed(() => 
@@ -179,7 +205,7 @@ const actualCurrentConversation = computed(() =>
     props.currentConversation || internalCurrentConversation.value
 );
 const actualIsChatting = computed(() => 
-    props.isChatting || internalIsChatting.value
+    useApiMode.value ? internalIsChatting.value : props.isChatting
 );
 
 // 计算属性
@@ -194,7 +220,7 @@ const currentConversationId = computed(() => actualCurrentConversation.value?.Id
 const loadApplications = async () => {
     if (!useApiMode.value) return;
     try {
-        const data = await fetchApplicationList(props.apiConfig?.applicationListApi);
+        const data = await fetchApplicationList(mergedApiDetailConfig.value.applicationListApi);
         internalApplications.value = data;
         // 默认选中第一个应用
         if (data.length > 0 && !internalCurrentApplication.value) {
@@ -211,7 +237,7 @@ const loadApplications = async () => {
 const loadConversations = async () => {
     if (!useApiMode.value) return;
     try {
-        const data = await fetchConversationList(props.apiConfig?.conversationListApi);
+        const data = await fetchConversationList(mergedApiDetailConfig.value.conversationListApi);
         internalConversations.value = data;
         emit('dataLoaded', 'conversations', data);
     } catch (error) {
@@ -226,7 +252,7 @@ const loadConversationDetail = async (conversationId: string) => {
     try {
         const response = await fetchConversationDetail(
             { ConversationId: conversationId },
-            props.apiConfig?.conversationDetailApi
+            mergedApiDetailConfig.value.conversationDetailApi
         );
         internalChatList.value = response?.Response?.Records || [];
         emit('dataLoaded', 'chatList', internalChatList.value);
@@ -240,7 +266,7 @@ const loadConversationDetail = async (conversationId: string) => {
 const loadUserInfo = async () => {
     if (!useApiMode.value) return;
     try {
-        const data = await fetchUserInfo(props.apiConfig?.userInfoApi);
+        const data = await fetchUserInfo(mergedApiDetailConfig.value.userInfoApi);
         internalUser.value = {
             avatarUrl: data.Avatar,
             avatarName: data.Name?.charAt(0) || '',
@@ -293,7 +319,7 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
                     FileInfos: fileList,
                 },
                 { signal: abortController.value?.signal },
-                props.apiConfig?.sendMessageApi
+                mergedApiDetailConfig.value.sendMessageApi
             );
         },
         {
@@ -383,7 +409,7 @@ const handleInternalLoadMore = async (conversationId: string, lastRecordId: stri
     try {
         const response = await fetchConversationDetail(
             { ConversationId: conversationId, LastRecordId: lastRecordId },
-            props.apiConfig?.conversationDetailApi
+            mergedApiDetailConfig.value.conversationDetailApi
         );
         const newRecords = response?.Response?.Records || [];
         if (newRecords.length > 0) {
@@ -410,7 +436,7 @@ const handleInternalRate = async (conversationId: string, recordId: string, scor
     try {
         await rateMessage(
             { ConversationId: conversationId, RecordId: recordId, Score: score },
-            props.apiConfig?.rateApi
+            mergedApiDetailConfig.value.rateApi
         );
         // 更新本地状态
         const record = internalChatList.value.find(r => r.RecordId === recordId);
@@ -434,10 +460,11 @@ const handleInternalShare = async (conversationId: string, applicationId: string
     try {
         const response = await createShare(
             { ConversationId: conversationId, ApplicationId: applicationId, RecordIds: recordIds },
-            props.apiConfig?.shareApi
+            mergedApiDetailConfig.value.shareApi
         );
         const shareUrl = `${window.location.origin}${window.location.pathname}#/share?ShareId=${response.ShareId}`;
         await copyToClipboard(shareUrl, {
+            isMobile: isMobile.value,
             onSuccess: () => {
                 const msg = getMessage(MessageCode.COPY_SUCCESS);
                 MessagePlugin[msg.type](msg.message);
@@ -460,14 +487,13 @@ const handleToggleSidebar = () => {
 };
 
 const handleSelectApplication = (app: Application) => {
-    console.log('handleSelectApplication',app)
     if (useApiMode.value) {
         internalCurrentApplication.value = app;
         internalCurrentConversation.value = undefined;
         internalChatList.value = [];
     }
     // 移动端选择应用后收起侧边栏
-    if (props.isMobile) {
+    if (isMobile.value || props.isSidePanelOverlay) {
         sidebarVisible.value = false;
     }
     emit('selectApplication', app);
@@ -480,7 +506,7 @@ const handleSelectConversation = async (conversation: ChatConversation) => {
         internalChatList.value = [];
     }
     // 移动端选择对话后收起侧边栏
-    if (props.isMobile) {
+    if (isMobile.value) {
         sidebarVisible.value = false;
     }
     emit('selectConversation', conversation);
@@ -503,8 +529,10 @@ const handleFullscreen = () => {
 };
 
 // 内部复制处理
-const handleInternalCopy = async (content: string | undefined, type: string) => {
+const handleInternalCopy = async (rowtext: string | undefined, content: string | undefined, type: string) => {
     await copyToClipboard(content, {
+        rawText: rowtext,
+        isMobile: isMobile.value,
         onSuccess: () => {
             const msg = getMessage(MessageCode.COPY_SUCCESS);
             MessagePlugin[msg.type](msg.message);
@@ -515,7 +543,7 @@ const handleInternalCopy = async (content: string | undefined, type: string) => 
             emit('message', MessageCode.COPY_FAILED, msg.message);
         },
     });
-    emit('copy', content, type);
+    emit('copy', rowtext, content, type);
 };
 
 // 内部文件上传处理（API 模式）
@@ -527,7 +555,7 @@ const handleInternalUploadFile = async (files: File[]) => {
 
     for (const file of files) {
         try {
-            const response = await uploadFile(file, currentApplicationId.value, props.apiConfig?.uploadApi);
+            const response = await uploadFile(file, currentApplicationId.value, mergedApiDetailConfig.value.uploadApi);
             // 上传成功后添加到文件列表
             const senderRef = mainLayoutRef.value?.getChatRef()?.getSenderRef();
             if (senderRef && response) {
@@ -623,14 +651,16 @@ watch([() => props.currentConversation, () => actualApplications.value], async (
     }
 }, { immediate: true });
 
-// 监听 isMobile 变化，自动调整侧边栏状态
-watch(() => props.isMobile, (newVal) => {
-    sidebarVisible.value = !newVal;
-});
-
 // 组件挂载时自动加载数据
 onMounted(async () => {
     if (useApiMode.value && props.autoLoad) {
+        // 配置 axios 实例（baseURL、timeout 等）
+        if (props.apiConfig) {
+            const { apiDetailConfig, ...axiosConfig } = props.apiConfig;
+            if (Object.keys(axiosConfig).length > 0) {
+                configureAxios(axiosConfig);
+            }
+        }
         // 先加载用户信息，因为如果配置了AUTO_CREATE_ACCOUNT，会在加载用户信息时创建账户
         await loadUserInfo()
         await Promise.all([
@@ -656,7 +686,7 @@ defineExpose({
         <TContent class="content">
             <!-- 移动端毛玻璃遮罩 -->
             <div 
-                v-if="isMobile && sidebarVisible" 
+                v-if="isSidePanelOverlay && sidebarVisible" 
                 class="mobile-overlay" 
                 @click="handleToggleSidebar"
             ></div>
@@ -671,7 +701,7 @@ defineExpose({
                 :userName="actualUser?.name"
                 :theme="theme"
                 :languageOptions="languageOptions"
-                :isMobile="isMobile"
+                :isSidePanelOverlay="isSidePanelOverlay"
                 :maxAppLen="maxAppLen"
                 :i18n="sideI18n"
                 @toggleSidebar="handleToggleSidebar"
@@ -698,9 +728,6 @@ defineExpose({
                 :chatId="currentConversationId"
                 :chatList="actualChatList"
                 :isChatting="actualIsChatting"
-                :modelOptions="modelOptions"
-                :selectModel="selectModel"
-                :isDeepThinking="isDeepThinking"
                 :isMobile="isMobile"
                 :theme="theme"
                 :showSidebarToggle="!sidebarVisible"
@@ -710,7 +737,7 @@ defineExpose({
                 :chatItemI18n="chatItemI18n"
                 :senderI18n="senderI18n"
                 :useInternalRecord="useApiMode"
-                :asrUrlApi="apiConfig?.asrUrlApi"
+                :asrUrlApi="mergedApiDetailConfig.asrUrlApi"
                 @toggleSidebar="handleToggleSidebar"
                 @createConversation="handleCreateConversation"
                 @close="handleClose"
@@ -720,22 +747,20 @@ defineExpose({
                 @rate="handleInternalRate"
                 @share="handleInternalShare"
                 @copy="handleInternalCopy"
-                @modelChange="(option: any) => emit('modelChange', option)"
-                @toggleDeepThinking="emit('toggleDeepThinking')"
                 @uploadFile="handleInternalUploadFile"
                 @startRecord="emit('startRecord')"
                 @stopRecord="emit('stopRecord')"
                 @message="(code: MessageCode, message: string) => emit('message', code, message)"
                 @conversationChange="(conversationId: string) => emit('conversationChange', conversationId)"
             >
-                <template #header-fullscreen-content v-if="showFullscreenButton || $slots['header-fullscreen-content']">
+                <template #header-fullscreen-content v-if="isShowFullscreenButton || $slots['header-fullscreen-content']">
                     <slot name="header-fullscreen-content">
-                        <CustomizedIcon v-if="showFullscreenButton" name="fullscreen" :theme="theme" @click="handleFullscreen"/>
+                        <CustomizedIcon v-if="isShowFullscreenButton" name="fullscreen" :theme="theme" @click="handleFullscreen"/>
                     </slot>
                 </template>
-                <template #header-close-content v-if="showCloseButton || $slots['header-close-content']">
+                <template #header-close-content v-if="isShowCloseButton || $slots['header-close-content']">
                     <slot name="header-close-content">
-                        <CustomizedIcon v-if="showCloseButton" name="logout_close" :theme="theme" @click="handleClose"/>
+                        <CustomizedIcon v-if="isShowCloseButton" name="logout_close" :theme="theme" @click="handleClose"/>
                     </slot>
                 </template>
             </MainLayout>

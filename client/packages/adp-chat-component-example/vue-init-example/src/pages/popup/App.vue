@@ -4,7 +4,7 @@ import '../../shared/styles.css'
 
 const { isFullscreen } = useChat({
   getConfig: ({ isFullscreen }) => ({
-    modelType: 'compact',
+    isOverlay: true,
     width: 400,
     height: isFullscreen ? 'calc(100vh - 40px)' : 640,
     logoTitle: 'ADP Chat',

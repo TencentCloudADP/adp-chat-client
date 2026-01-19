@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { ChatSender as TChatSender, Attachments as TAttachments } from '@tdesign-vue-next/chat'
+import { ChatSender as TChatSender } from '@tdesign-vue-next/chat'
 import { MessagePlugin, Upload as TUpload, Tooltip as TTooltip } from 'tdesign-vue-next'
 import type { UploadFile, RequestMethodResponse } from 'tdesign-vue-next'
 import type { FileProps } from '../../model/file';
@@ -8,18 +8,10 @@ import { MessageCode, getMessage } from '../../model/messages';
 import type { ChatRelatedProps, SenderI18n } from '../../model/type';
 import { chatRelatedPropsDefaults, defaultSenderI18n } from '../../model/type';
 import RecordIcon from '../Common/RecordIcon.vue';
+import FileList from '../Common/FileList.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import WebRecorder from '../../utils/webRecorder';
 import { getAsrUrl } from '../../service/api';
-
-// TAttachments 组件的文件项类型
-interface AttachmentItem {
-    name?: string;
-    url?: string;
-    status?: 'success' | 'fail' | 'progress' | 'waiting';
-    key?: string;
-    [key: string]: any;
-}
 
 export interface Props extends ChatRelatedProps {
     /** 是否正在流式加载 */
@@ -49,8 +41,6 @@ const i18n = computed(() => ({
 const emit = defineEmits<{
     (e: 'stop'): void;
     (e: 'send', value: string, fileList: FileProps[]): void;
-    (e: 'modelChange', option: any): void;
-    (e: 'toggleDeepThinking'): void;
     (e: 'uploadFile', files: File[]): void;
     (e: 'startRecord'): void;
     (e: 'stopRecord'): void;
@@ -77,17 +67,7 @@ const recording = ref(false)
  */
 const fileList = ref([] as FileProps[])
 
-/**
- * 转换为 TAttachments 组件需要的格式
- */
-const attachmentsList = computed<AttachmentItem[]>(() => {
-    return fileList.value.map((file, index) => ({
-        key: file.uid || file.url || String(index),
-        name: file.name || '',
-        url: file.url || '',
-        status: file.status === 'done' ? 'success' : (file.status as 'success' | 'fail' | 'progress' | 'waiting'),
-    }));
-})
+
 
 /**
  * WebRecorder 实例引用
@@ -141,17 +121,11 @@ const handleFileSelect = async function (files: UploadFile | UploadFile[]): Prom
 }
 
 /**
- * 删除文件 - 适配 TAttachments 组件的 onRemove 事件
+ * 删除文件
  */
-const handleDeleteFile = (event: CustomEvent<AttachmentItem>) => {
-    const item = event.detail;
-    const index = fileList.value.findIndex(
-        (file) => (file.uid || file.url) === (item.key || item.url)
-    );
-    if (index !== -1) {
-        fileList.value.splice(index, 1);
-        fileList.value = [...fileList.value];
-    }
+const handleDeleteFile = (index: number) => {
+    fileList.value.splice(index, 1);
+    fileList.value = [...fileList.value];
 }
 
 /**
@@ -347,7 +321,7 @@ defineExpose({
         autosize: { minRows: 1, maxRows: 6 },
     }" @stop="emit('stop')" @send="handleSend" @change="handleInput" @paste="handlePaste">
         <template #inner-header>
-            <TAttachments overflow="scrollX" v-if="attachmentsList.length > 0" :items="attachmentsList" :onRemove="handleDeleteFile"/>
+            <FileList :fileList="fileList" :theme="theme" @delete="handleDeleteFile"/>
         </template>
         <template #suffix>
             <!-- 等待中的发送按钮 -->

@@ -71,7 +71,6 @@ const apiConfig = {
   { name: 'selectModel', type: 'any', description: 'Selected model' },
   { name: 'isDeepThinking', type: 'boolean', default: 'true', description: 'Enable deep thinking mode' },
   { name: 'showFullscreenButton', type: 'boolean', default: 'false', description: 'Show fullscreen button' },
-  { name: 'isFullscreen', type: 'boolean', default: 'false', description: 'Whether in fullscreen mode' },
   { name: 'maxAppLen', type: 'number', default: '4', description: 'Max application display count' },
   { name: 'showCloseButton', type: 'boolean', default: 'false', description: 'Show close button' },
   { name: 'aiWarningText', type: 'string', default: "'AI generated content'", description: 'AI warning text' },
@@ -81,7 +80,6 @@ const apiConfig = {
   { name: 'chatItemI18n', type: 'object', description: 'ChatItem i18n text' },
   { name: 'senderI18n', type: 'object', description: 'Sender i18n text' },
   { name: 'apiConfig', type: 'ApiConfig', description: 'API config (enables API mode)' },
-  { name: 'autoLoad', type: 'boolean', default: 'true', description: 'Auto load data' },
 ]} />
 
 <EventsTable data={[
@@ -93,13 +91,12 @@ const apiConfig = {
   { name: 'logout', description: 'Logout' },
   { name: 'userClick', description: 'User info click' },
   { name: 'close', description: 'Close' },
-  { name: 'fullscreen', params: 'isFullscreen: boolean', description: 'Fullscreen state change' },
   { name: 'send', params: '(query, fileList, conversationId, applicationId)', description: 'Send message' },
   { name: 'stop', description: 'Stop generation' },
   { name: 'loadMore', params: '(conversationId, lastRecordId)', description: 'Load more' },
   { name: 'rate', params: '(conversationId, recordId, score)', description: 'Rate' },
   { name: 'share', params: '(conversationId, applicationId, recordIds)', description: 'Share' },
-  { name: 'copy', params: '(content, type)', description: 'Copy' },
+  { name: 'copy', params: '(rowtext, content, type)', description: 'Copy, rowtext is rendered plain text, content is raw markdown' },
   { name: 'modelChange', params: 'option', description: 'Change model' },
   { name: 'toggleDeepThinking', description: 'Toggle deep thinking' },
   { name: 'uploadFile', params: 'File[]', description: 'Upload file' },

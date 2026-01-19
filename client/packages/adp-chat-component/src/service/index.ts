@@ -3,7 +3,7 @@
  */
 export { httpService, configureAxios, setRequestInterceptor, setResponseInterceptor } from './httpService';
 export {
-    defaultApiConfig,
+    defaultApiDetailConfig,
     fetchApplicationList,
     fetchConversationList,
     fetchConversationDetail,
@@ -13,4 +13,4 @@ export {
     fetchUserInfo,
     uploadFile,
 } from './api';
-export type { ApiConfig } from './api';
+export type { ApiConfig, ApiDetailConfig } from './api';

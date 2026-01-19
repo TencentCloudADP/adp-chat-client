@@ -6,8 +6,8 @@
     <!-- 聊天内容容器 -->
     <div id="chat-content" class="chat-box">
         <!-- 聊天组件 -->
-        <TChat :class="{ isChatting: isChatting }" :reverse="false" style="height: 100%" :clear-history="false"
-            @clear="clearConfirm">
+        <TChat ref="chatRef" :class="{ isChatting: isChatting }" :reverse="false" style="height: 100%" :clear-history="false"
+            @scroll="handleChatScroll" @clear="clearConfirm">
             <!-- 默认问题提示 -->
             <template v-if="chatList.length <= 0 && !messageLoading && !chatId">
                 <AppType 
@@ -69,6 +69,13 @@
             </template>
             <!-- 底部发送区域 -->
             <template #footer>
+                <!-- 回到底部按钮 -->
+                <BackToBottom 
+                    v-show="chatId && ((isShowToBottom && !isChatting) || hasUserScrolled)"
+                    :loading="isChatting" 
+                    :theme="theme"
+                    @click="handleClickBackToBottom" 
+                />
                 <TCard v-if="isSelecting" size="small" class="share-setting-container" shadow
                     bodyClassName="share-setting-card">
                     <div class="share-setting-content">
@@ -91,9 +98,6 @@
                 </TCard>
                 <Sender 
                     ref="senderRef" 
-                    :modelOptions="modelOptions" 
-                    :selectModel="selectModel"
-                    :isDeepThinking="isDeepThinking" 
                     :isStreamLoad="isChatting" 
                     :isMobile="isMobile"
                     :theme="theme"
@@ -102,8 +106,6 @@
                     :asrUrlApi="asrUrlApi"
                     @stop="onStop"
                     @send="handleSend" 
-                    @modelChange="handleModelChange"
-                    @toggleDeepThinking="toggleDeepThinking"
                     @uploadFile="handleUploadFile"
                     @startRecord="handleStartRecord"
                     @stopRecord="handleStopRecord"
@@ -117,18 +119,18 @@
 <script setup lang="tsx">
 import { ref, watch, computed, onMounted, onUnmounted, nextTick, toRefs } from 'vue'
 import InfiniteLoading from 'vue-infinite-loading'
-import { ChatList as TChat } from '@tdesign-vue-next/chat'
+import { Chat as TChat } from '@tdesign-vue-next/chat'
 import { Checkbox, Loading as TLoading, Card as TCard, Checkbox as TCheckbox, Divider as TDivider } from 'tdesign-vue-next'
 import type { Record } from '../../model/chat'
 import { ScoreValue } from '../../model/chat'
 import type { FileProps } from '../../model/file';
 import { MessageCode } from '../../model/messages';
-import { modelOptions as defaultModelOptions, defaultModel } from '../../model/models'
 import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type'
 import { chatRelatedPropsDefaults, defaultChatI18n, defaultChatItemI18n, defaultSenderI18n } from '../../model/type'
 
 import AppType from './AppType.vue'
 import Sender from './Sender.vue'
+import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
 import CustomizedIcon from '../CustomizedIcon.vue';
 
@@ -171,8 +173,6 @@ const props = withDefaults(defineProps<Props>(), {
     currentApplicationName: '',
     currentApplicationGreeting: '',
     currentApplicationOpeningQuestions: () => [],
-    modelOptions: () => defaultModelOptions,
-    selectModel: () => defaultModel,
     i18n: () => ({}),
     chatItemI18n: () => ({}),
     senderI18n: () => ({}),
@@ -191,9 +191,6 @@ const {
     isChatting,
     isMobile,
     theme,
-    modelOptions,
-    selectModel,
-    isDeepThinking,
     useInternalRecord,
     asrUrlApi
 } = toRefs(props);
@@ -220,9 +217,7 @@ const emit = defineEmits<{
     (e: 'loadMore', conversationId: string, lastRecordId: string): void;
     (e: 'rate', conversationId: string, recordId: string, score: typeof ScoreValue[keyof typeof ScoreValue]): void;
     (e: 'share', conversationId: string, applicationId: string, recordIds: string[]): void;
-    (e: 'copy', content: string | undefined, type: string): void;
-    (e: 'modelChange', option: any): void;
-    (e: 'toggleDeepThinking'): void;
+    (e: 'copy', rowtext: string | undefined, content: string | undefined, type: string): void;
     (e: 'uploadFile', files: File[]): void;
     (e: 'startRecord'): void;
     (e: 'stopRecord'): void;
@@ -277,6 +272,65 @@ const loading = ref(false)
 const messageLoading = ref(false)
 
 /**
+ * 聊天组件引用
+ */
+const chatRef = ref<{ scrollToBottom?: (options?: { behavior?: string }) => void } | null>(null)
+
+/**
+ * 是否显示回到底部按钮
+ */
+const isShowToBottom = ref(false)
+
+/**
+ * 上次滚动位置
+ */
+const lastScrollTop = ref(0)
+
+/**
+ * 用户是否手动滚动
+ */
+const hasUserScrolled = ref(false)
+
+/**
+ * 滚动到底部
+ */
+const backToBottom = () => {
+    if (!(chatRef.value && chatRef.value.scrollToBottom)) return;
+    if (hasUserScrolled.value) return;
+    chatRef.value.scrollToBottom({
+        behavior: 'smooth',
+    });
+}
+
+/**
+ * 点击回到底部按钮
+ */
+const handleClickBackToBottom = () => {
+    hasUserScrolled.value = false;
+    backToBottom()
+}
+
+/**
+ * 聊天滚动事件
+ */
+const handleChatScroll = function ({ e }: { e: Event }) {
+    if (messageLoading.value) return;
+    const scrollTop = (e.target as HTMLElement).scrollTop
+    const clientHeight = (e.target as HTMLElement).clientHeight
+    const scrollHeight = (e.target as HTMLElement).scrollHeight
+    const isToBottom = clientHeight + scrollTop < scrollHeight - 2
+    isShowToBottom.value = isToBottom
+
+    if (lastScrollTop.value - scrollTop > 4 && props.isChatting) {
+        hasUserScrolled.value = true
+    }
+    if (!isToBottom) {
+        hasUserScrolled.value = false
+    }
+    lastScrollTop.value = scrollTop
+}
+
+/**
  * footer高度观察器
  */
 let footerResizeObserver: ResizeObserver | null = null
@@ -317,20 +371,6 @@ onUnmounted(() => {
  */
 const getDefaultQuestion = (value: string) => {
     inputEnter(value)
-}
-
-/**
- * 切换模型
- */
-const handleModelChange = (option: any) => {
-    emit('modelChange', option);
-}
-
-/**
- * 切换深度思考状态
- */
-const toggleDeepThinking = () => {
-    emit('toggleDeepThinking');
 }
 
 /**
@@ -478,8 +518,8 @@ const onRate = (record: Record, score: typeof ScoreValue[keyof typeof ScoreValue
 /**
  * 复制
  */
-const onCopy = (content: string | undefined, type: string) => {
-    emit('copy', content, type);
+const onCopy = (rowtext: string | undefined, content: string | undefined, type: string) => {
+    emit('copy', rowtext, content, type);
 }
 
 /**
@@ -543,7 +583,9 @@ defineExpose({
     clearConfirm,
     getSenderRef: () => senderRef.value,
     notifyLoaded,
-    notifyComplete
+    notifyComplete,
+    backToBottom,
+    setHasUserScrolled: (value: boolean) => { hasUserScrolled.value = value }
 })
 </script>
 

@@ -4,9 +4,7 @@ import type { Record, AgentThought } from '../../model/chat';
 import { ScoreValue } from '../../model/chat';
 import type { CommonLayoutProps, ChatItemI18n } from '../../model/type';
 import { commonLayoutPropsDefaults, defaultChatItemI18n } from '../../model/type';
-import {
-    ChatItem as TChatItem,
-} from '@tdesign-vue-next/chat';
+import {  ChatItem as TChatItem } from '@tdesign-vue-next/chat';
 import { Tooltip, Loading as TLoading, Link as TLink } from 'tdesign-vue-next';
 import OptionCard from '../Common/OptionCard.vue';
 import MdContent from '../Common/MdContent.vue';
@@ -46,7 +44,7 @@ const emit = defineEmits<{
     (e: 'resend', relatedRecordId: string | undefined): void;
     (e: 'share', recordIds: string[]): void;
     (e: 'rate', record: Record, score: typeof ScoreValue[keyof typeof ScoreValue]): void;
-    (e: 'copy', content: string | undefined, type: string): void;
+    (e: 'copy', rowtext: string | undefined, content: string | undefined, type: string): void;
     (e: 'sendMessage', message: string): void;
 }>();
 
@@ -58,7 +56,13 @@ const expandStatus = ref(false);
  * 复制内容到剪贴板
  */
 async function copyContent(event: any, content: string | undefined, type: string): Promise<void> {
-    emit('copy', content, type);
+    let rowtext: string | undefined;
+    const container = event?.target as HTMLElement;
+    const markdownElements = container?.closest('.t-chat__content')?.querySelectorAll('.markdown-body');
+    rowtext = markdownElements && markdownElements.length > 0 
+        ? markdownElements[markdownElements.length - 1]?.textContent || undefined 
+        : undefined;
+    emit('copy', rowtext, content, type);
 }
 
 /**
