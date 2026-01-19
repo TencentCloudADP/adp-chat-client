@@ -14,8 +14,10 @@ import type { LanguageOption, SideI18n, CommonLayoutProps } from '../../model/ty
 import { defaultLanguageOptions, defaultSideI18n, commonLayoutPropsDefaults } from '../../model/type';
 
 interface Props extends CommonLayoutProps {
-    /** 是否显示侧边栏 */
+    /** 是否显示侧边栏，默认值：isSidePanelOverlay 为 true 时为 false，否则为 true */
     visible?: boolean;
+    /** 侧边栏是否使用overlay模式（覆盖内容区域） */
+    isSidePanelOverlay?: boolean;
     /** 应用列表 */
     applications?: Application[];
     /** 当前选中的应用ID */
@@ -40,7 +42,8 @@ interface Props extends CommonLayoutProps {
 
 const props = withDefaults(defineProps<Props>(), {
     ...commonLayoutPropsDefaults,
-    visible: true,
+    visible: undefined,
+    isSidePanelOverlay: true,
     applications: () => [],
     currentApplicationId: '',
     conversations: () => [],
@@ -59,6 +62,15 @@ const i18n = computed(() => ({
     ...props.i18n
 }));
 
+// visible 的实际值：如果传入了 visible 则使用传入值，否则根据 isSidePanelOverlay 决定
+const actualVisible = computed(() => {
+    if (props.visible !== undefined) {
+        return props.visible;
+    }
+    // isSidePanelOverlay 为 true 时默认不显示，否则默认显示
+    return !props.isSidePanelOverlay;
+});
+
 const emit = defineEmits<{
     (e: 'toggleSidebar'): void;
     (e: 'selectApplication', app: Application): void;
@@ -69,8 +81,8 @@ const emit = defineEmits<{
     (e: 'userClick'): void;
 }>();
 
-const mode = computed(() => props.isMobile ? 'overlay' : 'push');
-const drawerSize = computed(() => props.isMobile ? '240px' : '280px');
+const mode = computed(() => props.isSidePanelOverlay  ? 'overlay' : 'push');
+const drawerSize = computed(() => props.isSidePanelOverlay ? '240px' : '280px');
 
 const handleToggleSidebar = () => {
     emit('toggleSidebar');
@@ -102,14 +114,14 @@ const handleUserClick = () => {
 </script>
 
 <template>
-    <div class="custome-drawer-container" :class="{ 'drawer-open': visible, 'drawer-closed': !visible, 'is-mobile': isMobile }">
+    <div class="custome-drawer-container" :class="{ 'drawer-open': actualVisible, 'drawer-closed': !actualVisible, 'is-mobile': isSidePanelOverlay }">
         <TDrawer 
             drawerClassName="custome-drawer" 
             :size="drawerSize" 
-            :visible="visible" 
+            :visible="actualVisible" 
             placement="left" 
             :mode="mode"
-            :show-overlay="false"
+            :show-overlay="true"
             show-in-attached-element
         >
             <div class="drawer-content">

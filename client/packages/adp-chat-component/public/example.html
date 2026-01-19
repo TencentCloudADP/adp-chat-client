@@ -11,7 +11,7 @@
             window.onload = function() {
                 ADPChatComponent.init('#chat-container', {
                     showFullscreenButton: true,
-                    modelType: 'compact',
+                    isOverlay: true,
                     onFullscreen: (isFullscreen) => {
                         document.getElementById('chat-container').classList.toggle('chat-container--fullscreen', isFullscreen);
                     }

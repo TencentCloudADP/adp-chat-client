@@ -2,11 +2,12 @@
 import { useChat } from './shared/useChat'
 import './shared/styles.css'
 
-const { isFullscreen } = useChat({
-  getConfig: () => ({
-    modelType: 'compact',
-    width: 420,
-    height: '80vh',
+const { isFullscreen, isOpen } = useChat({
+  getConfig: ({ isFullscreen }) => ({
+    width: 400,
+    height: 640,
+    isSidePanelOverlay: !isFullscreen,
+    isOverlay: !isFullscreen,
     logoTitle: 'ADP Chat',
     showFullscreenButton: true,
     showToggleButton: true,
@@ -21,7 +22,7 @@ const { isFullscreen } = useChat({
         <h1>ADP Chat Demo</h1>
       </div>
     </div>
-    <div id="chat-container" :class="{ 'chat-container--fullscreen': isFullscreen }"></div>
+    <div id="chat-container" :class="{ 'chat-container--fullscreen': isFullscreen && isOpen }"></div>
   </div>
 </template>
 
@@ -34,8 +35,11 @@ const { isFullscreen } = useChat({
 }
 
 #chat-container {
-  width: 0px;
+  position: relative;
   height: 100vh;
+  flex-shrink: 0;
+  width: 0;
+  transition: width 0.3s ease;
 }
 
 /* 弹出模式：覆盖在container上 */

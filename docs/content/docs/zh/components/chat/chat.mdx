@@ -67,7 +67,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
   { name: 'loadMore', params: '(conversationId, lastRecordId)', description: '加载更多历史消息' },
   { name: 'rate', params: '(conversationId, recordId, score)', description: '评分（点赞/踩）' },
   { name: 'share', params: '(conversationId, applicationId, recordIds)', description: '分享消息' },
-  { name: 'copy', params: '(content, type)', description: '复制内容' },
+  { name: 'copy', params: '(rowtext, content, type)', description: '复制内容，rowtext为渲染后的纯文本，content为原始markdown' },
   { name: 'modelChange', params: 'option', description: '切换模型' },
   { name: 'toggleDeepThinking', description: '切换深度思考模式' },
   { name: 'uploadFile', params: 'File[]', description: '上传文件' },

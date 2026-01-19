@@ -5,7 +5,7 @@ import './shared/styles.css'
 const App: React.FC = () => {
   const { isFullscreen } = useChat({
     getConfig: () => ({
-      modelType: 'compact',
+      isOverlay: true,
       width: 420,
       height: '80vh',
       logoTitle: 'ADP Chat',

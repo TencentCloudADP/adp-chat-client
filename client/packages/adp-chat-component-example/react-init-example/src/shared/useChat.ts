@@ -31,7 +31,7 @@ export function useChat(options: UseChatOptions) {
     
     instanceRef.current = ADPChatComponent.init(containerId, {
       ...defaultConfig,
-      open: stateRef.current.isOpen,
+      isOpen: stateRef.current.isOpen,
       isFullscreen: stateRef.current.isFullscreen,
       ...userConfig,
       onOpenChange: (newOpen: boolean) => {

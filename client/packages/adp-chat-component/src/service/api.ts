@@ -8,9 +8,9 @@ import type { ChatConversation, Record, ChatConversationProps } from '../model/c
 import type { AxiosRequestConfig } from 'axios';
 
 /**
- * API 路径配置接口
+ * API 详细路径配置接口
  */
-export interface ApiConfig {
+export interface ApiDetailConfig {
     /** 应用列表接口路径 */
     applicationListApi?: string;
     /** 会话列表接口路径 */
@@ -32,9 +32,17 @@ export interface ApiConfig {
 }
 
 /**
+ * API 配置接口（axios 配置 + API 路径配置）
+ */
+export interface ApiConfig extends AxiosRequestConfig {
+    /** API 详细路径配置 */
+    apiDetailConfig?: ApiDetailConfig;
+}
+
+/**
  * 默认 API 路径配置
  */
-export const defaultApiConfig: ApiConfig = {
+export const defaultApiDetailConfig: ApiDetailConfig = {
     applicationListApi: '/application/list',
     conversationListApi: '/chat/conversations',
     conversationDetailApi: '/chat/messages',
@@ -51,9 +59,9 @@ export const defaultApiConfig: ApiConfig = {
  * @param apiPath API 路径
  */
 export const fetchApplicationList = async (apiPath?: string): Promise<Application[]> => {
-    const url = apiPath || defaultApiConfig.applicationListApi!;
+    if (!apiPath) throw new Error('apiPath is required');
     try {
-        const response: { Applications: Application[] } = await httpService.get(url);
+        const response: { Applications: Application[] } = await httpService.get(apiPath);
         console.log('获取应用列表成功',response)
         return response.Applications || [];
     } catch (error) {
@@ -67,9 +75,9 @@ export const fetchApplicationList = async (apiPath?: string): Promise<Applicatio
  * @param apiPath API 路径
  */
 export const fetchConversationList = async (apiPath?: string): Promise<ChatConversation[]> => {
-    const url = apiPath || defaultApiConfig.conversationListApi!;
+    if (!apiPath) throw new Error('apiPath is required');
     try {
-        const response: ChatConversation[] = await httpService.get(url);
+        const response: ChatConversation[] = await httpService.get(apiPath);
         return response || [];
     } catch (error) {
         console.error('获取会话列表失败:', error);
@@ -86,9 +94,9 @@ export const fetchConversationDetail = async (
     params: ChatConversationProps,
     apiPath?: string
 ): Promise<{ Response: { ApplicationId: string; Records: Record[]; LastRecordId: string } }> => {
-    const url = apiPath || defaultApiConfig.conversationDetailApi!;
+    if (!apiPath) throw new Error('apiPath is required');
     try {
-        const response = await httpService.get(url, params);
+        const response = await httpService.get(apiPath, params);
         return response;
     } catch (error) {
         console.error('获取会话详情失败:', error);
@@ -107,14 +115,14 @@ export const sendMessage = async (
     options?: AxiosRequestConfig,
     apiPath?: string
 ): Promise<any> => {
-    const url = apiPath || defaultApiConfig.sendMessageApi!;
+    if (!apiPath) throw new Error('apiPath is required');
     const _options = {
         responseType: 'stream',
         adapter: 'fetch',
         timeout: 1000 * 600,
         ...options,
     } as AxiosRequestConfig;
-    return httpService.post(url, params, _options);
+    return httpService.post(apiPath, params, _options);
 };
 
 /**
@@ -123,9 +131,9 @@ export const sendMessage = async (
  * @param apiPath API 路径
  */
 export const rateMessage = async (params: object, apiPath?: string): Promise<any> => {
-    const url = apiPath || defaultApiConfig.rateApi!;
+    if (!apiPath) throw new Error('apiPath is required');
     try {
-        const response = await httpService.post(url, params);
+        const response = await httpService.post(apiPath, params);
         return response;
     } catch (error) {
         console.error('评分失败:', error);
@@ -139,9 +147,9 @@ export const rateMessage = async (params: object, apiPath?: string): Promise<any
  * @param apiPath API 路径
  */
 export const createShare = async (params: object, apiPath?: string): Promise<any> => {
-    const url = apiPath || defaultApiConfig.shareApi!;
+    if (!apiPath) throw new Error('apiPath is required');
     try {
-        const response = await httpService.post(url, params);
+        const response = await httpService.post(apiPath, params);
         return response;
     } catch (error) {
         console.error('创建分享失败:', error);
@@ -154,9 +162,9 @@ export const createShare = async (params: object, apiPath?: string): Promise<any
  * @param apiPath API 路径
  */
 export const fetchUserInfo = async (apiPath?: string): Promise<{ Name: string; Avatar: string }> => {
-    const url = apiPath || defaultApiConfig.userInfoApi!;
+    if (!apiPath) throw new Error('apiPath is required');
     try {
-        const response: { Info: { Name: string; Avatar: string } } = await httpService.get(url);
+        const response: { Info: { Name: string; Avatar: string } } = await httpService.get(apiPath);
         return response.Info || { Name: '', Avatar: '' };
     } catch (error) {
         console.error('获取用户信息失败:', error);
@@ -171,7 +179,7 @@ export const fetchUserInfo = async (apiPath?: string): Promise<{ Name: string; A
  * @param apiPath API 路径
  */
 export const uploadFile = async (file: File, applicationId?: string, apiPath?: string): Promise<any> => {
-    const basePath = apiPath || defaultApiConfig.uploadApi!;
+    if (!apiPath) throw new Error('apiPath is required');
     // 构建带参数的 URL
     const params = new URLSearchParams();
     if (applicationId) {
@@ -180,7 +188,7 @@ export const uploadFile = async (file: File, applicationId?: string, apiPath?: s
     if (file.type) {
         params.append('Type', file.type);
     }
-    const url = params.toString() ? `${basePath}?${params.toString()}` : basePath;
+    const url = params.toString() ? `${apiPath}?${params.toString()}` : apiPath;
     try {
         const response = await httpService.post(url, file);
         return response;
@@ -195,9 +203,9 @@ export const uploadFile = async (file: File, applicationId?: string, apiPath?: s
  * @param apiPath API 路径
  */
 export const getAsrUrl = async (apiPath?: string): Promise<{ url: string }> => {
-    const url = apiPath || defaultApiConfig.asrUrlApi!;
+    if (!apiPath) throw new Error('apiPath is required');
     try {
-        const response = await httpService.get(url);
+        const response = await httpService.get(apiPath);
         return response;
     } catch (error) {
         console.error('获取ASR URL失败:', error);

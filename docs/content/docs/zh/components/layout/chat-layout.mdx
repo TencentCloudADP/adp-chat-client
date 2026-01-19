@@ -64,14 +64,12 @@ const apiConfig = {
   { name: 'user', type: 'UserInfo', default: '{}', description: '用户信息' },
   { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: '主题模式' },
   { name: 'languageOptions', type: 'LanguageOption[]', default: '中英文', description: '语言选项列表' },
-  { name: 'isMobile', type: 'boolean', default: 'false', description: '是否为移动端' },
   { name: 'logoUrl', type: 'string', default: "''", description: 'Logo URL' },
   { name: 'logoTitle', type: 'string', default: "''", description: 'Logo 标题' },
   { name: 'modelOptions', type: 'any[]', default: '[]', description: '模型选项列表' },
   { name: 'selectModel', type: 'any', description: '当前选中的模型' },
   { name: 'isDeepThinking', type: 'boolean', default: 'true', description: '是否启用深度思考模式' },
   { name: 'showFullscreenButton', type: 'boolean', default: 'false', description: '是否显示全屏按钮' },
-  { name: 'isFullscreen', type: 'boolean', default: 'false', description: '是否处于全屏状态' },
   { name: 'maxAppLen', type: 'number', default: '4', description: '最大应用显示数量' },
   { name: 'showCloseButton', type: 'boolean', default: 'false', description: '是否显示关闭按钮' },
   { name: 'aiWarningText', type: 'string', default: "'内容由AI生成，仅供参考'", description: 'AI警告文本' },
@@ -81,7 +79,6 @@ const apiConfig = {
   { name: 'chatItemI18n', type: 'object', description: 'ChatItem 国际化文本' },
   { name: 'senderI18n', type: 'object', description: 'Sender 国际化文本' },
   { name: 'apiConfig', type: 'ApiConfig', description: 'API 配置（传入则启用 API 模式）' },
-  { name: 'autoLoad', type: 'boolean', default: 'true', description: '是否自动加载数据' },
 ]} />
 
 <EventsTable data={[
@@ -99,7 +96,7 @@ const apiConfig = {
   { name: 'loadMore', params: '(conversationId, lastRecordId)', description: '加载更多' },
   { name: 'rate', params: '(conversationId, recordId, score)', description: '评分' },
   { name: 'share', params: '(conversationId, applicationId, recordIds)', description: '分享' },
-  { name: 'copy', params: '(content, type)', description: '复制' },
+  { name: 'copy', params: '(rowtext, content, type)', description: '复制，rowtext为渲染后的纯文本，content为原始markdown' },
   { name: 'modelChange', params: 'option', description: '切换模型' },
   { name: 'toggleDeepThinking', description: '切换深度思考' },
   { name: 'uploadFile', params: 'File[]', description: '上传文件' },

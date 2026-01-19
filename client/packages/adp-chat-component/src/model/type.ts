@@ -32,32 +32,20 @@ export interface ThemeProps {
   theme?: ThemeType
 }
 
-/** 移动端相关 Props */
+/** 移动端相关 Props（内部组件使用） */
 export interface MobileProps {
-  /** 是否为移动端 */
+  /** 是否为移动端（由父组件计算后传入，不对外暴露） */
   isMobile?: boolean
-}
-
-/** 深度思考相关 Props */
-export interface DeepThinkingProps {
-  /** 是否启用深度思考模式 */
-  isDeepThinking?: boolean
+  /** 侧边栏是否使用overlay模式（覆盖内容区域） */
+  isSidePanelOverlay?: boolean
 }
 
 /** 全屏相关 Props */
 export interface FullscreenProps {
   /** 是否显示全屏按钮 */
-  showFullscreenButton?: boolean
+  isShowFullscreenButton?: boolean
   /** 是否处于全屏状态 */
   isFullscreen?: boolean
-}
-
-/** 模型选择相关 Props */
-export interface ModelSelectProps {
-  /** 模型选项列表 */
-  modelOptions?: any[]
-  /** 当前选中的模型 */
-  selectModel?: any
 }
 
 /** 侧边栏国际化文本 */
@@ -115,7 +103,7 @@ export interface SenderI18n {
 export interface CommonLayoutProps extends ThemeProps, MobileProps {}
 
 /** 聊天相关 Props - 组合聊天组件常用 props */
-export interface ChatRelatedProps extends CommonLayoutProps, DeepThinkingProps, ModelSelectProps {}
+export interface ChatRelatedProps extends CommonLayoutProps {}
 
 // ============================================================
 // Props 默认值
@@ -129,23 +117,13 @@ export const themePropsDefaults = {
 /** 移动端 Props 默认值 */
 export const mobilePropsDefaults = {
   isMobile: false,
-}
-
-/** 深度思考 Props 默认值 */
-export const deepThinkingPropsDefaults = {
-  isDeepThinking: true,
+  isSidePanelOverlay: false,
 }
 
 /** 全屏 Props 默认值 */
 export const fullscreenPropsDefaults = {
-  showFullscreenButton: false,
+  isShowFullscreenButton: true,
   isFullscreen: false,
-}
-
-/** 模型选择 Props 默认值 */
-export const modelSelectPropsDefaults = {
-  modelOptions: () => [] as any[],
-  selectModel: null,
 }
 
 /** 通用布局 Props 默认值 */
@@ -157,8 +135,6 @@ export const commonLayoutPropsDefaults = {
 /** 聊天相关 Props 默认值 */
 export const chatRelatedPropsDefaults = {
   ...commonLayoutPropsDefaults,
-  ...deepThinkingPropsDefaults,
-  ...modelSelectPropsDefaults,
 }
 
 /** 默认语言选项 */
@@ -224,13 +200,14 @@ export const defaultSenderI18n: Required<SenderI18n> = {
 
 export interface ChatConfig extends ChatRelatedProps, FullscreenProps {
   container?: string
-  canPark?: boolean
-  /** 模式类型：full-全屏模式，compact-紧凑模式（固定宽高） */
-  modelType?: 'full' | 'compact'
-  /** 宽度（仅在 modelType 为 compact 时生效） */
+  /** 是否为浮层模式：true-使用 width/height 浮动在容器上，false-宽高100%撑满容器 */
+  isOverlay?: boolean
+  /** 宽度（仅在 isOverlay 为 true 时生效） */
   width?: string | number
-  /** 高度（仅在 modelType 为 compact 时生效） */
+  /** 高度（仅在 isOverlay 为 true 时生效） */
   height?: string | number
+  /** 是否显示关闭按钮 */
+  isShowCloseButton?: boolean
   /** 应用列表 */
   applications?: Application[]
   /** 当前选中的应用 */
@@ -259,12 +236,12 @@ export interface ChatConfig extends ChatRelatedProps, FullscreenProps {
   maxAppLen?: number
   /** 全屏状态切换回调 */
   onFullscreen?: (isFullscreen: boolean) => void
-  /** 是否展开面板（仅在 canPark 模式下生效） */
-  open?: boolean
+  /** 是否展开面板 */
+  isOpen?: boolean
   /** 面板展开状态变化回调 */
-  onOpenChange?: (open: boolean) => void
+  onOpenChange?: (isOpen: boolean) => void
   /** 是否显示悬浮切换按钮 */
-  showToggleButton?: boolean
+  isShowToggleButton?: boolean
   /** AI警告文本 */
   aiWarningText?: string
   /** 新建对话提示文本 */

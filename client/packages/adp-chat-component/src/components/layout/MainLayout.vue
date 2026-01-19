@@ -79,9 +79,7 @@ const emit = defineEmits<{
     (e: 'loadMore', conversationId: string, lastRecordId: string): void;
     (e: 'rate', conversationId: string, recordId: string, score: typeof ScoreValue[keyof typeof ScoreValue]): void;
     (e: 'share', conversationId: string, applicationId: string, recordIds: string[]): void;
-    (e: 'copy', content: string | undefined, type: string): void;
-    (e: 'modelChange', option: any): void;
-    (e: 'toggleDeepThinking'): void;
+    (e: 'copy', rowtext: string | undefined, content: string | undefined, type: string): void;
     (e: 'uploadFile', files: File[]): void;
     (e: 'startRecord'): void;
     (e: 'stopRecord'): void;
@@ -148,9 +146,6 @@ defineExpose({
                 :currentApplicationName="currentApplicationName"
                 :currentApplicationGreeting="currentApplicationGreeting"
                 :currentApplicationOpeningQuestions="currentApplicationOpeningQuestions"
-                :modelOptions="modelOptions"
-                :selectModel="selectModel"
-                :isDeepThinking="isDeepThinking"
                 :isMobile="isMobile"
                 :theme="theme"
                 :i18n="i18n"
@@ -163,9 +158,7 @@ defineExpose({
                 @loadMore="(conversationId, lastRecordId) => emit('loadMore', conversationId, lastRecordId)"
                 @rate="(conversationId, recordId, score) => emit('rate', conversationId, recordId, score)"
                 @share="(conversationId, applicationId, recordIds) => emit('share', conversationId, applicationId, recordIds)"
-                @copy="(content, type) => emit('copy', content, type)"
-                @modelChange="(option) => emit('modelChange', option)"
-                @toggleDeepThinking="emit('toggleDeepThinking')"
+                @copy="(rowtext, content, type) => emit('copy', rowtext, content, type)"
                 @uploadFile="(files) => emit('uploadFile', files)"
                 @startRecord="emit('startRecord')"
                 @stopRecord="emit('stopRecord')"

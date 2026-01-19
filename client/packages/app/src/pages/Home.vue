@@ -6,6 +6,7 @@ import { logout } from '@/service/login';
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n';
 import { languageMap } from '@/i18n';
+import { getBaseURL } from '@/utils/url';
 import Logo from '@/assets/img/favicon.ico';
 
 const router = useRouter()
@@ -18,16 +19,22 @@ const currentApplicationId = ref<string>('');
 const currentConversationId = ref<string>('');
 
 // API 配置 - 使用组件自动加载数据
+
+console.log('getBaseURL',getBaseURL())
 const apiConfig: ApiConfig = {
-    applicationListApi: '/application/list',
-    conversationListApi: '/chat/conversations',
-    conversationDetailApi: '/chat/messages',
-    sendMessageApi: '/chat/message',
-    rateApi: '/feedback/rate',
-    shareApi: '/share/create',
-    userInfoApi: '/account/info',
-    uploadApi: '/file/upload',
-    asrUrlApi: '/helper/asr/url',
+    baseURL: getBaseURL(),
+    timeout: 1000 * 60,
+    apiDetailConfig: {
+        applicationListApi: '/application/list',
+        conversationListApi: '/chat/conversations',
+        conversationDetailApi: '/chat/messages',
+        sendMessageApi: '/chat/message',
+        rateApi: '/feedback/rate',
+        shareApi: '/share/create',
+        userInfoApi: '/account/info',
+        uploadApi: '/file/upload',
+        asrUrlApi: '/helper/asr/url',
+    }
 };
 
 // 语言选项
@@ -190,7 +197,9 @@ const handleConversationChange = (conversationId: string) => {
         :autoLoad="true"
         :theme="uiStore.theme || 'light'"
         :languageOptions="languageOptions"
-        :isMobile="uiStore.isMobile"
+        :isSidePanelOverlay="uiStore.isMobile"
+        :isShowCloseButton="false"
+        :isShowFullscreenButton="false"
         :logoUrl="Logo"
         :currentApplicationId="currentApplicationId"
         :currentConversationId="currentConversationId"

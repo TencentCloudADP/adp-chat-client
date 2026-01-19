@@ -1,14 +1,15 @@
 <!-- 控制尺寸、展开和收起 -->
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import MainApp from './components/layout/Index.vue';
 import type { Application } from './model/application';
 import type { ChatConversation, Record } from './model/chat';
 import type { FileProps } from './model/file';
 import { ScoreValue } from './model/chat';
 import type { ApiConfig } from './service/api';
-import { defaultApiConfig } from './service/api';
-import { computeIsMobile } from './utils/device';
+import { defaultApiDetailConfig } from './service/api';
+import { getMessage, type MessageCode } from './model/messages';
+import { normalizeWidth, normalizeHeight } from './utils/device';
 import type { 
     LanguageOption, 
     UserInfo,
@@ -28,13 +29,17 @@ import {
 interface Props extends ChatRelatedProps, FullscreenProps {
     /** 挂载容器选择器 */
     container?: string;
-    /** 是否可停靠模式 */
-    canPark?: boolean;
-    /** 模式类型：full-全屏模式，compact-紧凑模式（固定宽高） */
-    modelType?: 'full' | 'compact';
-    /** 宽度（仅在 modelType 为 compact 时生效） */
+    /** 是否显示关闭按钮 */
+    isShowCloseButton?: boolean;
+    /** 是否显示全屏按钮 */
+    isShowFullscreenButton?: boolean;
+    /** 是否显示悬浮切换按钮 */
+    isShowToggleButton?: boolean;
+    /** 是否为浮层模式：true-使用 width/height 浮动在容器上，false-宽高100%撑满容器 */
+    isOverlay?: boolean;
+    /** 宽度（仅在 isOverlay 为 true 时生效） */
     width?: string | number;
-    /** 高度（仅在 modelType 为 compact 时生效） */
+    /** 高度（仅在 isOverlay 为 true 时生效） */
     height?: string | number;
     /** 应用列表 */
     applications?: Application[];
@@ -60,12 +65,10 @@ interface Props extends ChatRelatedProps, FullscreenProps {
     maxAppLen?: number;
     /** 全屏状态切换回调 */
     onFullscreen?: (isFullscreen: boolean) => void;
-    /** 是否展开面板（仅在 canPark 模式下生效） */
-    open?: boolean;
+    /** 是否展开面板 */
+    isOpen?: boolean;
     /** 面板展开状态变化回调 */
-    onOpenChange?: (open: boolean) => void;
-    /** 是否显示悬浮切换按钮 */
-    showToggleButton?: boolean;
+    onOpenChange?: (isOpen: boolean) => void;
     /** AI警告文本 */
     aiWarningText?: string;
     /** 新建对话提示文本 */
@@ -88,27 +91,27 @@ const props = withDefaults(defineProps<Props>(), {
     ...chatRelatedPropsDefaults,
     ...fullscreenPropsDefaults,
     container: 'body',
-    canPark: false,
-    modelType: 'full',
+    isShowCloseButton: true,
+    isShowFullscreenButton: true,
+    isOverlay: false,
     width: 400,
-    height: '80vh',
+    height: 640,
     applications: () => [],
     conversations: () => [],
     chatList: () => [],
     isChatting: false,
     user: () => ({}),
     languageOptions: () => defaultLanguageOptions,
-    isMobile: undefined,
     logoUrl: '',
     logoTitle: '',
     maxAppLen: 4,
     onFullscreen: undefined,
-    open: undefined,
+    isOpen: undefined,
     onOpenChange: undefined,
-    showToggleButton: true,
+    isShowToggleButton: true,
     aiWarningText: '内容由AI生成，仅供参考',
     createConversationText: '新建对话',
-    apiConfig: () => defaultApiConfig,
+    apiConfig: () => ({ apiDetailConfig: defaultApiDetailConfig }),
     autoLoad: true,
 });
 
@@ -126,9 +129,7 @@ const emit = defineEmits<{
     (e: 'loadMore', conversationId: string, lastRecordId: string): void;
     (e: 'rate', conversationId: string, recordId: string, score: typeof ScoreValue[keyof typeof ScoreValue]): void;
     (e: 'share', conversationId: string, applicationId: string, recordIds: string[]): void;
-    (e: 'copy', content: string | undefined, type: string): void;
-    (e: 'modelChange', option: any): void;
-    (e: 'toggleDeepThinking'): void;
+    (e: 'copy', rowtext: string | undefined, content: string | undefined, type: string): void;
     (e: 'uploadFile', files: File[]): void;
     (e: 'startRecord'): void;
     (e: 'stopRecord'): void;
@@ -142,7 +143,21 @@ const emit = defineEmits<{
 const isFullscreen = ref(props.isFullscreen);
 
 // 内部 open 状态，初始化时使用用户传入的值
-const internalOpen = ref(props.open ?? false);
+const internalOpen = ref(props.isOpen ?? false);
+
+// 监听 props.isOpen 变化，同步内部状态
+watch(() => props.isOpen, (newVal) => {
+    if (newVal !== undefined) {
+        internalOpen.value = newVal;
+    }
+});
+
+// 监听 props.isFullscreen 变化，同步内部状态
+watch(() => props.isFullscreen, (newVal) => {
+    if (newVal !== undefined) {
+        isFullscreen.value = newVal;
+    }
+});
 
 // 计算实际的 open 状态 - 始终使用内部状态，因为 createApp 传入的 props 是静态的
 const isOpen = computed(() => internalOpen.value);
@@ -154,21 +169,11 @@ const setOpen = (value: boolean) => {
     emit('openChange', value);
 };
 
-// 计算是否为移动端模式
-const computedIsMobile = computed(() => {
-    return computeIsMobile({
-        isMobile: props.isMobile,
-        modelType: props.modelType,
-        width: props.width,
-        height: props.height,
-    });
-});
-
-// 计算 panel-park 在 compact 模式下的样式
+// 计算浮层模式下的样式
 const panelParkStyle = computed(() => {
-    if (props.modelType === 'compact') {
-        const width = typeof props.width === 'number' ? `${props.width}px` : props.width;
-        const height = typeof props.height === 'number' ? `${props.height}px` : props.height;
+    if (actualIsOverlay.value) {
+        const width = typeof actualWidth.value === 'number' ? `${actualWidth.value}px` : actualWidth.value;
+        const height = typeof actualHeight.value === 'number' ? `${actualHeight.value}px` : actualHeight.value;
         return {
             width,
             height
@@ -187,47 +192,79 @@ const handleFullscreen = (_isFullscreen: boolean) => {
     emit('fullscreen', _isFullscreen);
     props.onFullscreen?.(_isFullscreen);
 };
+
+// 计算属性 - 用于响应 props 变化（通过 update 方法更新时）
+const actualContainer = computed(() => props.container);
+const actualIsShowToggleButton = computed(() => props.isShowToggleButton);
+const actualIsOverlay = computed(() => props.isOverlay);
+// 规范化宽高：超出屏幕时使用屏幕尺寸减去 padding * 2
+const actualWidth = computed(() => actualIsOverlay.value ? normalizeWidth(props.width) : props.width);
+const actualHeight = computed(() => actualIsOverlay.value ? normalizeHeight(props.height) : props.height);
+const actualApplications = computed(() => props.applications);
+const actualCurrentApplication = computed(() => props.currentApplication);
+const actualConversations = computed(() => props.conversations);
+const actualCurrentConversation = computed(() => props.currentConversation);
+const actualChatList = computed(() => props.chatList);
+const actualIsChatting = computed(() => props.isChatting);
+const actualUser = computed(() => props.user);
+const actualTheme = computed(() => props.theme);
+const actualLanguageOptions = computed(() => props.languageOptions);
+const actualIsSidePanelOverlay = computed(() => props.isSidePanelOverlay);
+const actualLogoUrl = computed(() => props.logoUrl);
+const actualLogoTitle = computed(() => props.logoTitle);
+const actualMaxAppLen = computed(() => props.maxAppLen);
+const actualIsShowCloseButton = computed(() => props.isShowCloseButton);
+const actualIsShowFullscreenButton = computed(() => props.isShowFullscreenButton);
+const actualAiWarningText = computed(() => props.aiWarningText);
+const actualCreateConversationText = computed(() => props.createConversationText);
+const actualSideI18n = computed(() => props.sideI18n);
+const actualChatI18n = computed(() => props.chatI18n);
+const actualChatItemI18n = computed(() => props.chatItemI18n);
+const actualSenderI18n = computed(() => props.senderI18n);
+const actualApiConfig = computed(() => props.apiConfig);
+const actualAutoLoad = computed(() => props.autoLoad);
 </script>
 
 <template>
     <Teleport to="body">
-        <div v-if="showToggleButton && !isOpen" class="toggle-btn" @click="setOpen(true)">
+        <div v-if="actualIsShowToggleButton && !isOpen" class="toggle-btn" @click="setOpen(true)">
             <span class="toggle-btn__icon"></span>
         </div>
     </Teleport>
 
-    <Teleport :to="container">
+    <Teleport :to="actualContainer">
         <div v-show="isOpen" @keydown.esc="setOpen(false)" tabindex="0"
-            :class="[{ 'panel-park--full': isFullscreen, 'panel-park--compact': !isFullscreen }]"
-            :style="!isFullscreen ? panelParkStyle : {}">
+            :class="[{ 'panel-park--full': !actualIsOverlay, 'panel-park--overlay': actualIsOverlay }]"
+            :style="actualIsOverlay ? panelParkStyle : {}">
             <MainApp 
-                :applications="applications"
-                :currentApplication="currentApplication"
-                :conversations="conversations"
-                :currentConversation="currentConversation"
-                :chatList="chatList"
-                :isChatting="isChatting"
-                :user="user"
-                :theme="theme"
-                :languageOptions="languageOptions"
-                :isMobile="computedIsMobile"
-                :logoUrl="logoUrl"
-                :logoTitle="logoTitle"
-                :modelOptions="modelOptions"
-                :selectModel="selectModel"
-                :isDeepThinking="isDeepThinking"
-                :maxAppLen="maxAppLen"
-                :showCloseButton="canPark"
-                :showFullscreenButton="showFullscreenButton"
+                :applications="actualApplications"
+                :currentApplication="actualCurrentApplication"
+                :conversations="actualConversations"
+                :currentConversation="actualCurrentConversation"
+                :chatList="actualChatList"
+                :isChatting="actualIsChatting"
+                :user="actualUser"
+                :theme="actualTheme"
+                :languageOptions="actualLanguageOptions"
+                :isOverlay="actualIsOverlay"
+                :width="actualWidth"
+                :height="actualHeight"
+                :container="actualContainer"
+                :isSidePanelOverlay="actualIsSidePanelOverlay"
+                :logoUrl="actualLogoUrl"
+                :logoTitle="actualLogoTitle"
+                :maxAppLen="actualMaxAppLen"
+                :isShowCloseButton="actualIsShowCloseButton"
+                :isShowFullscreenButton="actualIsShowFullscreenButton"
                 :isFullscreen="isFullscreen"
-                :aiWarningText="aiWarningText"
-                :createConversationText="createConversationText"
-                :sideI18n="sideI18n"
-                :chatI18n="chatI18n"
-                :chatItemI18n="chatItemI18n"
-                :senderI18n="senderI18n"
-                :apiConfig="apiConfig"
-                :autoLoad="autoLoad"
+                :aiWarningText="actualAiWarningText"
+                :createConversationText="actualCreateConversationText"
+                :sideI18n="actualSideI18n"
+                :chatI18n="actualChatI18n"
+                :chatItemI18n="actualChatItemI18n"
+                :senderI18n="actualSenderI18n"
+                :apiConfig="actualApiConfig"
+                :autoLoad="actualAutoLoad"
                 @selectApplication="(app: Application) => emit('selectApplication', app)"
                 @selectConversation="(conversation: ChatConversation) => emit('selectConversation', conversation)"
                 @createConversation="emit('createConversation')"
@@ -242,13 +279,11 @@ const handleFullscreen = (_isFullscreen: boolean) => {
                 @loadMore="(conversationId: string, lastRecordId: string) => emit('loadMore', conversationId, lastRecordId)"
                 @rate="(conversationId: string, recordId: string, score: typeof ScoreValue[keyof typeof ScoreValue]) => emit('rate', conversationId, recordId, score)"
                 @share="(conversationId: string, applicationId: string, recordIds: string[]) => emit('share', conversationId, applicationId, recordIds)"
-                @copy="(content: string | undefined, type: string) => emit('copy', content, type)"
-                @modelChange="(option: any) => emit('modelChange', option)"
-                @toggleDeepThinking="emit('toggleDeepThinking')"
+                @copy="(rowtext: string | undefined, content: string | undefined, type: string) => emit('copy', rowtext, content, type)"
                 @uploadFile="(files: File[]) => emit('uploadFile', files)"
                 @startRecord="emit('startRecord')"
                 @stopRecord="emit('stopRecord')"
-                @message="(type: 'warning' | 'error' | 'info' | 'success', message: string) => emit('message', type, message)"
+                @message="(code: MessageCode, message: string) => emit('message', getMessage(code).type, message)"
                 @conversationChange="(conversationId: string) => emit('conversationChange', conversationId)"
                 @dataLoaded="(type: 'applications' | 'conversations' | 'chatList' | 'user', data: any) => emit('dataLoaded', type, data)"
             >
@@ -428,10 +463,10 @@ const handleFullscreen = (_isFullscreen: boolean) => {
 
 .panel-park--full {
     width: 100%;
-    height: 100vh;
+    height: 100%;
 }
 
-.panel-park--compact {
+.panel-park--overlay {
     /* 宽高由 style 动态设置 */
     border-radius: 8px;
     box-shadow: 0 4px 16px #00000026;
