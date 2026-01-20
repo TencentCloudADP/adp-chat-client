@@ -126,7 +126,7 @@ const handleUserClick = () => {
         >
             <div class="drawer-content">
                 <div class="drawer-control">
-                    <SidebarToggle @toggle="handleToggleSidebar" />
+                    <SidebarToggle :theme="theme" @toggle="handleToggleSidebar" />
                 </div>
                 <div class="drawer-scrollable">
                     <ApplicationList 
@@ -135,6 +135,7 @@ const handleUserClick = () => {
                         :maxAppLen="maxAppLen"
                         :moreText="i18n.more"
                         :collapseText="i18n.collapse"
+                        :theme="theme"
                         @select="handleSelectApplication"
                     />
                     <TDivider />

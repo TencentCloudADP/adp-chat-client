@@ -1,0 +1,267 @@
+---
+title: ADPChat 组件
+description: 使用 ADPChat 组件快速创建聊天界面
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# ADPChat 组件
+
+在 Vue/React 项目中使用 `ADPChat` 组件或 `ADPChatMounter` API 快速创建聊天界面。
+
+## ADPChatMounter API
+
+使用 `ADPChatMounter` 可以在任何框架中快速挂载聊天组件：
+
+```typescript
+import { ADPChatMounter } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+
+// 挂载组件
+const instanceId = ADPChatMounter.mount('#chat-container', {
+  theme: 'light',
+  apiConfig: {
+    baseURL: '/api',
+    apiDetailConfig: {
+      applicationListApi: '/applications',
+      conversationListApi: '/conversations',
+    }
+  }
+})
+
+// 更新组件
+ADPChatMounter.update(instanceId, {
+  theme: 'dark'
+})
+
+// 卸载组件
+ADPChatMounter.unmount(instanceId)
+```
+
+### ADPChatMounter 方法
+
+| 方法 | 参数 | 返回值 | 说明 |
+| --- | --- | --- | --- |
+| `mount` | `(selector: string, options: ADPChatProps)` | `string` | 挂载组件，返回实例 ID |
+| `update` | `(instanceId: string, options: Partial<ADPChatProps>)` | `void` | 更新组件配置 |
+| `unmount` | `(instanceId: string)` | `void` | 卸载组件 |
+
+## ADPChat Vue 组件
+
+在 Vue 项目中直接使用 `ADPChat` 组件：
+
+### 基础用法
+
+```vue
+<template>
+  <ADPChat
+    :applications="applications"
+    :current-application="currentApp"
+    :conversations="conversations"
+    :current-conversation="currentConversation"
+    :chat-list="chatList"
+    :user="userInfo"
+    theme="light"
+    @send="handleSend"
+    @select-application="handleSelectApp"
+    @select-conversation="handleSelectConversation"
+  />
+</template>
+
+<script setup>
+import { ADPChat } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+</script>
+```
+
+### API 模式
+
+```vue
+<template>
+  <ADPChat
+    :api-config="apiConfig"
+    :auto-load="true"
+    @data-loaded="handleDataLoaded"
+  />
+</template>
+
+<script setup>
+import { ADPChat } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+
+const apiConfig = {
+  baseURL: 'https://api.example.com',
+  timeout: 30000,
+  apiDetailConfig: {
+    applicationListApi: '/api/applications',
+    conversationListApi: '/api/conversations',
+    conversationDetailApi: '/api/conversation/detail',
+    sendMessageApi: '/api/message/send',
+    userInfoApi: '/api/user/info'
+  }
+}
+
+const handleDataLoaded = (type, data) => {
+  console.log(`${type} loaded:`, data)
+}
+</script>
+```
+
+## API
+
+### Props
+
+<PropsTable data={[
+  { name: 'applications', type: 'Application[]', default: '[]', description: '应用列表' },
+  { name: 'currentApplication', type: 'Application', description: '当前选中的应用' },
+  { name: 'currentApplicationId', type: 'string', default: "''", description: '当前选中的应用 ID（优先级高于 currentApplication）' },
+  { name: 'conversations', type: 'ChatConversation[]', default: '[]', description: '会话列表' },
+  { name: 'currentConversation', type: 'ChatConversation', description: '当前选中的会话' },
+  { name: 'currentConversationId', type: 'string', default: "''", description: '当前选中的会话 ID（优先级高于 currentConversation）' },
+  { name: 'chatList', type: 'Record[]', default: '[]', description: '聊天消息列表' },
+  { name: 'isChatting', type: 'boolean', default: 'false', description: '是否正在聊天中' },
+  { name: 'user', type: 'UserInfo', default: '{}', description: '用户信息' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: '主题模式' },
+  { name: 'languageOptions', type: 'LanguageOption[]', default: '中英文', description: '语言选项列表' },
+  { name: 'isSidePanelOverlay', type: 'boolean', default: 'false', description: '侧边栏是否使用overlay模式（覆盖内容区域）' },
+  { name: 'logoUrl', type: 'string', default: "''", description: 'Logo URL' },
+  { name: 'logoTitle', type: 'string', default: "''", description: 'Logo 标题' },
+  { name: 'isShowFullscreenButton', type: 'boolean', default: 'true', description: '是否显示全屏按钮' },
+  { name: 'isFullscreen', type: 'boolean', default: 'false', description: '是否处于全屏状态' },
+  { name: 'maxAppLen', type: 'number', default: '4', description: '最大应用显示数量' },
+  { name: 'isShowCloseButton', type: 'boolean', default: 'true', description: '是否显示关闭按钮' },
+  { name: 'aiWarningText', type: 'string', default: "'内容由AI生成，仅供参考'", description: 'AI警告文本' },
+  { name: 'sideI18n', type: 'SideI18n', description: '侧边栏国际化文本' },
+  { name: 'chatI18n', type: 'ChatI18n', description: '聊天国际化文本' },
+  { name: 'chatItemI18n', type: 'ChatItemI18n', description: 'ChatItem 国际化文本' },
+  { name: 'senderI18n', type: 'SenderI18n', description: 'Sender 国际化文本' },
+  { name: 'apiConfig', type: 'ApiConfig', description: 'API 配置（传入则启用 API 模式）' },
+  { name: 'autoLoad', type: 'boolean', default: 'true', description: '是否自动加载数据（仅在使用 apiConfig 时生效）' },
+]} />
+
+### Events
+
+<EventsTable data={[
+  { name: 'selectApplication', params: 'Application', description: '选择应用' },
+  { name: 'selectConversation', params: 'ChatConversation', description: '选择会话' },
+  { name: 'createConversation', description: '新建会话' },
+  { name: 'toggleTheme', description: '切换主题' },
+  { name: 'changeLanguage', params: 'string', description: '切换语言' },
+  { name: 'logout', description: '退出登录' },
+  { name: 'userClick', description: '点击用户信息' },
+  { name: 'close', description: '关闭' },
+  { name: 'fullscreen', params: 'isFullscreen: boolean', description: '全屏状态变化' },
+  { name: 'send', params: '(query, fileList, conversationId, applicationId)', description: '发送消息' },
+  { name: 'stop', description: '停止生成' },
+  { name: 'loadMore', params: '(conversationId, lastRecordId)', description: '加载更多' },
+  { name: 'rate', params: '(conversationId, recordId, score)', description: '评分' },
+  { name: 'share', params: '(conversationId, applicationId, recordIds)', description: '分享' },
+  { name: 'copy', params: '(rowtext, content, type)', description: '复制，rowtext为渲染后的纯文本，content为原始markdown' },
+  { name: 'uploadFile', params: 'File[]', description: '上传文件' },
+  { name: 'startRecord', description: '开始录音' },
+  { name: 'stopRecord', description: '停止录音' },
+  { name: 'message', params: '(code: MessageCode, message: string)', description: '消息提示，code 为消息码常量' },
+  { name: 'conversationChange', params: 'conversationId', description: '会话变化' },
+  { name: 'dataLoaded', params: '(type, data)', description: '数据加载完成' },
+]} />
+
+### Slots
+
+<SlotsTable data={[
+  { name: 'sider-logo', description: '侧边栏 Logo 区域，外层传入时显示外层内容，否则显示默认 LogoArea（需要 logoUrl 或 logoTitle）' },
+  { name: 'header-fullscreen-content', description: '头部全屏按钮区域，外层传入时显示外层内容，否则显示默认全屏图标（需要 isShowFullscreenButton 为 true）' },
+  { name: 'header-close-content', description: '头部关闭按钮区域，外层传入时显示外层内容，否则显示默认关闭图标（需要 isShowCloseButton 为 true）' },
+]} />
+
+### Methods
+
+<MethodsTable data={[
+  { name: 'loadApplications', description: '加载应用列表' },
+  { name: 'loadConversations', description: '加载会话列表' },
+  { name: 'loadConversationDetail', params: 'conversationId', description: '加载会话详情' },
+  { name: 'loadUserInfo', description: '加载用户信息' },
+]} />
+
+## 类型定义
+
+### ApiConfig
+
+```typescript
+interface ApiConfig extends AxiosRequestConfig {
+  /** API 详细路径配置 */
+  apiDetailConfig?: ApiDetailConfig
+}
+```
+
+### ApiDetailConfig
+
+```typescript
+interface ApiDetailConfig {
+  applicationListApi?: string   // 应用列表接口
+  conversationListApi?: string  // 会话列表接口
+  conversationDetailApi?: string // 会话详情接口
+  sendMessageApi?: string       // 发送消息接口
+  rateApi?: string              // 评分接口
+  shareApi?: string             // 分享接口
+  userInfoApi?: string          // 用户信息接口
+  uploadApi?: string            // 文件上传接口
+  asrUrlApi?: string            // ASR 语音识别 URL 接口
+}
+```
+
+### Application
+
+```typescript
+interface Application {
+  ApplicationId: string
+  Name: string
+  Avatar: string
+  Greeting: string
+  OpeningQuestions: string[]
+}
+```
+
+### ChatConversation
+
+```typescript
+interface ChatConversation {
+  Id: string
+  AccountId: string
+  Title: string
+  LastActiveAt: number
+  CreatedAt: number
+  ApplicationId: string
+}
+```
+
+### MessageCode
+
+消息码常量，用于 `message` 事件的 `code` 参数：
+
+```typescript
+const MessageCode = {
+  // 成功类
+  COPY_SUCCESS: 'COPY_SUCCESS',
+  
+  // 错误类
+  COPY_FAILED: 'COPY_FAILED',
+  SHARE_FAILED: 'SHARE_FAILED',
+  FILE_UPLOAD_FAILED: 'FILE_UPLOAD_FAILED',
+  FILE_FORMAT_NOT_SUPPORT: 'FILE_FORMAT_NOT_SUPPORT',
+  GET_APP_LIST_FAILED: 'GET_APP_LIST_FAILED',
+  GET_CONVERSATION_LIST_FAILED: 'GET_CONVERSATION_LIST_FAILED',
+  GET_CONVERSATION_DETAIL_FAILED: 'GET_CONVERSATION_DETAIL_FAILED',
+  SEND_MESSAGE_FAILED: 'SEND_MESSAGE_FAILED',
+  NETWORK_ERROR: 'NETWORK_ERROR',
+  LOAD_MORE_FAILED: 'LOAD_MORE_FAILED',
+  RATE_FAILED: 'RATE_FAILED',
+  ASR_SERVICE_FAILED: 'ASR_SERVICE_FAILED',
+  RECORD_FAILED: 'RECORD_FAILED',
+  
+  // 警告类
+  ANSWERING: 'ANSWERING',
+  RECORD_TOO_LONG: 'RECORD_TOO_LONG',
+} as const;
+
+type MessageCode = typeof MessageCode[keyof typeof MessageCode];
+```

@@ -1,7 +1,4 @@
-<!--
-  聊天主界面组件
-  @description 用于展示聊天内容、发送消息和加载历史记录
--->
+<!-- 聊天主界面组件，负责消息展示、发送、历史加载等 -->
 <template>
     <!-- 聊天内容容器 -->
     <div id="chat-content" class="chat-box">
@@ -32,7 +29,7 @@
                                         </span>
                                     </template>
                                     <template #indicator>
-                                        <CustomizedIcon class="thinking-icon" name="thinking" :theme="theme" />
+                                        <CustomizedIcon class="thinking-icon" name="thinking" :theme="theme" nativeIcon />
                                     </template>
                                 </TLoading>
                             </div>
@@ -76,9 +73,9 @@
                     :theme="theme"
                     @click="handleClickBackToBottom" 
                 />
-                <TCard v-if="isSelecting" size="small" class="share-setting-container" shadow
+                <TCard v-if="isSelecting" size="small" class="share-setting-container" :class="{ isMobile: isMobile }" shadow
                     bodyClassName="share-setting-card">
-                    <div class="share-setting-content">
+                    <div class="share-setting-content" :class="{ isMobile: isMobile }">
                         <TCheckbox :indeterminate="selectedIds.length !== chatList.length && selectedIds.length !== 0"
                             :checked="checkall" @change="handleCheckAll">{{ i18n.checkAll }}</TCheckbox>
                         <TDivider layout="vertical"></TDivider>
@@ -86,7 +83,7 @@
                             {{ i18n.shareFor }}
                             <div class="icon__share-copy" :class="{ disabled: selectedIds.length <= 0 }"
                                 @click="handleCopyShare()">
-                                <CustomizedIcon name="copy_link" :theme="theme" />
+                                <CustomizedIcon size="s" name="copy_link" :theme="theme" />
                                 <span>{{ i18n.copyUrl }}</span>
                             </div>
                         </div>
@@ -240,21 +237,23 @@ const chatList = computed(() => props.chatList.length > 0 ? props.chatList : int
  */
 const isSelecting = ref(false)
 
-const checkall = ref(false);
+/**
+ * 选中的消息ID列表
+ */
+const selectedIds = ref<string[]>([])
+
+/**
+ * 是否全选（根据 selectedIds 与 chatList 对比计算）
+ */
+const checkall = computed(() => selectedIds.value.length > 0 && selectedIds.value.length === chatList.value.length);
 
 const handleCheckAll = (checked: boolean) => {
-    checkall.value = checked;
     if (checked) {
         selectedIds.value = chatList.value.map(i => i.RecordId)
     } else {
         selectedIds.value = [];
     }
 }
-
-/**
- * 选中的消息ID列表
- */
-const selectedIds = ref<string[]>([])
 
 /**
  * 发送组件引用
@@ -621,7 +620,6 @@ defineExpose({
     padding: var(--td-comp-paddingLR-xs) var(--td-comp-paddingLR-xl);
     margin-left: var(--td-comp-paddingLR-l);
     margin-right: var(--td-comp-paddingLR-xs);
-    font-size: var(--td-font-size-link-medium);
     cursor: pointer;
 }
 
@@ -718,5 +716,38 @@ defineExpose({
     box-sizing: border-box;
     box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 18px rgba(18, 19, 25, 0.08), 0px 16px 64px rgba(18, 19, 25, 0.16);
     border-radius: 6px;
+}
+
+/* 移动端样式 */
+.share-setting-container.isMobile {
+    bottom: 120px;
+}
+
+.share-setting-content.isMobile {
+    font-size: var(--td-font-size-link-small);
+}
+
+.share-setting-content.isMobile .icon__share-copy {
+    padding: var(--td-comp-paddingLR-xxs) var(--td-comp-paddingLR-s);
+    margin-left: var(--td-comp-paddingLR-s);
+    margin-right: var(--td-comp-paddingLR-xxs);
+}
+
+.share-setting-content.isMobile .icon__share-copy :deep(svg) {
+    width: 14px;
+    height: 14px;
+}
+
+.share-setting-content.isMobile .icon__share-close {
+    margin-left: var(--td-comp-paddingLR-s);
+    padding-left: 0;
+}
+
+:deep(.share-setting-container.isMobile .share-setting-card) {
+    padding: var(--td-comp-paddingLR-xs) var(--td-comp-paddingLR-s);
+}
+
+:deep(.share-setting-container.isMobile) {
+    box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.06), 0px 0px 8px rgba(18, 19, 25, 0.06), 0px 8px 32px rgba(18, 19, 25, 0.1);
 }
 </style>

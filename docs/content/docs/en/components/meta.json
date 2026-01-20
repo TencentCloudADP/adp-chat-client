@@ -1,13 +1,9 @@
 {
-  "title": "Components",
-  "icon": "apps-line",
   "pages": [
     "index",
     "quick-start",
-    "init-mount",
-    "layout",
-    "chat",
-    "basic",
-    "common"
+    "init",
+    "chat-layout",
+    "ui-components"
   ]
 }

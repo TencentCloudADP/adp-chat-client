@@ -1,0 +1,215 @@
+---
+title: Init Component
+description: Dynamically mount chat component using the init method
+---
+
+import { PropsTable, EventsTable } from '@/components/docs/api-table';
+
+Use the `init` method to dynamically mount the chat component to any DOM container, suitable for all scenarios requiring dynamic chat interface creation.
+
+```typescript
+ADPChatComponent.init(container?: string, config?: ChatConfig)
+```
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| container | `string` | `'body'` | CSS selector for mount container |
+| config | `ChatConfig` | - | Configuration options |
+
+### Return Value
+
+Returns Vue component instance for subsequent operations.
+
+## ChatConfig Options
+
+<PropsTable data={[
+  { name: 'container', type: 'string', default: "'body'", description: 'Mount container selector' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: 'Theme mode' },
+  { name: 'user', type: 'UserInfo', default: '{}', description: 'User info' },
+  { name: 'languageOptions', type: 'LanguageOption[]', default: 'zh/en', description: 'Language options list' },
+  { name: 'logoUrl', type: 'string', default: "''", description: 'Logo image URL' },
+  { name: 'logoTitle', type: 'string', default: "''", description: 'Logo title text' },
+  { name: 'isOverlay', type: 'boolean', default: 'false', description: 'Overlay mode: true-use width/height as floating panel, false-fill container' },
+  { name: 'width', type: 'string | number', default: '400', description: 'Width (only when isOverlay is true)' },
+  { name: 'height', type: 'string | number', default: "'640'", description: 'Height (only when isOverlay is true)' },
+  { name: 'maxAppLen', type: 'number', default: '4', description: 'Max application display count' },
+  { name: 'currentApplication', type: 'Application', description: 'Currently selected application' },
+  { name: 'currentApplicationId', type: 'string', description: 'Currently selected application ID (higher priority than currentApplication)' },
+  { name: 'currentConversation', type: 'ChatConversation', description: 'Currently selected conversation' },
+  { name: 'currentConversationId', type: 'string', description: 'Currently selected conversation ID (higher priority than currentConversation)' },
+  { name: 'isOpen', type: 'boolean', description: 'Whether panel is open' },
+  { name: 'isShowCloseButton', type: 'boolean', default: 'true', description: 'Show close button' },
+  { name: 'isShowFullscreenButton', type: 'boolean', default: 'true', description: 'Show fullscreen button' },
+  { name: 'isFullscreen', type: 'boolean', default: 'false', description: 'Whether in fullscreen state' },
+  { name: 'onFullscreen', type: '(isFullscreen: boolean) => void', description: 'Fullscreen toggle callback' },
+  { name: 'onOpenChange', type: '(isOpen: boolean) => void', description: 'Panel open state change callback' },
+  { name: 'isShowToggleButton', type: 'boolean', default: 'true', description: 'Show floating toggle button' },
+  { name: 'aiWarningText', type: 'string', default: "'AI generated content'", description: 'AI warning text' },
+  { name: 'sideI18n', type: 'SideI18n', description: 'Sidebar i18n text' },
+  { name: 'chatI18n', type: 'ChatI18n', description: 'Chat i18n text' },
+  { name: 'chatItemI18n', type: 'ChatItemI18n', description: 'ChatItem i18n text' },
+  { name: 'senderI18n', type: 'SenderI18n', description: 'Sender i18n text' },
+  { name: 'apiConfig', type: 'ApiConfig', description: 'API config (enables API mode)' },
+]} />
+
+## i18n Configuration
+
+### sideI18n
+
+```typescript
+{
+  more?: string           // More
+  collapse?: string       // Collapse
+  today?: string          // Today
+  recent?: string         // Recent
+  switchTheme?: string    // Switch Theme
+  selectLanguage?: string // Select Language
+  logout?: string         // Logout
+}
+```
+
+### chatI18n
+
+```typescript
+{
+  loading?: string            // Loading
+  thinking?: string           // Thinking
+  checkAll?: string           // Select All
+  shareFor?: string           // Share to
+  copyUrl?: string            // Copy Link
+  cancelShare?: string        // Cancel Share
+  sendError?: string          // Send Failed
+  networkError?: string       // Network Error
+  createConversation?: string // New Chat
+}
+```
+
+### chatItemI18n
+
+```typescript
+{
+  thinking?: string             // Thinking
+  deepThinkingFinished?: string // Deep thinking finished
+  deepThinkingExpand?: string   // Expand deep thinking
+  copy?: string                 // Copy
+  replay?: string               // Regenerate
+  share?: string                // Share
+  good?: string                 // Like
+  bad?: string                  // Dislike
+  thxForGood?: string           // Thanks for liking
+  thxForBad?: string            // Thanks for feedback
+  references?: string           // References
+}
+```
+
+### senderI18n
+
+```typescript
+{
+  placeholder?: string       // Input placeholder
+  placeholderMobile?: string // Mobile input placeholder
+  uploadImg?: string         // Upload image
+  startRecord?: string       // Start recording
+  stopRecord?: string        // Stop recording
+  answering?: string         // Answering
+  notSupport?: string        // Not supported
+  uploadError?: string       // Upload failed
+  recordTooLong?: string     // Recording too long
+}
+```
+
+## API Mode Configuration
+
+Configure API paths via `apiConfig`, the component will automatically fetch data via HTTP requests. `apiConfig` extends `AxiosRequestConfig`, allowing configuration of `baseURL`, `headers`, `timeout` and other Axios request parameters:
+
+```javascript
+ADPChatComponent.init('#chat-container', {
+  apiConfig: {
+    // Axios request config
+    baseURL: 'https://api.example.com',
+    timeout: 30000,
+    headers: {
+      'Authorization': 'Bearer token'
+    }
+  }
+})
+```
+
+## Mode Description
+
+### Fill Container Mode
+
+Component fills the entire container, suitable for standalone pages:
+
+```javascript
+ADPChatComponent.init('#chat-container', {
+  isOverlay: false
+})
+```
+
+### Overlay Mode
+
+Component displays as a floating panel with fixed dimensions, suitable for embedding in existing pages:
+
+```javascript
+ADPChatComponent.init('#chat-container', {
+  isOverlay: true,
+  width: 400,
+  height: 640
+})
+```
+
+## Unmount Component
+
+```javascript
+// Unmount component from specified container
+ADPChatComponent.unmount('#chat-container')
+```
+
+## Type Definitions
+
+### UserInfo
+
+```typescript
+interface UserInfo {
+  avatarUrl?: string   // Avatar URL
+  avatarName?: string  // Avatar display name
+  name?: string        // Username
+}
+```
+
+### LanguageOption
+
+```typescript
+interface LanguageOption {
+  key: string    // Language identifier, e.g., 'en-US'
+  value: string  // Display name, e.g., 'English'
+}
+```
+
+### Application
+
+```typescript
+interface Application {
+  ApplicationId: string
+  Name: string
+  Avatar: string
+  Greeting: string
+  OpeningQuestions: string[]
+}
+```
+
+### ChatConversation
+
+```typescript
+interface ChatConversation {
+  Id: string
+  AccountId: string
+  Title: string
+  LastActiveAt: number
+  CreatedAt: number
+  ApplicationId: string
+}
+```

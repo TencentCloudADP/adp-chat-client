@@ -1,12 +1,14 @@
 <script setup lang="tsx">
 import { ref, computed } from 'vue';
 import type { Application } from '../model/application';
+import type { ThemeProps } from '../model/type';
+import { themePropsDefaults } from '../model/type';
 import CustomizedIcon from './CustomizedIcon.vue';
 import { Avatar as TAvatar } from 'tdesign-vue-next';
 
 // TAvatar 已导入，模板中使用 TAvatar 组件
 
-interface Props {
+interface Props extends ThemeProps {
     /** 应用列表 */
     applications: Application[];
     /** 当前选中的应用ID */
@@ -20,6 +22,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    ...themePropsDefaults,
     applications: () => [],
     currentApplicationId: '',
     maxAppLen: 4,
@@ -80,13 +83,13 @@ const handleCollapseClick = () => {
 
         <!-- 显示更多选项 -->
         <div v-if="showMore" class="application-item control" @click="handleMoreClick">
-            <CustomizedIcon :showHoverBg="false" class="application-avatar control"  name="grid"/>
+            <CustomizedIcon :showHoverBg="false" class="application-avatar control" name="grid" :theme="theme"/>
             <span class="application-name">{{ moreText }}</span>
         </div>
 
         <!-- 显示收起选项 -->
         <div v-if="showCollapse" class="application-item control collapse" @click="handleCollapseClick">
-            <CustomizedIcon :showHoverBg="false" size="xs"  class="application-avatar" name="arrow_up_small" />
+            <CustomizedIcon :showHoverBg="false" size="xs" class="application-avatar" name="arrow_up_small" :theme="theme"/>
             <span class="application-name">{{ collapseText }}</span>
         </div>
     </div>

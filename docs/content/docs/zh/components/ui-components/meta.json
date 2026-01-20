@@ -1,0 +1,11 @@
+{
+  "title": "基础组件",
+  "icon": "dashboard-line",
+  "pages": [
+    "index",
+    "layout",
+    "chat",
+    "basic",
+    "common"
+  ]
+}

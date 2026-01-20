@@ -1,0 +1,101 @@
+---
+title: ChatItem
+description: Chat message item component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# ChatItem
+
+Single chat message display component.
+
+## Basic Usage
+
+```vue
+<template>
+  <ChatItem
+    :item="message"
+    :index="0"
+    :loading="false"
+    :is-stream-load="false"
+    @copy="handleCopy"
+    @rate="handleRate"
+  />
+</template>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'item', type: 'Record', required: true, description: 'Current chat record item' },
+  { name: 'index', type: 'number', required: true, description: 'Current item index' },
+  { name: 'isLastMsg', type: 'boolean', default: 'false', description: 'Whether last message' },
+  { name: 'loading', type: 'boolean', required: true, description: 'Whether loading' },
+  { name: 'isStreamLoad', type: 'boolean', required: true, description: 'Whether streaming' },
+  { name: 'showActions', type: 'boolean', default: 'true', description: 'Show action buttons' },
+  { name: 'isMobile', type: 'boolean', default: 'false', description: 'Whether mobile' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: 'Theme mode' },
+  { name: 'i18n', type: 'ChatItemI18n', description: 'i18n text' },
+]} />
+
+### i18n Defaults
+
+```typescript
+{
+  thinking: 'Thinking',
+  deepThinkingFinished: 'Deep thinking completed',
+  deepThinkingExpand: 'Expand deep thinking',
+  copy: 'Copy',
+  replay: 'Regenerate',
+  share: 'Share',
+  good: 'Like',
+  bad: 'Dislike',
+  thxForGood: 'Thanks for feedback',
+  thxForBad: 'Thanks for feedback',
+  references: 'References'
+}
+```
+
+<EventsTable data={[
+  { name: 'resend', params: 'relatedRecordId', description: 'Resend' },
+  { name: 'share', params: 'recordIds[]', description: 'Share' },
+  { name: 'rate', params: '(record, score)', description: 'Rate' },
+  { name: 'copy', params: '(rowtext, content, type)', description: 'Copy, rowtext is rendered plain text, content is raw markdown' },
+  { name: 'sendMessage', params: 'message', description: 'Send message (option card)' },
+]} />
+
+## Type Definitions
+
+### Record
+
+```typescript
+interface Record {
+  AgentThought?: AgentThought;
+  CanFeedback?: boolean;
+  CanRating?: boolean;
+  Content?: string;
+  ExtraInfo?: ExtraInfo;
+  FileInfos?: any[];
+  FromAvatar?: string;
+  FromName?: string;
+  HasRead?: boolean;
+  ImageUrls?: any[];
+  IsFromSelf?: boolean;
+  IsFinal?: boolean;
+  OptionCards?: string[];
+  QuoteInfos?: QuoteInfo[];
+  Reasons?: any[];
+  RecordId: string;
+  References?: Reference[];
+  RelatedRecordId?: string;
+  ReplyMethod?: number;
+  Score?: ScoreValue;
+  SessionId?: string;
+  TaskFlow?: any;
+  Timestamp?: number;
+  TokenStat?: TokenStat;
+  Type?: number;
+  WorkFlow?: WorkFlow;
+  Incremental?: boolean;
+}
+```

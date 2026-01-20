@@ -1,6 +1,6 @@
 /**
  * API 服务模块
- * 提供各种数据接口的请求方法
+ * 提供与后端交互的所有请求方法
  */
 import { httpService } from './httpService';
 import type { Application } from '../model/application';

@@ -69,6 +69,7 @@ export interface ChatI18n {
   cancelShare?: string
   sendError?: string
   networkError?: string
+  createConversation?: string
 }
 
 /** ChatItem 国际化文本 */
@@ -168,6 +169,7 @@ export const defaultChatI18n: Required<ChatI18n> = {
   cancelShare: '取消分享',
   sendError: '发送失败',
   networkError: '网络错误',
+  createConversation: '新建对话',
 }
 
 /** ChatItem i18n 默认值 */
@@ -244,8 +246,6 @@ export interface ChatConfig extends ChatRelatedProps, FullscreenProps {
   isShowToggleButton?: boolean
   /** AI警告文本 */
   aiWarningText?: string
-  /** 新建对话提示文本 */
-  createConversationText?: string
   /** 侧边栏国际化文本 */
   sideI18n?: SideI18n
   /** 聊天国际化文本 */

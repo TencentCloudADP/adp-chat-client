@@ -1,3 +1,8 @@
+/**
+ * 聊天数据模型定义
+ */
+
+/** 聊天会话信息 */
 export interface ChatConversation {
   Id: string
   AccountId: string
@@ -7,12 +12,14 @@ export interface ChatConversation {
   ApplicationId: string
 }
 
+/** 聊天会话请求参数 */
 export interface ChatConversationProps {
   ConversationId?: string,
   ShareId?: string,
   LastRecordId?: string,
 }
 
+/** Agent 思考过程信息 */
 export interface AgentThought {
   Elapsed?: number;
   Files?: any[];
@@ -96,6 +103,7 @@ export interface Reference {
 }
 
 
+/** 消息评分值枚举 */
 export const ScoreValue = {
   Unknown: 0,
   Like: 1,
@@ -128,6 +136,7 @@ export interface TokenStatProcedure {
 }
 
 
+/** 聊天消息记录 */
 export interface Record {
   AgentThought?: AgentThought;
   CanFeedback?: boolean;
@@ -159,14 +168,15 @@ export interface Record {
 }
 
 
+/** 聊天项展示数据 */
 export interface ChatItemData {
   avatar: string
   name: string
   datetime: string
-  reasoning?: string // 推理内容，可选
+  reasoning?: string
   content: string
   role: 'user' | 'assistant' | 'error' | 'model-change' | 'system' | undefined
-  duration?: number // 推理内容持续时间，可选
+  duration?: number
 }
 
 export interface WorkFlow {

@@ -1,3 +1,8 @@
+/**
+ * 组件挂载器模块
+ * 用于在非 Vue 项目中动态挂载组件
+ */
+
 import { createApp, type App, type Component } from 'vue'
 import { configureAxios } from './service/httpService'
 import type { ApiConfig } from './service/api'
@@ -19,7 +24,7 @@ import ChatSender from './components/Chat/Sender.vue'
 import ChatAppType from './components/Chat/AppType.vue'
 import OptionCard from './components/Common/OptionCard.vue'
 import RecordIcon from './components/Common/RecordIcon.vue'
-import ChatLayout from './components/layout/Index.vue'
+import ADPChat from './components/layout/Index.vue'
 import MainLayout from './components/layout/MainLayout.vue'
 import SideLayout from './components/layout/SideLayout.vue'
 import ShareChat from './components/ShareChat.vue'
@@ -59,6 +64,9 @@ export function createContainerElement(parentContainer: string, id: string): HTM
 
   const div = document.createElement('div')
   div.id = id
+  // 确保创建的容器继承父容器的宽高
+  div.style.width = '100%'
+  div.style.height = '100%'
   containerElement.appendChild(div)
   
   return div
@@ -259,7 +267,7 @@ export interface RecordIconConfig extends MountConfig {
   recording?: boolean
 }
 
-export interface ChatLayoutConfig extends MountConfig {
+export interface ADPChatConfig extends MountConfig {
   applications?: any[]
   currentApplication?: any
   conversations?: any[]
@@ -277,7 +285,6 @@ export interface ChatLayoutConfig extends MountConfig {
   isShowFullscreenButton?: boolean
   isFullscreen?: boolean
   aiWarningText?: string
-  createConversationText?: string
   sideI18n?: any
   chatI18n?: any
   chatItemI18n?: any
@@ -323,7 +330,7 @@ export const ChatSenderMounter = createComponentMounter<ChatSenderConfig>(ChatSe
 export const ChatAppTypeMounter = createComponentMounter<ChatAppTypeConfig>(ChatAppType, 'adp-chat-app-type')
 export const OptionCardMounter = createComponentMounter<OptionCardConfig>(OptionCard, 'adp-option-card')
 export const RecordIconMounter = createComponentMounter<RecordIconConfig>(RecordIcon, 'adp-record-icon')
-export const ChatLayoutMounter = createComponentMounter<ChatLayoutConfig>(ChatLayout, 'adp-chat-layout')
+export const ADPChatMounter = createComponentMounter<ADPChatConfig>(ADPChat, 'adp-chat-layout')
 export const MainLayoutMounter = createComponentMounter<MainLayoutConfig>(MainLayout, 'adp-main-layout')
 export const SideLayoutMounter = createComponentMounter<SideLayoutConfig>(SideLayout, 'adp-side-layout')
 export const ShareChatMounter = createComponentMounter<ShareChatConfig>(ShareChat, 'adp-share-chat')

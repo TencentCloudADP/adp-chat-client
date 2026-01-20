@@ -11,7 +11,7 @@ ADP Chat Component 是一套完整的 AI 聊天组件库，基于 Vue 3 + TDesig
 
 ## 特性
 
-- **完整的聊天界面** - 提供 ChatLayout、Chat、Sender 等核心组件
+- **完整的聊天界面** - 提供 ADPChat、Chat、Sender 等核心组件
 - **灵活的布局** - 支持侧边栏、主内容区等多种布局方式
 - **主题定制** - 支持亮色/暗色主题切换
 - **国际化** - 内置中英文支持，可自定义文本
@@ -22,7 +22,7 @@ ADP Chat Component 是一套完整的 AI 聊天组件库，基于 Vue 3 + TDesig
 
 ```vue
 <template>
-  <ChatLayout
+  <ADPChat
     :applications="applications"
     :conversations="conversations"
     :chat-list="chatList"
@@ -31,15 +31,15 @@ ADP Chat Component 是一套完整的 AI 聊天组件库，基于 Vue 3 + TDesig
 </template>
 
 <script setup lang="ts">
-import { ChatLayout } from 'adp-chat-component'
-import 'adp-chat-component/dist/style.css'
+import { ADPChat } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
 </script>
 ```
 
 ## 组件列表
 
 ### 布局组件
-- [ChatLayout](/docs/zh/components/layout/chat-layout) - 完整聊天布局
+- [ADPChat](/docs/zh/components/layout/chat-layout) - 完整聊天布局
 - [MainLayout](/docs/zh/components/layout/main-layout) - 主内容区布局
 - [SideLayout](/docs/zh/components/layout/side-layout) - 侧边栏布局
 

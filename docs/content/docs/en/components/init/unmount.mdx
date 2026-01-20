@@ -1,0 +1,106 @@
+---
+title: Unmount Component
+description: Unmount mounted chat component using the unmount method
+---
+
+Use the `unmount` method to unmount a mounted component and clean up related resources.
+
+```typescript
+ADPChatComponent.unmount(container: string)
+```
+
+## Parameters
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| container | `string` | CSS selector for mount container |
+
+## Basic Usage
+
+```javascript
+// Unmount component from specified container
+ADPChatComponent.unmount('#chat-container')
+```
+
+## Use Cases
+
+### Cleanup on Page Navigation
+
+```javascript
+// Unmount component when navigating away in SPA
+router.beforeEach((to, from, next) => {
+  if (from.path === '/chat') {
+    ADPChatComponent.unmount('#chat-container');
+  }
+  next();
+});
+```
+
+### Conditional Rendering
+
+```javascript
+// Show/hide chat component based on condition
+function toggleChat(show) {
+  if (show) {
+    ADPChatComponent.init('#chat-container', {
+      theme: 'light'
+    });
+  } else {
+    ADPChatComponent.unmount('#chat-container');
+  }
+}
+```
+
+### Component Destroy Hooks
+
+```javascript
+// Cleanup in Vue component destroy
+onUnmounted(() => {
+  ADPChatComponent.unmount('#chat-container');
+});
+
+// Cleanup in React component destroy
+useEffect(() => {
+  return () => {
+    ADPChatComponent.unmount('#chat-container');
+  };
+}, []);
+```
+
+## Complete Lifecycle Example
+
+```javascript
+// 1. Initialize component
+const instance = ADPChatComponent.init('#chat-container', {
+  theme: 'light',
+  logoTitle: 'AI Assistant',
+  apiConfig: {
+    baseURL: 'https://api.example.com'
+  }
+});
+
+// 2. Get current config
+const currentConfig = ADPChatComponent.getProps('#chat-container');
+console.log('Current theme:', currentConfig?.theme);
+
+// 3. Dynamically update config
+ADPChatComponent.update('#chat-container', {
+  theme: 'dark',
+  logoTitle: 'Smart Assistant'
+});
+
+// 4. Unmount component when appropriate
+ADPChatComponent.unmount('#chat-container');
+
+// 5. Re-initialize if needed
+ADPChatComponent.init('#chat-container', {
+  theme: 'light'
+});
+```
+
+## Notes
+
+- After unmounting, the component instance and related DOM elements will be removed
+- If you need to use the component again, you must call the `init` method again
+- Unmounting a non-existent container will not throw an error, it will fail silently
+- It's recommended to unmount components when no longer needed to free up memory resources

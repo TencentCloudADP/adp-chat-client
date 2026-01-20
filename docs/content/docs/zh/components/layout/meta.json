@@ -1,9 +1,0 @@
-{
-  "title": "布局组件",
-  "icon": "layout-line",
-  "pages": [
-    "chat-layout",
-    "main-layout",
-    "side-layout"
-  ]
-}

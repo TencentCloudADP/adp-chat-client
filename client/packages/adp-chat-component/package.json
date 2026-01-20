@@ -32,6 +32,7 @@
   "dependencies": {
     "@tdesign-vue-next/chat": "^0.4.5",
     "axios": "^1.13.2",
+    "dompurify": "^3.3.1",
     "katex": "^0.16.22",
     "markdown-it": "^14.1.0",
     "markdown-it-highlightjs": "^4.2.0",

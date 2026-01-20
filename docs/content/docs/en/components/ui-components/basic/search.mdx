@@ -1,0 +1,34 @@
+---
+title: Search
+description: Search component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# Search
+
+Search input component.
+
+## Basic Usage
+
+```vue
+<template>
+  <Search
+    placeholder="Search conversations"
+    @search="handleSearch"
+  />
+</template>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'placeholder', type: 'string', default: "'Search'", description: 'Placeholder text' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: 'Theme mode' },
+]} />
+
+<EventsTable data={[
+  { name: 'search', params: 'string', description: 'Triggered on input change' },
+  { name: 'focus', description: 'Triggered on focus' },
+  { name: 'blur', description: 'Triggered on blur' },
+]} />

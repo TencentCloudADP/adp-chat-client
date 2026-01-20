@@ -1,0 +1,84 @@
+---
+title: UI Components Overview
+description: Overview of all available UI components
+---
+
+# UI Components
+
+This section contains all UI components that can be used independently. These are lower-level building blocks that you can combine freely to create your own custom chat interface.
+
+## When to Use UI Components
+
+Choose UI components when you need:
+- **Full Control**: Complete control over the layout and behavior
+- **Custom Integration**: Integration with existing applications
+- **Partial Functionality**: Use only specific components without the full chat layout
+- **Advanced Customization**: Highly customized user experience
+
+## Component Categories
+
+### Layout Components
+Basic layout components for building the chat interface structure.
+- **MainLayout** - Main content area layout
+- **SideLayout** - Sidebar layout component
+
+### Chat Components
+Core chat functionality components.
+- **Chat** - Main chat message list container
+- **ChatItem** - Individual chat message item
+- **Sender** - Message input and send component
+- **AppType** - Application type selector
+
+### Basic Components
+Supporting UI components for common functionality.
+- **ApplicationList** - Application selection list
+- **HistoryList** - Conversation history list
+- **Settings** - Settings panel
+- **Search** - Search input component
+- **PersonalAccount** - User account display
+- **LogoArea** - Logo display area
+- **CreateConversation** - New conversation button
+- **CustomizedIcon** - Custom icon component
+- **SidebarToggle** - Sidebar toggle button
+- **AIWarning** - AI disclaimer warning
+
+### Common Components
+Utility components for various purposes.
+- **FileList** - File list display
+- **OptionCard** - Option selection card
+- **RecordIcon** - Voice recording icon
+
+## Usage Pattern
+
+```vue
+<template>
+  <div class="my-chat-app">
+    <SideLayout>
+      <LogoArea />
+      <ApplicationList :applications="apps" />
+      <HistoryList :conversations="conversations" />
+    </SideLayout>
+    <MainLayout>
+      <Chat :chat-list="messages">
+        <template #chat-item="{ item }">
+          <ChatItem :record="item" />
+        </template>
+      </Chat>
+      <Sender @send="handleSend" />
+    </MainLayout>
+  </div>
+</template>
+
+<script setup>
+import {
+  SideLayout,
+  MainLayout,
+  LogoArea,
+  ApplicationList,
+  HistoryList,
+  Chat,
+  ChatItem,
+  Sender
+} from 'adp-chat-component';
+</script>
+```

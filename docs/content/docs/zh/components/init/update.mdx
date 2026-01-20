@@ -1,0 +1,146 @@
+---
+title: Update 更新组件
+description: 使用 update 方法动态更新已挂载组件的配置
+---
+
+import { PropsTable } from '@/components/docs/api-table';
+
+使用 `update` 方法可以动态更新已挂载组件的配置，而无需重新创建组件实例。
+
+```typescript
+ADPChatComponent.update(container?: string, config?: Partial<ChatConfig>)
+```
+
+## 参数
+
+| 参数 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| container | `string` | `'body'` | 挂载容器的 CSS 选择器 |
+| config | `Partial<ChatConfig>` | - | 需要更新的配置项（增量更新） |
+
+## 返回值
+
+| 返回值 | 类型 | 说明 |
+| --- | --- | --- |
+| success | `boolean` | `true` 表示更新成功，`false` 表示未找到对应容器的组件 |
+
+## 基本用法
+
+```javascript
+// 初始化组件
+ADPChatComponent.init('#chat-container', {
+  theme: 'light',
+  logoTitle: 'AI 助手'
+});
+
+// 更新主题
+ADPChatComponent.update('#chat-container', {
+  theme: 'dark'
+});
+```
+
+## 更新多个配置项
+
+```javascript
+ADPChatComponent.update('#chat-container', {
+  theme: 'dark',
+  logoTitle: '智能助手',
+  aiWarningText: '内容由 AI 生成，请注意甄别'
+});
+```
+
+## 更新 API 配置
+
+```javascript
+// 更新 Authorization Token
+ADPChatComponent.update('#chat-container', {
+  apiConfig: {
+    headers: {
+      'Authorization': 'Bearer new-token'
+    }
+  }
+});
+
+// 更新 baseURL
+ADPChatComponent.update('#chat-container', {
+  apiConfig: {
+    baseURL: 'https://new-api.example.com'
+  }
+});
+```
+
+## 更新用户信息
+
+```javascript
+ADPChatComponent.update('#chat-container', {
+  user: {
+    name: '新用户名',
+    avatarUrl: 'https://example.com/new-avatar.png'
+  }
+});
+```
+
+## 更新国际化配置
+
+```javascript
+ADPChatComponent.update('#chat-container', {
+  sideI18n: {
+    more: '查看更多',
+    collapse: '收起列表'
+  },
+  chatI18n: {
+    loading: '正在加载...',
+    thinking: 'AI 思考中...'
+  }
+});
+```
+
+## 配合 getProps 使用
+
+```javascript
+// 获取当前配置
+const props = ADPChatComponent.getProps('#chat-container');
+
+// 基于当前配置进行切换
+if (props) {
+  ADPChatComponent.update('#chat-container', {
+    theme: props.theme === 'light' ? 'dark' : 'light'
+  });
+}
+```
+
+## 注意事项
+
+- `update` 方法只能更新已通过 `init` 方法初始化的组件
+- 传入的配置会与现有配置进行**合并**（增量更新），不会覆盖未传入的配置项
+- 如果组件尚未初始化，会在控制台输出警告并返回 `false`
+- 更新会立即生效，组件会自动重新渲染
+
+## getProps 获取当前配置
+
+使用 `getProps` 方法可以获取已挂载组件的当前配置。
+
+```typescript
+ADPChatComponent.getProps(container?: string)
+```
+
+### 参数
+
+| 参数 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| container | `string` | `'body'` | 挂载容器的 CSS 选择器 |
+
+### 返回值
+
+| 返回值 | 类型 | 说明 |
+| --- | --- | --- |
+| props | `Record<string, any> \| undefined` | 当前组件的配置对象，如果组件未找到则返回 `undefined` |
+
+### 使用示例
+
+```javascript
+// 获取当前配置
+const currentProps = ADPChatComponent.getProps('#chat-container');
+console.log(currentProps?.theme); // 'light' 或 'dark'
+console.log(currentProps?.logoTitle); // 当前 Logo 标题
+```
