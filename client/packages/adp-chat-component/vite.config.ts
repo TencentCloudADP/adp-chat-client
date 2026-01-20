@@ -98,13 +98,6 @@ export default defineConfig(({ mode }) => {
             },
             // 手动分包：大体积资源单独打包
             manualChunks(id) {
-              // 大体积 SVG 图标分包（>=3KB）- 使用更精确的路径匹配
-              const lazyIcons = ['thinking', 'setting', 'loading', 'sidebar', 'stars', 'copy']
-              for (const icon of lazyIcons) {
-                if (id.includes(`/icons/${icon}.svg`)) {
-                  return `icon-${icon}`
-                }
-              }
               // katex 分包
               if (id.includes('katex')) {
                 return 'katex'

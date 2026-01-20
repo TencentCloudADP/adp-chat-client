@@ -58,7 +58,7 @@ If you only need to use the built output, you can directly import files from the
 
 ```html
 <!-- In HTML -->
-<link rel="stylesheet" href="path/to/adp-chat-component/dist/style.css">
+<link rel="stylesheet" href="path/to/adp-chat-component/dist/es/adp-chat-component.css">
 <script src="path/to/adp-chat-component/dist/adp-chat-component.umd.js"></script>
 ```
 
@@ -67,62 +67,192 @@ Or in JavaScript:
 ```javascript
 // ES Module
 import ADPChatComponent from 'path/to/adp-chat-component/dist/adp-chat-component.es.js'
-import 'path/to/adp-chat-component/dist/style.css'
+import 'path/to/adp-chat-component/dist/es/adp-chat-component.css'
 ```
 
 ## Basic Usage
 
-### Method 1: Vue Component Import
+### Using in Simple HTML Pages
+Create ADPChat using API. See [API Reference](./init) for API parameters.
 
-```vue
-<template>
-  <ChatLayout
-    :applications="applications"
-    :current-application="currentApp"
-    :conversations="conversations"
-    :current-conversation="currentConversation"
-    :chat-list="chatList"
-    :user="userInfo"
-    theme="light"
-    @send="handleSend"
-    @select-application="handleSelectApp"
-    @select-conversation="handleSelectConversation"
-  />
-</template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-import { ChatLayout } from 'adp-chat-component'
-import 'adp-chat-component/dist/style.css'
-
-const applications = ref([])
-const currentApp = ref(null)
-const conversations = ref([])
-const currentConversation = ref(null)
-const chatList = ref([])
-const userInfo = ref({})
-
-const handleSend = (query, fileList, conversationId, applicationId) => {
-  // Handle send message
-}
-
-const handleSelectApp = (app) => {
-  currentApp.value = app
-}
-
-const handleSelectConversation = (conversation) => {
-  currentConversation.value = conversation
-}
-</script>
+1. Import adpchat js and css
+```html
+<script src="adp-chat-component.umd.js"></script>
+<link rel="stylesheet" href="adp-chat-component.css">
 ```
 
-### Method 2: API Mode
+2. Create an element with id like chat-container to bindADPChat
+ADPChat will render based on chat-container layout
+```html
+<div id="container">
+    <div id="main">
+        <div class="main-content">
+            <h1>ADP Chat Demo</h1>
+        </div>
+    </div>
+    <div id="chat-container">
+    </div>
+</div>
+```
 
-If your backend API conforms to the specification, you can use API mode to automatically load data:
+3. Initialize adpchat
+```javascript
+window.onload = function() {
+  ADPChatComponent.init('#chat-container')
+}
+```
+
+### Using in Vue Projects
+
+#### 2.1 Quick Creation with API (Recommended)
+
+Manage components through `init`, `update`, `unmount` methods.
+
+a. Create mount container
+```vue
+<script setup lang="ts">
+import { useChat } from './shared/useChat'
+import './shared/styles.css'
+
+const { isFullscreen, isOpen } = useChat({
+  getConfig: ({ isFullscreen }) => ({
+    width: 400,
+    height: 640,
+    isSidePanelOverlay: !isFullscreen,
+    isOverlay: !isFullscreen,
+    logoTitle: 'ADP Chat',
+    showFullscreenButton: true,
+    showToggleButton: true,
+  }),
+})
+</script>
+
+<template>
+  <div id="container">
+    <div id="main">
+      <div class="main-content">
+        <h1>ADP Chat Demo</h1>
+      </div>
+    </div>
+    <div id="chat-container" :class="{ 'chat-container--fullscreen': isFullscreen && isOpen }"></div>
+  </div>
+</template>
+```
+
+b. Create useChat Composable to manage component lifecycle
+```typescript
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import ADPChatComponent from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+import { defaultConfig } from './config'
+
+// Extend type to include update method
+type ADPChatComponentType = typeof ADPChatComponent & {
+  update: (container?: string, config?: Record<string, unknown>) => boolean
+}
+const ADPChat = ADPChatComponent as ADPChatComponentType
+
+export interface UseChatOptions {
+  containerId?: string
+  getConfig: (state: { isOpen: boolean; isFullscreen: boolean }) => Record<string, unknown>
+}
+
+export function useChat(options: UseChatOptions) {
+  const { containerId = '#chat-container', getConfig } = options
+  
+  const instanceRef = ref<unknown>(null)
+  const isOpen = ref(false)
+  const isFullscreen = ref(false)
+
+  const updateChat = () => {
+    if (!instanceRef.value) return
+    
+    const userConfig = getConfig({ isOpen: isOpen.value, isFullscreen: isFullscreen.value })
+    ADPChat.update(containerId, {
+      isOpen: isOpen.value,
+      isFullscreen: isFullscreen.value,
+      ...userConfig,
+    })
+  }
+
+  const initChat = () => {
+    const container = document.querySelector(containerId)
+    if (!container) return
+
+    // If already initialized, use update
+    if (instanceRef.value) {
+      updateChat()
+      return
+    }
+
+    const userConfig = getConfig({ isOpen: isOpen.value, isFullscreen: isFullscreen.value })
+    
+    instanceRef.value = ADPChat.init(containerId, {
+      ...defaultConfig,
+      isOpen: isOpen.value,
+      isFullscreen: isFullscreen.value,
+      ...userConfig,
+      onOpenChange: (open: boolean) => {
+        isOpen.value = open
+        ;(userConfig.onOpenChange as ((open: boolean) => void) | undefined)?.(open)
+      },
+      onFullscreen: (fullscreen: boolean) => {
+        isFullscreen.value = fullscreen
+        ;(userConfig.onFullscreen as ((fullscreen: boolean) => void) | undefined)?.(fullscreen)
+        nextTick(() => updateChat())
+      },
+    })
+  }
+
+  onMounted(() => {
+    nextTick(() => initChat())
+  })
+
+  onUnmounted(() => {
+    if (instanceRef.value) {
+      try {
+        ADPChat.unmount('chat-container-app')
+      } catch { /* ignore */ }
+    }
+  })
+
+  return { isOpen, isFullscreen, initChat, updateChat }
+}
+```
+
+c. Style configuration
+```css
+#container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: row;
+}
+
+#chat-container {
+  position: relative;
+  height: 100vh;
+  flex-shrink: 0;
+  width: 0;
+  transition: width 0.3s ease;
+}
+
+#chat-container.chat-container--fullscreen {
+  width: 400px;
+}
+
+#chat-container :deep(*) {
+  pointer-events: auto;
+}
+```
+
+#### 2.2 Using ADPChat Component (JSX Style)
+
+Use Vue component directly:
 
 ```vue
 <template>
-  <ChatLayout
+  <ADPChat
     :api-config="apiConfig"
     :auto-load="true"
     @data-loaded="handleDataLoaded"
@@ -131,15 +261,12 @@ If your backend API conforms to the specification, you can use API mode to autom
 </template>
 
 <script setup lang="ts">
-import { ChatLayout } from 'adp-chat-component'
-import 'adp-chat-component/dist/style.css'
+import { ADPChat } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
 
 const apiConfig = {
-  applicationListApi: '/api/applications',
-  conversationListApi: '/api/conversations',
-  conversationDetailApi: '/api/conversation/detail',
-  sendMessageApi: '/api/message/send',
-  userInfoApi: '/api/user/info'
+  baseURL: './',
+  timeout: 1000 * 60,
 }
 
 const handleDataLoaded = (type, data) => {
@@ -152,59 +279,264 @@ const handleSend = (query, fileList, conversationId, applicationId) => {
 </script>
 ```
 
-### Method 3: Dynamic Mounting
+#### 2.3 Custom Assembly with Basic Components
 
-Suitable for non-Vue projects or scenarios that require dynamic component creation:
+Refer to the basic components documentation
 
-```typescript
-import { ChatLayoutMounter } from 'adp-chat-component'
-import 'adp-chat-component/dist/style.css'
+### Using in React or Other Frameworks
 
-// Mount component
-const instanceId = ChatLayoutMounter.mount('#chat-container', {
-  theme: 'dark',
-  applications: [...],
-  onSend: (query, files, conversationId, appId) => {
-    // Handle send
-  }
-})
+Since adp-chat-component is a Vue-based component library, integration in React or other frameworks requires using the mounting API.
 
-// Unmount component
-ChatLayoutMounter.unmount(instanceId)
+#### 3.1 Quick Creation with API (Recommended)
+
+Similar to using API in Vue projects, you can manage components through `init`, `update`, `unmount` methods.
+
+a. Create mount container
+```tsx
+const App: React.FC = () => {
+  const { isFullscreen, isOpen } = useChat({
+    getConfig: ({ isFullscreen }) => ({
+      width: 400,
+      height: 640,
+      isSidePanelOverlay: !isFullscreen,
+      isOverlay: !isFullscreen,
+      logoTitle: 'ADP Chat',
+      showFullscreenButton: true,
+      showToggleButton: true,
+    }),
+  })
+
+  return (
+    <div id="container">
+      <div id="main">
+        <div className="main-content">
+          <h1>ADP Chat Demo</h1>
+        </div>
+      </div>
+      <div id="chat-container" className={isFullscreen && isOpen ? 'chat-container--fullscreen' : ''}></div>
+    </div>
+  )
+}
 ```
 
-## Configure HTTP Service
-
-You can configure axios instance to add authentication info:
-
+b. Create useChat Hook to manage component lifecycle
 ```typescript
-import { configureAxios, setRequestInterceptor, setResponseInterceptor } from 'adp-chat-component'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import ADPChatComponent from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+import { defaultConfig } from './config'
 
-// Configure axios
-configureAxios({
-  baseURL: 'https://api.example.com',
-  timeout: 30000
-})
+// Extend type to include update method
+type ADPChatComponentType = typeof ADPChatComponent & {
+  update: (container?: string, config?: Record<string, unknown>) => boolean
+}
+const ADPChat = ADPChatComponent as ADPChatComponentType
 
-// Add request interceptor
-setRequestInterceptor(
-  (config) => {
-    config.headers.Authorization = `Bearer ${token}`
-    return config
-  },
-  (error) => Promise.reject(error)
-)
+export interface UseChatOptions {
+  containerId?: string
+  getConfig: (state: { isOpen: boolean; isFullscreen: boolean }) => Record<string, unknown>
+}
 
-// Add response interceptor
-setResponseInterceptor(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle authentication failure
+export function useChat(options: UseChatOptions) {
+  const { containerId = '#chat-container', getConfig } = options
+  
+  const instanceRef = useRef<unknown>(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  
+  // Use ref to track latest state
+  const stateRef = useRef({ isOpen, isFullscreen })
+  stateRef.current = { isOpen, isFullscreen }
+
+  const updateChat = useCallback(() => {
+    if (!instanceRef.current) return
+    
+    const userConfig = getConfig({ isOpen: stateRef.current.isOpen, isFullscreen: stateRef.current.isFullscreen })
+    ADPChat.update(containerId, {
+      isOpen: stateRef.current.isOpen,
+      isFullscreen: stateRef.current.isFullscreen,
+      ...userConfig,
+    })
+  }, [containerId, getConfig])
+
+  const initChat = useCallback(() => {
+    const container = document.querySelector(containerId)
+    if (!container) return
+
+    // If already initialized, use update
+    if (instanceRef.current) {
+      updateChat()
+      return
     }
-    return Promise.reject(error)
-  }
-)
+
+    const userConfig = getConfig({ isOpen: stateRef.current.isOpen, isFullscreen: stateRef.current.isFullscreen })
+    
+    instanceRef.current = ADPChat.init(containerId, {
+      ...defaultConfig,
+      isOpen: stateRef.current.isOpen,
+      isFullscreen: stateRef.current.isFullscreen,
+      ...userConfig,
+      onOpenChange: (newOpen: boolean) => {
+        setIsOpen(newOpen)
+        stateRef.current.isOpen = newOpen
+      },
+      onFullscreen: (newFullscreen: boolean) => {
+        setIsFullscreen(newFullscreen)
+        stateRef.current.isFullscreen = newFullscreen
+        setTimeout(() => updateChat(), 0)
+      },
+    })
+  }, [containerId, getConfig, updateChat])
+
+  useEffect(() => {
+    const timer = setTimeout(() => initChat(), 0)
+    return () => {
+      clearTimeout(timer)
+      if (instanceRef.current) {
+        try {
+          ADPChat.unmount('chat-container-app')
+        } catch { /* ignore */ }
+      }
+    }
+  }, [])
+
+  return { isOpen, isFullscreen, initChat, openChat, closeChat, toggleFullscreen }
+}
+```
+
+c. Style configuration
+```css
+#container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: row;
+}
+
+#chat-container {
+  position: relative;
+  height: 100vh;
+  flex-shrink: 0;
+  width: 0;
+  transition: width 0.3s ease;
+}
+
+#chat-container.chat-container--fullscreen {
+  width: 400px;
+}
+
+#chat-container * {
+  pointer-events: auto;
+}
+```
+
+#### 3.2 Wrap as React Component (JSX Style)
+
+If you prefer using JSX component style, you can wrap a React component that internally calls `ADPChat.mount` to mount the Vue component.
+
+a. Wrap ADPChat React Component
+```tsx
+import React, { useEffect, useRef, useId } from 'react'
+import ADPChatComponent from 'adp-chat-component'
+import type { ApiConfig, ThemeType, Application, ChatConversation } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+
+export interface ADPChatProps {
+  apiConfig?: ApiConfig
+  autoLoad?: boolean
+  theme?: ThemeType
+  isSidePanelOverlay?: boolean
+  currentApplicationId?: string
+  currentConversationId?: string
+  onSelectApplication?: (app: Application) => void
+  onSelectConversation?: (conversation: ChatConversation) => void
+  onToggleTheme?: () => void
+  onDataLoaded?: (type: string, data: unknown) => void
+  // ... more props
+}
+
+const ADPChat: React.FC<ADPChatProps> = (props) => {
+  const uniqueId = useId()
+  const containerId = `adp-chat-${uniqueId.replace(/:/g, '-')}`
+  const containerRef = useRef<HTMLDivElement>(null)
+  const mountedIdRef = useRef<string | null>(null)
+
+  const getConfig = () => ({
+    apiConfig: props.apiConfig,
+    autoLoad: props.autoLoad ?? true,
+    theme: props.theme ?? 'light',
+    isSidePanelOverlay: props.isSidePanelOverlay ?? false,
+    currentApplicationId: props.currentApplicationId ?? '',
+    currentConversationId: props.currentConversationId ?? '',
+    onSelectApplication: props.onSelectApplication,
+    onSelectConversation: props.onSelectConversation,
+    onToggleTheme: props.onToggleTheme,
+    onDataLoaded: props.onDataLoaded,
+  })
+
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    // Unmount old instance
+    if (mountedIdRef.current) {
+      try {
+        ADPChatComponent.ADPChat.unmount(mountedIdRef.current)
+      } catch { /* ignore */ }
+    }
+
+    // Mount new instance
+    mountedIdRef.current = ADPChatComponent.ADPChat.mount(`#${containerId}`, getConfig()) || null
+
+    return () => {
+      if (mountedIdRef.current) {
+        try {
+          ADPChatComponent.ADPChat.unmount(mountedIdRef.current)
+        } catch { /* ignore */ }
+        mountedIdRef.current = null
+      }
+    }
+  }, [containerId, props.theme, props.currentApplicationId, props.currentConversationId])
+
+  return (
+    <div
+      id={containerId}
+      ref={containerRef}
+      style={{ width: '100%', height: '100%' }}
+    />
+  )
+}
+
+export default ADPChat
+```
+
+b. Use in page
+```tsx
+import React from 'react'
+import ADPChat from './components/ADPChat'
+
+const Home: React.FC = () => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [currentAppId, setCurrentAppId] = useState('')
+  const [currentConvId, setCurrentConvId] = useState('')
+
+  return (
+    <div style={{ width: '100vw', height: '100vh' }}>
+      <ADPChat
+        apiConfig={{ baseURL: '/api', timeout: 60000 }}
+        autoLoad={true}
+        theme={theme}
+        currentApplicationId={currentAppId}
+        currentConversationId={currentConvId}
+        onSelectApplication={(app) => setCurrentAppId(app.ApplicationId)}
+        onSelectConversation={(conv) => setCurrentConvId(conv.Id)}
+        onToggleTheme={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+        onDataLoaded={(type, data) => console.log(`${type} loaded:`, data)}
+      />
+    </div>
+  )
+}
+
+export default Home
 ```
 
 ## Theme Switching
@@ -213,7 +545,7 @@ Components support light and dark themes:
 
 ```vue
 <template>
-  <ChatLayout
+  <ADPChat
     :theme="theme"
     @toggle-theme="toggleTheme"
   />
@@ -236,7 +568,7 @@ Customize text through i18n related props:
 
 ```vue
 <template>
-  <ChatLayout
+  <ADPChat
     :chat-i18n="{
       loading: 'Loading...',
       thinking: 'Thinking...',

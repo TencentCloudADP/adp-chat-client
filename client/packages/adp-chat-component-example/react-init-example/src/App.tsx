@@ -3,11 +3,12 @@ import { useChat } from './shared/useChat'
 import './shared/styles.css'
 
 const App: React.FC = () => {
-  const { isFullscreen } = useChat({
-    getConfig: () => ({
-      isOverlay: true,
-      width: 420,
-      height: '80vh',
+  const { isFullscreen, isOpen } = useChat({
+    getConfig: ({ isFullscreen }) => ({
+      width: 400,
+      height: 640,
+      isSidePanelOverlay: !isFullscreen,
+      isOverlay: !isFullscreen,
       logoTitle: 'ADP Chat',
       showFullscreenButton: true,
       showToggleButton: true,
@@ -21,7 +22,7 @@ const App: React.FC = () => {
           <h1>ADP Chat Demo</h1>
         </div>
       </div>
-      <div id="chat-container" className={isFullscreen ? 'chat-container--fullscreen' : ''}></div>
+      <div id="chat-container" className={isFullscreen && isOpen ? 'chat-container--fullscreen' : ''}></div>
     </div>
   )
 }

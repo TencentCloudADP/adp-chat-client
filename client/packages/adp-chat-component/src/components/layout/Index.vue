@@ -1,6 +1,6 @@
-<!-- 控制尺寸、展开和收起 -->
+<!-- ADP 聊天布局主组件，支持 API 模式和 Props 模式 -->
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick, toRef } from 'vue';
 import { Layout as TLayout, Content as TContent, MessagePlugin } from 'tdesign-vue-next';
 
 // TLayout, TContent 已导入，模板中使用对应组件
@@ -12,7 +12,7 @@ import type { Application } from '../../model/application';
 import type { ChatConversation, Record } from '../../model/chat';
 import type { FileProps } from '../../model/file';
 import { ScoreValue } from '../../model/chat';
-import type { ApiConfig, ApiDetailConfig } from '../../service/api';
+import type { ApiConfig } from '../../service/api';
 import {
     fetchApplicationList,
     fetchConversationList,
@@ -22,13 +22,12 @@ import {
     createShare,
     fetchUserInfo,
     uploadFile,
-    defaultApiDetailConfig,
 } from '../../service/api';
 import { MessageCode, getMessage } from '../../model/messages';
 import { fetchSSE } from '../../model/sseRequest-reasoning';
 import { mergeRecord } from '../../utils/util';
 import { copyToClipboard } from '../../utils/clipboard';
-import { configureAxios } from '../../service/httpService';
+import { useApiConfig } from '../../composables';
 import { computeIsMobile } from '../../utils/device';
 import type { 
     LanguageOption, 
@@ -87,8 +86,6 @@ export interface Props extends ThemeProps, FullscreenProps {
     isShowCloseButton?: boolean;
     /** AI警告文本 */
     aiWarningText?: string;
-    /** 新建对话提示文本 */
-    createConversationText?: string;
     /** 侧边栏国际化文本 */
     sideI18n?: SideI18n;
     /** 聊天国际化文本 */
@@ -124,7 +121,6 @@ const props = withDefaults(defineProps<Props>(), {
     maxAppLen: 4,
     isShowCloseButton: true,
     aiWarningText: '内容由AI生成，仅供参考',
-    createConversationText: '新建对话',
     apiConfig: () => ({}),
     autoLoad: true,
 });
@@ -179,11 +175,10 @@ const abortController = ref<AbortController | null>(null);
 // 判断是否使用 API 模式（始终启用）
 const useApiMode = computed(() => true);
 
-// 合并后的 API 详细配置（用户配置 + 默认配置）
-const mergedApiDetailConfig = computed<ApiDetailConfig>(() => ({
-    ...defaultApiDetailConfig,
-    ...props.apiConfig?.apiDetailConfig,
-}));
+// 使用 composable 统一管理 API 配置
+const { mergedApiDetailConfig } = useApiConfig({
+    apiConfig: toRef(props, 'apiConfig'),
+});
 
 // 实际使用的数据（优先使用 props，否则使用内部数据）
 const actualApplications = computed(() => 
@@ -287,6 +282,8 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
     }
 
     internalIsChatting.value = true;
+    // 重置用户滚动状态
+    mainLayoutRef.value?.getChatRef()?.setHasUserScrolled(false);
 
     // 创建用户消息占位
     const userRecord: Record = {
@@ -306,6 +303,11 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
         Timestamp: Date.now(),
     };
     internalChatList.value.push(assistantRecord);
+
+    // 发送消息后滚动到底部
+    nextTick(() => {
+        mainLayoutRef.value?.getChatRef()?.backToBottom();
+    });
 
     abortController.value = new AbortController();
 
@@ -351,11 +353,22 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
                         }
                     }
                 }
+                // 每次收到数据后滚动到底部
+                nextTick(() => {
+                    mainLayoutRef.value?.getChatRef()?.backToBottom();
+                });
             },
             complete(isOk, msg) {
                 if (isOk) {
                     internalIsChatting.value = false;
                     abortController.value = null;
+                    // 完成后滚动到底部并延迟重置用户滚动状态
+                    nextTick(() => {
+                        mainLayoutRef.value?.getChatRef()?.backToBottom();
+                        setTimeout(() => {
+                            mainLayoutRef.value?.getChatRef()?.setHasUserScrolled(false);
+                        }, 500);
+                    });
                 }
                 if (msg) {
                     MessagePlugin.error(msg);
@@ -418,6 +431,12 @@ const handleInternalLoadMore = async (conversationId: string, lastRecordId: stri
         } else {
             mainLayoutRef.value?.notifyComplete();
         }
+        nextTick(() => {
+            // 仅首次加载滚动到最底部，并开启自动滚动窗口（处理图片等异步加载）
+            if (!lastRecordId) {
+                mainLayoutRef.value?.getChatRef()?.backToBottom();
+            }
+        })
     } catch (error) {
         mainLayoutRef.value?.notifyComplete();
         const msg = getMessage(MessageCode.LOAD_MORE_FAILED);
@@ -487,6 +506,10 @@ const handleToggleSidebar = () => {
 };
 
 const handleSelectApplication = (app: Application) => {
+    // 停止当前正在进行的对话
+    if (internalIsChatting.value) {
+        handleInternalStop();
+    }
     if (useApiMode.value) {
         internalCurrentApplication.value = app;
         internalCurrentConversation.value = undefined;
@@ -500,6 +523,10 @@ const handleSelectApplication = (app: Application) => {
 };
 
 const handleSelectConversation = async (conversation: ChatConversation) => {
+    // 停止当前正在进行的对话
+    if (internalIsChatting.value) {
+        handleInternalStop();
+    }
     if (useApiMode.value) {
         internalCurrentConversation.value = conversation;
         // 清空聊天列表，让 InfiniteLoading 来加载数据
@@ -654,13 +681,7 @@ watch([() => props.currentConversation, () => actualApplications.value], async (
 // 组件挂载时自动加载数据
 onMounted(async () => {
     if (useApiMode.value && props.autoLoad) {
-        // 配置 axios 实例（baseURL、timeout 等）
-        if (props.apiConfig) {
-            const { apiDetailConfig, ...axiosConfig } = props.apiConfig;
-            if (Object.keys(axiosConfig).length > 0) {
-                configureAxios(axiosConfig);
-            }
-        }
+        // axios 配置已由 useApiConfig composable 自动处理
         // 先加载用户信息，因为如果配置了AUTO_CREATE_ACCOUNT，会在加载用户信息时创建账户
         await loadUserInfo()
         await Promise.all([
@@ -732,7 +753,6 @@ defineExpose({
                 :theme="theme"
                 :showSidebarToggle="!sidebarVisible"
                 :aiWarningText="aiWarningText"
-                :createConversationText="createConversationText"
                 :i18n="chatI18n"
                 :chatItemI18n="chatItemI18n"
                 :senderI18n="senderI18n"

@@ -58,7 +58,7 @@ packages:
 
 ```html
 <!-- 在 HTML 中引入 -->
-<link rel="stylesheet" href="path/to/adp-chat-component/dist/style.css">
+<link rel="stylesheet" href="path/to/adp-chat-component/dist/es/adp-chat-component.css">
 <script src="path/to/adp-chat-component/dist/adp-chat-component.umd.js"></script>
 ```
 
@@ -67,62 +67,156 @@ packages:
 ```javascript
 // ES Module
 import ADPChatComponent from 'path/to/adp-chat-component/dist/adp-chat-component.es.js'
-import 'path/to/adp-chat-component/dist/style.css'
+import 'path/to/adp-chat-component/dist/es/adp-chat-component.css'
 ```
 
 ## 基础使用
 
-### 方式一：Vue 组件引入
-
-```vue
-<template>
-  <ChatLayout
-    :applications="applications"
-    :current-application="currentApp"
-    :conversations="conversations"
-    :current-conversation="currentConversation"
-    :chat-list="chatList"
-    :user="userInfo"
-    theme="light"
-    @send="handleSend"
-    @select-application="handleSelectApp"
-    @select-conversation="handleSelectConversation"
-  />
-</template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-import { ChatLayout } from 'adp-chat-component'
-import 'adp-chat-component/dist/style.css'
-
-const applications = ref([])
-const currentApp = ref(null)
-const conversations = ref([])
-const currentConversation = ref(null)
-const chatList = ref([])
-const userInfo = ref({})
-
-const handleSend = (query, fileList, conversationId, applicationId) => {
-  // 处理发送消息
-}
-
-const handleSelectApp = (app) => {
-  currentApp.value = app
-}
-
-const handleSelectConversation = (conversation) => {
-  currentConversation.value = conversation
-}
-</script>
+### 在简单HTML页面中使用
+使用api形式创建ADPChat，api参数详见[api调用](./init)
+1. 引入adpchat的js和css
+```html
+<script src="adp-chat-component.umd.js"></script>
+<link rel="stylesheet" href="adp-chat-component.css">
 ```
 
-### 方式二：API 模式
+2. 创建id如chat-container将adpchat绑定到该标签上
+ADPChat将根据chat-container布局渲染
+```html
+<div id="container">
+            <div id="main">
+                <div class="main-content">
+                    <h1>ADP Chat Demo</h1>
+                </div>
+            </div>
+            <div id="chat-container">
+            </div>
+        </div>
+```
+3. 初始化adpchat
+```javascript
+window.onload = function() {
+  ADPChatComponent.init('#chat-container')
+}
 
-如果你的后端 API 符合规范，可以使用 API 模式自动加载数据：
+```
+
+### 在 Vue 项目中使用
+
+#### 2.1 使用 API 快速创建（推荐）
+通过 `init`、`update`、`unmount` 方法管理组件。
+```vue
+<script setup lang="ts">
+import ADPChatComponent from 'adp-chat-component'
+
+// 初始化
+ADPChatComponent.init('#chat-container')
+// 更新
+ADPChatComponent.update('#chat-container')
+//  卸载
+ADPChatComponent.unmount('#chat-container')
+</script>
+
+<template>
+  <div id="container">
+    <div id="main">
+      <div class="main-content">
+        <h1>ADP Chat Demo</h1>
+      </div>
+    </div>
+    <div id="chat-container" :class="{ 'chat-container--fullscreen': isFullscreen && isOpen }"></div>
+  </div>
+</template>
+```
+更新方法需要保证同一个实例，请在vue中缓存
+完整示例参考usechat方法
+```typescript
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import ADPChatComponent from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+import { defaultConfig } from './config'
+
+// 扩展类型以包含 update 方法
+type ADPChatComponentType = typeof ADPChatComponent & {
+  update: (container?: string, config?: Record<string, unknown>) => boolean
+}
+const ADPChat = ADPChatComponent as ADPChatComponentType
+
+export interface UseChatOptions {
+  containerId?: string
+  getConfig: (state: { isOpen: boolean; isFullscreen: boolean }) => Record<string, unknown>
+}
+
+export function useChat(options: UseChatOptions) {
+  const { containerId = '#chat-container', getConfig } = options
+  
+  const instanceRef = ref<unknown>(null)
+  const isOpen = ref(false)
+  const isFullscreen = ref(false)
+
+  const updateChat = () => {
+    if (!instanceRef.value) return
+    
+    const userConfig = getConfig({ isOpen: isOpen.value, isFullscreen: isFullscreen.value })
+    ADPChat.update(containerId, {
+      isOpen: isOpen.value,
+      isFullscreen: isFullscreen.value,
+      ...userConfig,
+    })
+  }
+
+  const initChat = () => {
+    const container = document.querySelector(containerId)
+    if (!container) return
+
+    // 已初始化则使用 update 更新
+    if (instanceRef.value) {
+      updateChat()
+      return
+    }
+
+    const userConfig = getConfig({ isOpen: isOpen.value, isFullscreen: isFullscreen.value })
+    
+    instanceRef.value = ADPChat.init(containerId, {
+      ...defaultConfig,
+      isOpen: isOpen.value,
+      isFullscreen: isFullscreen.value,
+      ...userConfig,
+      onOpenChange: (open: boolean) => {
+        isOpen.value = open
+        ;(userConfig.onOpenChange as ((open: boolean) => void) | undefined)?.(open)
+      },
+      onFullscreen: (fullscreen: boolean) => {
+        isFullscreen.value = fullscreen
+        ;(userConfig.onFullscreen as ((fullscreen: boolean) => void) | undefined)?.(fullscreen)
+        nextTick(() => updateChat())
+      },
+    })
+  }
+
+  onMounted(() => {
+    nextTick(() => initChat())
+  })
+
+  onUnmounted(() => {
+    if (instanceRef.value) {
+      try {
+        ADPChat.unmount('chat-container-app')
+      } catch { /* ignore */ }
+    }
+  })
+
+  return { isOpen, isFullscreen, initChat, updateChat }
+}
+```
+
+#### 2.2 使用 ADPChat 组件
+
+直接使用 Vue 组件方式：
 
 ```vue
 <template>
-  <ChatLayout
+  <ADPChat
     :api-config="apiConfig"
     :auto-load="true"
     @data-loaded="handleDataLoaded"
@@ -131,15 +225,12 @@ const handleSelectConversation = (conversation) => {
 </template>
 
 <script setup lang="ts">
-import { ChatLayout } from 'adp-chat-component'
-import 'adp-chat-component/dist/style.css'
+import { ADPChat } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
 
 const apiConfig = {
-  applicationListApi: '/api/applications',
-  conversationListApi: '/api/conversations',
-  conversationDetailApi: '/api/conversation/detail',
-  sendMessageApi: '/api/message/send',
-  userInfoApi: '/api/user/info'
+  baseURL: './',
+  timeout: 1000 * 60,
 }
 
 const handleDataLoaded = (type, data) => {
@@ -152,59 +243,238 @@ const handleSend = (query, fileList, conversationId, applicationId) => {
 </script>
 ```
 
-### 方式三：动态挂载
+#### 2.3 使用基础组件拼接自定义
 
-适用于非 Vue 项目或需要动态创建组件的场景：
+参考基础组件使用文档
 
+
+### 在React或其他框架项目中使用
+
+由于 adp-chat-component 是基于 Vue 开发的组件库，在 React 或其他框架中使用时，需要通过挂载 API 的方式集成。
+
+#### 3.1 使用 API 快速创建（推荐）
+
+与 Vue 项目中使用 API 方式类似，可以通过 `init`、`update`、`unmount` 方法管理组件。
+
+a. 创建挂载容器
+```tsx
+import ADPChatComponent from 'adp-chat-component'
+
+const App: React.FC = () => {
+
+  // 初始化
+  ADPChatComponent.init('#chat-container')
+  // 更新
+  ADPChatComponent.update('#chat-container')
+  //  卸载
+  ADPChatComponent.unmount('#chat-container')
+
+  return (
+    <div id="container">
+      <div id="main">
+        <div className="main-content">
+          <h1>ADP Chat Demo</h1>
+        </div>
+      </div>
+      <div id="chat-container" className={isFullscreen && isOpen ? 'chat-container--fullscreen' : ''}></div>
+    </div>
+  )
+}
+```
+更新方法需要保证同一个实例，请在react中缓存
+完整示例参考usechat方法
 ```typescript
-import { ChatLayoutMounter } from 'adp-chat-component'
-import 'adp-chat-component/dist/style.css'
+import { useEffect, useRef, useState, useCallback } from 'react'
+import ADPChatComponent from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+import { defaultConfig } from './config'
 
-// 挂载组件
-const instanceId = ChatLayoutMounter.mount('#chat-container', {
-  theme: 'dark',
-  applications: [...],
-  onSend: (query, files, conversationId, appId) => {
-    // 处理发送
-  }
-})
+// 扩展类型以包含 update 方法
+type ADPChatComponentType = typeof ADPChatComponent & {
+  update: (container?: string, config?: Record<string, unknown>) => boolean
+}
+const ADPChat = ADPChatComponent as ADPChatComponentType
 
-// 卸载组件
-ChatLayoutMounter.unmount(instanceId)
+export interface UseChatOptions {
+  containerId?: string
+  getConfig: (state: { isOpen: boolean; isFullscreen: boolean }) => Record<string, unknown>
+}
+
+export function useChat(options: UseChatOptions) {
+  const { containerId = '#chat-container', getConfig } = options
+  
+  const instanceRef = useRef<unknown>(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  
+  // 使用 ref 追踪最新状态
+  const stateRef = useRef({ isOpen, isFullscreen })
+  stateRef.current = { isOpen, isFullscreen }
+
+  const updateChat = useCallback(() => {
+    if (!instanceRef.current) return
+    
+    const userConfig = getConfig({ isOpen: stateRef.current.isOpen, isFullscreen: stateRef.current.isFullscreen })
+    ADPChat.update(containerId, {
+      isOpen: stateRef.current.isOpen,
+      isFullscreen: stateRef.current.isFullscreen,
+      ...userConfig,
+    })
+  }, [containerId, getConfig])
+
+  const initChat = useCallback(() => {
+    const container = document.querySelector(containerId)
+    if (!container) return
+
+    // 已初始化则使用 update 更新
+    if (instanceRef.current) {
+      updateChat()
+      return
+    }
+
+    const userConfig = getConfig({ isOpen: stateRef.current.isOpen, isFullscreen: stateRef.current.isFullscreen })
+    
+    instanceRef.current = ADPChat.init(containerId, {
+      ...defaultConfig,
+      isOpen: stateRef.current.isOpen,
+      isFullscreen: stateRef.current.isFullscreen,
+      ...userConfig,
+      onOpenChange: (newOpen: boolean) => {
+        setIsOpen(newOpen)
+        stateRef.current.isOpen = newOpen
+      },
+      onFullscreen: (newFullscreen: boolean) => {
+        setIsFullscreen(newFullscreen)
+        stateRef.current.isFullscreen = newFullscreen
+        setTimeout(() => updateChat(), 0)
+      },
+    })
+  }, [containerId, getConfig, updateChat])
+
+  useEffect(() => {
+    const timer = setTimeout(() => initChat(), 0)
+    return () => {
+      clearTimeout(timer)
+      if (instanceRef.current) {
+        try {
+          ADPChat.unmount('chat-container-app')
+        } catch { /* ignore */ }
+      }
+    }
+  }, [])
+
+  return { isOpen, isFullscreen, initChat, openChat, closeChat, toggleFullscreen }
+}
 ```
 
-## 配置 HTTP 服务
 
-你可以配置 axios 实例以添加认证信息等：
+#### 3.2 封装 React 组件使用（JSX 方式）
 
-```typescript
-import { configureAxios, setRequestInterceptor, setResponseInterceptor } from 'adp-chat-component'
+如果希望以 JSX 组件的方式使用，可以封装一个 React 组件，内部调用 `ADPChat.mount` 方法挂载 Vue 组件。
 
-// 配置 axios
-configureAxios({
-  baseURL: 'https://api.example.com',
-  timeout: 30000
-})
+a. 封装 ADPChat React 组件
+```tsx
+import React, { useEffect, useRef, useId } from 'react'
+import ADPChatComponent from 'adp-chat-component'
+import type { ApiConfig, ThemeType, Application, ChatConversation } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
 
-// 添加请求拦截器
-setRequestInterceptor(
-  (config) => {
-    config.headers.Authorization = `Bearer ${token}`
-    return config
-  },
-  (error) => Promise.reject(error)
-)
+export interface ADPChatProps {
+  apiConfig?: ApiConfig
+  autoLoad?: boolean
+  theme?: ThemeType
+  isSidePanelOverlay?: boolean
+  currentApplicationId?: string
+  currentConversationId?: string
+  onSelectApplication?: (app: Application) => void
+  onSelectConversation?: (conversation: ChatConversation) => void
+  onToggleTheme?: () => void
+  onDataLoaded?: (type: string, data: unknown) => void
+  // ... 更多 props
+}
 
-// 添加响应拦截器
-setResponseInterceptor(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // 处理认证失败
+const ADPChat: React.FC<ADPChatProps> = (props) => {
+  const uniqueId = useId()
+  const containerId = `adp-chat-${uniqueId.replace(/:/g, '-')}`
+  const containerRef = useRef<HTMLDivElement>(null)
+  const mountedIdRef = useRef<string | null>(null)
+
+  const getConfig = () => ({
+    apiConfig: props.apiConfig,
+    autoLoad: props.autoLoad ?? true,
+    theme: props.theme ?? 'light',
+    isSidePanelOverlay: props.isSidePanelOverlay ?? false,
+    currentApplicationId: props.currentApplicationId ?? '',
+    currentConversationId: props.currentConversationId ?? '',
+    onSelectApplication: props.onSelectApplication,
+    onSelectConversation: props.onSelectConversation,
+    onToggleTheme: props.onToggleTheme,
+    onDataLoaded: props.onDataLoaded,
+  })
+
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    // 卸载旧实例
+    if (mountedIdRef.current) {
+      try {
+        ADPChatComponent.ADPChat.unmount(mountedIdRef.current)
+      } catch { /* ignore */ }
     }
-    return Promise.reject(error)
-  }
-)
+
+    // 挂载新实例
+    mountedIdRef.current = ADPChatComponent.ADPChat.mount(`#${containerId}`, getConfig()) || null
+
+    return () => {
+      if (mountedIdRef.current) {
+        try {
+          ADPChatComponent.ADPChat.unmount(mountedIdRef.current)
+        } catch { /* ignore */ }
+        mountedIdRef.current = null
+      }
+    }
+  }, [containerId, props.theme, props.currentApplicationId, props.currentConversationId])
+
+  return (
+    <div
+      id={containerId}
+      ref={containerRef}
+      style={{ width: '100%', height: '100%' }}
+    />
+  )
+}
+
+export default ADPChat
+```
+
+b. 在页面中使用
+```tsx
+import React from 'react'
+import ADPChat from './components/ADPChat'
+
+const Home: React.FC = () => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [currentAppId, setCurrentAppId] = useState('')
+  const [currentConvId, setCurrentConvId] = useState('')
+
+  return (
+    <div style={{ width: '100vw', height: '100vh' }}>
+      <ADPChat
+        apiConfig={{ baseURL: '/api', timeout: 60000 }}
+        autoLoad={true}
+        theme={theme}
+        currentApplicationId={currentAppId}
+        currentConversationId={currentConvId}
+        onSelectApplication={(app) => setCurrentAppId(app.ApplicationId)}
+        onSelectConversation={(conv) => setCurrentConvId(conv.Id)}
+        onToggleTheme={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+        onDataLoaded={(type, data) => console.log(`${type} loaded:`, data)}
+      />
+    </div>
+  )
+}
+
+export default Home
 ```
 
 ## 主题切换
@@ -213,7 +483,7 @@ setResponseInterceptor(
 
 ```vue
 <template>
-  <ChatLayout
+  <ADPChat
     :theme="theme"
     @toggle-theme="toggleTheme"
   />
@@ -236,7 +506,7 @@ const toggleTheme = () => {
 
 ```vue
 <template>
-  <ChatLayout
+  <ADPChat
     :chat-i18n="{
       loading: 'Loading...',
       thinking: 'Thinking...',

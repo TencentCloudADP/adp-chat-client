@@ -1,3 +1,4 @@
+<!-- 聊天消息项组件，支持 Markdown、深度思考、操作按钮等 -->
 <script setup lang="tsx">
 import { ref, computed } from 'vue';
 import type { Record, AgentThought } from '../../model/chat';
@@ -143,14 +144,14 @@ const handleSendMessage = (message: string) => {
         <!-- 内容插槽 -->
         <template #content>
             <div v-if="isLastMsg && isStreamLoad && !item.Content && !item.AgentThought" class="loading-container">
-                <TLoading size="small">
+                <TLoading  size="small">
                     <template #text>
                         <span class="thinking-text">
                             {{ `${i18n.thinking}...` }}
                         </span>
                     </template>
                     <template #indicator>
-                        <CustomizedIcon class="thinking-icon" name="thinking" :theme="theme" />
+                        <CustomizedIcon class="thinking-icon" name="thinking" :theme="theme" nativeIcon :showHoverBg="false"/>
                     </template>
                 </TLoading>
             </div>
@@ -267,15 +268,6 @@ const handleSendMessage = (message: string) => {
 .collapsed-thinking-text{
     color: var(--td-text-color-placeholder);
 }
-
-.references-container {
-    margin: 0px var(--td-comp-margin-l) var(--td-comp-margin-xl) var(--td-comp-margin-l);
-}
-
-.references-container .title {
-    color: var(--td-text-color-secondary);
-}
-
 .loading-container {
     padding: 0;
 }
@@ -290,7 +282,18 @@ const handleSendMessage = (message: string) => {
     width: var(--td-comp-size-xs);
     height: var(--td-comp-size-xs);
     padding: 0;
-    margin-left: var(--td-comp-margin-l);
+}
+
+.references-container {
+    margin: 0px var(--td-comp-margin-l) var(--td-comp-margin-xl) var(--td-comp-margin-l);
+}
+
+.references-container .title {
+    color: var(--td-text-color-secondary);
+}
+
+.loading-container {
+    padding: 0;
 }
 :deep(.t-chat__actions-margin){
     width: 100%;

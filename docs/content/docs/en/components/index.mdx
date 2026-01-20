@@ -11,7 +11,7 @@ ADP Chat Component is a complete AI chat component library built with Vue 3 + TD
 
 ## Features
 
-- **Complete Chat Interface** - Provides core components like ChatLayout, Chat, Sender
+- **Complete Chat Interface** - Provides core components like ADPChat, Chat, Sender
 - **Flexible Layout** - Supports sidebar, main content area and various layout options
 - **Theme Customization** - Supports light/dark theme switching
 - **Internationalization** - Built-in Chinese and English support, customizable text
@@ -22,7 +22,7 @@ ADP Chat Component is a complete AI chat component library built with Vue 3 + TD
 
 ```vue
 <template>
-  <ChatLayout
+  <ADPChat
     :applications="applications"
     :conversations="conversations"
     :chat-list="chatList"
@@ -31,15 +31,15 @@ ADP Chat Component is a complete AI chat component library built with Vue 3 + TD
 </template>
 
 <script setup lang="ts">
-import { ChatLayout } from 'adp-chat-component'
-import 'adp-chat-component/dist/style.css'
+import { ADPChat } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
 </script>
 ```
 
 ## Component List
 
 ### Layout Components
-- [ChatLayout](/docs/en/components/layout/chat-layout) - Complete chat layout
+- [ADPChat](/docs/en/components/layout/chat-layout) - Complete chat layout
 - [MainLayout](/docs/en/components/layout/main-layout) - Main content area layout
 - [SideLayout](/docs/en/components/layout/side-layout) - Sidebar layout
 

@@ -1,3 +1,8 @@
+/**
+ * ADP Chat Component 组件库入口
+ * 导出所有组件、类型、服务和工具函数
+ */
+
 // 基础组件导出
 export { default as AIWarning } from './components/AIWarning.vue'
 export { default as ApplicationList } from './components/ApplicationList.vue'
@@ -21,7 +26,7 @@ export { default as OptionCard } from './components/Common/OptionCard.vue'
 export { default as RecordIcon } from './components/Common/RecordIcon.vue'
 
 // Layout 组件导出
-export { default as ChatLayout } from './components/layout/Index.vue'
+export { default as ADPChat } from './components/layout/Index.vue'
 export { default as MainLayout } from './components/layout/MainLayout.vue'
 export { default as SideLayout } from './components/layout/SideLayout.vue'
 
@@ -109,6 +114,10 @@ export {
     getViewportWidth,
     getViewportHeight,
 } from './utils/device'
+
+// Composables 导出
+export { useApiConfig } from './composables'
+export type { UseApiConfigOptions, UseApiConfigReturn } from './composables'
 
 // 默认导出 (用于全局挂载)
 export { default } from './main'

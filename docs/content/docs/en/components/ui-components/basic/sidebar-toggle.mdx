@@ -1,0 +1,28 @@
+---
+title: SidebarToggle
+description: Sidebar toggle button component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# SidebarToggle
+
+Sidebar expand/collapse toggle button.
+
+## Basic Usage
+
+```vue
+<template>
+  <SidebarToggle @toggle="handleToggle" />
+</template>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: 'Theme mode' },
+]} />
+
+<EventsTable data={[
+  { name: 'toggle', description: 'Triggered on click' },
+]} />

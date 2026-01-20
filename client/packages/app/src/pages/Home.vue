@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChatLayout, type ApiConfig, type Application, type ChatConversation } from 'adp-chat-component';
+import { ADPChat, type ApiConfig, type Application, type ChatConversation } from 'adp-chat-component';
 import { onMounted, computed, ref, watch } from 'vue'
 import { useUiStore } from '@/stores/ui'
 import { logout } from '@/service/login';
@@ -20,7 +20,6 @@ const currentConversationId = ref<string>('');
 
 // API 配置 - 使用组件自动加载数据
 
-console.log('getBaseURL',getBaseURL())
 const apiConfig: ApiConfig = {
     baseURL: getBaseURL(),
     timeout: 1000 * 60,
@@ -192,7 +191,7 @@ const handleConversationChange = (conversationId: string) => {
 </script>
 
 <template>
-    <ChatLayout
+    <ADPChat
         :apiConfig="apiConfig"
         :autoLoad="true"
         :theme="uiStore.theme || 'light'"

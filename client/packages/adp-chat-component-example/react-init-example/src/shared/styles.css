@@ -50,13 +50,17 @@ html, body, #root {
   margin-bottom: 24px;
 }
 
-/* Default: floating half-screen mode */
+/* Chat container */
 #chat-container {
-  width: 0px;
+  position: relative;
   height: 100vh;
+  flex-shrink: 0;
+  width: 0;
+  transition: width 0.3s ease;
 }
 
-/* Fullscreen: squeeze layout */
+/* 弹出模式：覆盖在container上 */
+/* 全屏模式：和container分享页面宽度 */
 #chat-container.chat-container--fullscreen {
   width: 400px;
 }

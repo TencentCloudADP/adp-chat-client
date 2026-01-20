@@ -1,6 +1,6 @@
 /**
  * HTTP 服务模块
- * 提供基础的 HTTP 请求封装
+ * 基于 Axios 的请求封装
  */
 import axios, { type AxiosInstance, type AxiosRequestConfig, type AxiosResponse } from 'axios';
 

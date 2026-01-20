@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import CustomizedIcon from './CustomizedIcon.vue';
+import type { ThemeProps } from '../model/type';
+import { themePropsDefaults } from '../model/type';
 import { Input as TInput } from 'tdesign-vue-next';
 import type { InputValue } from 'tdesign-vue-next';
 
 // TInput 已导入，模板中使用 TInput 组件
 
-interface Props {
+interface Props extends ThemeProps {
     /** 占位符文本 */
     placeholder?: string;
 }
 
 withDefaults(defineProps<Props>(), {
+    ...themePropsDefaults,
     placeholder: '搜索'
 })
 
@@ -50,7 +53,7 @@ const handleInput = (value: InputValue) => {
         borderless
     >
         <template #prefix-icon>
-            <CustomizedIcon name="search"/> 
+            <CustomizedIcon name="search" :theme="theme"/> 
         </template>
     </TInput>
 </template>

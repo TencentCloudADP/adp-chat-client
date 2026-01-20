@@ -1,6 +1,6 @@
 import '@/assets/main.css'
-// 引入 adp-chat-component 组件库样式
-import 'adp-chat-component/style.css'
+// 引入 adp-chat-component 组件库样式（生产构建后的完整样式）
+import 'adp-chat-component/dist/es/adp-chat-component.css'
 
 import '@/assets/theme.css'
 

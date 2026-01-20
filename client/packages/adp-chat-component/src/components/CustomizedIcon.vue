@@ -20,20 +20,22 @@
  * <CustomizedIcon name="copy" theme="dark" />
  */
 <script setup lang="ts">
-import { ref, watch, computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import type { ThemeProps } from '../model/type';
 import { themePropsDefaults } from '../model/type';
 
-// 静态导入常用小图标（<3KB）
+// 静态导入所有图标
 import arrow_down_medium from '../assets/icons/arrow_down_medium.svg?raw';
 import arrow_right from '../assets/icons/arrow_right.svg?raw';
 import arrow_up_small from '../assets/icons/arrow_up_small.svg?raw';
+import copy from '../assets/icons/copy.svg?raw';
 import copy_link from '../assets/icons/copy_link.svg?raw';
 import deleteIcon from '../assets/icons/delete.svg?raw';
 import file from '../assets/icons/file.svg?raw';
 import fullscreen from '../assets/icons/fullscreen.svg?raw';
 import fullscreen_exit from '../assets/icons/fullscreen_exit.svg?raw';
 import grid from '../assets/icons/grid.svg?raw';
+import loading from '../assets/icons/loading.svg?raw';
 import logout_close from '../assets/icons/logout_close.svg?raw';
 import more from '../assets/icons/more.svg?raw';
 import new_conversation from '../assets/icons/new_conversation.svg?raw';
@@ -49,25 +51,31 @@ import send_dark from '../assets/icons/send_dark.svg?raw';
 import send_fill from '../assets/icons/send_fill.svg?raw';
 import send from '../assets/icons/send.svg?raw';
 import sendStop from '../assets/icons/sendStop.svg?raw';
+import setting from '../assets/icons/setting.svg?raw';
 import share from '../assets/icons/share.svg?raw';
+import sidebar from '../assets/icons/sidebar.svg?raw';
 import star from '../assets/icons/star.svg?raw';
+import stars from '../assets/icons/stars.svg?raw';
 import tencent_docs from '../assets/icons/tencent_docs.svg?raw';
+import thinking from '../assets/icons/thinking.svg?raw';
 import thumbs_down from '../assets/icons/thumbs_down.svg?raw';
 import thumbs_up from '../assets/icons/thumbs_up.svg?raw';
 import url from '../assets/icons/url.svg?raw';
 import voice_input from '../assets/icons/voice_input.svg?raw';
 
-// 静态 SVG 映射表（常用小图标 <3KB）
-const staticSvgMap: Record<string, string> = {
+// SVG 映射表
+const svgMap: Record<string, string> = {
     arrow_down_medium,
     arrow_right,
     arrow_up_small,
+    copy,
     copy_link,
     delete: deleteIcon,
     file,
     fullscreen,
     fullscreen_exit,
     grid,
+    loading,
     logout_close,
     more,
     new_conversation,
@@ -83,24 +91,21 @@ const staticSvgMap: Record<string, string> = {
     send_fill,
     send,
     sendStop,
+    setting,
     share,
+    sidebar,
     star,
+    stars,
     tencent_docs,
+    thinking,
     thumbs_down,
     thumbs_up,
     url,
     voice_input,
 };
 
-// 大体积图标按需加载映射（>=3KB）
-const lazyIconLoaders: Record<string, () => Promise<{ default: string }>> = {
-    thinking: () => import('../assets/icons/thinking.svg?raw'),   // 1.04 MB
-    setting: () => import('../assets/icons/setting.svg?raw'),     // 7.69 KB
-    loading: () => import('../assets/icons/loading.svg?raw'),     // 4.47 KB
-    sidebar: () => import('../assets/icons/sidebar.svg?raw'),     // 4.22 KB
-    stars: () => import('../assets/icons/stars.svg?raw'),         // 3.42 KB
-    copy: () => import('../assets/icons/copy.svg?raw'),           // 3.15 KB
-};
+// 用于生成唯一 id 的计数器
+let idCounter = 0;
 
 /**
  * 组件属性接口
@@ -123,69 +128,50 @@ const props = withDefaults(defineProps<Props>(), {
   ...themePropsDefaults,
 })
 
-// 用于存储动态加载的 SVG 内容
-const lazySvgContent = ref<string>('');
-const isLoading = ref(false);
+// 为每个组件实例生成唯一 id
+const uniqueId = `icon-${idCounter++}-${Math.random().toString(36).slice(2, 8)}`;
 
 /**
  * 计算 SVG 内容
  */
 const svgContent = computed(() => {
-    // 优先从静态映射获取
-    const staticContent = staticSvgMap[props.name];
-    if (staticContent) {
-        return processSvg(staticContent);
+    const content = svgMap[props.name];
+    if (content) {
+        return processSvg(content);
     }
-    
-    // 返回动态加载的内容
-    if (lazySvgContent.value) {
-        return processSvg(lazySvgContent.value);
-    }
-    
     return '';
 });
 
 /**
- * 处理 SVG 内容
+ * 处理 SVG 内容，替换 id 避免冲突
  */
 function processSvg(content: string): string {
-    return content
+    let processed = content
         .replace(/<svg([^>]*)\s+width="[^"]*"/, '<svg$1')
         .replace(/<svg([^>]*)\s+height="[^"]*"/, '<svg$1')
         .replace(/<svg/, '<svg class="svg-inner"');
+    
+    // 收集所有需要替换的 id
+    const idMatches = processed.match(/id="([^"]+)"/g);
+    if (idMatches) {
+        const ids = idMatches.map(m => m.match(/id="([^"]+)"/)?.[1]).filter(Boolean) as string[];
+        // 为每个 id 创建唯一替换
+        ids.forEach(id => {
+            const newId = `${id}-${uniqueId}`;
+            const escapedId = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            // 替换 id 定义
+            processed = processed.replace(new RegExp(`id="${escapedId}"`, 'g'), `id="${newId}"`);
+            // 替换 url(#id) 引用
+            processed = processed.replace(new RegExp(`url\\(#${escapedId}\\)`, 'g'), `url(#${newId})`);
+            // 替换 href="#id" 引用
+            processed = processed.replace(new RegExp(`href="#${escapedId}"`, 'g'), `href="#${newId}"`);
+            // 替换 xlink:href="#id" 引用
+            processed = processed.replace(new RegExp(`xlink:href="#${escapedId}"`, 'g'), `xlink:href="#${newId}"`);
+        });
+    }
+    
+    return processed;
 }
-
-/**
- * 加载懒加载图标
- */
-async function loadLazyIcon(name: string) {
-    const loader = lazyIconLoaders[name];
-    if (loader && !staticSvgMap[name] && !lazySvgContent.value) {
-        isLoading.value = true;
-        try {
-            const module = await loader();
-            lazySvgContent.value = module.default;
-        } catch (e) {
-            console.warn(`[CustomizedIcon] Failed to load SVG: ${name}`, e);
-        } finally {
-            isLoading.value = false;
-        }
-    }
-}
-
-// 监听 name 变化，按需加载
-watch(() => props.name, (newName) => {
-    if (lazyIconLoaders[newName]) {
-        lazySvgContent.value = '';
-        loadLazyIcon(newName);
-    }
-}, { immediate: true });
-
-onMounted(() => {
-    if (lazyIconLoaders[props.name]) {
-        loadLazyIcon(props.name);
-    }
-});
 </script>
 
 <template>

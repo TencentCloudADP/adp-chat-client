@@ -1,3 +1,4 @@
+<!-- 消息发送组件，支持文本、图片上传、语音输入 -->
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ChatSender as TChatSender } from '@tdesign-vue-next/chat'
@@ -331,7 +332,7 @@ defineExpose({
             <!-- 停止发送按钮 -->
             <CustomizedIcon class="send-icon stop" v-if="isStreamLoad" nativeIcon :showHoverBg="false" :name="theme === 'dark' ? 'pause_dark' : 'pause'" @click="emit('stop')" />
         </template>
-        <template #footer-prefix>
+        <template #prefix>
             <div class="sender-control-container">
                 <TUpload class="sender-upload" ref="uploadRef1" :max="10" :multiple="true" :request-method="handleFileSelect"
                     accept="image/*" theme="custom">

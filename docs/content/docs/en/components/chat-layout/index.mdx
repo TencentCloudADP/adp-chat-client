@@ -1,0 +1,267 @@
+---
+title: ADPChat Component
+description: Use ADPChat component to quickly create chat interface
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# ADPChat Component
+
+Use `ADPChat` component or `ADPChatMounter` API to quickly create chat interface in Vue/React projects.
+
+## ADPChatMounter API
+
+Use `ADPChatMounter` to quickly mount chat component in any framework:
+
+```typescript
+import { ADPChatMounter } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+
+// Mount component
+const instanceId = ADPChatMounter.mount('#chat-container', {
+  theme: 'light',
+  apiConfig: {
+    baseURL: '/api',
+    apiDetailConfig: {
+      applicationListApi: '/applications',
+      conversationListApi: '/conversations',
+    }
+  }
+})
+
+// Update component
+ADPChatMounter.update(instanceId, {
+  theme: 'dark'
+})
+
+// Unmount component
+ADPChatMounter.unmount(instanceId)
+```
+
+### ADPChatMounter Methods
+
+| Method | Parameters | Returns | Description |
+| --- | --- | --- | --- |
+| `mount` | `(selector: string, options: ADPChatProps)` | `string` | Mount component, returns instance ID |
+| `update` | `(instanceId: string, options: Partial<ADPChatProps>)` | `void` | Update component config |
+| `unmount` | `(instanceId: string)` | `void` | Unmount component |
+
+## ADPChat Vue Component
+
+Use `ADPChat` component directly in Vue projects:
+
+### Basic Usage
+
+```vue
+<template>
+  <ADPChat
+    :applications="applications"
+    :current-application="currentApp"
+    :conversations="conversations"
+    :current-conversation="currentConversation"
+    :chat-list="chatList"
+    :user="userInfo"
+    theme="light"
+    @send="handleSend"
+    @select-application="handleSelectApp"
+    @select-conversation="handleSelectConversation"
+  />
+</template>
+
+<script setup>
+import { ADPChat } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+</script>
+```
+
+### API Mode
+
+```vue
+<template>
+  <ADPChat
+    :api-config="apiConfig"
+    :auto-load="true"
+    @data-loaded="handleDataLoaded"
+  />
+</template>
+
+<script setup>
+import { ADPChat } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+
+const apiConfig = {
+  baseURL: 'https://api.example.com',
+  timeout: 30000,
+  apiDetailConfig: {
+    applicationListApi: '/api/applications',
+    conversationListApi: '/api/conversations',
+    conversationDetailApi: '/api/conversation/detail',
+    sendMessageApi: '/api/message/send',
+    userInfoApi: '/api/user/info'
+  }
+}
+
+const handleDataLoaded = (type, data) => {
+  console.log(`${type} loaded:`, data)
+}
+</script>
+```
+
+## API
+
+### Props
+
+<PropsTable data={[
+  { name: 'applications', type: 'Application[]', default: '[]', description: 'Application list' },
+  { name: 'currentApplication', type: 'Application', description: 'Currently selected application' },
+  { name: 'currentApplicationId', type: 'string', default: "''", description: 'Currently selected application ID (higher priority than currentApplication)' },
+  { name: 'conversations', type: 'ChatConversation[]', default: '[]', description: 'Conversation list' },
+  { name: 'currentConversation', type: 'ChatConversation', description: 'Currently selected conversation' },
+  { name: 'currentConversationId', type: 'string', default: "''", description: 'Currently selected conversation ID (higher priority than currentConversation)' },
+  { name: 'chatList', type: 'Record[]', default: '[]', description: 'Chat message list' },
+  { name: 'isChatting', type: 'boolean', default: 'false', description: 'Whether chatting' },
+  { name: 'user', type: 'UserInfo', default: '{}', description: 'User info' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: 'Theme mode' },
+  { name: 'languageOptions', type: 'LanguageOption[]', default: 'zh/en', description: 'Language options' },
+  { name: 'isSidePanelOverlay', type: 'boolean', default: 'false', description: 'Whether sidebar uses overlay mode (overlay content area)' },
+  { name: 'logoUrl', type: 'string', default: "''", description: 'Logo URL' },
+  { name: 'logoTitle', type: 'string', default: "''", description: 'Logo title' },
+  { name: 'isShowFullscreenButton', type: 'boolean', default: 'true', description: 'Show fullscreen button' },
+  { name: 'isFullscreen', type: 'boolean', default: 'false', description: 'Whether in fullscreen state' },
+  { name: 'maxAppLen', type: 'number', default: '4', description: 'Max application display count' },
+  { name: 'isShowCloseButton', type: 'boolean', default: 'true', description: 'Show close button' },
+  { name: 'aiWarningText', type: 'string', default: "'AI generated content'", description: 'AI warning text' },
+  { name: 'sideI18n', type: 'SideI18n', description: 'Sidebar i18n text' },
+  { name: 'chatI18n', type: 'ChatI18n', description: 'Chat i18n text' },
+  { name: 'chatItemI18n', type: 'ChatItemI18n', description: 'ChatItem i18n text' },
+  { name: 'senderI18n', type: 'SenderI18n', description: 'Sender i18n text' },
+  { name: 'apiConfig', type: 'ApiConfig', description: 'API config (enables API mode)' },
+  { name: 'autoLoad', type: 'boolean', default: 'true', description: 'Whether to auto load data (only when using apiConfig)' },
+]} />
+
+### Events
+
+<EventsTable data={[
+  { name: 'selectApplication', params: 'Application', description: 'Select application' },
+  { name: 'selectConversation', params: 'ChatConversation', description: 'Select conversation' },
+  { name: 'createConversation', description: 'Create conversation' },
+  { name: 'toggleTheme', description: 'Toggle theme' },
+  { name: 'changeLanguage', params: 'string', description: 'Change language' },
+  { name: 'logout', description: 'Logout' },
+  { name: 'userClick', description: 'User info click' },
+  { name: 'close', description: 'Close' },
+  { name: 'fullscreen', params: 'isFullscreen: boolean', description: 'Fullscreen state change' },
+  { name: 'send', params: '(query, fileList, conversationId, applicationId)', description: 'Send message' },
+  { name: 'stop', description: 'Stop generation' },
+  { name: 'loadMore', params: '(conversationId, lastRecordId)', description: 'Load more' },
+  { name: 'rate', params: '(conversationId, recordId, score)', description: 'Rate' },
+  { name: 'share', params: '(conversationId, applicationId, recordIds)', description: 'Share' },
+  { name: 'copy', params: '(rowtext, content, type)', description: 'Copy, rowtext is rendered plain text, content is raw markdown' },
+  { name: 'uploadFile', params: 'File[]', description: 'Upload file' },
+  { name: 'startRecord', description: 'Start recording' },
+  { name: 'stopRecord', description: 'Stop recording' },
+  { name: 'message', params: '(code: MessageCode, message: string)', description: 'Message tip, code is message code constant' },
+  { name: 'conversationChange', params: 'conversationId', description: 'Conversation change' },
+  { name: 'dataLoaded', params: '(type, data)', description: 'Data loaded' },
+]} />
+
+### Slots
+
+<SlotsTable data={[
+  { name: 'sider-logo', description: 'Sidebar logo area, shows external content if provided, otherwise shows default LogoArea (requires logoUrl or logoTitle)' },
+  { name: 'header-fullscreen-content', description: 'Header fullscreen button area, shows external content if provided, otherwise shows default fullscreen icon (requires isShowFullscreenButton to be true)' },
+  { name: 'header-close-content', description: 'Header close button area, shows external content if provided, otherwise shows default close icon (requires isShowCloseButton to be true)' },
+]} />
+
+### Methods
+
+<MethodsTable data={[
+  { name: 'loadApplications', description: 'Load applications' },
+  { name: 'loadConversations', description: 'Load conversations' },
+  { name: 'loadConversationDetail', params: 'conversationId', description: 'Load conversation detail' },
+  { name: 'loadUserInfo', description: 'Load user info' },
+]} />
+
+## Type Definitions
+
+### ApiConfig
+
+```typescript
+interface ApiConfig extends AxiosRequestConfig {
+  /** API detail path config */
+  apiDetailConfig?: ApiDetailConfig
+}
+```
+
+### ApiDetailConfig
+
+```typescript
+interface ApiDetailConfig {
+  applicationListApi?: string   // Application list API
+  conversationListApi?: string  // Conversation list API
+  conversationDetailApi?: string // Conversation detail API
+  sendMessageApi?: string       // Send message API
+  rateApi?: string              // Rate API
+  shareApi?: string             // Share API
+  userInfoApi?: string          // User info API
+  uploadApi?: string            // File upload API
+  asrUrlApi?: string            // ASR URL API
+}
+```
+
+### Application
+
+```typescript
+interface Application {
+  ApplicationId: string
+  Name: string
+  Avatar: string
+  Greeting: string
+  OpeningQuestions: string[]
+}
+```
+
+### ChatConversation
+
+```typescript
+interface ChatConversation {
+  Id: string
+  AccountId: string
+  Title: string
+  LastActiveAt: number
+  CreatedAt: number
+  ApplicationId: string
+}
+```
+
+### MessageCode
+
+Message code constants for the `code` parameter in `message` event:
+
+```typescript
+const MessageCode = {
+  // Success
+  COPY_SUCCESS: 'COPY_SUCCESS',
+  
+  // Error
+  COPY_FAILED: 'COPY_FAILED',
+  SHARE_FAILED: 'SHARE_FAILED',
+  FILE_UPLOAD_FAILED: 'FILE_UPLOAD_FAILED',
+  FILE_FORMAT_NOT_SUPPORT: 'FILE_FORMAT_NOT_SUPPORT',
+  GET_APP_LIST_FAILED: 'GET_APP_LIST_FAILED',
+  GET_CONVERSATION_LIST_FAILED: 'GET_CONVERSATION_LIST_FAILED',
+  GET_CONVERSATION_DETAIL_FAILED: 'GET_CONVERSATION_DETAIL_FAILED',
+  SEND_MESSAGE_FAILED: 'SEND_MESSAGE_FAILED',
+  NETWORK_ERROR: 'NETWORK_ERROR',
+  LOAD_MORE_FAILED: 'LOAD_MORE_FAILED',
+  RATE_FAILED: 'RATE_FAILED',
+  ASR_SERVICE_FAILED: 'ASR_SERVICE_FAILED',
+  RECORD_FAILED: 'RECORD_FAILED',
+  
+  // Warning
+  ANSWERING: 'ANSWERING',
+  RECORD_TOO_LONG: 'RECORD_TOO_LONG',
+} as const;
+
+type MessageCode = typeof MessageCode[keyof typeof MessageCode];
+```

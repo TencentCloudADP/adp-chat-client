@@ -1,0 +1,28 @@
+---
+title: SidebarToggle
+description: 侧边栏切换按钮组件
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# SidebarToggle
+
+侧边栏展开/收起切换按钮。
+
+## 基础用法
+
+```vue
+<template>
+  <SidebarToggle @toggle="handleToggle" />
+</template>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: '主题模式' },
+]} />
+
+<EventsTable data={[
+  { name: 'toggle', description: '点击时触发' },
+]} />

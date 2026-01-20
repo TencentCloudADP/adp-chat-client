@@ -9,7 +9,6 @@ import { Space as TSpace, CheckTag as TCheckTag, Avatar as TAvatar } from 'tdesi
 // TSpace, TCheckTag, TAvatar 已导入，模板中使用对应组件
 import type { MobileProps } from '../../model/type';
 import { mobilePropsDefaults } from '../../model/type';
-
 interface Props extends MobileProps {
   /** 当前应用头像 */
   currentApplicationAvatar?: string;

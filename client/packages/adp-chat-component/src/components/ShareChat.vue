@@ -19,10 +19,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch, toRef } from 'vue';
 import { Chat as TChat } from '@tdesign-vue-next/chat';
 import ChatItem from './Chat/ChatItem.vue';
 import { fetchConversationDetail } from '../service/api';
+import type { ApiConfig } from '../service/api';
+import { useApiConfig } from '../composables';
 import type { Record } from '../model/chat';
 import type { ThemeType } from '../model/type';
 
@@ -34,8 +36,8 @@ interface Props {
   shareId: string
   /** 主题 */
   theme?: ThemeType
-  /** 自定义 API 路径 */
-  apiPath?: string
+  /** API 配置 - 如果传入则使用 HTTP 请求获取数据 */
+  apiConfig?: ApiConfig
   /** 加载完成回调 */
   onLoadComplete?: (records: Record[]) => void
   /** 加载失败回调 */
@@ -44,12 +46,18 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   theme: 'light',
+  apiConfig: () => ({}),
 })
 
 const emit = defineEmits<{
   (e: 'loadComplete', records: Record[]): void
   (e: 'loadError', error: Error): void
 }>()
+
+// 使用 composable 统一管理 API 配置
+const { mergedApiDetailConfig } = useApiConfig({
+  apiConfig: toRef(props, 'apiConfig'),
+});
 
 /**
  * 聊天消息列表
@@ -76,7 +84,7 @@ const loadConversationDetail = async (shareId: string) => {
   try {
     const response = await fetchConversationDetail(
       { ShareId: shareId },
-      props.apiPath
+      mergedApiDetailConfig.value.conversationDetailApi
     );
     loading.value = false;
     chatList.value = response?.Response?.Records || [];

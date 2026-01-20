@@ -1,10 +1,14 @@
+/**
+ * 工具函数模块
+ */
+
 import type { Record } from '../model/chat'
 
 /**
- * 合并消息记录
+ * 合并消息记录（用于流式输出场景）
  * @param record 原始记录
  * @param delta 增量记录
- * @param msg_type 消息类型
+ * @param msg_type 消息类型（reply/reference/thought/token_stat）
  */
 export function mergeRecord(record: Record, delta: Record, msg_type: string) {
   const incremental = delta.Incremental

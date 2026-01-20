@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import type { Application } from '../../model/application';
 import type { Record } from '../../model/chat';
 import type { FileProps } from '../../model/file';
@@ -13,7 +13,7 @@ import { Avatar as TAvatar, Layout as TLayout, Content as TContent, Header as TH
 
 // TAvatar, TLayout, TContent, THeader, TFooter 已导入，模板中使用对应组件
 import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type';
-import { chatRelatedPropsDefaults } from '../../model/type';
+import { chatRelatedPropsDefaults, defaultChatI18n } from '../../model/type';
 
 export interface Props extends ChatRelatedProps {
     /** 当前应用信息 */
@@ -40,8 +40,6 @@ export interface Props extends ChatRelatedProps {
     showSidebarToggle?: boolean;
     /** AI警告文本 */
     aiWarningText?: string;
-    /** 新建对话提示文本 */
-    createConversationText?: string;
     /** 国际化文本 */
     i18n?: ChatI18n;
     /** ChatItem 国际化文本 */
@@ -67,8 +65,12 @@ const props = withDefaults(defineProps<Props>(), {
     isChatting: false,
     showSidebarToggle: true,
     aiWarningText: '内容由AI生成，仅供参考',
-    createConversationText: '新建对话'
 });
+
+// 合并 i18n 配置，获取 createConversation 文本
+const createConversationText = computed(() => 
+    props.i18n?.createConversation ?? defaultChatI18n.createConversation
+);
 
 const emit = defineEmits<{
     (e: 'toggleSidebar'): void;
@@ -130,7 +132,7 @@ defineExpose({
                 <span class="header-app__title">{{ currentApplicationName }}</span>
             </div>
             <div class="header-app-settings">
-                <CreateConversation :tooltipText="createConversationText" @create="handleCreateConversation" />
+                <CreateConversation :tooltipText="createConversationText" :theme="theme" @create="handleCreateConversation" />
                 <slot name="header-fullscreen-content"></slot>
                 <slot name="header-close-content"></slot>
             </div>
@@ -231,5 +233,52 @@ defineExpose({
 }
 :deep(.content .t-chat__inner){
     margin-bottom: 0;
+}
+
+/* content自定义 - 从 App.vue 移入，使用 :deep() 确保 build 后生效 */
+:deep(.t-chat__detail-reasoning .t-collapse-panel__body) {
+    background: transparent;
+    background-color: transparent;
+}
+:deep(.t-chat__detail-reasoning .t-collapse-panel__wrapper) {
+    background: transparent;
+    background-color: transparent;
+}
+:deep(.t-chat__detail-reasoning .t-collapse-panel__content) {
+    background: transparent;
+    background-color: transparent;
+    padding: 0 0 var(--td-comp-paddingTB-m) 0;
+}
+:deep(.t-chat__detail-reasoning .t-collapse-panel__header--blank) {
+    display: none;
+}
+:deep(.t-chat__detail-reasoning .t-collapse-panel__icon) {
+    transform: rotate(180deg);
+}
+:deep(.assistant .t-chat__detail) {
+    max-width: 100%;
+    width: 100%;
+}
+:deep(.isMobile .t-chat__content) {
+    margin-left: 0;
+}
+:deep(.t-chat__detail-reasoning .t-collapse-panel) {
+    margin-left: 0;
+}
+:deep(.t-chat__detail-reasoning .t-collapse-panel__header) {
+    padding: 0;
+}
+:deep(.t-chat__text--variant--text .t-chat__detail-reasoning) {
+    padding-top: 0;
+}
+:deep(.t-chat__text .other__model-change) {
+    background-color: transparent;
+    padding-left: var(--td-comp-paddingTB-s);
+    text-align: left;
+}
+:deep(.t-chat__text .other__system) {
+    background-color: transparent;
+    padding-left: var(--td-comp-paddingTB-s);
+    text-align: left;
 }
 </style>

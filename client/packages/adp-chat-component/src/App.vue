@@ -71,8 +71,6 @@ interface Props extends ChatRelatedProps, FullscreenProps {
     onOpenChange?: (isOpen: boolean) => void;
     /** AI警告文本 */
     aiWarningText?: string;
-    /** 新建对话提示文本 */
-    createConversationText?: string;
     /** 侧边栏国际化文本 */
     sideI18n?: SideI18n;
     /** 聊天国际化文本 */
@@ -110,7 +108,6 @@ const props = withDefaults(defineProps<Props>(), {
     onOpenChange: undefined,
     isShowToggleButton: true,
     aiWarningText: '内容由AI生成，仅供参考',
-    createConversationText: '新建对话',
     apiConfig: () => ({ apiDetailConfig: defaultApiDetailConfig }),
     autoLoad: true,
 });
@@ -216,7 +213,6 @@ const actualMaxAppLen = computed(() => props.maxAppLen);
 const actualIsShowCloseButton = computed(() => props.isShowCloseButton);
 const actualIsShowFullscreenButton = computed(() => props.isShowFullscreenButton);
 const actualAiWarningText = computed(() => props.aiWarningText);
-const actualCreateConversationText = computed(() => props.createConversationText);
 const actualSideI18n = computed(() => props.sideI18n);
 const actualChatI18n = computed(() => props.chatI18n);
 const actualChatItemI18n = computed(() => props.chatItemI18n);
@@ -258,7 +254,6 @@ const actualAutoLoad = computed(() => props.autoLoad);
                 :isShowFullscreenButton="actualIsShowFullscreenButton"
                 :isFullscreen="isFullscreen"
                 :aiWarningText="actualAiWarningText"
-                :createConversationText="actualCreateConversationText"
                 :sideI18n="actualSideI18n"
                 :chatI18n="actualChatI18n"
                 :chatItemI18n="actualChatItemI18n"
@@ -304,42 +299,6 @@ const actualAutoLoad = computed(() => props.autoLoad);
 .dropdown-item {
   gap: var(--td-comp-paddingLR-s);
 }
-/* content自定义 */
-.t-chat__detail-reasoning .t-collapse-panel__body {
-  background: transparent;
-  background-color: transparent;
-}
-.t-chat__detail-reasoning .t-collapse-panel__wrapper {
-  background: transparent;
-  background-color: transparent;
-}
-.t-chat__detail-reasoning .t-collapse-panel__content {
-  background: transparent;
-  background-color: transparent;
-  padding: 0 0 var(--td-comp-paddingTB-m) 0;
-}
-.t-chat__detail-reasoning .t-collapse-panel__header--blank {
-  display: none;
-}
-.t-chat__detail-reasoning .t-collapse-panel__icon {
-  transform: rotate(180deg);
-}
-.assistant .t-chat__detail {
-  max-width: 100%;
-  width: 100%;
-}
-.isMobile .t-chat__content {
-  margin-left: 0;
-}
-.t-chat__detail-reasoning .t-collapse-panel {
-  margin-left: 0;
-}
-.t-chat__detail-reasoning .t-collapse-panel__header {
-  padding: 0;
-}
-.t-chat__text--variant--text .t-chat__detail-reasoning {
-  padding-top: 0;
-}
 .t-chat.t-chat--normal .t-chat__to-bottom {
   bottom: var(--chat-footer-height, 100px);
 }
@@ -360,16 +319,6 @@ const actualAutoLoad = computed(() => props.autoLoad);
   animation: rotate 2s linear infinite;
   z-index: 2;
   border-radius: 9999px;
-}
-.t-chat__text .other__model-change {
-  background-color: transparent;
-  padding-left: var(--td-comp-paddingTB-s);
-  text-align: left;
-}
-.t-chat__text .other__system {
-  background-color: transparent;
-  padding-left: var(--td-comp-paddingTB-s);
-  text-align: left;
 }
 
 /* 自定义滚动条样式 */

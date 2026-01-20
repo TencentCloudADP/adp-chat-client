@@ -4,6 +4,8 @@
     <ShareChat 
       v-if="shareId"
       :share-id="shareId"
+      :api-config="apiConfig"
+      :theme="uiStore.theme || 'light'"
       @load-error="handleLoadError"
     />
   </TLayout>
@@ -12,8 +14,12 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { Layout as TLayout } from 'tdesign-vue-next';
-import { ShareChat } from 'adp-chat-component';
+import { ShareChat, type ApiConfig } from 'adp-chat-component';
 import { useRoute, useRouter } from 'vue-router';
+import { useUiStore } from '@/stores/ui';
+import { getBaseURL } from '@/utils/url';
+
+const uiStore = useUiStore();
 
 const router = useRouter();
 const route = useRoute();
@@ -22,6 +28,17 @@ const route = useRoute();
  * 分享ID
  */
 const shareId = ref<string>("");
+
+/**
+ * API 配置 - 与 Home.vue 保持一致
+ */
+const apiConfig: ApiConfig = {
+  baseURL: getBaseURL(),
+  timeout: 1000 * 60,
+  apiDetailConfig: {
+    conversationDetailApi: '/chat/messages',
+  }
+};
 
 /**
  * 加载失败处理

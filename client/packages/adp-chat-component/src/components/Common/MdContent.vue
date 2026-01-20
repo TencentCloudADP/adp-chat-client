@@ -1,3 +1,4 @@
+<!-- Markdown 内容渲染组件，支持代码高亮、数学公式、XSS 防护 -->
 <template>
   <div :class="['markdown-body', theme, 'md-content-container', role]">
     <div class="md-content" v-html="renderedMarkdown"></div>
@@ -12,6 +13,7 @@ import { themePropsDefaults } from '../../model/type';
 import MarkdownIt from 'markdown-it';
 import { katex } from "@mdit/plugin-katex";
 import markdownItHighlightjs from 'markdown-it-highlightjs';
+import DOMPurify from 'dompurify';
 import 'katex/dist/katex.min.css';
 import './github-markdown.css';
 import 'highlight.js/styles/default.css';
@@ -30,7 +32,7 @@ const props = withDefaults(defineProps<Props>(), {
   ...themePropsDefaults,
 });
 
-// 插入角标引用
+/** 在内容中插入引用角标 */
 function insertReference(content: string, quotes?: QuoteInfo[]): string {
   if (!quotes || quotes.length === 0) {
     return content
@@ -52,6 +54,7 @@ function insertReference(content: string, quotes?: QuoteInfo[]): string {
   return contentArray.join('')
 }
 
+/** Markdown-it 解析器实例 */
 const mdIt = MarkdownIt({
   html: true,
   breaks: true,
@@ -61,8 +64,30 @@ const mdIt = MarkdownIt({
   .use(katex)
   .use(markdownItHighlightjs)
 
+/** 渲染后的 HTML 内容（已通过 DOMPurify 消毒防止 XSS） */
 const renderedMarkdown = computed(() => {
-  return props.content && mdIt.render(insertReference(props.content || '', props.quoteInfos));
+  if (!props.content) return '';
+  const html = mdIt.render(insertReference(props.content, props.quoteInfos));
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'p', 'br', 'strong', 'em', 'b', 'i', 'u', 's', 'del',
+      'code', 'pre', 'ul', 'ol', 'li',
+      'a', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
+      'sup', 'sub', 'span', 'div', 'hr',
+      // KaTeX 相关标签
+      'math', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub',
+      'mfrac', 'mroot', 'msqrt', 'mtable', 'mtr', 'mtd', 'mtext',
+      'annotation', 'svg', 'path', 'line', 'rect', 'g'
+    ],
+    ALLOWED_ATTR: [
+      'href', 'src', 'alt', 'title', 'class', 'id', 'target', 'rel',
+      // KaTeX/SVG 相关属性
+      'style', 'xmlns', 'width', 'height', 'viewBox', 'd', 'fill',
+      'stroke', 'stroke-width', 'transform', 'x', 'y', 'x1', 'x2', 'y1', 'y2'
+    ],
+    ALLOW_DATA_ATTR: false,
+  });
 });
 </script>
 
