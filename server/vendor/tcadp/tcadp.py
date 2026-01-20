@@ -94,7 +94,7 @@ class TCADP(BaseVendor):
             conversation = await conversation_cb.create()  # 创建会话
             yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=True)
             conversation_id = str(conversation.Id)
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(read_bufsize=1*1024*1024) as session:
             incremental = True
             param = {
                 "content": query,
