@@ -9,12 +9,24 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 SVG sprite icon component.
 
-## Basic Usage
+## Usage in Vue
 
 ```vue
 <template>
   <CustomizedIcon name="chat" size="m" />
 </template>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.CustomizedIcon.mount('#containerId', {
+  name: 'chat',
+  size: 'm'
+})
+</script>
 ```
 
 ## API

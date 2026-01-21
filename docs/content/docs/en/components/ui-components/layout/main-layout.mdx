@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 Main content area layout for chat, including header, chat area and bottom warning.
 
-## Basic Usage
+## Usage in Vue
 
 ```vue
 <template>
@@ -23,6 +23,15 @@ Main content area layout for chat, including header, chat area and bottom warnin
     @toggle-sidebar="handleToggleSidebar"
   />
 </template>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.MainLayout.mount('#containerId', { })
+</script>
 ```
 
 ## API

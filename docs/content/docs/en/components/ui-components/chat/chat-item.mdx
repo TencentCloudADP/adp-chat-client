@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 Single chat message display component.
 
-## Basic Usage
+## Usage in Vue
 
 ```vue
 <template>
@@ -22,6 +22,22 @@ Single chat message display component.
     @rate="handleRate"
   />
 </template>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.ChatItem.mount('#containerId', {
+  item: { RecordId: '1', Content: 'Hello' },
+  index: 0,
+  loading: false,
+  isStreamLoad: false,
+  onCopy: (rowtext, content, type) => {},
+  onRate: (record, score) => {}
+})
+</script>
 ```
 
 ## API

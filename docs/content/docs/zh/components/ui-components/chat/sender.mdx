@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 消息输入和发送组件，支持文本输入、文件上传、语音录入等功能。
 
-## 基础用法
+## vue中使用
 
 ```vue
 <template>
@@ -19,6 +19,19 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
     @stop="handleStop"
   />
 </template>
+```
+
+## html/react或其他框架中使用
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.ChatSender.mount('#containerId', {
+  isStreamLoad: false,
+  onSend: (value, fileList) => {},
+  onStop: () => {}
+})
+</script>
 ```
 
 ## API

@@ -7,7 +7,6 @@
 export const MessageCode = {
     // 成功类
     COPY_SUCCESS: 'COPY_SUCCESS',
-    
     // 错误类
     COPY_FAILED: 'COPY_FAILED',
     SHARE_FAILED: 'SHARE_FAILED',
@@ -49,7 +48,6 @@ export const MESSAGE_MAP: Record<MessageCode, MessageConfig> = {
         message: '复制成功',
         type: 'success',
     },
-    
     // 错误类
     [MessageCode.COPY_FAILED]: {
         code: MessageCode.COPY_FAILED,

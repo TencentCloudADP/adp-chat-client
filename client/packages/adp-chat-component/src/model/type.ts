@@ -70,6 +70,14 @@ export interface ChatI18n {
   sendError?: string
   networkError?: string
   createConversation?: string
+  copySuccess?: string
+  copyFailed?: string
+  shareFailed?: string
+  loadMoreFailed?: string
+  rateFailed?: string
+  getAppListFailed?: string
+  getConversationListFailed?: string
+  getConversationDetailFailed?: string
 }
 
 /** ChatItem 国际化文本 */
@@ -170,6 +178,14 @@ export const defaultChatI18n: Required<ChatI18n> = {
   sendError: '发送失败',
   networkError: '网络错误',
   createConversation: '新建对话',
+  copySuccess: '复制成功',
+  copyFailed: '复制失败',
+  shareFailed: '分享失败',
+  loadMoreFailed: '加载更多失败',
+  rateFailed: '评分失败',
+  getAppListFailed: '获取应用列表失败',
+  getConversationListFailed: '获取会话列表失败',
+  getConversationDetailFailed: '获取会话详情失败',
 }
 
 /** ChatItem i18n 默认值 */

@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 Display current application greeting and suggested questions.
 
-## Basic Usage
+## Usage in Vue
 
 ```vue
 <template>
@@ -21,6 +21,21 @@ Display current application greeting and suggested questions.
     @select-question="handleSelectQuestion"
   />
 </template>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.ChatAppType.mount('#containerId', {
+  currentApplicationAvatar: '/avatar.png',
+  currentApplicationName: 'App Name',
+  currentApplicationGreeting: 'Hello, how can I help you?',
+  currentApplicationOpeningQuestions: ['Question 1', 'Question 2'],
+  onSelectQuestion: (question) => console.log('selected', question)
+})
+</script>
 ```
 
 ## API

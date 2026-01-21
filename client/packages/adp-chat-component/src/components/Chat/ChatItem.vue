@@ -67,11 +67,17 @@ async function copyContent(event: any, content: string | undefined, type: string
 }
 
 /**
+ * 判断是否已评分
+ */
+const isRated = (record: Record) => {
+    return record.Score != ScoreValue.Unknown && record.Score !== undefined;
+};
+
+/**
  * 对消息进行评分（点赞/踩）
  */
 const rate = async (record: Record, score: typeof ScoreValue[keyof typeof ScoreValue]) => {
-    const disabled = (record.Score != ScoreValue.Unknown && record.Score !== undefined)
-    if (disabled) return;
+    if (isRated(record)) return;
     emit('rate', record, score);
 };
 
@@ -193,13 +199,15 @@ const handleSendMessage = (message: string) => {
                 <Tooltip :content="i18n.good" destroyOnClose showArrow theme="default">
                     <CustomizedIcon
                         size="s"
-                        :class="{ active: record.Score === ScoreValue.Like, disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined }"
+                        :class="{ disabled: isRated(record) && record.Score !== ScoreValue.Like, 'not-allowed': isRated(record) }"
+                        :color="record.Score === ScoreValue.Like ? 'var(--td-brand-color)' : undefined"
                         class="control-icon icon" name="thumbs_up" :theme="theme" @click="rate(item, ScoreValue.Like)" />
                 </Tooltip>
                 <Tooltip :content="i18n.bad" destroyOnClose showArrow theme="default">
                     <CustomizedIcon
                         size="s"
-                        :class="{ active: record.Score === ScoreValue.Dislike, disabled: record.Score != ScoreValue.Unknown && record.Score !== undefined }"
+                        :class="{ disabled: isRated(record) && record.Score !== ScoreValue.Dislike, 'not-allowed': isRated(record) }"
+                        :color="record.Score === ScoreValue.Dislike ? 'var(--td-brand-color)' : undefined"
                         class="control-icon icon" name="thumbs_down" :theme="theme" @click="rate(item, ScoreValue.Dislike)" />
                 </Tooltip>
             </div>
@@ -237,10 +245,8 @@ const handleSendMessage = (message: string) => {
     opacity: 0.25;
     cursor: not-allowed;
 }
-
-.icon.active {
-    color: var(--td-brand-color);
-    opacity: 1;
+.icon.not-allowed {
+    cursor: not-allowed;
 }
 
 /* 用户消息图标悬停效果 */

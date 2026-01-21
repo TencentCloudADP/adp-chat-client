@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 Sidebar layout containing application list, conversation list, user info and settings.
 
-## Basic Usage
+## Usage in Vue
 
 ```vue
 <template>
@@ -25,6 +25,25 @@ Sidebar layout containing application list, conversation list, user info and set
     @select-conversation="handleSelectConversation"
   />
 </template>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.SideLayout.mount('#containerId', {
+  visible: true,
+  applications: [],
+  currentApplicationId: '',
+  conversations: [],
+  currentConversationId: '',
+  userName: 'Username',
+  userAvatarUrl: '/avatar.png',
+  onSelectApplication: (app) => {},
+  onSelectConversation: (conversation) => {}
+})
+</script>
 ```
 
 ## API

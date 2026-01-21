@@ -292,19 +292,8 @@ const actualAutoLoad = computed(() => props.autoLoad);
 
 <!-- 全局样式 - 用于 Teleport 传送后的组件 -->
 <style>
-/* 根据设计要求重构td */
-.t-chat-sender {
-  padding: 0;
-}
-.dropdown-item {
-  gap: var(--td-comp-paddingLR-s);
-}
-.t-chat.t-chat--normal .t-chat__to-bottom {
-  bottom: var(--chat-footer-height, 100px);
-}
-.t-chat.isChatting .t-chat__to-bottom {
-  position: relative;
-}
+@import './styles/chat-overrides.css';
+
 .t-chat.isChatting .t-chat__to-bottom::before {
   content: '';
   position: absolute;
@@ -319,27 +308,6 @@ const actualAutoLoad = computed(() => props.autoLoad);
   animation: rotate 2s linear infinite;
   z-index: 2;
   border-radius: 9999px;
-}
-
-/* 自定义滚动条样式 */
-@-moz-document url-prefix(){
-  .t-chat__list {
-    scrollbar-color: var(--td-scrollbar-color) transparent;
-    scrollbar-width: thin;
-  }
-}
-.t-chat__list::-webkit-scrollbar {
-  width: var(--td-size-4);
-  background: transparent;
-}
-.t-chat__list::-webkit-scrollbar-thumb {
-  border: 2px solid transparent;
-  background-clip: content-box;
-  background-color: var(--td-scrollbar-color);
-  border-radius: 15px;
-}
-.t-chat__list::-webkit-scrollbar-thumb:hover {
-  background-color: var(--td-scrollbar-hover-color);
 }
 
 @keyframes rotate {

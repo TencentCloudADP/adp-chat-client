@@ -9,48 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 在 Vue/React 项目中使用 `ADPChat` 组件或 `ADPChatMounter` API 快速创建聊天界面。
 
-## ADPChatMounter API
-
-使用 `ADPChatMounter` 可以在任何框架中快速挂载聊天组件：
-
-```typescript
-import { ADPChatMounter } from 'adp-chat-component'
-import 'adp-chat-component/dist/es/adp-chat-component.css'
-
-// 挂载组件
-const instanceId = ADPChatMounter.mount('#chat-container', {
-  theme: 'light',
-  apiConfig: {
-    baseURL: '/api',
-    apiDetailConfig: {
-      applicationListApi: '/applications',
-      conversationListApi: '/conversations',
-    }
-  }
-})
-
-// 更新组件
-ADPChatMounter.update(instanceId, {
-  theme: 'dark'
-})
-
-// 卸载组件
-ADPChatMounter.unmount(instanceId)
-```
-
-### ADPChatMounter 方法
-
-| 方法 | 参数 | 返回值 | 说明 |
-| --- | --- | --- | --- |
-| `mount` | `(selector: string, options: ADPChatProps)` | `string` | 挂载组件，返回实例 ID |
-| `update` | `(instanceId: string, options: Partial<ADPChatProps>)` | `void` | 更新组件配置 |
-| `unmount` | `(instanceId: string)` | `void` | 卸载组件 |
-
-## ADPChat Vue 组件
-
-在 Vue 项目中直接使用 `ADPChat` 组件：
-
-### 基础用法
+## vue中使用
 
 ```vue
 <template>
@@ -61,6 +20,7 @@ ADPChatMounter.unmount(instanceId)
     :current-conversation="currentConversation"
     :chat-list="chatList"
     :user="userInfo"
+    :api-config="apiConfig"
     theme="light"
     @send="handleSend"
     @select-application="handleSelectApp"
@@ -74,38 +34,33 @@ import 'adp-chat-component/dist/es/adp-chat-component.css'
 </script>
 ```
 
-### API 模式
+## html/react或其他框架中使用
 
-```vue
-<template>
-  <ADPChat
-    :api-config="apiConfig"
-    :auto-load="true"
-    @data-loaded="handleDataLoaded"
-  />
-</template>
+使用 `ADPChatMounter` 可以在任何框架中快速挂载聊天组件：
 
-<script setup>
-import { ADPChat } from 'adp-chat-component'
-import 'adp-chat-component/dist/es/adp-chat-component.css'
-
-const apiConfig = {
-  baseURL: 'https://api.example.com',
-  timeout: 30000,
-  apiDetailConfig: {
-    applicationListApi: '/api/applications',
-    conversationListApi: '/api/conversations',
-    conversationDetailApi: '/api/conversation/detail',
-    sendMessageApi: '/api/message/send',
-    userInfoApi: '/api/user/info'
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.ADPChat.mount('#containerId', {
+  theme: 'light',
+  apiConfig: {
+    baseURL: '/api',
+    apiDetailConfig: {
+      applicationListApi: '/applications',
+      conversationListApi: '/conversations',
+    }
   }
-}
-
-const handleDataLoaded = (type, data) => {
-  console.log(`${type} loaded:`, data)
-}
+})
 </script>
 ```
+
+### ADPChatMounter 方法
+
+| 方法 | 参数 | 返回值 | 说明 |
+| --- | --- | --- | --- |
+| `mount` | `(selector: string, options: ADPChatProps)` | `string` | 挂载组件，返回实例 ID |
+| `update` | `(instanceId: string, options: Partial<ADPChatProps>)` | `void` | 更新组件配置 |
+| `unmount` | `(instanceId: string)` | `void` | 卸载组件 |
 
 ## API
 

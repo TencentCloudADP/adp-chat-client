@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 Message input and send component, supports text input, file upload, voice recording.
 
-## Basic Usage
+## Usage in Vue
 
 ```vue
 <template>
@@ -19,6 +19,19 @@ Message input and send component, supports text input, file upload, voice record
     @stop="handleStop"
   />
 </template>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.ChatSender.mount('#containerId', {
+  isStreamLoad: false,
+  onSend: (value, fileList) => {},
+  onStop: () => {}
+})
+</script>
 ```
 
 ## API

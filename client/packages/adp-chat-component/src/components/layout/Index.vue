@@ -42,7 +42,10 @@ import type {
 import { 
     defaultLanguageOptions,
     themePropsDefaults,
-    fullscreenPropsDefaults
+    fullscreenPropsDefaults,
+    defaultChatI18n,
+    defaultChatItemI18n,
+    defaultSenderI18n
 } from '../../model/type';
 
 export interface Props extends ThemeProps, FullscreenProps {
@@ -152,6 +155,12 @@ const emit = defineEmits<{
 const sidebarVisible = ref(!props.isSidePanelOverlay);
 const mainLayoutRef = ref<InstanceType<typeof MainLayout> | null>(null);
 
+// 合并 i18n 配置
+const mergedChatItemI18n = computed(() => ({
+    ...defaultChatItemI18n,
+    ...props.chatItemI18n
+}));
+
 // 计算是否为移动端模式（内部计算，不再依赖外部传入）
 const isMobile = computed(() => {
     return computeIsMobile({
@@ -174,6 +183,18 @@ const abortController = ref<AbortController | null>(null);
 
 // 判断是否使用 API 模式（始终启用）
 const useApiMode = computed(() => true);
+
+// 合并默认值和传入值的 chatI18n
+const mergedChatI18n = computed(() => ({
+    ...defaultChatI18n,
+    ...props.chatI18n
+}));
+
+// 合并默认值和传入值的 senderI18n
+const mergedSenderI18n = computed(() => ({
+    ...defaultSenderI18n,
+    ...props.senderI18n
+}));
 
 // 使用 composable 统一管理 API 配置
 const { mergedApiDetailConfig } = useApiConfig({
@@ -223,9 +244,9 @@ const loadApplications = async () => {
         }
         emit('dataLoaded', 'applications', data);
     } catch (error) {
-        const msg = getMessage(MessageCode.GET_APP_LIST_FAILED);
-        MessagePlugin[msg.type](msg.message);
-        emit('message', MessageCode.GET_APP_LIST_FAILED, msg.message);
+        const text = mergedChatI18n.value.getAppListFailed;
+        MessagePlugin.error(text);
+        emit('message', MessageCode.GET_APP_LIST_FAILED, text);
     }
 };
 
@@ -236,9 +257,9 @@ const loadConversations = async () => {
         internalConversations.value = data;
         emit('dataLoaded', 'conversations', data);
     } catch (error) {
-        const msg = getMessage(MessageCode.GET_CONVERSATION_LIST_FAILED);
-        MessagePlugin[msg.type](msg.message);
-        emit('message', MessageCode.GET_CONVERSATION_LIST_FAILED, msg.message);
+        const text = mergedChatI18n.value.getConversationListFailed;
+        MessagePlugin.error(text);
+        emit('message', MessageCode.GET_CONVERSATION_LIST_FAILED, text);
     }
 };
 
@@ -252,9 +273,9 @@ const loadConversationDetail = async (conversationId: string) => {
         internalChatList.value = response?.Response?.Records || [];
         emit('dataLoaded', 'chatList', internalChatList.value);
     } catch (error) {
-        const msg = getMessage(MessageCode.GET_CONVERSATION_DETAIL_FAILED);
-        MessagePlugin[msg.type](msg.message);
-        emit('message', MessageCode.GET_CONVERSATION_DETAIL_FAILED, msg.message);
+        const text = mergedChatI18n.value.getConversationDetailFailed;
+        MessagePlugin.error(text);
+        emit('message', MessageCode.GET_CONVERSATION_DETAIL_FAILED, text);
     }
 };
 
@@ -387,16 +408,16 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
                 }
                 // 判断是否为 AxiosError（网络错误）
                 if (msg && typeof msg === 'object' && ('code' in msg && msg.code === 'ERR_NETWORK')) {
-                    const networkMsg = getMessage(MessageCode.NETWORK_ERROR);
-                    MessagePlugin[networkMsg.type](networkMsg.message);
-                    emit('message', MessageCode.NETWORK_ERROR, networkMsg.message);
+                    const networkErrorText = mergedChatI18n.value.networkError;
+                    MessagePlugin.error(networkErrorText);
+                    emit('message', MessageCode.NETWORK_ERROR, networkErrorText);
                 } else if (msg && typeof msg === 'string') {
                     MessagePlugin.error(msg);
                     emit('message', MessageCode.SEND_MESSAGE_FAILED, msg);
                 } else {
-                    const sendMsg = getMessage(MessageCode.SEND_MESSAGE_FAILED);
-                    MessagePlugin[sendMsg.type](sendMsg.message);
-                    emit('message', MessageCode.SEND_MESSAGE_FAILED, sendMsg.message);
+                    const sendErrorText = mergedChatI18n.value.sendError;
+                    MessagePlugin.error(sendErrorText);
+                    emit('message', MessageCode.SEND_MESSAGE_FAILED, sendErrorText);
                 }
             }
         }
@@ -439,9 +460,9 @@ const handleInternalLoadMore = async (conversationId: string, lastRecordId: stri
         })
     } catch (error) {
         mainLayoutRef.value?.notifyComplete();
-        const msg = getMessage(MessageCode.LOAD_MORE_FAILED);
-        MessagePlugin[msg.type](msg.message);
-        emit('message', MessageCode.LOAD_MORE_FAILED, msg.message);
+        const text = mergedChatI18n.value.loadMoreFailed;
+        MessagePlugin.error(text);
+        emit('message', MessageCode.LOAD_MORE_FAILED, text);
     }
 };
 
@@ -461,6 +482,11 @@ const handleInternalRate = async (conversationId: string, recordId: string, scor
         const record = internalChatList.value.find(r => r.RecordId === recordId);
         if (record) {
             record.Score = score;
+        }
+        // 显示感谢反馈信息（使用 i18n 文案）
+        const message = score === ScoreValue.Like ? mergedChatItemI18n.value.thxForGood : score === ScoreValue.Dislike ? mergedChatItemI18n.value.thxForBad : '';
+        if (message) {
+            MessagePlugin.info(message);
         }
     } catch (error) {
         const msg = getMessage(MessageCode.RATE_FAILED);
@@ -594,9 +620,9 @@ const handleInternalUploadFile = async (files: File[]) => {
                 });
             }
         } catch (error) {
-            const msg = getMessage(MessageCode.FILE_UPLOAD_FAILED);
-            MessagePlugin[msg.type](msg.message);
-            emit('message', MessageCode.FILE_UPLOAD_FAILED, msg.message);
+            const uploadErrorText = mergedSenderI18n.value.uploadError;
+            MessagePlugin.error(uploadErrorText);
+            emit('message', MessageCode.FILE_UPLOAD_FAILED, uploadErrorText);
         }
     }
     emit('uploadFile', files);
