@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 Complete chat interface component with message list, sender, sharing and more.
 
-## Basic Usage
+## Usage in Vue
 
 ```vue
 <template>
@@ -23,6 +23,23 @@ Complete chat interface component with message list, sender, sharing and more.
     @stop="handleStop"
   />
 </template>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.Chat.mount('#containerId', {
+  chatId: '',
+  chatList: [],
+  isChatting: false,
+  currentApplicationId: '',
+  currentApplicationName: '',
+  onSend: (query, fileList, conversationId, applicationId) => {},
+  onStop: () => {}
+})
+</script>
 ```
 
 ## API

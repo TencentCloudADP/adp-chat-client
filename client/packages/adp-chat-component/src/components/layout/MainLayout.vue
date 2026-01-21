@@ -178,7 +178,9 @@ defineExpose({
     </TLayout>
 </template>
 
+
 <style scoped>
+@import '../../styles/chat-overrides.css';
 .main-layout {
     width: 100%;
     height: 100%;

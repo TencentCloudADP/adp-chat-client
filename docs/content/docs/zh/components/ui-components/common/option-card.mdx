@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 展示可点击的选项卡片列表，常用于 AI 回复中的快捷选项。
 
-## 基础用法
+## vue中使用
 
 ```vue
 <template>
@@ -25,6 +25,18 @@ const options = ['选项一', '选项二', '选项三']
 const handleSendMessage = (text) => {
   console.log('发送消息:', text)
 }
+</script>
+```
+
+## html/react或其他框架中使用
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.OptionCard.mount('#containerId', {
+  cards: ['选项一', '选项二', '选项三'],
+  sendMessage: (text) => console.log('发送消息:', text)
+})
 </script>
 ```
 

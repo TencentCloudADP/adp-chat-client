@@ -122,10 +122,16 @@ defineExpose({
 </script>
 
 <style scoped>
+@import '../styles/chat-overrides.css';
 .share-chat {
-  padding: var(--td-comp-size-xxs) 10%;
   background-color: var(--td-bg-color-container);
   height: 100%;
   overflow: auto;
+}
+.share-chat :deep(.t-chat){
+  width: 100%;
+}
+.share-chat :deep(.t-chat__list) {
+  padding: var(--td-comp-size-xxs) 10%;
 }
 </style>

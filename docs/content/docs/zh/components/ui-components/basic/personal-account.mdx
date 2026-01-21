@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 显示用户头像和名称。
 
-## 基础用法
+## vue中使用
 
 ```vue
 <template>
@@ -19,6 +19,19 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
     @click="handleClick"
   />
 </template>
+```
+
+## html/react或其他框架中使用
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.PersonalAccount.mount('#containerId', {
+  avatarUrl: '/avatar.png',
+  name: '用户名',
+  onClick: () => console.log('clicked')
+})
+</script>
 ```
 
 ## API

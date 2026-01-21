@@ -119,14 +119,25 @@ interface Props extends ThemeProps {
     nativeIcon?: boolean;
     /** hover是否显示背景色 */
     showHoverBg?: boolean;
+    /** 自定义颜色 */
+    color?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   size: 'm',
   nativeIcon: false,
   showHoverBg: true,
+  color: '',
   ...themePropsDefaults,
 })
+
+// 计算内联样式（仅非 nativeIcon 时应用 color）
+const iconStyle = computed(() => {
+    if (props.color && !props.nativeIcon) {
+        return { color: props.color };
+    }
+    return {};
+});
 
 // 为每个组件实例生成唯一 id
 const uniqueId = `icon-${idCounter++}-${Math.random().toString(36).slice(2, 8)}`;
@@ -137,19 +148,31 @@ const uniqueId = `icon-${idCounter++}-${Math.random().toString(36).slice(2, 8)}`
 const svgContent = computed(() => {
     const content = svgMap[props.name];
     if (content) {
-        return processSvg(content);
+        return processSvg(content, props.nativeIcon);
     }
     return '';
 });
 
 /**
- * 处理 SVG 内容，替换 id 避免冲突
+ * 处理 SVG 内容，替换 id 避免冲突，并将颜色改为 currentColor 以支持 CSS color 控制
+ * @param content SVG 内容
+ * @param isNative 是否为原生图标（原生图标不替换颜色）
  */
-function processSvg(content: string): string {
+function processSvg(content: string, isNative: boolean): string {
     let processed = content
         .replace(/<svg([^>]*)\s+width="[^"]*"/, '<svg$1')
         .replace(/<svg([^>]*)\s+height="[^"]*"/, '<svg$1')
         .replace(/<svg/, '<svg class="svg-inner"');
+    
+    // 仅非原生图标时，将 fill 颜色替换为 currentColor
+    if (!isNative) {
+        // 匹配 fill="xxx" 但排除 fill="none" 和 fill="url(...)"
+        processed = processed.replace(/fill="(?!none|url)[^"]*"/g, 'fill="currentColor"');
+        // 移除 fill-opacity 属性（因为使用 currentColor 后不需要）
+        processed = processed.replace(/\s*fill-opacity="[^"]*"/g, '');
+        // 移除内联 style 中的 fill 相关样式
+        processed = processed.replace(/style="[^"]*fill:[^;]*;?[^"]*fill-opacity:[^;]*;?[^"]*"/g, '');
+    }
     
     // 收集所有需要替换的 id
     const idMatches = processed.match(/id="([^"]+)"/g);
@@ -182,7 +205,8 @@ function processSvg(content: string): string {
             'normal': !nativeIcon,
             'svg-dark-mode': theme === 'dark',
             [`size-${size}`]: size 
-        }" 
+        }"
+        :style="iconStyle"
         aria-hidden="true"
         v-html="svgContent"
     />
@@ -195,9 +219,14 @@ function processSvg(content: string): string {
     height: 100%;
 }
 
-/* 暗色模式滤镜 - 仅对非原生图标生效 */
-.svg-dark-mode.normal :deep(svg) {
-    filter: brightness(0) invert(1);
+/* 暗色模式颜色 - 仅对非原生图标生效 */
+.svg-dark-mode.normal {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* 亮色模式默认颜色 */
+.customeized-icon.normal:not(.svg-dark-mode) {
+    color: rgba(0, 0, 0, 0.6);
 }
 
 /* 尺寸样式 - xs: 超小 */
@@ -242,7 +271,7 @@ function processSvg(content: string): string {
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* hover 背景效果 - 仅对非原生图标生效 */

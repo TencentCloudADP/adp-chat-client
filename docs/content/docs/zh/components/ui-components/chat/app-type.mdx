@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 展示当前应用的欢迎语和推荐问题。
 
-## 基础用法
+## vue中使用
 
 ```vue
 <template>
@@ -21,6 +21,21 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
     @select-question="handleSelectQuestion"
   />
 </template>
+```
+
+## html/react或其他框架中使用
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.ChatAppType.mount('#containerId', {
+  currentApplicationAvatar: '/avatar.png',
+  currentApplicationName: 'App Name',
+  currentApplicationGreeting: '你好，有什么可以帮助你的？',
+  currentApplicationOpeningQuestions: ['问题1', '问题2'],
+  onSelectQuestion: (question) => console.log('selected', question)
+})
+</script>
 ```
 
 ## API

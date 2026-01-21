@@ -9,48 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 Use `ADPChat` component or `ADPChatMounter` API to quickly create chat interface in Vue/React projects.
 
-## ADPChatMounter API
-
-Use `ADPChatMounter` to quickly mount chat component in any framework:
-
-```typescript
-import { ADPChatMounter } from 'adp-chat-component'
-import 'adp-chat-component/dist/es/adp-chat-component.css'
-
-// Mount component
-const instanceId = ADPChatMounter.mount('#chat-container', {
-  theme: 'light',
-  apiConfig: {
-    baseURL: '/api',
-    apiDetailConfig: {
-      applicationListApi: '/applications',
-      conversationListApi: '/conversations',
-    }
-  }
-})
-
-// Update component
-ADPChatMounter.update(instanceId, {
-  theme: 'dark'
-})
-
-// Unmount component
-ADPChatMounter.unmount(instanceId)
-```
-
-### ADPChatMounter Methods
-
-| Method | Parameters | Returns | Description |
-| --- | --- | --- | --- |
-| `mount` | `(selector: string, options: ADPChatProps)` | `string` | Mount component, returns instance ID |
-| `update` | `(instanceId: string, options: Partial<ADPChatProps>)` | `void` | Update component config |
-| `unmount` | `(instanceId: string)` | `void` | Unmount component |
-
-## ADPChat Vue Component
-
-Use `ADPChat` component directly in Vue projects:
-
-### Basic Usage
+## Usage in Vue
 
 ```vue
 <template>
@@ -61,6 +20,7 @@ Use `ADPChat` component directly in Vue projects:
     :current-conversation="currentConversation"
     :chat-list="chatList"
     :user="userInfo"
+    :api-config="apiConfig"
     theme="light"
     @send="handleSend"
     @select-application="handleSelectApp"
@@ -74,38 +34,33 @@ import 'adp-chat-component/dist/es/adp-chat-component.css'
 </script>
 ```
 
-### API Mode
+## Usage in HTML/React or Other Frameworks
 
-```vue
-<template>
-  <ADPChat
-    :api-config="apiConfig"
-    :auto-load="true"
-    @data-loaded="handleDataLoaded"
-  />
-</template>
+Use `ADPChatMounter` to quickly mount chat component in any framework:
 
-<script setup>
-import { ADPChat } from 'adp-chat-component'
-import 'adp-chat-component/dist/es/adp-chat-component.css'
-
-const apiConfig = {
-  baseURL: 'https://api.example.com',
-  timeout: 30000,
-  apiDetailConfig: {
-    applicationListApi: '/api/applications',
-    conversationListApi: '/api/conversations',
-    conversationDetailApi: '/api/conversation/detail',
-    sendMessageApi: '/api/message/send',
-    userInfoApi: '/api/user/info'
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.ADPChat.mount('#containerId', {
+  theme: 'light',
+  apiConfig: {
+    baseURL: '/api',
+    apiDetailConfig: {
+      applicationListApi: '/applications',
+      conversationListApi: '/conversations',
+    }
   }
-}
-
-const handleDataLoaded = (type, data) => {
-  console.log(`${type} loaded:`, data)
-}
+})
 </script>
 ```
+
+### ADPChatMounter Methods
+
+| Method | Parameters | Returns | Description |
+| --- | --- | --- | --- |
+| `mount` | `(selector: string, options: ADPChatProps)` | `string` | Mount component, returns instance ID |
+| `update` | `(instanceId: string, options: Partial<ADPChatProps>)` | `void` | Update component config |
+| `unmount` | `(instanceId: string)` | `void` | Unmount component |
 
 ## API
 

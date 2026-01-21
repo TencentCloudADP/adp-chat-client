@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 展示聊天会话历史记录。
 
-## 基础用法
+## vue中使用
 
 ```vue
 <template>
@@ -19,6 +19,19 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
     @select="handleSelect"
   />
 </template>
+```
+
+## html/react或其他框架中使用
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.HistoryList.mount('#containerId', {
+  conversations: [],
+  currentConversationId: '',
+  onSelect: (conversation) => console.log('selected', conversation)
+})
+</script>
 ```
 
 ## API

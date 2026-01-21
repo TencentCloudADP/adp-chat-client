@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 聊天主内容区布局，包含头部、聊天区域和底部警告。
 
-## 基础用法
+## vue中使用
 
 ```vue
 <template>
@@ -23,6 +23,14 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
     @toggle-sidebar="handleToggleSidebar"
   />
 </template>
+```
+## html/react或其他框架中使用
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.MainLayout.mount('#containerId', { })
+</script>
 ```
 
 ## API

@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 单条聊天消息的展示组件。
 
-## 基础用法
+## vue中使用
 
 ```vue
 <template>
@@ -22,6 +22,22 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
     @rate="handleRate"
   />
 </template>
+```
+
+## html/react或其他框架中使用
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.ChatItem.mount('#containerId', {
+  item: { RecordId: '1', Content: 'Hello' },
+  index: 0,
+  loading: false,
+  isStreamLoad: false,
+  onCopy: (rowtext, content, type) => {},
+  onRate: (record, score) => {}
+})
+</script>
 ```
 
 ## API

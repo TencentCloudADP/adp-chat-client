@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 Display chat conversation history.
 
-## Basic Usage
+## Usage in Vue
 
 ```vue
 <template>
@@ -19,6 +19,19 @@ Display chat conversation history.
     @select="handleSelect"
   />
 </template>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.HistoryList.mount('#containerId', {
+  conversations: [],
+  currentConversationId: '',
+  onSelect: (conversation) => console.log('selected', conversation)
+})
+</script>
 ```
 
 ## API

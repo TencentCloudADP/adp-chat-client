@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 完整的聊天界面组件，包含消息列表、发送器、分享等功能。
 
-## 基础用法
+## vue中使用
 
 ```vue
 <template>
@@ -23,6 +23,23 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
     @stop="handleStop"
   />
 </template>
+```
+
+## html/react或其他框架中使用
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.Chat.mount('#containerId', {
+  chatId: '',
+  chatList: [],
+  isChatting: false,
+  currentApplicationId: '',
+  currentApplicationName: '',
+  onSend: (query, fileList, conversationId, applicationId) => {},
+  onStop: () => {}
+})
+</script>
 ```
 
 ## API

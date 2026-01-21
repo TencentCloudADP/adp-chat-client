@@ -9,12 +9,23 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 Sidebar expand/collapse toggle button.
 
-## Basic Usage
+## Usage in Vue
 
 ```vue
 <template>
   <SidebarToggle @toggle="handleToggle" />
 </template>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.SidebarToggle.mount('#containerId', {
+  onToggle: () => console.log('toggle')
+})
+</script>
 ```
 
 ## API

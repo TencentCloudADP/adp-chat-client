@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 Quick button to create new conversation.
 
-## Basic Usage
+## Usage in Vue
 
 ```vue
 <template>
@@ -18,6 +18,18 @@ Quick button to create new conversation.
     @create="handleCreate"
   />
 </template>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.CreateConversation.mount('#containerId', {
+  tooltipText: 'New Chat',
+  onCreate: () => console.log('create')
+})
+</script>
 ```
 
 ## API

@@ -9,7 +9,7 @@ import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/
 
 Display logo and title.
 
-## Basic Usage
+## Usage in Vue
 
 ```vue
 <template>
@@ -18,6 +18,18 @@ Display logo and title.
     title="ADP Chat"
   />
 </template>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.LogoArea.mount('#containerId', {
+  logoUrl: '/logo.png',
+  title: 'ADP Chat'
+})
+</script>
 ```
 
 ## API
