@@ -159,11 +159,5 @@ if (typeof window !== 'undefined') {
   (window as any).ADPChatComponent = ADPChatComponent
 }
 
-if (import.meta.env.DEV) {
-  init('#chat-panel',{
-    isOverlay: false
-  })
-}
-
 export { init, update, getProps }
 export default ADPChatComponent
