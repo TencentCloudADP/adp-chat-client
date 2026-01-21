@@ -5,6 +5,8 @@ import {
   type NavigationGuardNext,
 } from 'vue-router'
 import { isLoggedIn } from '@/service/login'
+import { httpService } from '@/service/httpService'
+
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -35,17 +37,31 @@ const router = createRouter({
   ],
 })
 
+let entre = false
 router.beforeEach(
-  (to: RouteLocationNormalized, _from: RouteLocationNormalized, next: NavigationGuardNext) => {
-    if(to.meta.unauthorized){
-      next()
-    }else{
+  async (to: RouteLocationNormalized, _from: RouteLocationNormalized) => {
+    if (to.meta.unauthorized) {
+      return
+    } else {
+      if (entre) {
+        // 防止重复进入, axiosInstance.ts中会统一处理AccountUnauthorized错误，并跳转登录页
+        console.log(`prevent re-entre`);
+        return
+      }
+      // 配置AUTO_CREATE_ACCOUNT=true时，检查是否需要自动创建账号
+      entre = true
+      try {
+        await httpService.get('/account/info')
+      } catch {
+      }
+      entre = false
+      
       if (to.name !== 'login' && !isLoggedIn()) {
-        next({ name: 'login' })
+        return { name: 'login' }
       } else if (to.name === 'login' && isLoggedIn()) {
-        next({ name: 'home' })
+        return { name: 'home' }
       } else {
-        next()
+        return
       }
     }
   },
