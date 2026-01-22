@@ -199,7 +199,7 @@ const handleUserClick = () => {
     overflow-x: hidden;
     scrollbar-color: var(--td-scrollbar-color) transparent;
     scrollbar-width: thin;
-    padding-right: calc(var(--td-comp-paddingLR-l) - var(--td-size-4));
+    padding-right: var(--td-comp-paddingLR-l);
 }
 
 .drawer-scrollable::-webkit-scrollbar {
