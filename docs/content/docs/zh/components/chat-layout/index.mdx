@@ -67,6 +67,15 @@ ADPChatComponent.ADPChat.mount('#containerId', {
 ### Props
 
 <PropsTable data={[
+  { name: 'apiConfig', type: 'ApiConfig', description: 'HTTP 请求配置，继承自 AxiosRequestConfig' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: '主题模式' },
+  { name: 'user', type: 'UserInfo', default: '{}', description: '用户信息' },
+  { name: 'logoUrl', type: 'string', default: "''", description: 'Logo URL' },
+  { name: 'logoTitle', type: 'string', default: "''", description: 'Logo 标题' },
+  { name: 'isSidePanelOverlay', type: 'boolean', default: 'false', description: '侧边栏是否使用overlay模式（覆盖内容区域）' },
+  { name: 'showCloseButton', type: 'boolean', default: 'true', description: '是否显示关闭按钮' },
+  { name: 'showFullscreenButton', type: 'boolean', default: 'true', description: '是否显示全屏按钮' },
+  { name: 'maxAppLen', type: 'number', default: '4', description: '最大应用显示数量' },
   { name: 'applications', type: 'Application[]', default: '[]', description: '应用列表' },
   { name: 'currentApplication', type: 'Application', description: '当前选中的应用' },
   { name: 'currentApplicationId', type: 'string', default: "''", description: '当前选中的应用 ID（优先级高于 currentApplication）' },
@@ -75,23 +84,12 @@ ADPChatComponent.ADPChat.mount('#containerId', {
   { name: 'currentConversationId', type: 'string', default: "''", description: '当前选中的会话 ID（优先级高于 currentConversation）' },
   { name: 'chatList', type: 'Record[]', default: '[]', description: '聊天消息列表' },
   { name: 'isChatting', type: 'boolean', default: 'false', description: '是否正在聊天中' },
-  { name: 'user', type: 'UserInfo', default: '{}', description: '用户信息' },
-  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: '主题模式' },
-  { name: 'languageOptions', type: 'LanguageOption[]', default: '中英文', description: '语言选项列表' },
-  { name: 'isSidePanelOverlay', type: 'boolean', default: 'false', description: '侧边栏是否使用overlay模式（覆盖内容区域）' },
-  { name: 'logoUrl', type: 'string', default: "''", description: 'Logo URL' },
-  { name: 'logoTitle', type: 'string', default: "''", description: 'Logo 标题' },
-  { name: 'isShowFullscreenButton', type: 'boolean', default: 'true', description: '是否显示全屏按钮' },
-  { name: 'isFullscreen', type: 'boolean', default: 'false', description: '是否处于全屏状态' },
-  { name: 'maxAppLen', type: 'number', default: '4', description: '最大应用显示数量' },
-  { name: 'isShowCloseButton', type: 'boolean', default: 'true', description: '是否显示关闭按钮' },
   { name: 'aiWarningText', type: 'string', default: "'内容由AI生成，仅供参考'", description: 'AI警告文本' },
+  { name: 'languageOptions', type: 'LanguageOption[]', default: '中英文', description: '语言选项列表' },
   { name: 'sideI18n', type: 'SideI18n', description: '侧边栏国际化文本' },
   { name: 'chatI18n', type: 'ChatI18n', description: '聊天国际化文本' },
   { name: 'chatItemI18n', type: 'ChatItemI18n', description: 'ChatItem 国际化文本' },
   { name: 'senderI18n', type: 'SenderI18n', description: 'Sender 国际化文本' },
-  { name: 'apiConfig', type: 'ApiConfig', description: 'API 配置（传入则启用 API 模式）' },
-  { name: 'autoLoad', type: 'boolean', default: 'true', description: '是否自动加载数据（仅在使用 apiConfig 时生效）' },
 ]} />
 
 ### Events
@@ -105,7 +103,7 @@ ADPChatComponent.ADPChat.mount('#containerId', {
   { name: 'logout', description: '退出登录' },
   { name: 'userClick', description: '点击用户信息' },
   { name: 'close', description: '关闭' },
-  { name: 'fullscreen', params: 'isFullscreen: boolean', description: '全屏状态变化' },
+  { name: 'fullscreen', description: '全屏按钮点击（用于切换全屏状态）' },
   { name: 'send', params: '(query, fileList, conversationId, applicationId)', description: '发送消息' },
   { name: 'stop', description: '停止生成' },
   { name: 'loadMore', params: '(conversationId, lastRecordId)', description: '加载更多' },
@@ -124,8 +122,8 @@ ADPChatComponent.ADPChat.mount('#containerId', {
 
 <SlotsTable data={[
   { name: 'sider-logo', description: '侧边栏 Logo 区域，外层传入时显示外层内容，否则显示默认 LogoArea（需要 logoUrl 或 logoTitle）' },
-  { name: 'header-fullscreen-content', description: '头部全屏按钮区域，外层传入时显示外层内容，否则显示默认全屏图标（需要 isShowFullscreenButton 为 true）' },
-  { name: 'header-close-content', description: '头部关闭按钮区域，外层传入时显示外层内容，否则显示默认关闭图标（需要 isShowCloseButton 为 true）' },
+  { name: 'header-fullscreen-content', description: '头部全屏按钮区域，外层传入时显示外层内容，否则显示默认全屏图标（需要 showFullscreenButton 为 true）' },
+  { name: 'header-close-content', description: '头部关闭按钮区域，外层传入时显示外层内容，否则显示默认关闭图标（需要 showCloseButton 为 true）' },
 ]} />
 
 ### Methods

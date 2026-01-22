@@ -3,6 +3,13 @@
  * 导出所有组件、类型、服务和工具函数
  */
 
+// 导入 TDesign 基础样式（UMD 模式需要）
+import 'tdesign-vue-next/es/style/index.css'
+// 导入 TDesign Chat 样式
+import '@tdesign-vue-next/chat/es/style/index.css'
+// 导入全局样式（确保打包时包含）
+import './style.css'
+
 // 基础组件导出
 export { default as AIWarning } from './components/AIWarning.vue'
 export { default as ApplicationList } from './components/ApplicationList.vue'

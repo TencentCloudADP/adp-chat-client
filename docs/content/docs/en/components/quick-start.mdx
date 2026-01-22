@@ -165,19 +165,24 @@ export function useChat(options: UseChatOptions) {
   const isFullscreen = ref(false)
 
   const updateChat = () => {
+    // Skip if not initialized
     if (!instanceRef.value) return
     
     const userConfig = getConfig({ isOpen: isOpen.value, isFullscreen: isFullscreen.value })
     ADPChat.update(containerId, {
-      isOpen: isOpen.value,
-      isFullscreen: isFullscreen.value,
       ...userConfig,
+      isOpen: isOpen.value,
+      isOverlay: !isFullscreen.value,
     })
   }
 
   const initChat = () => {
+    // Ensure container exists
     const container = document.querySelector(containerId)
-    if (!container) return
+    if (!container) {
+      console.warn(`Container ${containerId} not found, retrying...`)
+      return
+    }
 
     // If already initialized, use update
     if (instanceRef.value) {
@@ -189,19 +194,34 @@ export function useChat(options: UseChatOptions) {
     
     instanceRef.value = ADPChat.init(containerId, {
       ...defaultConfig,
-      isOpen: isOpen.value,
-      isFullscreen: isFullscreen.value,
       ...userConfig,
+      isOpen: isOpen.value,
+      isOverlay: !isFullscreen.value,
       onOpenChange: (open: boolean) => {
         isOpen.value = open
         ;(userConfig.onOpenChange as ((open: boolean) => void) | undefined)?.(open)
       },
-      onFullscreen: (fullscreen: boolean) => {
-        isFullscreen.value = fullscreen
-        ;(userConfig.onFullscreen as ((fullscreen: boolean) => void) | undefined)?.(fullscreen)
+      onFullscreen: () => {
+        isFullscreen.value = !isFullscreen.value
+        ;(userConfig.onFullscreen as ((fullscreen: boolean) => void) | undefined)?.(isFullscreen.value)
         nextTick(() => updateChat())
       },
     })
+  }
+
+  const openChat = () => {
+    isOpen.value = true
+    nextTick(() => instanceRef.value ? updateChat() : initChat())
+  }
+
+  const closeChat = () => {
+    isOpen.value = false
+    nextTick(() => instanceRef.value ? updateChat() : initChat())
+  }
+
+  const toggleFullscreen = () => {
+    isFullscreen.value = !isFullscreen.value
+    nextTick(() => instanceRef.value ? updateChat() : initChat())
   }
 
   onMounted(() => {
@@ -216,7 +236,7 @@ export function useChat(options: UseChatOptions) {
     }
   })
 
-  return { isOpen, isFullscreen, initChat, updateChat }
+  return { isOpen, isFullscreen, initChat, openChat, closeChat, toggleFullscreen }
 }
 ```
 
@@ -349,19 +369,24 @@ export function useChat(options: UseChatOptions) {
   stateRef.current = { isOpen, isFullscreen }
 
   const updateChat = useCallback(() => {
+    // Skip if not initialized
     if (!instanceRef.current) return
     
     const userConfig = getConfig({ isOpen: stateRef.current.isOpen, isFullscreen: stateRef.current.isFullscreen })
     ADPChat.update(containerId, {
-      isOpen: stateRef.current.isOpen,
-      isFullscreen: stateRef.current.isFullscreen,
       ...userConfig,
+      isOverlay: !stateRef.current.isFullscreen,
+      isOpen: stateRef.current.isOpen,
     })
   }, [containerId, getConfig])
 
   const initChat = useCallback(() => {
+    // Ensure container exists
     const container = document.querySelector(containerId)
-    if (!container) return
+    if (!container) {
+      console.warn(`Container ${containerId} not found, retrying...`)
+      return
+    }
 
     // If already initialized, use update
     if (instanceRef.current) {
@@ -373,22 +398,46 @@ export function useChat(options: UseChatOptions) {
     
     instanceRef.current = ADPChat.init(containerId, {
       ...defaultConfig,
-      isOpen: stateRef.current.isOpen,
-      isFullscreen: stateRef.current.isFullscreen,
       ...userConfig,
+      isOpen: stateRef.current.isOpen,
+      isOverlay: !stateRef.current.isFullscreen,
       onOpenChange: (newOpen: boolean) => {
         setIsOpen(newOpen)
         stateRef.current.isOpen = newOpen
+        ;(userConfig.onOpenChange as ((open: boolean) => void) | undefined)?.(newOpen)
       },
-      onFullscreen: (newFullscreen: boolean) => {
+      onFullscreen: () => {
+        const newFullscreen = !stateRef.current.isFullscreen
         setIsFullscreen(newFullscreen)
         stateRef.current.isFullscreen = newFullscreen
+        ;(userConfig.onFullscreen as ((fullscreen: boolean) => void) | undefined)?.(newFullscreen)
+        // Use setTimeout to ensure state is updated before updating config
         setTimeout(() => updateChat(), 0)
       },
     })
   }, [containerId, getConfig, updateChat])
 
+  const openChat = useCallback(() => {
+    setIsOpen(true)
+    stateRef.current.isOpen = true
+    setTimeout(() => instanceRef.current ? updateChat() : initChat(), 0)
+  }, [initChat, updateChat])
+
+  const closeChat = useCallback(() => {
+    setIsOpen(false)
+    stateRef.current.isOpen = false
+    setTimeout(() => instanceRef.current ? updateChat() : initChat(), 0)
+  }, [initChat, updateChat])
+
+  const toggleFullscreen = useCallback(() => {
+    const newFullscreen = !stateRef.current.isFullscreen
+    setIsFullscreen(newFullscreen)
+    stateRef.current.isFullscreen = newFullscreen
+    setTimeout(() => instanceRef.current ? updateChat() : initChat(), 0)
+  }, [initChat, updateChat])
+
   useEffect(() => {
+    // Use setTimeout to ensure DOM is ready
     const timer = setTimeout(() => initChat(), 0)
     return () => {
       clearTimeout(timer)
