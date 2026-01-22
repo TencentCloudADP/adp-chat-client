@@ -6,8 +6,8 @@ const App: React.FC = () => {
   const { isOverlay, isOpen } = useChat({
     getConfig: ({ isOverlay }) => ({
       width: 400,
-      height: 640,
-      isSidePanelOverlay: isOverlay,
+      height: '80vh',
+      isSidePanelOverlay: true,
       isOverlay: isOverlay,
       logoTitle: 'ADP Chat',
       showOverlayButton: true,
