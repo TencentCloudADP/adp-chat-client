@@ -1,5 +1,6 @@
 :root,
-:root[theme-mode='light'] {
+:root[theme-mode='light'],
+[theme-mode='light'] {
   --td-brand-color-1: #f2f2ff;
   --td-brand-color-2: #dce1ff;
   --td-brand-color-3: #b9c6ff;
@@ -139,9 +140,11 @@
   --td-shadow-inset-left: inset -0.5px 0 0 #dcdcdc;
   --td-mask-active: rgba(0, 0, 0, 0.6);
   --td-mask-disabled: rgba(255, 255, 255, 0.6);
+  --td-sender-bg: rgba(255, 255, 255, 1);
 }
 
-:root[theme-mode='dark'] {
+:root[theme-mode='dark'],
+[theme-mode='dark'] {
   --td-brand-color-1: #1a1f31;
   --td-brand-color-2: #002782;
   --td-brand-color-3: #003baf;
@@ -272,6 +275,7 @@
   --td-border-level-2-color: var(--td-gray-color-9);
   --td-mask-active: rgba(0, 0, 0, 0.4);
   --td-mask-disabled: rgba(0, 0, 0, 0.6);
+  --td-sender-bg: rgba(255, 255, 255, 0.22);
 }
 
 :root {

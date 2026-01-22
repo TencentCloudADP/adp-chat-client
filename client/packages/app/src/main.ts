@@ -1,8 +1,6 @@
 import '@/assets/main.css'
-// 引入 adp-chat-component 组件库样式（生产构建后的完整样式）
+// 引入 adp-chat-component 组件库样式（生产构建后的完整样式，包含 TDesign 主题变量）
 import 'adp-chat-component/dist/es/adp-chat-component.css'
-
-import '@/assets/theme.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'

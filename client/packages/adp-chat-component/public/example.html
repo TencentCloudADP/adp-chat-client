@@ -9,7 +9,7 @@
         <script src="adp-chat-component.umd.js"></script>
         <link rel="stylesheet" href="adp-chat-component.css">
         <script>
-            var isFullscreen = false;
+            var isOverlay = true;
             var isOpen = false;
 
             window.onload = function() {
@@ -17,19 +17,19 @@
                     width: 400,
                     height: 640,
                     logoTitle: 'ADP Chat',
-                    showFullscreenButton: true,
+                    showOverlayButton: true,
                     showToggleButton: true,
                     isOverlay: true,
                     onOpenChange: function(open) {
                         isOpen = open;
-                        document.getElementById('chat-container').classList.toggle('chat-container--fullscreen', isFullscreen && isOpen);
+                        document.getElementById('chat-container').classList.toggle('chat-container--expanded', !isOverlay && isOpen);
                     },
-                    onFullscreen: function() {
-                        isFullscreen = !isFullscreen;
-                        document.getElementById('chat-container').classList.toggle('chat-container--fullscreen', isFullscreen && isOpen);
+                    onOverlayChange: function(newIsOverlay) {
+                        isOverlay = newIsOverlay;
+                        document.getElementById('chat-container').classList.toggle('chat-container--expanded', !isOverlay && isOpen);
                         ADPChatComponent.update('#chat-container', {
-                            isOverlay: !isFullscreen,
-                            isSidePanelOverlay: !isFullscreen
+                            isOverlay: isOverlay,
+                            isSidePanelOverlay: isOverlay
                         });
                     }
                 });
@@ -64,7 +64,7 @@
             width: 0;
             transition: width 0.3s ease;
         }
-        #chat-container.chat-container--fullscreen {
+        #chat-container.chat-container--expanded {
             width: 400px;
         }
         #main {

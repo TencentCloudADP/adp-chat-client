@@ -198,7 +198,7 @@ const handleConversationChange = (conversationId: string) => {
         :languageOptions="languageOptions"
         :isSidePanelOverlay="uiStore.isMobile"
         :showCloseButton="false"
-        :showFullscreenButton="false"
+        :showOverlayButton="false"
         :logoUrl="Logo"
         :currentApplicationId="currentApplicationId"
         :currentConversationId="currentConversationId"

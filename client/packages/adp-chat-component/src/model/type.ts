@@ -36,14 +36,12 @@ export interface ThemeProps {
 export interface MobileProps {
   /** 是否为移动端（由父组件计算后传入，不对外暴露） */
   isMobile?: boolean
-  /** 侧边栏是否使用overlay模式（覆盖内容区域） */
-  isSidePanelOverlay?: boolean
 }
 
-/** 全屏相关 Props */
-export interface FullscreenProps {
-  /** 是否显示全屏按钮 */
-  showFullscreenButton?: boolean
+/** 浮层相关 Props */
+export interface OverlayProps {
+  /** 是否显示浮层按钮 */
+  showOverlayButton?: boolean
 }
 
 /** 侧边栏国际化文本 */
@@ -106,8 +104,14 @@ export interface SenderI18n {
   recordTooLong?: string
 }
 
+/** 侧边栏布局 Props */
+export interface SidePanelProps {
+  /** 侧边栏是否使用overlay模式（覆盖内容区域） */
+  isSidePanelOverlay?: boolean
+}
+
 /** 通用布局 Props - 组合多个常用 props */
-export interface CommonLayoutProps extends ThemeProps, MobileProps {}
+export interface CommonLayoutProps extends ThemeProps, MobileProps, SidePanelProps {}
 
 /** 聊天相关 Props - 组合聊天组件常用 props */
 export interface ChatRelatedProps extends CommonLayoutProps {}
@@ -124,18 +128,23 @@ export const themePropsDefaults = {
 /** 移动端 Props 默认值 */
 export const mobilePropsDefaults = {
   isMobile: false,
+}
+
+/** 侧边栏布局 Props 默认值 */
+export const sidePanelPropsDefaults = {
   isSidePanelOverlay: false,
 }
 
-/** 全屏 Props 默认值 */
-export const fullscreenPropsDefaults = {
-  showFullscreenButton: true,
+/** 浮层 Props 默认值 */
+export const overlayPropsDefaults = {
+  showOverlayButton: true,
 }
 
 /** 通用布局 Props 默认值 */
 export const commonLayoutPropsDefaults = {
   ...themePropsDefaults,
   ...mobilePropsDefaults,
+  ...sidePanelPropsDefaults,
 }
 
 /** 聊天相关 Props 默认值 */
@@ -213,7 +222,82 @@ export const defaultSenderI18n: Required<SenderI18n> = {
   recordTooLong: '录音时长超过限制',
 }
 
-export interface ChatConfig extends ChatRelatedProps, FullscreenProps {
+// ============================================================
+// I18n 英文默认值
+// ============================================================
+
+/** 侧边栏 i18n 英文默认值 */
+export const defaultSideI18nEn: Required<SideI18n> = {
+  more: 'More',
+  collapse: 'Collapse',
+  today: 'Today',
+  recent: 'Recent',
+  switchTheme: 'Switch Theme',
+  selectLanguage: 'Select Language',
+  logout: 'Logout',
+}
+
+/** 聊天 i18n 英文默认值 */
+export const defaultChatI18nEn: Required<ChatI18n> = {
+  loading: 'Loading',
+  thinking: 'Thinking',
+  checkAll: 'Select All',
+  shareFor: 'Share to',
+  copyUrl: 'Copy Link',
+  cancelShare: 'Cancel Share',
+  sendError: 'Send Failed',
+  networkError: 'Network Error',
+  createConversation: 'New Conversation',
+  copySuccess: 'Copied',
+  copyFailed: 'Copy Failed',
+  shareFailed: 'Share Failed',
+  loadMoreFailed: 'Load More Failed',
+  rateFailed: 'Rate Failed',
+  getAppListFailed: 'Failed to get app list',
+  getConversationListFailed: 'Failed to get conversation list',
+  getConversationDetailFailed: 'Failed to get conversation detail',
+}
+
+/** ChatItem i18n 英文默认值 */
+export const defaultChatItemI18nEn: Required<ChatItemI18n> = {
+  thinking: 'Thinking',
+  deepThinkingFinished: 'Deep thinking completed',
+  deepThinkingExpand: 'Expand deep thinking',
+  copy: 'Copy',
+  replay: 'Regenerate',
+  share: 'Share',
+  good: 'Like',
+  bad: 'Dislike',
+  thxForGood: 'Thanks for your feedback',
+  thxForBad: 'Thanks for your feedback',
+  references: 'References',
+}
+
+/** Sender i18n 英文默认值 */
+export const defaultSenderI18nEn: Required<SenderI18n> = {
+  placeholder: 'Type a message...',
+  placeholderMobile: 'Type here',
+  uploadImg: 'Upload Image',
+  startRecord: 'Start Recording',
+  stopRecord: 'Stop Recording',
+  answering: 'Answering...',
+  notSupport: 'Recording not supported',
+  uploadError: 'Upload Failed',
+  recordTooLong: 'Recording too long',
+}
+
+/** 根据语言获取 i18n 默认值 */
+export const getI18nByLanguage = (language: string) => {
+  const isEnglish = language.startsWith('en')
+  return {
+    sideI18n: isEnglish ? defaultSideI18nEn : defaultSideI18n,
+    chatI18n: isEnglish ? defaultChatI18nEn : defaultChatI18n,
+    chatItemI18n: isEnglish ? defaultChatItemI18nEn : defaultChatItemI18n,
+    senderI18n: isEnglish ? defaultSenderI18nEn : defaultSenderI18n,
+  }
+}
+
+export interface ChatConfig extends ChatRelatedProps, OverlayProps {
   container?: string
   /** 是否为浮层模式：true-使用 width/height 浮动在容器上，false-宽高100%撑满容器 */
   isOverlay?: boolean
@@ -249,8 +333,12 @@ export interface ChatConfig extends ChatRelatedProps, FullscreenProps {
   logoTitle?: string
   /** 最大应用显示数量 */
   maxAppLen?: number
-  /** 全屏状态切换回调 */
-  onFullscreen?: (isFullscreen: boolean) => void
+  /** 浮层状态切换回调 */
+  onOverlayChange?: (isOverlay: boolean) => void
+  /** 主题切换回调 */
+  onToggleTheme?: () => void
+  /** 语言切换回调 */
+  onChangeLanguage?: (key: string) => void
   /** 是否展开面板 */
   isOpen?: boolean
   /** 面板展开状态变化回调 */

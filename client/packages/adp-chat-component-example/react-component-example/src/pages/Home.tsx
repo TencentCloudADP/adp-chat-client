@@ -101,7 +101,7 @@ const Home: React.FC = () => {
         languageOptions={languageOptions}
         isSidePanelOverlay={isMobile}
         showCloseButton={false}
-        showFullscreenButton={false}
+        showOverlayButton={false}
         logoUrl={Logo}
         currentApplicationId={currentApplicationId}
         currentConversationId={currentConversationId}

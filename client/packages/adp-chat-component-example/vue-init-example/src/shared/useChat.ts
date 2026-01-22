@@ -10,7 +10,7 @@ const ADPChat = ADPChatComponent as ADPChatComponentType
 
 export interface UseChatOptions {
   containerId?: string
-  getConfig: (state: { isOpen: boolean; isFullscreen: boolean }) => Record<string, unknown>
+  getConfig: (state: { isOpen: boolean; isOverlay: boolean }) => Record<string, unknown>
 }
 
 export function useChat(options: UseChatOptions) {
@@ -18,7 +18,7 @@ export function useChat(options: UseChatOptions) {
   
   const instanceRef = ref<unknown>(null)
   const isOpen = ref(false)
-  const isFullscreen = ref(false)
+  const isOverlay = ref(true)
 
   const updateChat = () => {
     // 如果还没有初始化，不执行更新
@@ -26,11 +26,11 @@ export function useChat(options: UseChatOptions) {
       return
     }
     
-    const userConfig = getConfig({ isOpen: isOpen.value, isFullscreen: isFullscreen.value })
+    const userConfig = getConfig({ isOpen: isOpen.value, isOverlay: isOverlay.value })
     ADPChat.update(containerId, {
       ...userConfig,
       isOpen: isOpen.value,
-      isOverlay: !isFullscreen.value,
+      isOverlay: isOverlay.value,
     })
   }
 
@@ -48,20 +48,20 @@ export function useChat(options: UseChatOptions) {
       return
     }
 
-    const userConfig = getConfig({ isOpen: isOpen.value, isFullscreen: isFullscreen.value })
+    const userConfig = getConfig({ isOpen: isOpen.value, isOverlay: isOverlay.value })
     
     instanceRef.value = ADPChat.init(containerId, {
       ...defaultConfig,
       ...userConfig,
       isOpen: isOpen.value,
-      isOverlay: !isFullscreen.value,
+      isOverlay: isOverlay.value,
       onOpenChange: (open: boolean) => {
         isOpen.value = open
         ;(userConfig.onOpenChange as ((open: boolean) => void) | undefined)?.(open)
       },
-      onFullscreen: () => {
-        isFullscreen.value = !isFullscreen.value
-        ;(userConfig.onFullscreen as ((fullscreen: boolean) => void) | undefined)?.(isFullscreen.value)
+      onOverlayChange: (newIsOverlay: boolean) => {
+        isOverlay.value = newIsOverlay
+        ;(userConfig.onOverlayChange as ((overlay: boolean) => void) | undefined)?.(isOverlay.value)
         nextTick(() => updateChat())
       },
     })
@@ -77,8 +77,8 @@ export function useChat(options: UseChatOptions) {
     nextTick(() => instanceRef.value ? updateChat() : initChat())
   }
 
-  const toggleFullscreen = () => {
-    isFullscreen.value = !isFullscreen.value
+  const toggleOverlay = () => {
+    isOverlay.value = !isOverlay.value
     nextTick(() => instanceRef.value ? updateChat() : initChat())
   }
 
@@ -98,10 +98,10 @@ export function useChat(options: UseChatOptions) {
 
   return {
     isOpen,
-    isFullscreen,
+    isOverlay,
     initChat,
     openChat,
     closeChat,
-    toggleFullscreen,
+    toggleOverlay,
   }
 }

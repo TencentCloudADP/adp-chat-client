@@ -18,21 +18,22 @@ import type {
     ChatItemI18n, 
     SenderI18n,
     ChatRelatedProps,
-    FullscreenProps
+    OverlayProps
 } from './model/type';
 import { 
     defaultLanguageOptions,
     chatRelatedPropsDefaults,
-    fullscreenPropsDefaults
+    overlayPropsDefaults,
+    getI18nByLanguage
 } from './model/type';
 
-interface Props extends ChatRelatedProps, FullscreenProps {
+interface Props extends ChatRelatedProps, OverlayProps {
     /** 挂载容器选择器 */
     container?: string;
     /** 是否显示关闭按钮 */
     showCloseButton?: boolean;
-    /** 是否显示全屏按钮 */
-    showFullscreenButton?: boolean;
+    /** 是否显示浮层切换按钮 */
+    showOverlayButton?: boolean;
     /** 是否显示悬浮切换按钮 */
     showToggleButton?: boolean;
     /** 是否为浮层模式：true-使用 width/height 浮动在容器上，false-宽高100%撑满容器 */
@@ -63,8 +64,12 @@ interface Props extends ChatRelatedProps, FullscreenProps {
     logoTitle?: string;
     /** 最大应用显示数量 */
     maxAppLen?: number;
-    /** 全屏状态切换回调 */
-    onFullscreen?: (isFullscreen: boolean) => void;
+    /** 浮层状态切换回调 */
+    onOverlayChange?: (isOverlay: boolean) => void;
+    /** 主题切换回调 */
+    onToggleTheme?: () => void;
+    /** 语言切换回调 */
+    onChangeLanguage?: (key: string) => void;
     /** 是否展开面板 */
     isOpen?: boolean;
     /** 面板展开状态变化回调 */
@@ -87,10 +92,10 @@ interface Props extends ChatRelatedProps, FullscreenProps {
 
 const props = withDefaults(defineProps<Props>(), {
     ...chatRelatedPropsDefaults,
-    ...fullscreenPropsDefaults,
+    ...overlayPropsDefaults,
     container: 'body',
     showCloseButton: true,
-    showFullscreenButton: true,
+    showOverlayButton: true,
     isOverlay: false,
     width: 400,
     height: 640,
@@ -103,7 +108,9 @@ const props = withDefaults(defineProps<Props>(), {
     logoUrl: '',
     logoTitle: '',
     maxAppLen: 4,
-    onFullscreen: undefined,
+    onOverlayChange: undefined,
+    onToggleTheme: undefined,
+    onChangeLanguage: undefined,
     isOpen: undefined,
     onOpenChange: undefined,
     showToggleButton: true,
@@ -133,17 +140,30 @@ const emit = defineEmits<{
     (e: 'message', type: 'warning' | 'error' | 'info' | 'success', message: string): void;
     (e: 'conversationChange', conversationId: string): void;
     (e: 'dataLoaded', type: 'applications' | 'conversations' | 'chatList' | 'user', data: any): void;
-    (e: 'fullscreen', isFullscreen: boolean): void;
+    (e: 'overlay', isOverlay: boolean): void;
     (e: 'openChange', open: boolean): void;
 }>();
 
 // 内部 open 状态，初始化时使用用户传入的值
 const internalOpen = ref(props.isOpen ?? false);
 
+// 内部 theme 状态（用于没有 onToggleTheme 回调时的内部切换）
+const internalTheme = ref(props.theme ?? 'light');
+
+// 内部 language 状态（用于没有 onChangeLanguage 回调时的内部切换）
+const internalLanguage = ref('zh-CN');
+
 // 监听 props.isOpen 变化，同步内部状态
 watch(() => props.isOpen, (newVal) => {
     if (newVal !== undefined) {
         internalOpen.value = newVal;
+    }
+});
+
+// 监听 props.theme 变化，同步内部状态
+watch(() => props.theme, (newVal) => {
+    if (newVal !== undefined) {
+        internalTheme.value = newVal;
     }
 });
 
@@ -175,10 +195,36 @@ const handleClose = () => {
     emit('close');
 };
 
-const handleFullscreen = (_isFullscreen: boolean) => {
-    emit('fullscreen', _isFullscreen);
-    // 注意：不需要再手动调用 props.onFullscreen，因为 Vue 会将 onXxx prop 自动转换为事件监听器
-    // emit('fullscreen') 会自动触发 props.onFullscreen
+const handleOverlay = (_isOverlay: boolean) => {
+    emit('overlay', _isOverlay);
+    props.onOverlayChange?.(_isOverlay);
+};
+
+const handleToggleTheme = () => {
+    emit('toggleTheme');
+    if (props.onToggleTheme) {
+        props.onToggleTheme();
+    } else {
+        // 内部切换主题
+        const newTheme = internalTheme.value === 'light' ? 'dark' : 'light';
+        console.log('[handleToggleTheme] switching from', internalTheme.value, 'to', newTheme);
+        internalTheme.value = newTheme;
+        // 设置 container 元素的 theme-mode 属性，让 TDesign CSS 变量生效
+        const containerEl = document.querySelector(props.container);
+        if (containerEl) {
+            containerEl.setAttribute('theme-mode', newTheme);
+        }
+    }
+};
+
+const handleChangeLanguage = (key: string) => {
+    emit('changeLanguage', key);
+    if (props.onChangeLanguage) {
+        props.onChangeLanguage(key);
+    } else {
+        // 内部切换语言
+        internalLanguage.value = key;
+    }
 };
 
 // 计算属性 - 用于响应 props 变化（通过 update 方法更新时）
@@ -195,19 +241,29 @@ const actualCurrentConversation = computed(() => props.currentConversation);
 const actualChatList = computed(() => props.chatList);
 const actualIsChatting = computed(() => props.isChatting);
 const actualUser = computed(() => props.user);
-const actualTheme = computed(() => props.theme);
+// 如果有 onToggleTheme 回调，使用 props.theme；否则使用内部状态
+const actualTheme = computed(() => {
+    const result = props.onToggleTheme ? props.theme : internalTheme.value;
+    console.log('[actualTheme] computed:', result, 'hasCallback:', !!props.onToggleTheme, 'internalTheme:', internalTheme.value);
+    return result;
+});
 const actualLanguageOptions = computed(() => props.languageOptions);
 const actualIsSidePanelOverlay = computed(() => props.isSidePanelOverlay);
 const actualLogoUrl = computed(() => props.logoUrl);
 const actualLogoTitle = computed(() => props.logoTitle);
 const actualMaxAppLen = computed(() => props.maxAppLen);
 const actualIsShowCloseButton = computed(() => props.showCloseButton);
-const actualIsShowFullscreenButton = computed(() => props.showFullscreenButton);
+const actualIsshowOverlayButton = computed(() => props.showOverlayButton);
 const actualAiWarningText = computed(() => props.aiWarningText);
-const actualSideI18n = computed(() => props.sideI18n);
-const actualChatI18n = computed(() => props.chatI18n);
-const actualChatItemI18n = computed(() => props.chatItemI18n);
-const actualSenderI18n = computed(() => props.senderI18n);
+
+// 根据内部语言状态获取默认 i18n
+const defaultI18n = computed(() => getI18nByLanguage(internalLanguage.value));
+// 如果外部传入了 i18n，优先使用外部的；否则使用根据语言计算的默认值
+const actualSideI18n = computed(() => props.sideI18n ?? defaultI18n.value.sideI18n);
+const actualChatI18n = computed(() => props.chatI18n ?? defaultI18n.value.chatI18n);
+const actualChatItemI18n = computed(() => props.chatItemI18n ?? defaultI18n.value.chatItemI18n);
+const actualSenderI18n = computed(() => props.senderI18n ?? defaultI18n.value.senderI18n);
+
 const actualApiConfig = computed(() => props.apiConfig);
 const actualAutoLoad = computed(() => props.autoLoad);
 </script>
@@ -242,7 +298,7 @@ const actualAutoLoad = computed(() => props.autoLoad);
                 :logoTitle="actualLogoTitle"
                 :maxAppLen="actualMaxAppLen"
                 :showCloseButton="actualIsShowCloseButton"
-                :showFullscreenButton="actualIsShowFullscreenButton"
+                :showOverlayButton="actualIsshowOverlayButton"
                 :aiWarningText="actualAiWarningText"
                 :sideI18n="actualSideI18n"
                 :chatI18n="actualChatI18n"
@@ -253,12 +309,12 @@ const actualAutoLoad = computed(() => props.autoLoad);
                 @selectApplication="(app: Application) => emit('selectApplication', app)"
                 @selectConversation="(conversation: ChatConversation) => emit('selectConversation', conversation)"
                 @createConversation="emit('createConversation')"
-                @toggleTheme="emit('toggleTheme')"
-                @changeLanguage="(key: string) => emit('changeLanguage', key)"
+                @toggleTheme="handleToggleTheme"
+                @changeLanguage="handleChangeLanguage"
                 @logout="emit('logout')"
                 @userClick="emit('userClick')"
                 @close="handleClose"
-                @fullscreen="handleFullscreen"
+                @overlay="handleOverlay"
                 @send="(query: string, fileList: FileProps[], conversationId: string, applicationId: string) => emit('send', query, fileList, conversationId, applicationId)"
                 @stop="emit('stop')"
                 @loadMore="(conversationId: string, lastRecordId: string) => emit('loadMore', conversationId, lastRecordId)"
@@ -282,6 +338,7 @@ const actualAutoLoad = computed(() => props.autoLoad);
 
 <!-- 全局样式 - 用于 Teleport 传送后的组件 -->
 <style>
+@import './styles/theme.css';
 @import './styles/chat-overrides.css';
 
 .t-chat.isChatting .t-chat__to-bottom::before {

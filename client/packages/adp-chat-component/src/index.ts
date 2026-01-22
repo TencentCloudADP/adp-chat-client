@@ -9,6 +9,8 @@ import 'tdesign-vue-next/es/style/index.css'
 import '@tdesign-vue-next/chat/es/style/index.css'
 // 导入全局样式（确保打包时包含）
 import './style.css'
+// 导入主题样式（TDesign 主题 CSS 变量）
+import './styles/theme.css'
 
 // 基础组件导出
 export { default as AIWarning } from './components/AIWarning.vue'
@@ -46,7 +48,8 @@ export type {
     ThemeType,
     ThemeProps,
     MobileProps,
-    FullscreenProps,
+    SidePanelProps,
+    OverlayProps,
     CommonLayoutProps,
     ChatRelatedProps,
     LanguageOption,
@@ -59,7 +62,8 @@ export type {
 export {
     themePropsDefaults,
     mobilePropsDefaults,
-    fullscreenPropsDefaults,
+    sidePanelPropsDefaults,
+    overlayPropsDefaults,
     commonLayoutPropsDefaults,
     chatRelatedPropsDefaults,
     defaultLanguageOptions,
@@ -67,6 +71,11 @@ export {
     defaultChatI18n,
     defaultChatItemI18n,
     defaultSenderI18n,
+    defaultSideI18nEn,
+    defaultChatI18nEn,
+    defaultChatItemI18nEn,
+    defaultSenderI18nEn,
+    getI18nByLanguage,
 } from './model/type'
 export type { Application } from './model/application'
 export type {

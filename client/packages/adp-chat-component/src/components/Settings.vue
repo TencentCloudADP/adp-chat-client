@@ -47,7 +47,7 @@ const handleLogout = () => {
 
 <template>
     <t-space>
-        <t-dropdown maxColumnWidth="280px" >
+        <t-dropdown maxColumnWidth="240px" >
             <t-button theme="default" shape="square" variant="text">
                 <CustomizedIcon name="setting" :theme="theme" />
             </t-button>

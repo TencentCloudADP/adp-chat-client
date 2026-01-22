@@ -282,7 +282,7 @@ export interface ADPChatConfig extends MountConfig {
   logoTitle?: string
   maxAppLen?: number
   showCloseButton?: boolean
-  showFullscreenButton?: boolean
+  showOverlayButton?: boolean
   aiWarningText?: string
   sideI18n?: any
   chatI18n?: any
@@ -290,7 +290,7 @@ export interface ADPChatConfig extends MountConfig {
   senderI18n?: any
   apiConfig?: ApiConfig
   autoLoad?: boolean
-  onFullscreen?: (isFullscreen: boolean) => void
+  onOverlayChange?: (isOverlay: boolean) => void
 }
 
 export interface MainLayoutConfig extends MountConfig {

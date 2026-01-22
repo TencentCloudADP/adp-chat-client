@@ -1,6 +1,6 @@
 <!-- ADP 聊天布局主组件，支持 API 模式和 Props 模式 -->
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, watch, nextTick, toRefs } from 'vue';
 import { Layout as TLayout, Content as TContent, MessagePlugin } from 'tdesign-vue-next';
 
 // TLayout, TContent 已导入，模板中使用对应组件
@@ -37,18 +37,18 @@ import type {
     ChatItemI18n, 
     SenderI18n,
     ThemeProps,
-    FullscreenProps
+    OverlayProps
 } from '../../model/type';
 import { 
     defaultLanguageOptions,
     themePropsDefaults,
-    fullscreenPropsDefaults,
+    overlayPropsDefaults,
     defaultChatI18n,
     defaultChatItemI18n,
     defaultSenderI18n
 } from '../../model/type';
 
-export interface Props extends ThemeProps, FullscreenProps {
+export interface Props extends ThemeProps, OverlayProps {
     /** 是否为浮层模式 */
     isOverlay?: boolean;
     /** 宽度（仅在 isOverlay 为 true 时用于计算 isMobile） */
@@ -105,7 +105,7 @@ export interface Props extends ThemeProps, FullscreenProps {
 
 const props = withDefaults(defineProps<Props>(), {
     ...themePropsDefaults,
-    ...fullscreenPropsDefaults,
+    ...overlayPropsDefaults,
     isOverlay: false,
     width: 0,
     height: 0,
@@ -137,7 +137,7 @@ const emit = defineEmits<{
     (e: 'logout'): void;
     (e: 'userClick'): void;
     (e: 'close'): void;
-    (e: 'fullscreen', isFullscreen: boolean): void;
+    (e: 'overlay', isOverlay: boolean): void;
     (e: 'send', query: string, fileList: FileProps[], conversationId: string, applicationId: string): void;
     (e: 'stop'): void;
     (e: 'loadMore', conversationId: string, lastRecordId: string): void;
@@ -151,6 +151,9 @@ const emit = defineEmits<{
     (e: 'conversationChange', conversationId: string): void;
     (e: 'dataLoaded', type: 'applications' | 'conversations' | 'chatList' | 'user', data: any): void;
 }>();
+
+// 解构 props 保持响应式
+const { theme } = toRefs(props);
 
 const sidebarVisible = ref(!props.isSidePanelOverlay);
 const mainLayoutRef = ref<InstanceType<typeof MainLayout> | null>(null);
@@ -577,8 +580,8 @@ const handleClose = () => {
     emit('close');
 };
 
-const handleFullscreen = () => {
-    emit('fullscreen', true);
+const handleOverlay = () => {
+    emit('overlay', !props.isOverlay);
 };
 
 // 内部复制处理
@@ -750,7 +753,7 @@ defineExpose({
                 :languageOptions="languageOptions"
                 :isSidePanelOverlay="isSidePanelOverlay"
                 :maxAppLen="maxAppLen"
-                :i18n="sideI18n"
+                :i18n="props.sideI18n"
                 @toggleSidebar="handleToggleSidebar"
                 @selectApplication="handleSelectApplication"
                 @selectConversation="handleSelectConversation"
@@ -779,9 +782,9 @@ defineExpose({
                 :theme="theme"
                 :showSidebarToggle="!sidebarVisible"
                 :aiWarningText="aiWarningText"
-                :i18n="chatI18n"
-                :chatItemI18n="chatItemI18n"
-                :senderI18n="senderI18n"
+                :i18n="props.chatI18n"
+                :chatItemI18n="props.chatItemI18n"
+                :senderI18n="props.senderI18n"
                 :useInternalRecord="useApiMode"
                 :asrUrlApi="mergedApiDetailConfig.asrUrlApi"
                 @toggleSidebar="handleToggleSidebar"
@@ -799,9 +802,9 @@ defineExpose({
                 @message="(code: MessageCode, message: string) => emit('message', code, message)"
                 @conversationChange="(conversationId: string) => emit('conversationChange', conversationId)"
             >
-                <template #header-fullscreen-content v-if="showFullscreenButton || $slots['header-fullscreen-content']">
-                    <slot name="header-fullscreen-content">
-                        <CustomizedIcon v-if="showFullscreenButton" name="fullscreen" :theme="theme" @click="handleFullscreen"/>
+                <template #header-overlay-content v-if="showOverlayButton || $slots['header-overlay-content']">
+                    <slot name="header-overlay-content">
+                        <CustomizedIcon v-if="showOverlayButton" name="overlay" :theme="theme" @click="handleOverlay"/>
                     </slot>
                 </template>
                 <template #header-close-content v-if="showCloseButton || $slots['header-close-content']">
