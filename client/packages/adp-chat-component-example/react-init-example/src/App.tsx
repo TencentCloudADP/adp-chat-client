@@ -7,7 +7,6 @@ const App: React.FC = () => {
     getConfig: ({ isOverlay }) => ({
       width: 400,
       height: '80vh',
-      isSidePanelOverlay: true,
       isOverlay: isOverlay,
       logoTitle: 'ADP Chat',
       showOverlayButton: true,
