@@ -82,7 +82,7 @@ const emit = defineEmits<{
 }>();
 
 const mode = computed(() => props.isSidePanelOverlay  ? 'overlay' : 'push');
-const drawerSize = computed(() => props.isSidePanelOverlay ? '240px' : '280px');
+const drawerSize = '240px';
 
 const handleToggleSidebar = () => {
     emit('toggleSidebar');
@@ -199,6 +199,7 @@ const handleUserClick = () => {
     overflow-x: hidden;
     scrollbar-color: var(--td-scrollbar-color) transparent;
     scrollbar-width: thin;
+    padding-right: calc(var(--td-comp-paddingLR-l) - var(--td-size-4));
 }
 
 .drawer-scrollable::-webkit-scrollbar {
@@ -225,11 +226,11 @@ const handleUserClick = () => {
 
 .custome-drawer-container{
     position: relative;
-    width: 280px;
+    width: 240px;
     margin-left: 0 !important;
+    flex-shrink: 0;
 }
 .custome-drawer-container.is-mobile {
-    width: 240px;
     margin-left: 0 !important;
     transition: all 0.3s ease;
 }

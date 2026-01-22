@@ -74,7 +74,7 @@ ADPChatComponent.ADPChat.mount('#containerId', {
   { name: 'logoTitle', type: 'string', default: "''", description: 'Logo title' },
   { name: 'isSidePanelOverlay', type: 'boolean', default: 'false', description: 'Whether sidebar uses overlay mode (overlay content area)' },
   { name: 'showCloseButton', type: 'boolean', default: 'true', description: 'Show close button' },
-  { name: 'showFullscreenButton', type: 'boolean', default: 'true', description: 'Show fullscreen button' },
+  { name: 'showOverlayButton', type: 'boolean', default: 'true', description: 'Show overlay toggle button' },
   { name: 'maxAppLen', type: 'number', default: '4', description: 'Max application display count' },
   { name: 'applications', type: 'Application[]', default: '[]', description: 'Application list' },
   { name: 'currentApplication', type: 'Application', description: 'Currently selected application' },
@@ -103,7 +103,7 @@ ADPChatComponent.ADPChat.mount('#containerId', {
   { name: 'logout', description: 'Logout' },
   { name: 'userClick', description: 'User info click' },
   { name: 'close', description: 'Close' },
-  { name: 'fullscreen', description: 'Fullscreen button clicked (for toggling fullscreen state)' },
+  { name: 'overlay', description: 'Overlay button clicked (for toggling overlay state)' },
   { name: 'send', params: '(query, fileList, conversationId, applicationId)', description: 'Send message' },
   { name: 'stop', description: 'Stop generation' },
   { name: 'loadMore', params: '(conversationId, lastRecordId)', description: 'Load more' },
@@ -122,7 +122,7 @@ ADPChatComponent.ADPChat.mount('#containerId', {
 
 <SlotsTable data={[
   { name: 'sider-logo', description: 'Sidebar logo area, shows external content if provided, otherwise shows default LogoArea (requires logoUrl or logoTitle)' },
-  { name: 'header-fullscreen-content', description: 'Header fullscreen button area, shows external content if provided, otherwise shows default fullscreen icon (requires showFullscreenButton to be true)' },
+  { name: 'header-overlay-content', description: 'Header overlay button area, shows external content if provided, otherwise shows default overlay icon (requires showOverlayButton to be true)' },
   { name: 'header-close-content', description: 'Header close button area, shows external content if provided, otherwise shows default close icon (requires showCloseButton to be true)' },
 ]} />
 

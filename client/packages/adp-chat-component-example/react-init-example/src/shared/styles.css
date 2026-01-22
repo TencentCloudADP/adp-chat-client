@@ -60,8 +60,8 @@ html, body, #root {
 }
 
 /* 弹出模式：覆盖在container上 */
-/* 全屏模式：和container分享页面宽度 */
-#chat-container.chat-container--fullscreen {
+/* 非浮层模式：和container分享页面宽度 */
+#chat-container.chat-container--expanded {
   width: 400px;
 }
 

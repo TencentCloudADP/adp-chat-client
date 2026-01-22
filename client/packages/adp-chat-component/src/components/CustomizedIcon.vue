@@ -32,8 +32,7 @@ import copy from '../assets/icons/copy.svg?raw';
 import copy_link from '../assets/icons/copy_link.svg?raw';
 import deleteIcon from '../assets/icons/delete.svg?raw';
 import file from '../assets/icons/file.svg?raw';
-import fullscreen from '../assets/icons/fullscreen.svg?raw';
-import fullscreen_exit from '../assets/icons/fullscreen_exit.svg?raw';
+import overlay from '../assets/icons/overlay.svg?raw';
 import grid from '../assets/icons/grid.svg?raw';
 import loading from '../assets/icons/loading.svg?raw';
 import logout_close from '../assets/icons/logout_close.svg?raw';
@@ -72,8 +71,7 @@ const svgMap: Record<string, string> = {
     copy_link,
     delete: deleteIcon,
     file,
-    fullscreen,
-    fullscreen_exit,
+    overlay,
     grid,
     loading,
     logout_close,

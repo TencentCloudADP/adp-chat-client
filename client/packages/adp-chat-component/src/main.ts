@@ -1,5 +1,6 @@
 import { createApp, h, ref, defineComponent } from 'vue'
 import './style.css'
+import './styles/theme.css'
 
 import AppComponent from './App.vue'
 import type { ChatConfig } from './model/type'

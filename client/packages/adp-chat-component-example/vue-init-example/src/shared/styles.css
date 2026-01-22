@@ -91,7 +91,7 @@ html, body {
   transition: all 0.3s ease;
 }
 
-.chat-wrapper.fullscreen-expanded {
+.chat-wrapper.overlay-expanded {
   width: 100%;
   height: 100%;
   border-radius: 0;
@@ -132,7 +132,7 @@ html, body {
   background: #f8fafc;
 }
 
-/* Fullscreen transition */
-.page-container.is-fullscreen {
+/* Non-overlay transition */
+.page-container.is-expanded {
   padding: 0 !important;
 }

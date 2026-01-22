@@ -10,7 +10,7 @@ const ADPChat = ADPChatComponent as ADPChatComponentType
 
 export interface UseChatOptions {
   containerId?: string
-  getConfig: (state: { isOpen: boolean; isFullscreen: boolean }) => Record<string, unknown>
+  getConfig: (state: { isOpen: boolean; isOverlay: boolean }) => Record<string, unknown>
 }
 
 export function useChat(options: UseChatOptions) {
@@ -18,11 +18,11 @@ export function useChat(options: UseChatOptions) {
   
   const instanceRef = useRef<unknown>(null)
   const [isOpen, setIsOpen] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [isOverlay, setIsOverlay] = useState(true)
   
   // Use refs to track latest state for callbacks
-  const stateRef = useRef({ isOpen, isFullscreen })
-  stateRef.current = { isOpen, isFullscreen }
+  const stateRef = useRef({ isOpen, isOverlay })
+  stateRef.current = { isOpen, isOverlay }
 
   const updateChat = useCallback(() => {
     // 如果还没有初始化，不执行更新
@@ -30,10 +30,10 @@ export function useChat(options: UseChatOptions) {
       return
     }
     
-    const userConfig = getConfig({ isOpen: stateRef.current.isOpen, isFullscreen: stateRef.current.isFullscreen })
+    const userConfig = getConfig({ isOpen: stateRef.current.isOpen, isOverlay: stateRef.current.isOverlay })
     ADPChat.update(containerId, {
       ...userConfig,
-      isOverlay: !stateRef.current.isFullscreen,
+      isOverlay: stateRef.current.isOverlay,
       isOpen: stateRef.current.isOpen,
     })
   }, [containerId, getConfig])
@@ -52,23 +52,22 @@ export function useChat(options: UseChatOptions) {
       return
     }
 
-    const userConfig = getConfig({ isOpen: stateRef.current.isOpen, isFullscreen: stateRef.current.isFullscreen })
+    const userConfig = getConfig({ isOpen: stateRef.current.isOpen, isOverlay: stateRef.current.isOverlay })
     
     instanceRef.current = ADPChat.init(containerId, {
       ...defaultConfig,
       ...userConfig,
       isOpen: stateRef.current.isOpen,
-      isOverlay: !stateRef.current.isFullscreen,
+      isOverlay: stateRef.current.isOverlay,
       onOpenChange: (newOpen: boolean) => {
         setIsOpen(newOpen)
         stateRef.current.isOpen = newOpen
         ;(userConfig.onOpenChange as ((open: boolean) => void) | undefined)?.(newOpen)
       },
-      onFullscreen: () => {
-        const newFullscreen = !stateRef.current.isFullscreen
-        setIsFullscreen(newFullscreen)
-        stateRef.current.isFullscreen = newFullscreen
-        ;(userConfig.onFullscreen as ((fullscreen: boolean) => void) | undefined)?.(newFullscreen)
+      onOverlayChange: (newIsOverlay: boolean) => {
+        setIsOverlay(newIsOverlay)
+        stateRef.current.isOverlay = newIsOverlay
+        ;(userConfig.onOverlayChange as ((overlay: boolean) => void) | undefined)?.(newIsOverlay)
         // 使用 setTimeout 确保状态更新后再更新配置
         setTimeout(() => updateChat(), 0)
       },
@@ -87,10 +86,10 @@ export function useChat(options: UseChatOptions) {
     setTimeout(() => instanceRef.current ? updateChat() : initChat(), 0)
   }, [initChat, updateChat])
 
-  const toggleFullscreen = useCallback(() => {
-    const newFullscreen = !stateRef.current.isFullscreen
-    setIsFullscreen(newFullscreen)
-    stateRef.current.isFullscreen = newFullscreen
+  const toggleOverlay = useCallback(() => {
+    const newIsOverlay = !stateRef.current.isOverlay
+    setIsOverlay(newIsOverlay)
+    stateRef.current.isOverlay = newIsOverlay
     setTimeout(() => instanceRef.current ? updateChat() : initChat(), 0)
   }, [initChat, updateChat])
 
@@ -111,10 +110,10 @@ export function useChat(options: UseChatOptions) {
 
   return {
     isOpen,
-    isFullscreen,
+    isOverlay,
     initChat,
     openChat,
     closeChat,
-    toggleFullscreen,
+    toggleOverlay,
   }
 }

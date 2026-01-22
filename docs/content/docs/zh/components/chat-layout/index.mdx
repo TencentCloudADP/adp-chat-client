@@ -74,7 +74,7 @@ ADPChatComponent.ADPChat.mount('#containerId', {
   { name: 'logoTitle', type: 'string', default: "''", description: 'Logo 标题' },
   { name: 'isSidePanelOverlay', type: 'boolean', default: 'false', description: '侧边栏是否使用overlay模式（覆盖内容区域）' },
   { name: 'showCloseButton', type: 'boolean', default: 'true', description: '是否显示关闭按钮' },
-  { name: 'showFullscreenButton', type: 'boolean', default: 'true', description: '是否显示全屏按钮' },
+  { name: 'showOverlayButton', type: 'boolean', default: 'true', description: '是否显示浮层切换按钮' },
   { name: 'maxAppLen', type: 'number', default: '4', description: '最大应用显示数量' },
   { name: 'applications', type: 'Application[]', default: '[]', description: '应用列表' },
   { name: 'currentApplication', type: 'Application', description: '当前选中的应用' },
@@ -103,7 +103,7 @@ ADPChatComponent.ADPChat.mount('#containerId', {
   { name: 'logout', description: '退出登录' },
   { name: 'userClick', description: '点击用户信息' },
   { name: 'close', description: '关闭' },
-  { name: 'fullscreen', description: '全屏按钮点击（用于切换全屏状态）' },
+  { name: 'overlay', description: '浮层按钮点击（用于切换浮层状态）' },
   { name: 'send', params: '(query, fileList, conversationId, applicationId)', description: '发送消息' },
   { name: 'stop', description: '停止生成' },
   { name: 'loadMore', params: '(conversationId, lastRecordId)', description: '加载更多' },
@@ -122,7 +122,7 @@ ADPChatComponent.ADPChat.mount('#containerId', {
 
 <SlotsTable data={[
   { name: 'sider-logo', description: '侧边栏 Logo 区域，外层传入时显示外层内容，否则显示默认 LogoArea（需要 logoUrl 或 logoTitle）' },
-  { name: 'header-fullscreen-content', description: '头部全屏按钮区域，外层传入时显示外层内容，否则显示默认全屏图标（需要 showFullscreenButton 为 true）' },
+  { name: 'header-overlay-content', description: '头部浮层按钮区域，外层传入时显示外层内容，否则显示默认浮层图标（需要 showOverlayButton 为 true）' },
   { name: 'header-close-content', description: '头部关闭按钮区域，外层传入时显示外层内容，否则显示默认关闭图标（需要 showCloseButton 为 true）' },
 ]} />
 

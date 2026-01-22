@@ -124,7 +124,7 @@ defineExpose({
     <TLayout class="main-layout">
         <THeader class="layout-header">
             <div class="header-app-container">
-                <SidebarToggle v-if="showSidebarToggle" @toggle="handleToggleSidebar" />
+                <SidebarToggle :theme="theme" v-if="showSidebarToggle" @toggle="handleToggleSidebar" />
                 <TAvatar :imageProps="{
                     lazy: true,
                     loading: ''
@@ -133,7 +133,7 @@ defineExpose({
             </div>
             <div class="header-app-settings">
                 <CreateConversation :tooltipText="createConversationText" :theme="theme" @create="handleCreateConversation" />
-                <slot name="header-fullscreen-content"></slot>
+                <slot name="header-overlay-content"></slot>
                 <slot name="header-close-content"></slot>
             </div>
         </THeader>
@@ -182,11 +182,13 @@ defineExpose({
 <style scoped>
 @import '../../styles/chat-overrides.css';
 .main-layout {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     height: 100%;
     display: flex;
     flex-direction: column;
     background: var(--td-bg-color-container);
+    overflow: hidden;
 }
 
 .layout-header {
