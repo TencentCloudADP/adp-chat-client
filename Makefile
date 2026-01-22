@@ -32,6 +32,9 @@ build_client:
 	rsync -avr --exclude='node_modules' --exclude='.*' client/ build/client/
 	docker run -v ./build:/build/ -w /build node:22-bullseye-slim sh -c "cd client && npm i && npm run build"
 
+build_component:
+	cd client && npm run build_component
+
 build:
 	-mkdir build
 	make build_server
