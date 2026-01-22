@@ -110,7 +110,7 @@ const props = withDefaults(defineProps<Props>(), {
     width: 0,
     height: 0,
     container: 'body',
-    isSidePanelOverlay: false,
+    isSidePanelOverlay: true,
     applications: () => [],
     currentApplicationId: '',
     conversations: () => [],
