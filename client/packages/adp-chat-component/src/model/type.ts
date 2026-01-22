@@ -132,7 +132,7 @@ export const mobilePropsDefaults = {
 
 /** 侧边栏布局 Props 默认值 */
 export const sidePanelPropsDefaults = {
-  isSidePanelOverlay: false,
+  isSidePanelOverlay: true,
 }
 
 /** 浮层 Props 默认值 */

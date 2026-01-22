@@ -82,7 +82,7 @@ const ADPChat: React.FC<ADPChatProps> = (props) => {
     autoLoad: props.autoLoad ?? true,
     theme: props.theme ?? 'light',
     languageOptions: props.languageOptions,
-    isSidePanelOverlay: props.isSidePanelOverlay ?? false,
+    isSidePanelOverlay: props.isSidePanelOverlay ?? true,
     showCloseButton: props.showCloseButton ?? false,
     showOverlayButton: props.showOverlayButton ?? false,
     logoUrl: props.logoUrl,
