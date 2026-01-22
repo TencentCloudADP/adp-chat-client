@@ -281,9 +281,8 @@ export interface ADPChatConfig extends MountConfig {
   logoUrl?: string
   logoTitle?: string
   maxAppLen?: number
-  isShowCloseButton?: boolean
-  isShowFullscreenButton?: boolean
-  isFullscreen?: boolean
+  showCloseButton?: boolean
+  showFullscreenButton?: boolean
   aiWarningText?: string
   sideI18n?: any
   chatI18n?: any

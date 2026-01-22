@@ -25,9 +25,9 @@ export interface ADPChatProps {
   /** 侧边栏是否覆盖模式（移动端） */
   isSidePanelOverlay?: boolean
   /** 是否显示关闭按钮 */
-  isShowCloseButton?: boolean
+  showCloseButton?: boolean
   /** 是否显示全屏按钮 */
-  isShowFullscreenButton?: boolean
+  showFullscreenButton?: boolean
   /** Logo URL */
   logoUrl?: string
   /** Logo 标题 */
@@ -83,8 +83,8 @@ const ADPChat: React.FC<ADPChatProps> = (props) => {
     theme: props.theme ?? 'light',
     languageOptions: props.languageOptions,
     isSidePanelOverlay: props.isSidePanelOverlay ?? false,
-    isShowCloseButton: props.isShowCloseButton ?? false,
-    isShowFullscreenButton: props.isShowFullscreenButton ?? false,
+    showCloseButton: props.showCloseButton ?? false,
+    showFullscreenButton: props.showFullscreenButton ?? false,
     logoUrl: props.logoUrl,
     logoTitle: props.logoTitle,
     currentApplicationId: props.currentApplicationId ?? '',

@@ -1,8 +1,7 @@
 import {
   createRouter,
   createWebHashHistory,
-  type RouteLocationNormalized,
-  type NavigationGuardNext,
+  type RouteLocationNormalized
 } from 'vue-router'
 import { isLoggedIn } from '@/service/login'
 import { httpService } from '@/service/httpService'

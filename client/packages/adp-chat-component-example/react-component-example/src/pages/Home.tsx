@@ -100,8 +100,8 @@ const Home: React.FC = () => {
         theme={theme}
         languageOptions={languageOptions}
         isSidePanelOverlay={isMobile}
-        isShowCloseButton={false}
-        isShowFullscreenButton={false}
+        showCloseButton={false}
+        showFullscreenButton={false}
         logoUrl={Logo}
         currentApplicationId={currentApplicationId}
         currentConversationId={currentConversationId}

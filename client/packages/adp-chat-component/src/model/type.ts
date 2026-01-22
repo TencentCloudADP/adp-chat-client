@@ -43,9 +43,7 @@ export interface MobileProps {
 /** 全屏相关 Props */
 export interface FullscreenProps {
   /** 是否显示全屏按钮 */
-  isShowFullscreenButton?: boolean
-  /** 是否处于全屏状态 */
-  isFullscreen?: boolean
+  showFullscreenButton?: boolean
 }
 
 /** 侧边栏国际化文本 */
@@ -131,8 +129,7 @@ export const mobilePropsDefaults = {
 
 /** 全屏 Props 默认值 */
 export const fullscreenPropsDefaults = {
-  isShowFullscreenButton: true,
-  isFullscreen: false,
+  showFullscreenButton: true,
 }
 
 /** 通用布局 Props 默认值 */
@@ -225,7 +222,7 @@ export interface ChatConfig extends ChatRelatedProps, FullscreenProps {
   /** 高度（仅在 isOverlay 为 true 时生效） */
   height?: string | number
   /** 是否显示关闭按钮 */
-  isShowCloseButton?: boolean
+  showCloseButton?: boolean
   /** 应用列表 */
   applications?: Application[]
   /** 当前选中的应用 */
@@ -259,7 +256,7 @@ export interface ChatConfig extends ChatRelatedProps, FullscreenProps {
   /** 面板展开状态变化回调 */
   onOpenChange?: (isOpen: boolean) => void
   /** 是否显示悬浮切换按钮 */
-  isShowToggleButton?: boolean
+  showToggleButton?: boolean
   /** AI警告文本 */
   aiWarningText?: string
   /** 侧边栏国际化文本 */

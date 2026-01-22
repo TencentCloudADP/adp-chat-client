@@ -67,6 +67,15 @@ ADPChatComponent.ADPChat.mount('#containerId', {
 ### Props
 
 <PropsTable data={[
+  { name: 'apiConfig', type: 'ApiConfig', description: 'HTTP request config, extends AxiosRequestConfig' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: 'Theme mode' },
+  { name: 'user', type: 'UserInfo', default: '{}', description: 'User info' },
+  { name: 'logoUrl', type: 'string', default: "''", description: 'Logo URL' },
+  { name: 'logoTitle', type: 'string', default: "''", description: 'Logo title' },
+  { name: 'isSidePanelOverlay', type: 'boolean', default: 'false', description: 'Whether sidebar uses overlay mode (overlay content area)' },
+  { name: 'showCloseButton', type: 'boolean', default: 'true', description: 'Show close button' },
+  { name: 'showFullscreenButton', type: 'boolean', default: 'true', description: 'Show fullscreen button' },
+  { name: 'maxAppLen', type: 'number', default: '4', description: 'Max application display count' },
   { name: 'applications', type: 'Application[]', default: '[]', description: 'Application list' },
   { name: 'currentApplication', type: 'Application', description: 'Currently selected application' },
   { name: 'currentApplicationId', type: 'string', default: "''", description: 'Currently selected application ID (higher priority than currentApplication)' },
@@ -75,23 +84,12 @@ ADPChatComponent.ADPChat.mount('#containerId', {
   { name: 'currentConversationId', type: 'string', default: "''", description: 'Currently selected conversation ID (higher priority than currentConversation)' },
   { name: 'chatList', type: 'Record[]', default: '[]', description: 'Chat message list' },
   { name: 'isChatting', type: 'boolean', default: 'false', description: 'Whether chatting' },
-  { name: 'user', type: 'UserInfo', default: '{}', description: 'User info' },
-  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: 'Theme mode' },
-  { name: 'languageOptions', type: 'LanguageOption[]', default: 'zh/en', description: 'Language options' },
-  { name: 'isSidePanelOverlay', type: 'boolean', default: 'false', description: 'Whether sidebar uses overlay mode (overlay content area)' },
-  { name: 'logoUrl', type: 'string', default: "''", description: 'Logo URL' },
-  { name: 'logoTitle', type: 'string', default: "''", description: 'Logo title' },
-  { name: 'isShowFullscreenButton', type: 'boolean', default: 'true', description: 'Show fullscreen button' },
-  { name: 'isFullscreen', type: 'boolean', default: 'false', description: 'Whether in fullscreen state' },
-  { name: 'maxAppLen', type: 'number', default: '4', description: 'Max application display count' },
-  { name: 'isShowCloseButton', type: 'boolean', default: 'true', description: 'Show close button' },
   { name: 'aiWarningText', type: 'string', default: "'AI generated content'", description: 'AI warning text' },
+  { name: 'languageOptions', type: 'LanguageOption[]', default: 'zh/en', description: 'Language options' },
   { name: 'sideI18n', type: 'SideI18n', description: 'Sidebar i18n text' },
   { name: 'chatI18n', type: 'ChatI18n', description: 'Chat i18n text' },
   { name: 'chatItemI18n', type: 'ChatItemI18n', description: 'ChatItem i18n text' },
   { name: 'senderI18n', type: 'SenderI18n', description: 'Sender i18n text' },
-  { name: 'apiConfig', type: 'ApiConfig', description: 'API config (enables API mode)' },
-  { name: 'autoLoad', type: 'boolean', default: 'true', description: 'Whether to auto load data (only when using apiConfig)' },
 ]} />
 
 ### Events
@@ -105,7 +103,7 @@ ADPChatComponent.ADPChat.mount('#containerId', {
   { name: 'logout', description: 'Logout' },
   { name: 'userClick', description: 'User info click' },
   { name: 'close', description: 'Close' },
-  { name: 'fullscreen', params: 'isFullscreen: boolean', description: 'Fullscreen state change' },
+  { name: 'fullscreen', description: 'Fullscreen button clicked (for toggling fullscreen state)' },
   { name: 'send', params: '(query, fileList, conversationId, applicationId)', description: 'Send message' },
   { name: 'stop', description: 'Stop generation' },
   { name: 'loadMore', params: '(conversationId, lastRecordId)', description: 'Load more' },
@@ -124,8 +122,8 @@ ADPChatComponent.ADPChat.mount('#containerId', {
 
 <SlotsTable data={[
   { name: 'sider-logo', description: 'Sidebar logo area, shows external content if provided, otherwise shows default LogoArea (requires logoUrl or logoTitle)' },
-  { name: 'header-fullscreen-content', description: 'Header fullscreen button area, shows external content if provided, otherwise shows default fullscreen icon (requires isShowFullscreenButton to be true)' },
-  { name: 'header-close-content', description: 'Header close button area, shows external content if provided, otherwise shows default close icon (requires isShowCloseButton to be true)' },
+  { name: 'header-fullscreen-content', description: 'Header fullscreen button area, shows external content if provided, otherwise shows default fullscreen icon (requires showFullscreenButton to be true)' },
+  { name: 'header-close-content', description: 'Header close button area, shows external content if provided, otherwise shows default close icon (requires showCloseButton to be true)' },
 ]} />
 
 ### Methods

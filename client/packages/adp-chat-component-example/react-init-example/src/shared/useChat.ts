@@ -32,11 +32,9 @@ export function useChat(options: UseChatOptions) {
     
     const userConfig = getConfig({ isOpen: stateRef.current.isOpen, isFullscreen: stateRef.current.isFullscreen })
     ADPChat.update(containerId, {
-      isOpen: stateRef.current.isOpen,
-      showFullscreenButton: false,
-      showToggleButton: false,
-      isFullscreen: stateRef.current.isFullscreen,
       ...userConfig,
+      isOverlay: !stateRef.current.isFullscreen,
+      isOpen: stateRef.current.isOpen,
     })
   }, [containerId, getConfig])
 
@@ -58,15 +56,16 @@ export function useChat(options: UseChatOptions) {
     
     instanceRef.current = ADPChat.init(containerId, {
       ...defaultConfig,
-      isOpen: stateRef.current.isOpen,
-      isFullscreen: stateRef.current.isFullscreen,
       ...userConfig,
+      isOpen: stateRef.current.isOpen,
+      isOverlay: !stateRef.current.isFullscreen,
       onOpenChange: (newOpen: boolean) => {
         setIsOpen(newOpen)
         stateRef.current.isOpen = newOpen
         ;(userConfig.onOpenChange as ((open: boolean) => void) | undefined)?.(newOpen)
       },
-      onFullscreen: (newFullscreen: boolean) => {
+      onFullscreen: () => {
+        const newFullscreen = !stateRef.current.isFullscreen
         setIsFullscreen(newFullscreen)
         stateRef.current.isFullscreen = newFullscreen
         ;(userConfig.onFullscreen as ((fullscreen: boolean) => void) | undefined)?.(newFullscreen)

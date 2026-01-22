@@ -30,11 +30,11 @@ interface Props extends ChatRelatedProps, FullscreenProps {
     /** 挂载容器选择器 */
     container?: string;
     /** 是否显示关闭按钮 */
-    isShowCloseButton?: boolean;
+    showCloseButton?: boolean;
     /** 是否显示全屏按钮 */
-    isShowFullscreenButton?: boolean;
+    showFullscreenButton?: boolean;
     /** 是否显示悬浮切换按钮 */
-    isShowToggleButton?: boolean;
+    showToggleButton?: boolean;
     /** 是否为浮层模式：true-使用 width/height 浮动在容器上，false-宽高100%撑满容器 */
     isOverlay?: boolean;
     /** 宽度（仅在 isOverlay 为 true 时生效） */
@@ -89,8 +89,8 @@ const props = withDefaults(defineProps<Props>(), {
     ...chatRelatedPropsDefaults,
     ...fullscreenPropsDefaults,
     container: 'body',
-    isShowCloseButton: true,
-    isShowFullscreenButton: true,
+    showCloseButton: true,
+    showFullscreenButton: true,
     isOverlay: false,
     width: 400,
     height: 640,
@@ -106,7 +106,7 @@ const props = withDefaults(defineProps<Props>(), {
     onFullscreen: undefined,
     isOpen: undefined,
     onOpenChange: undefined,
-    isShowToggleButton: true,
+    showToggleButton: true,
     aiWarningText: '内容由AI生成，仅供参考',
     apiConfig: () => ({ apiDetailConfig: defaultApiDetailConfig }),
     autoLoad: true,
@@ -137,8 +137,6 @@ const emit = defineEmits<{
     (e: 'openChange', open: boolean): void;
 }>();
 
-const isFullscreen = ref(props.isFullscreen);
-
 // 内部 open 状态，初始化时使用用户传入的值
 const internalOpen = ref(props.isOpen ?? false);
 
@@ -146,13 +144,6 @@ const internalOpen = ref(props.isOpen ?? false);
 watch(() => props.isOpen, (newVal) => {
     if (newVal !== undefined) {
         internalOpen.value = newVal;
-    }
-});
-
-// 监听 props.isFullscreen 变化，同步内部状态
-watch(() => props.isFullscreen, (newVal) => {
-    if (newVal !== undefined) {
-        isFullscreen.value = newVal;
     }
 });
 
@@ -185,14 +176,14 @@ const handleClose = () => {
 };
 
 const handleFullscreen = (_isFullscreen: boolean) => {
-    isFullscreen.value = _isFullscreen;
     emit('fullscreen', _isFullscreen);
-    props.onFullscreen?.(_isFullscreen);
+    // 注意：不需要再手动调用 props.onFullscreen，因为 Vue 会将 onXxx prop 自动转换为事件监听器
+    // emit('fullscreen') 会自动触发 props.onFullscreen
 };
 
 // 计算属性 - 用于响应 props 变化（通过 update 方法更新时）
 const actualContainer = computed(() => props.container);
-const actualIsShowToggleButton = computed(() => props.isShowToggleButton);
+const actualIsShowToggleButton = computed(() => props.showToggleButton);
 const actualIsOverlay = computed(() => props.isOverlay);
 // 规范化宽高：超出屏幕时使用屏幕尺寸减去 padding * 2
 const actualWidth = computed(() => actualIsOverlay.value ? normalizeWidth(props.width) : props.width);
@@ -210,8 +201,8 @@ const actualIsSidePanelOverlay = computed(() => props.isSidePanelOverlay);
 const actualLogoUrl = computed(() => props.logoUrl);
 const actualLogoTitle = computed(() => props.logoTitle);
 const actualMaxAppLen = computed(() => props.maxAppLen);
-const actualIsShowCloseButton = computed(() => props.isShowCloseButton);
-const actualIsShowFullscreenButton = computed(() => props.isShowFullscreenButton);
+const actualIsShowCloseButton = computed(() => props.showCloseButton);
+const actualIsShowFullscreenButton = computed(() => props.showFullscreenButton);
 const actualAiWarningText = computed(() => props.aiWarningText);
 const actualSideI18n = computed(() => props.sideI18n);
 const actualChatI18n = computed(() => props.chatI18n);
@@ -228,7 +219,7 @@ const actualAutoLoad = computed(() => props.autoLoad);
         </div>
     </Teleport>
 
-    <Teleport :to="actualContainer">
+    <Teleport :to="actualContainer" :disabled="!actualIsOverlay">
         <div v-show="isOpen" @keydown.esc="setOpen(false)" tabindex="0"
             :class="[{ 'panel-park--full': !actualIsOverlay, 'panel-park--overlay': actualIsOverlay }]"
             :style="actualIsOverlay ? panelParkStyle : {}">
@@ -250,9 +241,8 @@ const actualAutoLoad = computed(() => props.autoLoad);
                 :logoUrl="actualLogoUrl"
                 :logoTitle="actualLogoTitle"
                 :maxAppLen="actualMaxAppLen"
-                :isShowCloseButton="actualIsShowCloseButton"
-                :isShowFullscreenButton="actualIsShowFullscreenButton"
-                :isFullscreen="isFullscreen"
+                :showCloseButton="actualIsShowCloseButton"
+                :showFullscreenButton="actualIsShowFullscreenButton"
                 :aiWarningText="actualAiWarningText"
                 :sideI18n="actualSideI18n"
                 :chatI18n="actualChatI18n"

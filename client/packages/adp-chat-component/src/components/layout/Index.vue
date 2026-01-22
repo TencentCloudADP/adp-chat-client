@@ -1,6 +1,6 @@
 <!-- ADP 聊天布局主组件，支持 API 模式和 Props 模式 -->
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick, toRef } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { Layout as TLayout, Content as TContent, MessagePlugin } from 'tdesign-vue-next';
 
 // TLayout, TContent 已导入，模板中使用对应组件
@@ -86,7 +86,7 @@ export interface Props extends ThemeProps, FullscreenProps {
     /** 最大应用显示数量 */
     maxAppLen?: number;
     /** 是否显示关闭按钮 */
-    isShowCloseButton?: boolean;
+    showCloseButton?: boolean;
     /** AI警告文本 */
     aiWarningText?: string;
     /** 侧边栏国际化文本 */
@@ -122,7 +122,7 @@ const props = withDefaults(defineProps<Props>(), {
     logoUrl: '',
     logoTitle: '',
     maxAppLen: 4,
-    isShowCloseButton: true,
+    showCloseButton: true,
     aiWarningText: '内容由AI生成，仅供参考',
     apiConfig: () => ({}),
     autoLoad: true,
@@ -198,7 +198,7 @@ const mergedSenderI18n = computed(() => ({
 
 // 使用 composable 统一管理 API 配置
 const { mergedApiDetailConfig } = useApiConfig({
-    apiConfig: toRef(props, 'apiConfig'),
+    apiConfig: computed((): ApiConfig | undefined => props.apiConfig),
 });
 
 // 实际使用的数据（优先使用 props，否则使用内部数据）
@@ -578,7 +578,7 @@ const handleClose = () => {
 };
 
 const handleFullscreen = () => {
-    emit('fullscreen', !props.isFullscreen);
+    emit('fullscreen', true);
 };
 
 // 内部复制处理
@@ -799,14 +799,14 @@ defineExpose({
                 @message="(code: MessageCode, message: string) => emit('message', code, message)"
                 @conversationChange="(conversationId: string) => emit('conversationChange', conversationId)"
             >
-                <template #header-fullscreen-content v-if="isShowFullscreenButton || $slots['header-fullscreen-content']">
+                <template #header-fullscreen-content v-if="showFullscreenButton || $slots['header-fullscreen-content']">
                     <slot name="header-fullscreen-content">
-                        <CustomizedIcon v-if="isShowFullscreenButton" name="fullscreen" :theme="theme" @click="handleFullscreen"/>
+                        <CustomizedIcon v-if="showFullscreenButton" name="fullscreen" :theme="theme" @click="handleFullscreen"/>
                     </slot>
                 </template>
-                <template #header-close-content v-if="isShowCloseButton || $slots['header-close-content']">
+                <template #header-close-content v-if="showCloseButton || $slots['header-close-content']">
                     <slot name="header-close-content">
-                        <CustomizedIcon v-if="isShowCloseButton" name="logout_close" :theme="theme" @click="handleClose"/>
+                        <CustomizedIcon v-if="showCloseButton" name="logout_close" :theme="theme" @click="handleClose"/>
                     </slot>
                 </template>
             </MainLayout>

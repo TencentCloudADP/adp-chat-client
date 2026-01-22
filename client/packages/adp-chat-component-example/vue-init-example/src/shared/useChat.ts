@@ -27,13 +27,10 @@ export function useChat(options: UseChatOptions) {
     }
     
     const userConfig = getConfig({ isOpen: isOpen.value, isFullscreen: isFullscreen.value })
-    console.log('fullscreen',ADPChat)
     ADPChat.update(containerId, {
-      isOpen: isOpen.value,
-      showFullscreenButton: false,
-      showToggleButton: false,
-      isFullscreen: isFullscreen.value,
       ...userConfig,
+      isOpen: isOpen.value,
+      isOverlay: !isFullscreen.value,
     })
   }
 
@@ -55,16 +52,16 @@ export function useChat(options: UseChatOptions) {
     
     instanceRef.value = ADPChat.init(containerId, {
       ...defaultConfig,
-      isOpen: isOpen.value,
-      isFullscreen: isFullscreen.value,
       ...userConfig,
+      isOpen: isOpen.value,
+      isOverlay: !isFullscreen.value,
       onOpenChange: (open: boolean) => {
         isOpen.value = open
         ;(userConfig.onOpenChange as ((open: boolean) => void) | undefined)?.(open)
       },
-      onFullscreen: (fullscreen: boolean) => {
-        isFullscreen.value = fullscreen
-        ;(userConfig.onFullscreen as ((fullscreen: boolean) => void) | undefined)?.(fullscreen)
+      onFullscreen: () => {
+        isFullscreen.value = !isFullscreen.value
+        ;(userConfig.onFullscreen as ((fullscreen: boolean) => void) | undefined)?.(isFullscreen.value)
         nextTick(() => updateChat())
       },
     })
