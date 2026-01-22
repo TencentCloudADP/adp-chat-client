@@ -10,17 +10,17 @@ const basePath = isGithubPages ? process.env.NEXT_PUBLIC_BASE_PATH : '';
 const config = {
   reactStrictMode: true,
   turbopack: false,
+  output: 'export',
+  trailingSlash: true,
   // 只在 GitHub Pages 部署时设置 basePath 和 assetPrefix
   ...(isGithubPages && {
     basePath: basePath,
     assetPrefix: basePath,
-    output: 'export',
-    trailingSlash: true,
   }),
   // 图片配置
   images: {
-    // 只在 GitHub Pages 部署时禁用图片优化
-    unoptimized: isGithubPages ? true : false,
+    // 静态导出模式必须禁用图片优化
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
