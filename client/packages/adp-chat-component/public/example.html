@@ -15,11 +15,12 @@
             window.onload = function() {
                 ADPChatComponent.init('#chat-container', {
                     width: 400,
-                    height: 640,
+                    height: '80vh',
                     logoTitle: 'ADP Chat',
                     showOverlayButton: true,
                     showToggleButton: true,
                     isOverlay: true,
+                    isSidePanelOverlay: true,
                     onOpenChange: function(open) {
                         isOpen = open;
                         document.getElementById('chat-container').classList.toggle('chat-container--expanded', !isOverlay && isOpen);
@@ -29,7 +30,6 @@
                         document.getElementById('chat-container').classList.toggle('chat-container--expanded', !isOverlay && isOpen);
                         ADPChatComponent.update('#chat-container', {
                             isOverlay: isOverlay,
-                            isSidePanelOverlay: isOverlay
                         });
                     }
                 });
