@@ -1,5 +1,5 @@
 import type { Application } from './application'
-import type { ChatConversation, Record } from './chat'
+import type { ChatConversation, Record } from './chat-v2'
 import type { ApiConfig } from '../service/api'
 
 // ============================================================

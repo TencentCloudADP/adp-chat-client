@@ -9,9 +9,9 @@ import SideLayout from './SideLayout.vue';
 import LogoArea from '../LogoArea.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import type { Application } from '../../model/application';
-import type { ChatConversation, Record, Reference } from '../../model/chat';
+import type { ChatConversation, Record, Reference, SseEvent } from '../../model/chat-v2';
 import type { FileProps } from '../../model/file';
-import { ScoreValue } from '../../model/chat';
+import { ScoreValue } from '../../model/chat-v2';
 import type { ApiConfig } from '../../service/api';
 import {
     fetchApplicationList,
@@ -28,7 +28,7 @@ import {
 import type { SystemConfig } from '../../service/api';
 import { MessageCode } from '../../model/messages';
 import { fetchSSE } from '../../model/sseRequest-reasoning';
-import { mergeRecord } from '../../utils/util';
+import { applySseEventToRecord } from '../../utils/mergeRecord-v2';
 import { hydrateType2References } from '../../utils/reference';
 import { copyToClipboard } from '../../utils/clipboard';
 import { useApiConfig } from '../../composables';
@@ -366,22 +366,46 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
     // 重置用户滚动状态
     mainLayoutRef.value?.getChatRef()?.setHasUserScrolled(false);
 
+    const timestamp = Date.now();
+    const baseExtraInfo = (isFromSelf: boolean) => ({
+        RequestId: '',
+        TraceId: '',
+        Elapsed: 0,
+        StartTime: timestamp,
+        IsFromSelf: isFromSelf,
+    });
+
     // 创建用户消息占位
     const userRecord: Record = {
+        Role: 'user',
         RecordId: 'placeholder-user',
-        Content: query,
-        IsFromSelf: true,
-        Timestamp: Date.now(),
-        FileInfos: fileList,
+        ConversationId: conversationId || '',
+        Status: 'success',
+        StatusDesc: '',
+        Messages: [
+            {
+                Type: 'question',
+                MessageId: `placeholder-user-${timestamp}`,
+                Name: 'question',
+                Title: '',
+                Status: 'success',
+                StatusDesc: '',
+                Contents: [{ Type: 'text', Text: query }],
+            },
+        ],
+        ExtraInfo: baseExtraInfo(true),
     };
     internalChatList.value.push(userRecord);
 
     // 创建助手消息占位
     const assistantRecord: Record = {
+        Role: 'assistant',
         RecordId: 'placeholder-agent',
-        Content: '',
-        IsFromSelf: false,
-        Timestamp: Date.now(),
+        ConversationId: conversationId || '',
+        Status: 'processing',
+        StatusDesc: '',
+        Messages: [],
+        ExtraInfo: baseExtraInfo(false),
     };
     internalChatList.value.push(assistantRecord);
 
@@ -406,39 +430,67 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
             );
         },
         {
-            success(result) {
-                if (result.type === 'conversation') {
+            success(event: SseEvent) {
+                if (event.Type === 'conversation') {
                     // 创建新的对话，重新调用 chatlist 接口更新列表
                     loadConversations();
-                    if (result.data.IsNewConversation) {
-                        internalCurrentConversation.value = result.data;
+                    if (event.Payload.IsNewConversation) {
+                        internalCurrentConversation.value = event.Payload;
+                    }
+                    return;
+                }
+
+                const resolvedApplicationId = applicationId || internalCurrentApplication.value?.ApplicationId;
+
+                const replacePlaceholder = (placeholderId: string, next: Record): Record | undefined => {
+                    const placeholderIdx = internalChatList.value.findIndex(item => item.RecordId === placeholderId);
+                    if (placeholderIdx !== -1) {
+                        internalChatList.value.splice(placeholderIdx, 1, next);
+                        return next;
+                    }
+                    return undefined;
+                };
+
+                const updateRecord = (next: Record, placeholderId: string): Record => {
+                    const idx = internalChatList.value.findIndex(item => item.RecordId === next.RecordId);
+                    if (idx !== -1) {
+                        if (internalChatList.value[idx] !== undefined) {
+                            Object.assign(internalChatList.value[idx], next);
+                            return internalChatList.value[idx] as Record;
+                        }
+                        return next;
+                    }
+                    const replaced = replacePlaceholder(placeholderId, next);
+                    if (replaced) {
+                        return replaced;
+                    }
+                    internalChatList.value.push(next);
+                    return next;
+                };
+
+                if (event.Type === 'request_ack') {
+                    // 用户消息：替换占位
+                    const placeholderUser = internalChatList.value.find(item => item.RecordId === 'placeholder-user');
+                    const nextUser = applySseEventToRecord(event, placeholderUser);
+                    if (nextUser) {
+                        const appliedUser = updateRecord(nextUser, 'placeholder-user');
+                        void hydrateReferences([appliedUser], { applicationId: resolvedApplicationId });
                     }
                 } else {
-                    const record: Record = result.data;
-                    if (result.type === 'reply' && record.IsFromSelf) {
-                        // 替换用户消息占位
-                        const index = internalChatList.value.findIndex(item => item.RecordId === 'placeholder-user');
-                        if (index !== -1) {
-                            internalChatList.value.splice(index, 1, record);
-                        }
-                    } else {
-                        const lastIndex = internalChatList.value.length - 1;
-                        const lastRecord = internalChatList.value[lastIndex];
-                        let targetRecord = record;
-                        if (lastRecord && lastRecord.RecordId === 'placeholder-agent') {
-                            lastRecord.RecordId = record.RecordId;
-                        }
-                        if (lastIndex >= 0 && lastRecord && lastRecord.RecordId === record.RecordId) {
-                            mergeRecord(lastRecord, record, result.type);
-                            targetRecord = lastRecord;
-                        } else {
-                            internalChatList.value.push(record);
-                        }
-                        if (result.type === 'reference') {
-                            void hydrateReferences([targetRecord], { applicationId });
-                        }
+                    // 助手消息：只用占位 + lastRecord
+                    const lastIndex = internalChatList.value.length - 1;
+                    const lastRecord = internalChatList.value[lastIndex];
+                    const baseAssistant =
+                        lastRecord && (lastRecord.RecordId === 'placeholder-agent' || lastRecord.Role === 'assistant')
+                            ? lastRecord
+                            : undefined;
+                    const nextAssistant = applySseEventToRecord(event, baseAssistant);
+                    if (nextAssistant) {
+                        const appliedAssistant = updateRecord(nextAssistant, 'placeholder-agent');
+                        void hydrateReferences([appliedAssistant], { applicationId: resolvedApplicationId });
                     }
                 }
+
                 // 每次收到数据后滚动到底部
                 nextTick(() => {
                     mainLayoutRef.value?.getChatRef()?.backToBottom();

@@ -82,18 +82,10 @@ export type {
     ChatConversation,
     ChatConversationProps,
     Record,
-    AgentThought,
-    Debugging,
-    Procedure,
-    ExtraInfo,
     QuoteInfo,
     Reference,
-    TokenStat,
-    TokenStatProcedure,
-    ChatItemData,
-    WorkFlow,
-} from './model/chat'
-export { ScoreValue } from './model/chat'
+} from './model/chat-v2'
+export { ScoreValue } from './model/chat-v2'
 export type { FileProps } from './model/file'
 export type { ApiConfig, ApiDetailConfig } from './service/api'
 

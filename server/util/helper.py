@@ -1,13 +1,15 @@
-from typing import Optional, cast
+from typing import cast, Optional
 from urllib.parse import urlparse
 import re
 
 from sanic.request.types import Request
 
 from config import tagentic_config
-from vendor.interface import MessageType, MsgRecord
-from model.chat import ChatConversation
 from util.json_format import custom_dumps
+from vendor.interface import (
+    EventType, Record, Message, Content, ErrorInfo
+)
+from model.chat import ChatConversation
 
 
 def get_remote_ip(request: Request) -> str:
@@ -62,59 +64,91 @@ def convert_dict_keys_to_pascal(d):
     return d
 
 
-def to_message(
-    type: MessageType,
-    record: Optional[MsgRecord] = None,
+def to_event(
+    event_type: EventType,
+    record: Optional[Record] = None,
+    message: Optional[Message] = None,
+    message_id: Optional[str] = None,
+    content: Optional[Content] = None,
+    content_index: Optional[int] = None,
+    text: Optional[str] = None,
+    error: Optional[ErrorInfo] = None,
     conversation: Optional[ChatConversation] = None,
-    error_msg: Optional[str] = None,
-    incremental: bool = False,
     is_new_conversation: bool = False,
 ) -> bytes:
-    """转换为SSE消息 / Convert to SSE (Server-Sent Events) message
+    """Convert to V2 SSE event format
 
     Args:
-        type: 消息类型 / Message type:
-            - REPLY, THOUGHT, REFERENCE, TOKEN_STAT:
-              需要`record`参数，可选`incremental`参数
-              require `record`, optional `incremental`
-            - CONVERSATION:
-              需要`conversation`参数，可选`is_new_conversation`参数
-              requires `conversation`, optional `is_new_conversation`
-            - ERROR:
-              需要`error_msg`参数
-              requires `error_msg`
-        record: 消息记录 / Message content record (required for certain types)
-        conversation: 会话 / Conversation object (required for CONVERSATION type)
-        error_msg: 错误描述 / Error description (required for ERROR type)
-        incremental: 是否为增量消息（只对REPLY, THOUGHT有效） / Whether this is a incremental message (only for REPLY, THOUGHT)
-        is_new_conversation: 是否为新会话（只对CONVERSATION有效） / Whether this is a new conversation (only for CONVERSATION)
+        event_type: The type of event to emit
+        record: Record object (for request_ack, response.* events)
+        message: Message object (for message.* events)
+        message_id: Message ID (for message.processing, message.done, content.added, text.delta)
+        content: Content object (for content.added)
+        content_index: Index of the content in the message (for content.added, text.delta)
+        text: Text delta (for text.delta)
+        error: Error info (for error events)
+        conversation: Conversation object (for conversation events)
+        is_new_conversation: Whether this is a new conversation (for conversation events)
 
     Returns:
-        bytes: SSE格式编码的消息 / Encoded message
+        bytes: SSE formatted message
 
     Raises:
-        ValueError: 当缺少必需参数时触发 / If required parameters are missing for the given type
+        ValueError: When required parameters are missing for the given event type
     """
-    # 根据消息类型验证参数 / Validate parameters based on message type
-    payload = {'Type': type.value}
-    if type in {MessageType.REPLY, MessageType.THOUGHT, MessageType.REFERENCE, MessageType.TOKEN_STAT}:
+    payload = {'Type': event_type.value}
+
+    if event_type == EventType.REQUEST_ACK:
         if record is None:
-            raise ValueError(f"{type.name} 需要'record'参数 / requires 'record' parameter")
-        payload['Payload'] = record.model_dump(exclude_none=True)
-        # 如需增量标记则添加 / Add incremental flag if needed
-        payload['Payload']['Incremental'] = incremental
-    elif type == MessageType.CONVERSATION:
+            raise ValueError("request_ack requires 'record' parameter")
+        payload['RequestAck'] = record.model_dump(exclude_none=True)
+
+    elif event_type in {
+        EventType.RESPONSE_CREATED,
+        EventType.RESPONSE_PROCESSING,
+        EventType.RESPONSE_COMPLETED
+    }:
+        if record is None:
+            raise ValueError(f"{event_type.value} requires 'record' parameter")
+        payload['Response'] = record.model_dump(exclude_none=True)
+
+    elif event_type == EventType.MESSAGE_ADDED:
+        if message is None:
+            raise ValueError("message.added requires 'message' parameter")
+        payload['Message'] = message.model_dump(exclude_none=True)
+
+    elif event_type in {EventType.MESSAGE_PROCESSING, EventType.MESSAGE_DONE}:
+        if message_id is None or message is None:
+            raise ValueError(f"{event_type.value} requires 'message_id' and 'message' parameters")
+        payload['MessageId'] = message_id
+        payload['Message'] = message.model_dump(exclude_none=True)
+
+    elif event_type == EventType.CONTENT_ADDED:
+        if message_id is None or content_index is None or content is None:
+            raise ValueError("content.added requires 'message_id', 'content_index', and 'content' parameters")
+        payload['MessageId'] = message_id
+        payload['ContentIndex'] = content_index
+        payload['Content'] = content.model_dump(exclude_none=True)
+
+    elif event_type == EventType.TEXT_DELTA:
+        if message_id is None or content_index is None or text is None:
+            raise ValueError("text.delta requires 'message_id', 'content_index', and 'text' parameters")
+        payload['MessageId'] = message_id
+        payload['ContentIndex'] = content_index
+        payload['Text'] = text
+
+    elif event_type == EventType.ERROR:
+        if error is None:
+            raise ValueError("error requires 'error' parameter")
+        payload['Error'] = error.model_dump(exclude_none=True)
+
+    elif event_type == EventType.CONVERSATION:
+        # Backward compatible conversation event
         if conversation is None:
-            raise ValueError("CONVERSATION 需要'conversation'参数 / requires 'conversation' parameter")
+            raise ValueError("conversation requires 'conversation' parameter")
         payload['Payload'] = conversation.to_dict()
         payload['Payload']['IsNewConversation'] = is_new_conversation
-    elif type == MessageType.HEARTBEAT:
-        payload['Payload'] = {}
-    elif type == MessageType.ERROR:
-        if error_msg is None:
-            raise ValueError("ERROR 需要'error_msg'参数 / requires 'error_msg' parameter")
-        payload['Payload'] = {'Error': {'Message': error_msg}}
     else:
-        raise ValueError(f"未处理的消息类型: {type} / Unhandled message type: {type}")
+        raise ValueError(f"Unhandled event type: {event_type}")
 
     return f'data: {custom_dumps(payload)}\n\n'.encode('utf-8')

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import type { Application } from '../../model/application';
-import type { Record } from '../../model/chat';
+import type { Record } from '../../model/chat-v2';
 import type { FileProps } from '../../model/file';
-import { ScoreValue } from '../../model/chat';
+import { ScoreValue } from '../../model/chat-v2';
 import { MessageCode } from '../../model/messages';
 import Chat from '../Chat/Index.vue';
 import AIWarning from '../AIWarning.vue';

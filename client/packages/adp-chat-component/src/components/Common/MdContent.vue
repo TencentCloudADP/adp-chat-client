@@ -7,7 +7,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import type { QuoteInfo } from '../../model/chat'
+import type { QuoteInfo } from '../../model/chat-v2';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
 import MarkdownIt from 'markdown-it';
