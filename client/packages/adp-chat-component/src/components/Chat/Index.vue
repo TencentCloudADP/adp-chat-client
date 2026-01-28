@@ -131,8 +131,8 @@ import { ref, watch, computed, onMounted, onUnmounted, nextTick, toRefs } from '
 import InfiniteLoading from 'vue-infinite-loading'
 import { Chat as TChat } from '@tdesign-vue-next/chat'
 import { Checkbox, Loading as TLoading, Card as TCard, Checkbox as TCheckbox, Divider as TDivider } from 'tdesign-vue-next'
-import type { Record } from '../../model/chat'
-import { ScoreValue } from '../../model/chat'
+import type { Record } from '../../model/chat-v2'
+import { ScoreValue } from '../../model/chat-v2'
 import type { FileProps } from '../../model/file';
 import { MessageCode } from '../../model/messages';
 import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type'
@@ -493,6 +493,15 @@ const handleSend = (value: string, fileList: FileProps[]) => {
     inputEnter(value, fileList);
 }
 
+const extractRecordText = (record: Record): string => {
+    const messages = record.Messages ?? [];
+    if (messages.length === 0) return '';
+    const target = record.Role === 'user'
+        ? (messages.find(msg => msg.Type === 'question') ?? messages[0])
+        : (messages.find(msg => msg.Type === 'reply') ?? messages[0]);
+    return (target.Contents ?? []).map(content => content.Text ?? '').filter(text => text.length > 0).join('\n');
+};
+
 /**
  * 重新发送消息
  */
@@ -502,7 +511,7 @@ const onResend = (RelatedRecordId: string | undefined) => {
     if (!related) {
         return
     }
-    inputEnter(related.Content)
+    inputEnter(extractRecordText(related))
 }
 
 /**

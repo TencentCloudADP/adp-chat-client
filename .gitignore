@@ -12,7 +12,7 @@ docker.config
 research
 build
 cache
-deploy/default/volume/
+deploy
 .codebuddy/
 .vercel
 server/static/

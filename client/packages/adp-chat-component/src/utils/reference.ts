@@ -1,4 +1,4 @@
-import type { Record, Reference } from '../model/chat'
+import type { Record, Reference } from '../model/chat-v2'
 import type { ReferenceDetailParams } from '../service/api'
 
 export type ReferenceDetailFetcher = (params: ReferenceDetailParams) => Promise<Reference[]>
@@ -22,12 +22,27 @@ function getCacheKey(referenceId: string, applicationId?: string, shareId?: stri
   return `${getScopeKey(applicationId, shareId)}:${referenceId}`
 }
 
+function getReferenceId(reference: Reference): string | undefined {
+  return reference.Id || reference.ReferBizId || reference.DocRefer?.ReferBizId || reference.QaRefer?.ReferBizId
+}
+
+function getReferenceName(reference: Reference): string | undefined {
+  return reference.Name || reference.DocName || reference.DocRefer?.DocName
+}
+
+function getReferenceUrl(reference: Reference): string | undefined {
+  return reference.Url || reference.DocRefer?.Url || reference.WebSearchRefer?.Url
+}
+
 function mergeReferenceDetail(reference: Reference, detail: Reference): void {
+  const detailId = getReferenceId(detail)
   const merged: Reference = {
     ...detail,
     ...reference,
-    Id: reference.Id || detail.Id || detail.ReferBizId || '',
-    Name: reference.Name || detail.Name || detail.DocName || '',
+    Id: getReferenceId(reference) || detailId,
+    ReferBizId: reference.ReferBizId || detail.ReferBizId || detailId,
+    Name: getReferenceName(reference) || getReferenceName(detail),
+    Url: getReferenceUrl(reference) || getReferenceUrl(detail),
   }
   Object.assign(reference, merged)
 }
@@ -35,9 +50,13 @@ function mergeReferenceDetail(reference: Reference, detail: Reference): void {
 function collectType2References(records: Record[]): Reference[] {
   const references: Reference[] = []
   for (const record of records) {
-    for (const reference of record.References || []) {
-      if (reference.Type === 2 && reference.Id) {
-        references.push(reference)
+    for (const message of record.Messages || []) {
+      for (const content of message.Contents || []) {
+        for (const reference of content.Image?.References || []) {
+          if (reference.Type === 2 && getReferenceId(reference)) {
+            references.push(reference)
+          }
+        }
       }
     }
   }
@@ -56,10 +75,14 @@ export async function hydrateType2References(
 
   const referencesById = new Map<string, Reference[]>()
   for (const reference of type2References) {
-    const references = referencesById.get(reference.Id) || []
+    const referenceId = getReferenceId(reference)
+    if (!referenceId) {
+      continue
+    }
+    const references = referencesById.get(referenceId) || []
     references.push(reference)
-    referencesById.set(reference.Id, references)
-    const cacheKey = getCacheKey(reference.Id, applicationId, shareId)
+    referencesById.set(referenceId, references)
+    const cacheKey = getCacheKey(referenceId, applicationId, shareId)
     const cachedDetail = cache?.get(cacheKey)
     if (cachedDetail) {
       mergeReferenceDetail(reference, cachedDetail)
@@ -95,7 +118,7 @@ export async function hydrateType2References(
     })
 
     for (const detail of details) {
-      const detailId = detail.Id || detail.ReferBizId
+      const detailId = getReferenceId(detail)
       if (!detailId) {
         continue
       }

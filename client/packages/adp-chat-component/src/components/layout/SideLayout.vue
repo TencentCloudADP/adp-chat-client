@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { Application } from '../../model/application';
-import type { ChatConversation } from '../../model/chat';
+import type { ChatConversation } from '../../model/chat-v2';
 import ApplicationList from '../ApplicationList.vue';
 import HistoryList from '../HistoryList.vue';
 import PersonalAccount from '../PersonalAccount.vue';

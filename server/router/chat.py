@@ -64,7 +64,7 @@ class ChatMessageListApi(HTTPMethodView):
             )
             vendor_app = app.get_vendor_app(application_id)
 
-            messages = await vendor_app.get_messages(
+            records = await vendor_app.get_messages(
                 request.ctx.db,
                 request.ctx.account_id,
                 args['ConversationId'],
@@ -74,7 +74,7 @@ class ChatMessageListApi(HTTPMethodView):
             resp = {
                 'Response': {
                     'ApplicationId': application_id,
-                    'Records': messages,
+                    'Records': [r.model_dump(exclude_none=True) for r in records],
                 }
             }
             return sanic.json(resp)

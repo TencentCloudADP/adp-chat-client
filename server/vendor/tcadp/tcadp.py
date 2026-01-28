@@ -7,27 +7,14 @@ import json
 from util.tca import tc_request
 from util.warehouse import AsyncWareHouseS3
 
-from util.helper import to_message, convert_dict_keys_to_pascal
-from util.database import db_connection
-from core.account import CoreAccount
 from core.completion import CoreCompletion
 from config import tagentic_config
-from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, ConversationCallback, MessageType
+from vendor.interface import BaseVendor, ApplicationInfo, ConversationCallback, EventType, Record, ErrorInfo
+from util.helper import to_event
+from util.json_format import custom_dumps
 
 
 class TCADP(BaseVendor):
-    async def get_customer_account_id(self, account_id: str) -> str:
-        async with db_connection() as db:
-            third_party_account = await CoreAccount.get_third_party(db, account_id)
-
-        if third_party_account is None or not third_party_account.OpenId:
-            logging.warning(
-                f"[TCADP] third_party_account not found for account_id={account_id}"
-            )
-            return account_id
-
-        return third_party_account.OpenId
-
     # ApplicationInterface
     @classmethod
     def get_vendor(self) -> str:
@@ -55,27 +42,27 @@ class TCADP(BaseVendor):
         if 'Error' in resp['Response']:
             logging.error(resp)
             return ApplicationInfo(
-                ApplicationId = self.application_id,
-                Name = 'Unknown',
-                Greeting = 'Please check your AppKey/SseURL/TC_SECRET_ID/TC_SECRET_KEY',
+                ApplicationId=self.application_id,
+                Name='Unknown',
+                Greeting='Please check your AppKey/SseURL/TC_SECRET_ID/TC_SECRET_KEY',
             )
         else:
             return ApplicationInfo(
-                ApplicationId = self.application_id,
-                Name = resp['Response']['BaseConfig']['Name'],
-                Avatar = resp['Response']['BaseConfig']['Avatar'],
-                Greeting = resp['Response']['AppConfig']['KnowledgeQa']['Greeting'],
-                OpeningQuestions = resp['Response']['AppConfig']['KnowledgeQa']['OpeningQuestions'],
+                ApplicationId=self.application_id,
+                Name=resp['Response']['BaseConfig']['Name'],
+                Avatar=resp['Response']['BaseConfig']['Avatar'],
+                Greeting=resp['Response']['AppConfig']['KnowledgeQa']['Greeting'],
+                OpeningQuestions=resp['Response']['AppConfig']['KnowledgeQa']['OpeningQuestions'],
             )
 
-    # MessageInterface
+    # MessageInterface - V2 Protocol
     async def get_messages(
         self,
         db: AsyncSession,
         account_id: str,
         conversation_id: str,
         limit: int, last_record_id: str = None
-    ) -> list[MsgRecord]:
+    ) -> list[Record]:
         action = "GetMsgRecord"
         payload = {
             "Type": 5,
@@ -88,11 +75,15 @@ class TCADP(BaseVendor):
         resp = await tc_request(self.tc_config(), action, payload)
         if 'Error' in resp['Response']:
             raise Exception(resp['Response']['Error'])
-        records = [MsgRecord(**msg) for msg in resp['Response']['Records']]
-        return records
-        # return resp['Response']['Records']
 
-    # ChatInterface
+        # Parse V2 Records directly from response
+        records = []
+        for record_data in resp['Response']['Records']:
+            record = Record.model_validate(record_data)
+            records.append(record)
+        return records
+
+    # ChatInterface - V2 Protocol
     async def chat(
         self,
         account_id: str,
@@ -100,38 +91,46 @@ class TCADP(BaseVendor):
         conversation_id: str,
         is_new_conversation: bool,
         conversation_cb: ConversationCallback,
-        search_network = True,
-        custom_variables = {}
+        search_network=True,
+        custom_variables={}
     ):
         if is_new_conversation:
-            conversation = await conversation_cb.create()  # 创建会话
-            yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=True)
+            conversation = await conversation_cb.create()
+            yield to_event(EventType.CONVERSATION, conversation=conversation, is_new_conversation=True)
             conversation_id = str(conversation.Id)
-        customer_account_id = await self.get_customer_account_id(account_id)
+
         timeout = aiohttp.ClientTimeout(total=None, sock_read=tagentic_config.SERVER_RESPONSE_TIMEOUT)
         async with aiohttp.ClientSession(read_bufsize=1*1024*1024, timeout=timeout) as session:
-            incremental = False
             param = {
-                "content": query,
-                "bot_app_key": self.config['AppKey'],
-                "session_id": conversation_id,
-                "visitor_biz_id": customer_account_id,
-                "search_network": "enable" if search_network else "disable",
-                "custom_variables": custom_variables,
-                "incremental": incremental,
-                "streaming_throttle": 2,
+                "ConversationId": conversation_id,
+                "AppKey": self.config['AppKey'],
+                "Contents": [
+                    {
+                        "Type": "text",
+                        "Text": query,
+                    },
+                ],
+                "Incremental": True,
+                "EnableMultiIntent": True,
+                "Stream": "enable",
             }
             headers = {
                 "Accept": "text/event-stream",
                 "Content-Type": "application/json",
             }
 
+            reply_text = ""
+
             async with session.post(self.tc_config()['sse'], headers=headers, data=json.dumps(param)) as resp:
                 if resp.status != 200:
                     logging.error(f"Failed to chat: {resp}")
-                    raise Exception(f"SSE error: {resp.status}")
+                    error_info = ErrorInfo(
+                        Code=resp.status,
+                        Message=f"SSE error: {resp.status}",
+                    )
+                    yield to_event(EventType.ERROR, error=error_info)
+                    return
 
-                # 逐行读取事件流
                 try:
                     while True:
                         raw_line = await resp.content.readline()
@@ -142,62 +141,38 @@ class TCADP(BaseVendor):
                             continue
                         line_type, data = line.split(':', 1)
                         if line_type == 'data':
-                            # 转换为与云API一致的大驼峰风格
-                            data = json.loads(data)
                             try:
-                                msg_type = MessageType(data['type'])
-                            except ValueError:
-                                logging.info(f"Unknown message type: {data['type']}")
+                                data = json.loads(data)
+                            except json.JSONDecodeError:
                                 continue
+                            event_type = data.get('Type', '')
 
-                            if msg_type in {
-                                MessageType.REPLY, MessageType.THOUGHT, MessageType.REFERENCE, MessageType.TOKEN_STAT
-                            }:
-                                payload = convert_dict_keys_to_pascal(data['payload'])
-                                if msg_type == MessageType.REPLY:
-                                    pass
-                                elif msg_type == MessageType.THOUGHT:
-                                    payload = {'AgentThought': payload, **payload}
-                                elif msg_type == MessageType.REFERENCE:
-                                    payload = {'Reference': payload, **payload}
-                                elif msg_type == MessageType.TOKEN_STAT:
-                                    payload = {'TokenStat': payload, **payload}
-                                record = MsgRecord.model_validate(payload)
+                            # Collect reply text for title generation
+                            if event_type == 'text.delta':
+                                reply_text += data.get('Text', '')
+                            # Forward V2 event directly
+                            yield f'data: {custom_dumps(data)}\n\n'.encode('utf-8')
 
-                                yield to_message(msg_type, record=record, incremental=incremental)
-                            elif msg_type == MessageType.HEARTBEAT:
-                                yield to_message(msg_type)
-                            elif msg_type in {MessageType.ERROR}:
-                                if 'payload' in data:
-                                    msg = data['payload']['error']['message']
-                                elif 'error' in data:
-                                    msg = data['error']['message']
-                                else:
-                                    msg = f"未知错误: {str(data)}"
-                                yield to_message(msg_type, error_msg=msg)
-                            else:
-                                logging.info(f"Unknown message type: {data['type']}")
-
-                            # yield raw_line + '\n'.encode()
                 except asyncio.CancelledError:
                     logging.info("forward_request: cancelled")
                     resp.close()
+
             logging.info("forward_request: done")
 
-            try:
-                # 生成标题
-                summarize = None
-                if is_new_conversation:
-                    prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n请直接输出提炼结果，不要解释。'
-                    completion = CoreCompletion(
-                        self.tc_config(),
-                        system_prompt = prompt
-                    )
-                    summarize = await completion.chat(f'user: {query}\n\nassistance:')
-                conversation = await conversation_cb.update(conversation_id=conversation_id, title=summarize)  # 更新会话
-                yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=False)
-            except Exception as e:
-                logging.error(f'failed to summarize conversation title. error: {e}')
+        # Update conversation
+        try:
+            summarize = None
+            if is_new_conversation:
+                prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n请直接输出提炼结果，不要解释。'
+                completion = CoreCompletion(
+                    self.tc_config(),
+                    system_prompt=prompt
+                )
+                summarize = await completion.chat(f'user: {query}\n\nassistance: {reply_text[:200]}')
+            conversation = await conversation_cb.update(conversation_id=conversation_id, title=summarize)
+            yield to_event(EventType.CONVERSATION, conversation=conversation, is_new_conversation=False)
+        except Exception as e:
+            logging.error(f'failed to summarize conversation title. error: {e}')
 
     # FileInterface:
     async def upload(self, db: AsyncSession, request: Request, account_id: str, mime_type: str) -> str:
@@ -228,9 +203,7 @@ class TCADP(BaseVendor):
                 body = await request.stream.read()
                 if body is None:
                     break
-                # result += body.decode("utf-8")
                 print(f'upload: {len(body)}')
-                # print(f'upload: {body}')
                 await uploader.write(body)
 
         url = cos.get_full_url(resp['UploadPath'])
@@ -352,7 +325,7 @@ service_configs = {
             'ep': 'http://cos.{region}.myqcloud.com',
             'access': 'http://{bucket}.cos.{region}.myqcloud.com'
         },
-        'sse': 'https://wss.lke.tencentcloud.com/v1/qbot/chat/sse'
+        'sse': 'https://wss.lke.tencentcloud.com/adp/v2/chat'
     },
     'China': {
         'lke': {
@@ -369,7 +342,7 @@ service_configs = {
             'ep': 'http://cos.{region}.myqcloud.com',
             'access': 'http://{bucket}.cos.{region}.myqcloud.com'
         },
-        'sse': 'https://wss.lke.cloud.tencent.com/v1/qbot/chat/sse'
+        'sse': 'https://wss.lke.cloud.tencent.com/adp/v2/chat'
     }
 }
 

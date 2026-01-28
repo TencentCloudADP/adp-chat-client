@@ -3,7 +3,7 @@
  * @module sseRequest-reasoning
  * @description 处理SSE(Server-Sent Events)流式请求的通用逻辑
  */
-import type { Record } from './chat'
+import type { SseEvent } from './chat-v2'
 
 /**
  * SSE请求选项配置接口
@@ -13,7 +13,7 @@ import type { Record } from './chat'
  * @property {Function} [complete] - 完成回调函数，可选，接收操作状态和可选信息
  */
 interface FetchSSEOptions {
-  success: (data: any) => void
+  success: (event: SseEvent) => void
   fail?: (msg?: string | null | undefined | unknown) => void
   complete?: (isOk: boolean, msg?: string) => void
 }
@@ -22,7 +22,7 @@ interface FetchSSEOptions {
  * @typedef {Function} FetchFn
  * @returns {void}
  */
-type FetchFn = () => void
+type FetchFn = () => Promise<any>
 
 /**
  * 处理SSE流式请求
@@ -39,33 +39,26 @@ export const fetchSSE = async (fetchFn: FetchFn, options: FetchSSEOptions): Prom
   try {
     const res = await fetchFn()
     for await (const line of chunkSplitter(res)) {
-      let msg_body = line.substring(line.indexOf(':') + 1).trim()
-      let msg_map = JSON.parse(msg_body)
-      const msg_type = msg_map['Type']
-      if (msg_type == 'conversation') {
-        // 对话控制消息，新的对话，或者更新现有对话（标题、最后活跃时间等）
-        let record: Record = msg_map['Payload']
-        success({
-          type: 'conversation',
-          data: record
-        })
-      } else if (msg_type == 'heartbeat') {
-        // 心跳消息，不处理
-      } else if (msg_type == 'error') {
-        // 错误信息
-        let errorMsg = msg_map['Payload']['Error']['Message'];
-        // messages.value = messages.value.filter((msg, _) => msg.RecordId !== 'placeholder-agent')
+      if (!line.startsWith('data:')) {
+        continue
+      }
+      const payload = line.slice('data:'.length).trim()
+      if (!payload || payload === '[DONE]') {
+        continue
+      }
+      let event: SseEvent
+      try {
+        event = JSON.parse(payload) as SseEvent
+      } catch {
+        continue
+      }
+      if (event.Type === 'error') {
+        const errorMsg = event.Error?.Message
         complete?.(true, errorMsg)
         fail?.(errorMsg)
-      } else {
-        // 其他消息类型，包括thought、reply、token_stat、reference
-        let record: Record = msg_map['Payload']
-        // messages.value.push(record)
-        success({
-          type: msg_type,
-          data: record
-        })
+        return
       }
+      success(event)
     }
   } catch (err) {
     // abort 停止会走到catch
