@@ -9,7 +9,15 @@ from util.warehouse import AsyncWareHouseS3
 
 from core.completion import CoreCompletion
 from config import tagentic_config
-from vendor.interface import BaseVendor, ApplicationInfo, ConversationCallback, EventType, Record, ErrorInfo
+from vendor.interface import (
+    BaseVendor,
+    ApplicationInfo,
+    ConversationCallback,
+    EventType,
+    Record,
+    ErrorInfo,
+    extract_text_from_contents,
+)
 from util.helper import to_event
 from util.json_format import custom_dumps
 
@@ -87,13 +95,16 @@ class TCADP(BaseVendor):
     async def chat(
         self,
         account_id: str,
-        query: str,
+        contents: list,
         conversation_id: str,
         is_new_conversation: bool,
         conversation_cb: ConversationCallback,
         search_network=True,
         custom_variables={}
     ):
+        if not contents:
+            contents = [{"Type": "text", "Text": ""}]
+
         if is_new_conversation:
             conversation = await conversation_cb.create()
             yield to_event(EventType.CONVERSATION, conversation=conversation, is_new_conversation=True)
@@ -104,12 +115,7 @@ class TCADP(BaseVendor):
             param = {
                 "ConversationId": conversation_id,
                 "AppKey": self.config['AppKey'],
-                "Contents": [
-                    {
-                        "Type": "text",
-                        "Text": query,
-                    },
-                ],
+                "Contents": contents,
                 "Incremental": True,
                 "EnableMultiIntent": True,
                 "Stream": "enable",
@@ -163,12 +169,15 @@ class TCADP(BaseVendor):
         try:
             summarize = None
             if is_new_conversation:
+                query_text = extract_text_from_contents(contents).strip()
+                if not query_text:
+                    query_text = "New Chat"
                 prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n请直接输出提炼结果，不要解释。'
                 completion = CoreCompletion(
                     self.tc_config(),
                     system_prompt=prompt
                 )
-                summarize = await completion.chat(f'user: {query}\n\nassistance: {reply_text[:200]}')
+                summarize = await completion.chat(f'user: {query_text}\n\nassistance: {reply_text[:200]}')
             conversation = await conversation_cb.update(conversation_id=conversation_id, title=summarize)
             yield to_event(EventType.CONVERSATION, conversation=conversation, is_new_conversation=False)
         except Exception as e:

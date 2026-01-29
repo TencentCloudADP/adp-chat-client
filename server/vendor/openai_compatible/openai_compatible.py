@@ -12,7 +12,7 @@ from core.chat import CoreMessage
 from vendor.interface import (
     BaseVendor, ApplicationInfo,
     EventType, Record, RecordRole, Message, MessageType, Content, ContentType,
-    RecordExtraInfo, Procedure, ErrorInfo
+    RecordExtraInfo, Procedure, ErrorInfo, extract_text_from_contents
 )
 from util.helper import to_event
 from util.json_format import custom_dumps
@@ -50,7 +50,7 @@ class OpenAICompatible(BaseVendor):
     async def chat(
         self,
         account_id,
-        query,
+        contents,
         conversation_id,
         is_new_conversation,
         conversation_cb,
@@ -67,6 +67,20 @@ class OpenAICompatible(BaseVendor):
         thought_message_id = str(uuid.uuid4())
 
         try:
+            normalized_contents = []
+            if contents:
+                for item in contents:
+                    if isinstance(item, Content):
+                        normalized_contents.append(item)
+                    else:
+                        normalized_contents.append(Content.model_validate(item))
+            if not normalized_contents:
+                normalized_contents = [Content(Type=ContentType.TEXT, Text="")]
+
+            query_text = extract_text_from_contents(normalized_contents).strip()
+            if not query_text:
+                query_text = "New Chat"
+
             # Create new conversation if needed
             if is_new_conversation:
                 conversation = await conversation_cb.create()
@@ -86,7 +100,7 @@ class OpenAICompatible(BaseVendor):
                     Name='',
                     Title='',
                     Status='completed',
-                    Contents=[Content(Type=ContentType.TEXT, Text=query)]
+                    Contents=normalized_contents
                 )],
                 ExtraInfo=RecordExtraInfo(IsFromSelf=True)
             )
@@ -143,7 +157,11 @@ class OpenAICompatible(BaseVendor):
                     role = "user" if record.FromRole == "user" else "assistant"
                     try:
                         record_dict = json.loads(record.Content)
-                        content = record_dict.get('Content', '')
+                        content = record_dict.get('Content')
+                        if content is None and 'Contents' in record_dict:
+                            content = extract_text_from_contents(record_dict.get('Contents') or [])
+                        if content is None:
+                            content = ''
                     except json.JSONDecodeError:
                         content = record.Content
 
@@ -153,7 +171,7 @@ class OpenAICompatible(BaseVendor):
                     })
 
             # Add current user message
-            messages.append({"role": "user", "content": query})
+            messages.append({"role": "user", "content": query_text})
 
             logger.info(f"[OpenAICompatible] Sending {len(messages)} messages (including {len(messages)-1} history messages)")
 
@@ -260,14 +278,20 @@ class OpenAICompatible(BaseVendor):
             # Save messages to ChatRecord
             logger.info(f"[OpenAICompatible] Final content length: {len(content)}")
             if content:
+                serialized_contents = [item.model_dump(exclude_none=True) for item in normalized_contents]
                 async with db_connection() as db:
                     # Save user message
                     related_record = await CoreMessage.create(
-                        db,
-                        conversation_id,
-                        "user",
-                        json.dumps({'Content': query}, ensure_ascii=False)
-                    )
+                        
+                    db,
+                       
+                    conversation_id,
+                       
+                    "user",
+                       
+                    json.dumps({'Content': query_text, 'Contents': serialized_contents}, ensure_ascii=False)
+                    
+                )
 
                     # Save assistant message
                     await CoreMessage.create(
@@ -331,7 +355,7 @@ class OpenAICompatible(BaseVendor):
 
             # Update conversation title if new
             if is_new_conversation and content:
-                title = query[:20] + "..." if len(query) > 20 else query
+                title = query_text[:20] + "..." if len(query_text) > 20 else query_text
                 conversation = await conversation_cb.update(
                     conversation_id=conversation_id,
                     title=title

@@ -415,12 +415,13 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
     });
 
     abortController.value = new AbortController();
+    const contents = [{ Type: 'text', Text: query }];
 
     await fetchSSE(
         () => {
             return sendMessage(
                 {
-                    Query: query,
+                    Contents: contents,
                     ConversationId: conversationId || undefined,
                     ApplicationId: applicationId,
                     FileInfos: fileList,

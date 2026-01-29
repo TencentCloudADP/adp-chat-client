@@ -19,7 +19,7 @@ class ChatMessageApi(HTTPMethodView):
     @login_required
     async def post(self, request: Request):
         parser = reqparse.RequestParser()
-        parser.add_argument("Query", type=str, required=True, location="json")
+        parser.add_argument("Contents", type=list, required=True, location="json")
         parser.add_argument("ConversationId", type=str, location="json")
         parser.add_argument("ApplicationId", type=str, location="json")
         parser.add_argument("SearchNetwork", type=bool, default=True, location="json")
@@ -38,7 +38,7 @@ class ChatMessageApi(HTTPMethodView):
             async for data in CoreChat.message(
                 vendor_app,
                 request.ctx.account_id,
-                args['Query'],
+                args['Contents'],
                 args['ConversationId'],
                 args['SearchNetwork'],
                 args['CustomVariables']

@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from core.conversation import CoreConversation
 from model.chat import ChatRecord, ChatConversation
-from vendor.interface import BaseVendor, ConversationCallback
+from vendor.interface import BaseVendor, ConversationCallback, extract_text_from_contents
 from util.database import db_connection
 
 logger = logging.getLogger(__name__)
@@ -14,16 +14,20 @@ class CoreChat:
     async def message(
         vendor_app: BaseVendor,
         account_id: str,
-        query: str,
+        contents: list,
         conversation_id: str,
         search_network: bool,
         custom_variables: dict
     ):
+        title_source = extract_text_from_contents(contents).strip()
+        if not title_source:
+            title_source = "New Chat"
+
         class CoreConversationCallback(ConversationCallback):
             async def create(self, title: str = None, conversation_id: str = None) -> ChatConversation:
                 # create
                 if title is None:
-                    title = query[:10]
+                    title = title_source[:10]
                 async with db_connection() as db:
                     conversation = await CoreConversation.create(
                         db,
@@ -49,7 +53,7 @@ class CoreChat:
 
         async for message in vendor_app.chat(
             account_id,
-            query,
+            contents,
             conversation_id,
             is_new_conversation,
             CoreConversationCallback(),
