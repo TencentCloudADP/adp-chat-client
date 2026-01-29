@@ -216,7 +216,7 @@ defineExpose({
                 @share="(conversationId, applicationId, recordIds) => emit('share', conversationId, applicationId, recordIds)"
                 @copy="(rowtext, content, type) => emit('copy', rowtext, content, type)"
                 @uploadFile="(files) => emit('uploadFile', files)"
-                @uploadStatus="(status) => emit('uploadStatus', status)"
+                @uploadStatus="(status: 'uploading' | 'done') => emit('uploadStatus', status)"
                 @startRecord="emit('startRecord')"
                 @stopRecord="emit('stopRecord')"
                 @message="(code, message) => emit('message', code, message)"
