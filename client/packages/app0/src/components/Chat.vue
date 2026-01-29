@@ -433,7 +433,12 @@ const handleSend = async (_lastQuery = null as null|string) => {
 
   abort = new AbortController()
   const post_body = {
-    Query: _query,
+    Contents: [
+      {
+        Type: 'text',
+        Text: _query,
+      },
+    ],
     ConversationId: conversationId.value,
     ApplicationId: currentApplicationId.value,
   }

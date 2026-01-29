@@ -189,6 +189,27 @@ class Content(BaseModel):
     WidgetAction: Optional[WidgetAction] = None
 
 
+def extract_text_from_contents(contents: Optional[List[Union["Content", Dict[str, Any]]]]) -> str:
+    if not contents:
+        return ""
+    for item in contents:
+        if item is None:
+            continue
+        if isinstance(item, Content):
+            content_type = item.Type
+            text = item.Text
+        elif isinstance(item, dict):
+            content_type = item.get("Type") or item.get("type")
+            text = item.get("Text") or item.get("text")
+        else:
+            content_type = getattr(item, "Type", None)
+            text = getattr(item, "Text", None)
+
+        if content_type in {ContentType.TEXT, ContentType.JSON_TEXT, "text", "json_text"} and text:
+            return text
+    return ""
+
+
 # Message-related models
 
 class MessageExtraInfo(BaseModel):
@@ -412,7 +433,7 @@ class ChatInterface:
     async def chat(
         self,
         account_id: str,
-        query: str,
+        contents: List[Content],
         conversation_id: str,
         is_new_conversation: bool,
         conversation_cb: ConversationCallback,
@@ -425,7 +446,7 @@ class ChatInterface:
 
         Args:
             account_id (str): 用户账户唯一标识，用于标识不同用户
-            query (str): 用户输入的查询文本
+            contents (List[Content]): 用户输入内容列表，遵循 Content 结构
             conversation_id (str): 对话会话唯一标识
                 如果是新会话，conversation_id为None
             is_new_conversation (bool): 是否为新对话的标志
