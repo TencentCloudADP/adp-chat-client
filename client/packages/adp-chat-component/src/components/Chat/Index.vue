@@ -499,6 +499,7 @@ const extractRecordText = (record: Record): string => {
     const target = record.Role === 'user'
         ? (messages.find(msg => msg.Type === 'question') ?? messages[0])
         : (messages.find(msg => msg.Type === 'reply') ?? messages[0]);
+    if (!target) return '';
     return (target.Contents ?? []).map(content => content.Text ?? '').filter(text => text.length > 0).join('\n');
 };
 
