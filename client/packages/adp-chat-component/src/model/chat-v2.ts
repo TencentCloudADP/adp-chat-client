@@ -28,7 +28,7 @@ export interface Content {
   Text?: string
   Image?: Image
   File?: FileInfo
-  CustomVariables?: Record<string, string>
+  CustomVariables?: { [key: string]: string }
   WidgetAction?: WidgetAction
 }
 

@@ -51,13 +51,19 @@ function upsertMessage(current: Record | undefined, incoming: Message): Record |
     messages.push(incoming)
   } else {
     const existing = messages[idx]
-    const merged: Message = {
-      ...existing,
-      ...incoming,
-      Contents: incoming.Contents !== undefined ? incoming.Contents : existing.Contents,
-      ExtraInfo: incoming.ExtraInfo ? { ...(existing.ExtraInfo ?? {}), ...incoming.ExtraInfo } : existing.ExtraInfo,
+    if (existing) {
+      const merged: Message = {
+        ...existing,
+        ...incoming,
+        Contents: incoming.Contents !== undefined ? incoming.Contents : existing.Contents,
+        ExtraInfo: incoming.ExtraInfo
+          ? { ...(existing.ExtraInfo ?? {}), ...incoming.ExtraInfo }
+          : existing.ExtraInfo,
+      }
+      messages[idx] = merged
+    } else {
+      messages[idx] = incoming
     }
-    messages[idx] = merged
   }
   return { ...current, Messages: messages }
 }
@@ -72,6 +78,9 @@ function addContent(
     return undefined
   }
   const { message, messages, messageIndex } = ensureMessage(current, messageId)
+  if (!message) {
+    return { ...current, Messages: messages }
+  }
   const contents = message.Contents ? [...message.Contents] : []
   const existing = contents[contentIndex]
   contents[contentIndex] = existing ? { ...existing, ...content } : content
@@ -89,6 +98,9 @@ function appendTextDelta(
     return undefined
   }
   const { message, messages, messageIndex } = ensureMessage(current, messageId)
+  if (!message) {
+    return { ...current, Messages: messages }
+  }
   const contents = message.Contents ? [...message.Contents] : []
   const existing = contents[contentIndex]
   const base: Content = existing ?? { Type: 'text', Text: '' }
@@ -102,13 +114,16 @@ function ensureMessage(current: Record, messageId: string) {
   const messages = current.Messages ? [...current.Messages] : []
   let messageIndex = messages.findIndex((msg) => msg.MessageId === messageId)
   if (messageIndex === -1) {
-    messages.push({
+    const placeholder: Message = {
       MessageId: messageId,
       Type: 'notice',
       Name: '',
       Title: '',
       Status: 'processing',
-    })
+      StatusDesc: '',
+      Contents: [],
+    }
+    messages.push(placeholder)
     messageIndex = messages.length - 1
   }
   const message = messages[messageIndex]
