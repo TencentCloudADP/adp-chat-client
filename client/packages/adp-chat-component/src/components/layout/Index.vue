@@ -275,7 +275,7 @@ const currentApplicationAvatar = computed(() => actualCurrentApplication.value?.
 const currentApplicationName = computed(() => actualCurrentApplication.value?.Name || '');
 const currentApplicationGreeting = computed(() => actualCurrentApplication.value?.Greeting || '');
 const currentApplicationOpeningQuestions = computed(() => actualCurrentApplication.value?.OpeningQuestions || []);
-const currentConversationId = computed(() => actualCurrentConversation.value?.Id || '');
+const currentConversationId = computed(() => props.currentConversationId || actualCurrentConversation.value?.Id || '');
 
 // API 数据加载方法
 const loadApplications = async () => {
