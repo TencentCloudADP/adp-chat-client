@@ -57,6 +57,7 @@ export interface SideI18n {
 
 /** 聊天国际化文本 */
 export interface ChatI18n {
+  uploading?:string;
   loading?: string
   thinking?: string
   checkAll?: string
@@ -175,6 +176,7 @@ export const defaultSideI18n: Required<SideI18n> = {
 
 /** 聊天 i18n 默认值 */
 export const defaultChatI18n: Required<ChatI18n> = {
+  uploading: '图片上传中',
   loading: '加载中',
   thinking: '思考中',
   checkAll: '全选',
@@ -239,6 +241,7 @@ export const defaultSideI18nEn: Required<SideI18n> = {
 
 /** 聊天 i18n 英文默认值 */
 export const defaultChatI18nEn: Required<ChatI18n> = {
+  uploading: 'Uploading',
   loading: 'Loading',
   thinking: 'Thinking',
   checkAll: 'Select All',

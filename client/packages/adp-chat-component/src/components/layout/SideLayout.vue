@@ -159,12 +159,13 @@ const handleUserClick = () => {
                         :name="userName"
                         @click="handleUserClick"
                     />
-                    <Settings 
+                    <Settings
                         :theme="theme"
                         :languageOptions="languageOptions"
                         :switchThemeText="i18n.switchTheme"
                         :selectLanguageText="i18n.selectLanguage"
                         :logoutText="i18n.logout"
+                        :isMobile="isMobile"
                         @toggleTheme="handleToggleTheme"
                         @changeLanguage="handleChangeLanguage"
                         @logout="handleLogout"

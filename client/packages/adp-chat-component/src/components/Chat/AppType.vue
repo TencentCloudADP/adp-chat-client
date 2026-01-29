@@ -18,6 +18,8 @@ interface Props extends MobileProps {
   currentApplicationGreeting?: string;
   /** 当前应用推荐问题列表 */
   currentApplicationOpeningQuestions?: string[];
+  /** 是否显示遮罩层 */
+  isOverlay?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -25,16 +27,18 @@ const props = withDefaults(defineProps<Props>(), {
   currentApplicationName: '',
   currentApplicationGreeting: '',
   currentApplicationOpeningQuestions: () => [],
+  isOverlay: false,
   ...mobilePropsDefaults,
 });
 
 // 解构 props 以便在模板中使用
-const { 
-  currentApplicationAvatar, 
-  currentApplicationName, 
-  currentApplicationGreeting, 
+const {
+  currentApplicationAvatar,
+  currentApplicationName,
+  currentApplicationGreeting,
   currentApplicationOpeningQuestions,
-  isMobile 
+  isOverlay,
+  isMobile
 } = toRefs(props);
 
 const emit = defineEmits<{
@@ -62,7 +66,7 @@ const handleChooseQuestion = (value: string) => {
   <div class="greeting-panel" :class="{ isMobile: isMobile }">
     <TAvatar 
       hideOnLoadFailed 
-      v-if="currentApplicationAvatar && !isMobile" 
+      v-if="currentApplicationAvatar && !isOverlay" 
       class="greet-avatar" 
       size="64px" 
       shape="round" 
@@ -72,7 +76,7 @@ const handleChooseQuestion = (value: string) => {
         loading: ''
       }"
     ></TAvatar>
-    <span v-if="currentApplicationName" class="greet-name">{{ currentApplicationName }}</span>
+    <span v-if="currentApplicationName && !isOverlay" class="greet-name">{{ currentApplicationName }}</span>
     <div class="greet-desc" v-if="currentApplicationGreeting">
         {{ currentApplicationGreeting }}
     </div>
@@ -132,11 +136,15 @@ const handleChooseQuestion = (value: string) => {
   padding:var(--td-pop-padding-l) var(--td-pop-padding-xl);
   border-radius: var(--td-radius-medium);
 }
+
+.isMobile .greet-desc{
+  background: var(-----td-bg-color-container-hover, #F3F3F3);
+  color: var(-----td-text-color-secondary, #00000099);
+  padding: calc(var(--td-size-4) + var(--td-size-1)) var(--td-pop-padding-xl);
+}
 .isMobile .greet-tag{
-  color: var(--td-text-color-primary);
-  padding:var(--td-pop-padding-xl) var(--td-pop-padding-xxl);
-  font-size: var(--td-font-size-title-small);
-  font-weight: 400;
+  font-size: var(--td-font-size-body-small);
+  box-shadow: none;
 }
 .greet-tag {
   padding:var(--td-pop-padding-l) var(--td-pop-padding-xl);
@@ -148,13 +156,18 @@ const handleChooseQuestion = (value: string) => {
 }
 .greet-tag-text{
   display: flex;
-  color: #0052d9;
+  color: var(--td-brand-color);
   align-items: center;
+  font-weight: 500;
 }
 .greet-tag-text .star-icon{
   margin-right: var(--td-comp-margin-xs);
 }
 .recommend-question-container {
   margin-top: var(--td-size-6)
+}
+:deep(.recommend-question-container.t-space-vertical .t-space-item) {
+  display: flex;
+  justify-content: center;
 }
 </style>

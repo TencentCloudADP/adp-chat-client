@@ -7,13 +7,14 @@
             @scroll="handleChatScroll" @clear="clearConfirm">
             <!-- 默认问题提示 -->
             <template v-if="chatList.length <= 0 && !messageLoading && !chatId">
-                <AppType 
+                <AppType
                     :currentApplicationAvatar="currentApplicationAvatar"
                     :currentApplicationName="currentApplicationName"
                     :currentApplicationGreeting="currentApplicationGreeting"
                     :currentApplicationOpeningQuestions="currentApplicationOpeningQuestions"
                     :isMobile="isMobile"
-                    @selectQuestion="getDefaultQuestion" 
+                    :isOverlay="isOverlay"
+                    @selectQuestion="getDefaultQuestion"
                 />
             </template>
             <!-- 聊天消息列表 -->
@@ -93,6 +94,16 @@
                         </div>
                     </div>
                 </TCard>
+                <TLoading v-if="isUploading" class="upload-loading" size="small">
+                    <template #text>
+                        <span class="thinking-text">
+                            {{ `${i18n.uploading}...` }}
+                        </span>
+                    </template>
+                    <template #indicator>
+                        <CustomizedIcon class="thinking-icon" name="thinking" :theme="theme" nativeIcon :showHoverBg="false"/>
+                    </template>
+                </TLoading>
                 <Sender 
                     ref="senderRef" 
                     :isStreamLoad="isChatting" 
@@ -102,7 +113,7 @@
                     :useInternalRecord="useInternalRecord"
                     :asrUrlApi="asrUrlApi"
                     @stop="onStop"
-                    @send="handleSend" 
+                    @send="handleSend"
                     @uploadFile="handleUploadFile"
                     @startRecord="handleStartRecord"
                     @stopRecord="handleStopRecord"
@@ -158,6 +169,10 @@ export interface Props extends ChatRelatedProps {
     useInternalRecord?: boolean;
     /** ASR URL API 路径 */
     asrUrlApi?: string;
+    /** 是否正在上传文件 */
+    isUploading?: boolean;
+    /** 是否显示遮罩层 */
+    isOverlay?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -174,18 +189,21 @@ const props = withDefaults(defineProps<Props>(), {
     chatItemI18n: () => ({}),
     senderI18n: () => ({}),
     useInternalRecord: false,
-    asrUrlApi: ''
+    asrUrlApi: '',
+    isUploading: false,
+    isOverlay: false
 });
 
 // 解构 props 以便在模板中使用
-const { 
+const {
     chatId,
-    currentApplicationAvatar, 
-    currentApplicationName, 
-    currentApplicationGreeting, 
+    currentApplicationAvatar,
+    currentApplicationName,
+    currentApplicationGreeting,
     currentApplicationOpeningQuestions,
     currentApplicationId,
     isChatting,
+    isOverlay,
     isMobile,
     theme,
     useInternalRecord,
@@ -589,6 +607,11 @@ defineExpose({
 </script>
 
 <style scoped>
+.upload-loading{
+    position: absolute; 
+    bottom: var(--td-comp-margin-m); 
+    z-index:2
+}
 .chat-box {
     height: 100%;
     position: relative;
