@@ -106,11 +106,6 @@ const handleChooseQuestion = (value: string) => {
   font-weight: 500;
   margin-top:16px;
 }
-.isMobile .greeting-panel{
-  justify-content: flex-start;
-  align-items: flex-start;
-}
-
 .greeting-panel {
   display: flex;
   height: 100%;
