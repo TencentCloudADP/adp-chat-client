@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react';
 import vue from '@vitejs/plugin-vue';
 import path from 'path';
 export default defineConfig(function (_a) {
-    var mode = _a.mode;
-    var env = loadEnv(mode, process.cwd(), '');
+    const mode = _a.mode;
+    const env = loadEnv(mode, process.cwd(), '');
     return {
         base: './',
         plugins: [react(), vue()],
@@ -28,7 +28,9 @@ export default defineConfig(function (_a) {
                 '/api': {
                     target: env.SERVICE_API_URL || 'http://localhost:8000',
                     changeOrigin: true,
-                    rewrite: function (path) { return path.replace(/^\/api/, ''); },
+                    rewrite:  function(path) {
+                        return path.replace(/^\/api/, '');
+                    },
                 },
             },
         },

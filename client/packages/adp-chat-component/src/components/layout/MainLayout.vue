@@ -9,7 +9,7 @@ import Chat from '../Chat/Index.vue';
 import AIWarning from '../AIWarning.vue';
 import SidebarToggle from '../SidebarToggle.vue';
 import CreateConversation from '../CreateConversation.vue';
-import { Avatar as TAvatar, Layout as TLayout, Content as TContent, Header as THeader, Footer as TFooter } from 'tdesign-vue-next';
+import { Divider as TDivider, Space as TSpace, Avatar as TAvatar, Layout as TLayout, Content as TContent, Header as THeader, Footer as TFooter } from 'tdesign-vue-next';
 
 // TAvatar, TLayout, TContent, THeader, TFooter 已导入，模板中使用对应组件
 import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type';
@@ -50,6 +50,10 @@ export interface Props extends ChatRelatedProps {
     useInternalRecord?: boolean;
     /** ASR URL API 路径 */
     asrUrlApi?: string;
+    /** 是否正在上传文件 */
+    isUploading?: boolean;
+    /** 是否显示遮罩层 */
+    isOverlay?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -65,6 +69,8 @@ const props = withDefaults(defineProps<Props>(), {
     isChatting: false,
     showSidebarToggle: true,
     aiWarningText: '内容由AI生成，仅供参考',
+    isUploading: false,
+    isOverlay: false,
 });
 
 // 合并 i18n 配置，获取 createConversation 文本
@@ -73,19 +79,64 @@ const createConversationText = computed(() =>
 );
 
 const emit = defineEmits<{
+    /** 切换侧边栏显示/隐藏 */
     (e: 'toggleSidebar'): void;
+    /** 创建新会话 */
     (e: 'createConversation'): void;
+    /** 关闭聊天面板 */
     (e: 'close'): void;
+    /** 发送消息
+     * @param query - 消息内容
+     * @param fileList - 文件列表
+     * @param conversationId - 会话ID
+     * @param applicationId - 应用ID
+     */
     (e: 'send', query: string, fileList: FileProps[], conversationId: string, applicationId: string): void;
+    /** 停止生成回复 */
     (e: 'stop'): void;
+    /** 加载更多历史消息
+     * @param conversationId - 会话ID
+     * @param lastRecordId - 最后一条记录ID
+     */
     (e: 'loadMore', conversationId: string, lastRecordId: string): void;
+    /** 评分
+     * @param conversationId - 会话ID
+     * @param recordId - 记录ID
+     * @param score - 评分值
+     */
     (e: 'rate', conversationId: string, recordId: string, score: typeof ScoreValue[keyof typeof ScoreValue]): void;
+    /** 分享会话
+     * @param conversationId - 会话ID
+     * @param applicationId - 应用ID
+     * @param recordIds - 记录ID列表
+     */
     (e: 'share', conversationId: string, applicationId: string, recordIds: string[]): void;
+    /** 复制内容
+     * @param rowtext - 原始文本
+     * @param content - 复制内容
+     * @param type - 复制类型
+     */
     (e: 'copy', rowtext: string | undefined, content: string | undefined, type: string): void;
+    /** 上传文件
+     * @param files - 文件列表
+     */
     (e: 'uploadFile', files: File[]): void;
+    /** 上传状态变化
+     * @param status - 上传状态：uploading-上传中，done-上传完成
+     */
+    (e: 'uploadStatus', status: 'uploading' | 'done'): void;
+    /** 开始录音 */
     (e: 'startRecord'): void;
+    /** 停止录音 */
     (e: 'stopRecord'): void;
+    /** 消息提示
+     * @param code - 消息代码
+     * @param message - 消息内容
+     */
     (e: 'message', code: MessageCode, message: string): void;
+    /** 会话切换
+     * @param conversationId - 会话ID
+     */
     (e: 'conversationChange', conversationId: string): void;
 }>();
 
@@ -121,15 +172,16 @@ defineExpose({
 </script>
 
 <template>
-    <TLayout class="main-layout">
+    <TLayout class="main-layout" :class="{ isMobile: isMobile }">
         <THeader class="layout-header">
             <div class="header-app-container">
-                <SidebarToggle :theme="theme" v-if="showSidebarToggle" @toggle="handleToggleSidebar" />
-                <TAvatar :imageProps="{
-                    lazy: true,
-                    loading: ''
-                }" class="header-app__avatar" shape="round" :image="currentApplicationAvatar" :size="isMobile ? 'var(--td-line-height-headline-small)' : 'large'"></TAvatar>
-                <span class="header-app__title">{{ currentApplicationName }}</span>
+                    <SidebarToggle :theme="theme" v-if="showSidebarToggle" @toggle="handleToggleSidebar" />
+                    <TDivider class="header-app-driver" v-if="showSidebarToggle" layout="vertical" />
+                    <TAvatar :imageProps="{
+                            lazy: true,
+                            loading: ''
+                        }" class="header-app__avatar" shape="round" :image="currentApplicationAvatar" :size="isMobile ? 'var(--td-line-height-headline-small)' : 'large'"></TAvatar>
+                        <span class="header-app__title">{{ currentApplicationName }}</span>
             </div>
             <div class="header-app-settings">
                 <CreateConversation :tooltipText="createConversationText" :theme="theme" @create="handleCreateConversation" />
@@ -138,7 +190,7 @@ defineExpose({
             </div>
         </THeader>
         <TContent class="layout-content">
-            <Chat 
+            <Chat
                 ref="chatRef"
                 :chatId="chatId"
                 :chatList="chatList"
@@ -155,6 +207,8 @@ defineExpose({
                 :senderI18n="senderI18n"
                 :useInternalRecord="useInternalRecord"
                 :asrUrlApi="asrUrlApi"
+                :isUploading="isUploading"
+                :isOverlay="isOverlay"
                 @send="(query, fileList, conversationId, applicationId) => emit('send', query, fileList, conversationId, applicationId)"
                 @stop="emit('stop')"
                 @loadMore="(conversationId, lastRecordId) => emit('loadMore', conversationId, lastRecordId)"
@@ -162,6 +216,7 @@ defineExpose({
                 @share="(conversationId, applicationId, recordIds) => emit('share', conversationId, applicationId, recordIds)"
                 @copy="(rowtext, content, type) => emit('copy', rowtext, content, type)"
                 @uploadFile="(files) => emit('uploadFile', files)"
+                @uploadStatus="(status) => emit('uploadStatus', status)"
                 @startRecord="emit('startRecord')"
                 @stopRecord="emit('stopRecord')"
                 @message="(code, message) => emit('message', code, message)"
@@ -190,15 +245,19 @@ defineExpose({
     background: var(--td-bg-color-container);
     overflow: hidden;
 }
-
+.isMobile .layout-header{
+    padding: var(--td-pop-padding-xl) var(--td-comp-margin-xl);
+}
 .layout-header {
     flex-shrink: 0;
     display: flex;
     padding: var(--td-pop-padding-xl) var(--td-comp-paddingLR-xl);
     justify-content: space-between;
+    height: var(--td-comp-size-xxxxl);
 }
 .header-app-settings{
     display: flex;
+    align-items: center;
 }
 
 .layout-header .header-app-settings svg {
@@ -224,6 +283,9 @@ defineExpose({
 .layout-footer {
     flex-shrink: 0;
     padding: var(--td-pop-padding-l);
+}
+.header-app-driver{
+    margin: 0 var(--td-size-6) 0 var(--td-size-4);
 }
 .header-app-container{
     display: flex;

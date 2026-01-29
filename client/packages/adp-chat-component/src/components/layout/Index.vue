@@ -145,6 +145,7 @@ const emit = defineEmits<{
     (e: 'share', conversationId: string, applicationId: string, recordIds: string[]): void;
     (e: 'copy', rowtext: string | undefined, content: string | undefined, type: string): void;
     (e: 'uploadFile', files: File[]): void;
+    (e: 'uploadStatus', status: 'uploading' | 'done'): void;
     (e: 'startRecord'): void;
     (e: 'stopRecord'): void;
     (e: 'message', code: MessageCode, message: string): void;
@@ -157,6 +158,9 @@ const { theme } = toRefs(props);
 
 const sidebarVisible = ref(!props.isSidePanelOverlay);
 const mainLayoutRef = ref<InstanceType<typeof MainLayout> | null>(null);
+
+// 上传状态
+const isUploading = ref(false);
 
 // 合并 i18n 配置
 const mergedChatItemI18n = computed(() => ({
@@ -609,6 +613,9 @@ const handleInternalUploadFile = async (files: File[]) => {
         return;
     }
 
+    isUploading.value = true;
+    emit('uploadStatus', 'uploading');
+
     for (const file of files) {
         try {
             const response = await uploadFile(file, currentApplicationId.value, mergedApiDetailConfig.value.uploadApi);
@@ -628,6 +635,9 @@ const handleInternalUploadFile = async (files: File[]) => {
             emit('message', MessageCode.FILE_UPLOAD_FAILED, uploadErrorText);
         }
     }
+
+    isUploading.value = false;
+    emit('uploadStatus', 'done');
     emit('uploadFile', files);
 };
 
@@ -741,6 +751,7 @@ defineExpose({
                 @click="handleToggleSidebar"
             ></div>
             <SideLayout 
+                :isMobile="isMobile"
                 :visible="sidebarVisible"
                 :applications="actualApplications"
                 :currentApplicationId="currentApplicationId"
@@ -768,7 +779,7 @@ defineExpose({
                     </slot>
                 </template>
             </SideLayout>
-            <MainLayout 
+            <MainLayout
                 ref="mainLayoutRef"
                 :currentApplicationAvatar="currentApplicationAvatar"
                 :currentApplicationName="currentApplicationName"
@@ -787,6 +798,8 @@ defineExpose({
                 :senderI18n="props.senderI18n"
                 :useInternalRecord="useApiMode"
                 :asrUrlApi="mergedApiDetailConfig.asrUrlApi"
+                :isUploading="isUploading"
+                :isOverlay="props.isOverlay"
                 @toggleSidebar="handleToggleSidebar"
                 @createConversation="handleCreateConversation"
                 @close="handleClose"
@@ -797,6 +810,7 @@ defineExpose({
                 @share="handleInternalShare"
                 @copy="handleInternalCopy"
                 @uploadFile="handleInternalUploadFile"
+                @uploadStatus="(status: 'uploading' | 'done') => emit('uploadStatus', status)"
                 @startRecord="emit('startRecord')"
                 @stopRecord="emit('stopRecord')"
                 @message="(code: MessageCode, message: string) => emit('message', code, message)"
@@ -804,12 +818,12 @@ defineExpose({
             >
                 <template #header-overlay-content v-if="showOverlayButton || $slots['header-overlay-content']">
                     <slot name="header-overlay-content">
-                        <CustomizedIcon v-if="showOverlayButton" name="overlay" :theme="theme" @click="handleOverlay"/>
+                        <CustomizedIcon class="header-overlay-icon" v-if="showOverlayButton" name="overlay" :theme="theme" @click="handleOverlay"/>
                     </slot>
                 </template>
                 <template #header-close-content v-if="showCloseButton || $slots['header-close-content']">
                     <slot name="header-close-content">
-                        <CustomizedIcon v-if="showCloseButton" name="logout_close" :theme="theme" @click="handleClose"/>
+                        <CustomizedIcon class="header-overlay-icon" v-if="showCloseButton" name="logout_close" :theme="theme" @click="handleClose"/>
                     </slot>
                 </template>
             </MainLayout>
@@ -839,5 +853,8 @@ defineExpose({
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     z-index: 99;
+}
+.header-overlay-icon{
+    margin-left: var(--td-size-4);
 }
 </style>

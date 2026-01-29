@@ -13,14 +13,17 @@ interface Props extends ThemeProps {
     selectLanguageText?: string;
     /** 退出登录文本 */
     logoutText?: string;
+    /** 是否为移动端 */
+    isMobile?: boolean;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
     ...themePropsDefaults,
     languageOptions: () => defaultLanguageOptions,
     switchThemeText: '切换主题',
     selectLanguageText: '选择语言',
-    logoutText: '退出登录'
+    logoutText: '退出登录',
+    isMobile: false
 });
 
 const emit = defineEmits<{
@@ -47,7 +50,7 @@ const handleLogout = () => {
 
 <template>
     <t-space>
-        <t-dropdown maxColumnWidth="240px" >
+        <t-dropdown maxColumnWidth="240px" :placement="isMobile ? 'left-top' : 'bottom-left'">
             <t-button theme="default" shape="square" variant="text">
                 <CustomizedIcon name="setting" :theme="theme" />
             </t-button>

@@ -1,6 +1,6 @@
 <!-- 消息发送组件，支持文本、图片上传、语音输入 -->
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { ChatSender as TChatSender } from '@tdesign-vue-next/chat'
 import { MessagePlugin, Upload as TUpload, Tooltip as TTooltip } from 'tdesign-vue-next'
 import type { UploadFile, RequestMethodResponse } from 'tdesign-vue-next'
@@ -85,6 +85,23 @@ const asrWebSocket = ref<WebSocket | null>(null)
  */
 const recordMaxTime = 60;
 const recordRef = ref<ReturnType<typeof setTimeout> | null>(null);
+
+/**
+ * ChatSender 组件 ref
+ */
+const chatSenderRef = ref<InstanceType<typeof TChatSender> | null>(null);
+
+/**
+ * 设置 textarea 的 enterkeyhint 属性
+ */
+onMounted(() => {
+    nextTick(() => {
+        const textarea = chatSenderRef.value?.$el?.querySelector('textarea');
+        if (textarea) {
+            textarea.setAttribute('enterkeyhint', 'send');
+        }
+    });
+});
 
 /**
  * 处理输入内容变化
@@ -317,10 +334,14 @@ defineExpose({
 </script>
 
 <template>
-    <TChatSender class="sender-container" :value="inputValue" :textarea-props="{
+    <TChatSender ref="chatSenderRef" class="sender-container" :value="inputValue" :textarea-props="{
         placeholder: isMobile ? i18n.placeholderMobile : i18n.placeholder,
         autosize: { minRows: 1, maxRows: 6 },
-    }" @stop="emit('stop')" @send="handleSend" @change="handleInput" @paste="handlePaste">
+    }"
+        @stop="emit('stop')"
+        @send="handleSend"
+        @change="handleInput"
+        @paste="handlePaste">
         <template #inner-header>
             <FileList :fileList="fileList" :theme="theme" @delete="handleDeleteFile"/>
         </template>
