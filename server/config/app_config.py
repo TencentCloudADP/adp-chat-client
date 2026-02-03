@@ -1,5 +1,6 @@
 import logging
-from pydantic import Field, PositiveInt
+import json
+from pydantic import Field, PositiveInt, field_validator
 from pydantic_settings import SettingsConfigDict
 
 from .redis_config import RedisConfig
@@ -26,6 +27,11 @@ class TAgenticConfig(
         default="",
     )
 
+    CLIENT_URL: str = Field(
+        description="URL of the client/frontend, used for OAuth redirect in development mode. If empty, defaults to SERVICE_API_URL",
+        default="",
+    )
+
     SECRET_KEY: str = Field(
         description="Secret key for secure session cookie signing."
             "Make sure you are changing this key for your deployment with a strong key."
@@ -37,6 +43,18 @@ class TAgenticConfig(
         description="app configs, for TCADP, you can obtain it from https://lke.cloud.tencent.com/",
         default=[],
     )
+
+    @field_validator('APP_CONFIGS', mode='before')
+    @classmethod
+    def parse_app_configs(cls, v):
+        """Parse APP_CONFIGS from JSON string if needed"""
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse APP_CONFIGS: {e}")
+                return []
+        return v
 
     CUSTOMER_ACCOUNT_SECRET_KEY: str = Field(
         description="Secret key for secure customer account signing."

@@ -20,7 +20,10 @@ class OAuthCallbackApi(HTTPMethodView):
         account = await CoreOAuth.callback(request.ctx.db, provider, args["code"])
         token = await CoreAccount.login(request.ctx.db, account, get_remote_ip(request))
 
-        response = redirect(get_path_base())
+        # 在开发模式下，如果配置了 CLIENT_URL，则重定向到前端 URL
+        redirect_url = tagentic_config.CLIENT_URL if tagentic_config.CLIENT_URL else get_path_base()
+
+        response = redirect(redirect_url)
         response.add_cookie(
             "token",
             token,

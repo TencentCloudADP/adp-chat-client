@@ -30,8 +30,24 @@ class ChatMessageApi(HTTPMethodView):
         application_id = args['ApplicationId']
         vendor_app = app.get_vendor_app(application_id)
 
+        # 获取当前用户账户信息，传递给 ADP 智能体
+        from core.account import CoreAccount
+        import json
+        account = await CoreAccount.get(request.ctx.db, request.ctx.account_id)
+
+        # 将用户账户信息传递给 ADP (参数类型必须是 string)
+        # 根据 ADP 文档，CustomVariables 的值必须是字符串类型
+        # 如果需要传递复杂对象，使用 json.dumps 转换为 JSON 字符串
+        user_info = {
+            "id": str(account.Id),
+            "name": account.Name,
+            "email": account.Email if account.Email else ""
+        }
+        args['CustomVariables']['user_account'] = json.dumps(user_info)
+
         logging.info(f"[ChatMessageApi] ApplicationId: {application_id},\n\
             CustomVariables: {args['CustomVariables']},\n\
+            user_account: {account.Id}, user_name: {account.Name},\n\
             vendor_app: {vendor_app}")
 
         async def streaming_fn(response):
