@@ -1,0 +1,81 @@
+---
+title: ChatSender
+description: Message sender component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# ChatSender
+
+Message input and send component, supports text input, file upload, voice recording.
+
+## Usage in Vue
+
+```vue
+<template>
+  <ChatSender
+    :is-stream-load="isLoading"
+    @send="handleSend"
+    @stop="handleStop"
+  />
+</template>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.ChatSender.mount('#containerId', {
+  isStreamLoad: false,
+  onSend: (value, fileList) => {},
+  onStop: () => {}
+})
+</script>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'modelOptions', type: 'any[]', default: '[]', description: 'Model options' },
+  { name: 'selectModel', type: 'any', description: 'Selected model' },
+  { name: 'isDeepThinking', type: 'boolean', default: 'true', description: 'Enable deep thinking mode' },
+  { name: 'isStreamLoad', type: 'boolean', default: 'false', description: 'Whether streaming' },
+  { name: 'isMobile', type: 'boolean', default: 'false', description: 'Whether mobile' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: 'Theme mode' },
+  { name: 'i18n', type: 'object', description: 'i18n text' },
+]} />
+
+### i18n Defaults
+
+```typescript
+{
+  placeholder: 'Enter your question',
+  placeholderMobile: 'Enter',
+  uploadImg: 'Upload image',
+  startRecord: 'Start recording',
+  stopRecord: 'Stop recording',
+  answering: 'Answering...',
+  notSupport: 'Unsupported file format',
+  uploadError: 'Upload failed',
+  recordTooLong: 'Recording too long'
+}
+```
+
+<EventsTable data={[
+  { name: 'stop', description: 'Stop generation' },
+  { name: 'send', params: '(value, fileList)', description: 'Send message' },
+  { name: 'modelChange', params: 'option', description: 'Change model' },
+  { name: 'toggleDeepThinking', description: 'Toggle deep thinking mode' },
+  { name: 'uploadFile', params: 'File[]', description: 'Upload file' },
+  { name: 'startRecord', description: 'Start recording' },
+  { name: 'stopRecord', description: 'Stop recording' },
+  { name: 'message', params: '(type, message)', description: 'Message tip' },
+]} />
+
+<MethodsTable data={[
+  { name: 'changeSenderVal', params: '(value, files)', description: 'Change input content' },
+  { name: 'addFile', params: 'file', description: 'Add file to list' },
+  { name: 'setRecording', params: 'value', description: 'Set recording state' },
+  { name: 'updateInputValue', params: 'value', description: 'Update input value' },
+]} />

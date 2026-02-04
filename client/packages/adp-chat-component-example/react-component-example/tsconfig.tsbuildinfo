@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/adpchat.tsx","./src/components/sharechat.tsx","./src/components/index.ts","./src/config/index.ts","./src/pages/home.tsx","./src/pages/share.tsx","./src/stores/useuistore.ts"],"version":"5.9.3"}

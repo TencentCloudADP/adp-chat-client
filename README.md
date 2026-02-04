@@ -24,6 +24,7 @@
   - [Agent: Variables - API Parameters](#agent-variables---api-parameters)
   - [Deployment: Subpath](#deployment-subpath)
   - [Deployment: Rate Limiting](#deployment-rate-limiting)
+  - [Deployment: CORS](#deployment-cors)
 
 # Deployment
 
@@ -34,6 +35,16 @@ Please ensure the machine meets the minimum requirements:
 - CPU >= 2 Core
 - RAM >= 4 GiB
 - Operating System: Linux/macOS. If you want to run on Windows, you need to use WSL or a cloud server with a Linux system.
+
+## Browser Compatibility (H5)
+
+This project is built with Vue 3 and Vite, which requires modern browser support:
+
+| <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/chrome/chrome_48x48.png" alt="Chrome" width="24"> Chrome | <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/firefox/firefox_48x48.png" alt="Firefox" width="24"> Firefox | <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/safari/safari_48x48.png" alt="Safari" width="24"> Safari | <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/edge/edge_48x48.png" alt="Edge" width="24"> Edge | <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/safari-ios/safari-ios_48x48.png" alt="iOS Safari" width="24"> iOS Safari | <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/chrome/chrome_48x48.png" alt="Android Chrome" width="24"> Android |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| >= 87 | >= 78 | >= 14 | >= 88 | >= 14 | >= 87 |
+
+> ⚠️ **Note**: Internet Explorer is **NOT** supported. Vue 3 has dropped IE11 support.
 
 ## Docker
 
@@ -85,6 +96,7 @@ APP_CONFIGS='[
 
 # JWT secret key, a random string, can be generated using the uuidgen command
 SECRET_KEY=
+
 ```
 
 > ⚠️ **Note**:
@@ -339,3 +351,13 @@ RATE_LIMIT=100/minute
 ```
 
 Configuration format reference: [limit string](https://limits.readthedocs.io/en/latest/quickstart.html#rate-limit-string-notation)
+
+## Deployment: CORS
+
+If your frontend and backend are on different domains/ports, configure `CORS_ORIGINS` in `.env` to allow the browser to make cross-origin requests.
+
+Multiple origins are separated by commas:
+
+```
+CORS_ORIGINS=http://localhost,http://127.0.0.1:3000
+```

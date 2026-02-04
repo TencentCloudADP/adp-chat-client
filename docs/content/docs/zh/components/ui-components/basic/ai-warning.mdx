@@ -1,0 +1,35 @@
+---
+title: AIWarning
+description: AI 警告提示组件
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# AIWarning
+
+显示 AI 生成内容的警告提示。
+
+## vue中使用
+
+```vue
+<template>
+  <AIWarning text="内容由AI生成，仅供参考" />
+</template>
+```
+
+## html/react或其他框架中使用
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.AIWarning.mount('#containerId', {
+  text: '内容由AI生成，仅供参考'
+})
+</script>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'text', type: 'string', default: "'内容由AI生成，仅供参考'", description: '警告文本' },
+]} />

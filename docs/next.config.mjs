@@ -6,21 +6,27 @@ const withMDX = createMDX();
 const isGithubPages = process.env.NEXT_PUBLIC_BASE_PATH;
 const basePath = isGithubPages ? process.env.NEXT_PUBLIC_BASE_PATH : '';
 
+// 只在生产构建时使用静态导出
+const isProduction = process.env.NODE_ENV === 'production';
+
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
   turbopack: false,
+  // 只在生产环境使用静态导出
+  ...(isProduction && { output: 'export' }),
+  trailingSlash: true,
+  // 使用相对路径，支持 file:// 协议
+  assetPrefix: '',
   // 只在 GitHub Pages 部署时设置 basePath 和 assetPrefix
   ...(isGithubPages && {
     basePath: basePath,
     assetPrefix: basePath,
-    output: 'export',
-    trailingSlash: true,
   }),
   // 图片配置
   images: {
-    // 只在 GitHub Pages 部署时禁用图片优化
-    unoptimized: isGithubPages ? true : false,
+    // 静态导出模式必须禁用图片优化
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',

@@ -1,0 +1,215 @@
+---
+title: Init 创建组件
+description: 使用 init 方法动态挂载聊天组件
+---
+
+import { PropsTable, EventsTable } from '@/components/docs/api-table';
+
+使用 `init` 方法动态挂载聊天组件到任意 DOM 容器中，适用于所有需要动态创建聊天界面的场景。
+
+```typescript
+ADPChatComponent.init(container?: string, config?: ChatConfig)
+```
+
+### 参数
+
+| 参数 | 类型 | 默认值 | 说明 |
+| --- | --- | --- | --- |
+| container | `string` | `'body'` | 挂载容器的 CSS 选择器 |
+| config | `ChatConfig` | - | 配置选项 |
+
+### 返回值
+
+返回 Vue 组件实例，可用于后续操作。
+
+## ChatConfig 配置
+
+<PropsTable data={[
+  { name: 'container', type: 'string', default: "'body'", description: '挂载容器选择器' },
+  { name: 'apiConfig', type: 'ApiConfig', description: 'HTTP 请求配置，继承自 AxiosRequestConfig' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: '主题模式' },
+  { name: 'user', type: 'UserInfo', default: '{}', description: '用户信息' },
+  { name: 'logoUrl', type: 'string', default: "''", description: 'Logo 图片 URL' },
+  { name: 'logoTitle', type: 'string', default: "''", description: 'Logo 标题文字' },
+  { name: 'isOverlay', type: 'boolean', default: 'false', description: '是否为浮层模式：true-使用 width/height 浮动在容器上，false-撑满容器' },
+  { name: 'isSidePanelOverlay', type: 'boolean', default: 'true', description: '侧边栏是否使用overlay模式（覆盖内容区域）' },
+  { name: 'width', type: 'string | number', default: '400', description: '宽度（仅在 isOverlay 为 true 时生效）' },
+  { name: 'height', type: 'string | number', default: "'640'", description: '高度（仅在 isOverlay 为 true 时生效）' },
+  { name: 'isOpen', type: 'boolean', description: '是否展开面板' },
+  { name: 'onOpenChange', type: '(isOpen: boolean) => void', description: '面板展开状态变化回调' },
+  { name: 'showCloseButton', type: 'boolean', default: 'true', description: '是否显示关闭按钮' },
+  { name: 'showOverlayButton', type: 'boolean', default: 'true', description: '是否显示浮层切换按钮' },
+  { name: 'onOverlayChange', type: '(isOverlay: boolean) => void', description: '浮层状态切换回调（用户点击浮层按钮时触发）' },
+  { name: 'showToggleButton', type: 'boolean', default: 'true', description: '是否显示悬浮切换按钮' },
+  { name: 'maxAppLen', type: 'number', default: '4', description: '最大应用显示数量' },
+  { name: 'currentApplication', type: 'Application', description: '当前选中的应用' },
+  { name: 'currentApplicationId', type: 'string', description: '当前选中的应用 ID（优先级高于 currentApplication）' },
+  { name: 'currentConversation', type: 'ChatConversation', description: '当前选中的会话' },
+  { name: 'currentConversationId', type: 'string', description: '当前选中的会话 ID（优先级高于 currentConversation）' },
+  { name: 'aiWarningText', type: 'string', default: "'内容由AI生成，仅供参考'", description: 'AI 警告文本' },
+  { name: 'languageOptions', type: 'LanguageOption[]', default: '中英文', description: '语言选项列表' },
+  { name: 'sideI18n', type: 'SideI18n', description: '侧边栏国际化文本' },
+  { name: 'chatI18n', type: 'ChatI18n', description: '聊天国际化文本' },
+  { name: 'chatItemI18n', type: 'ChatItemI18n', description: 'ChatItem 国际化文本' },
+  { name: 'senderI18n', type: 'SenderI18n', description: 'Sender 国际化文本' },
+]} />
+
+## 国际化配置
+
+### sideI18n
+
+```typescript
+{
+  more?: string           // 更多
+  collapse?: string       // 收起
+  today?: string          // 今天
+  recent?: string         // 最近
+  switchTheme?: string    // 切换主题
+  selectLanguage?: string // 选择语言
+  logout?: string         // 退出登录
+}
+```
+
+### chatI18n
+
+```typescript
+{
+  loading?: string           // 加载中
+  thinking?: string          // 思考中
+  checkAll?: string          // 全选
+  shareFor?: string          // 分享至
+  copyUrl?: string           // 复制链接
+  cancelShare?: string       // 取消分享
+  sendError?: string         // 发送失败
+  networkError?: string      // 网络错误
+  createConversation?: string // 新建对话
+}
+```
+
+### chatItemI18n
+
+```typescript
+{
+  thinking?: string             // 思考中
+  deepThinkingFinished?: string // 深度思考完成
+  deepThinkingExpand?: string   // 展开深度思考
+  copy?: string                 // 复制
+  replay?: string               // 重新生成
+  share?: string                // 分享
+  good?: string                 // 点赞
+  bad?: string                  // 点踩
+  thxForGood?: string           // 感谢点赞
+  thxForBad?: string            // 感谢反馈
+  references?: string           // 参考来源
+}
+```
+
+### senderI18n
+
+```typescript
+{
+  placeholder?: string       // 输入框占位符
+  placeholderMobile?: string // 移动端输入框占位符
+  uploadImg?: string         // 上传图片
+  startRecord?: string       // 开始录音
+  stopRecord?: string        // 停止录音
+  answering?: string         // 正在回答
+  notSupport?: string        // 不支持
+  uploadError?: string       // 上传失败
+  recordTooLong?: string     // 录音时间过长
+}
+```
+
+## API 模式配置
+
+通过 `apiConfig` 配置 API 路径，组件将自动通过 HTTP 请求获取数据。`apiConfig` 继承自 `AxiosRequestConfig`，可配置 `baseURL`、`headers`、`timeout` 等 Axios 请求参数：
+
+```javascript
+ADPChatComponent.init('#chat-container', {
+  apiConfig: {
+    // Axios 请求配置
+    baseURL: 'https://api.example.com',
+    timeout: 30000,
+    headers: {
+      'Authorization': 'Bearer token'
+    }
+  }
+})
+```
+
+## 模式说明
+
+### 撑满容器模式
+
+组件占满整个容器，适用于独立页面：
+
+```javascript
+ADPChatComponent.init('#chat-container', {
+  isOverlay: false
+})
+```
+
+### 浮层模式
+
+组件以固定宽高浮动显示，适用于嵌入到现有页面：
+
+```javascript
+ADPChatComponent.init('#chat-container', {
+  isOverlay: true,
+  width: 400,
+  height: 640
+})
+```
+
+## 卸载组件
+
+```javascript
+// 卸载指定容器的组件
+ADPChatComponent.unmount('#chat-container')
+```
+
+## 类型定义
+
+### UserInfo
+
+```typescript
+interface UserInfo {
+  avatarUrl?: string   // 头像 URL
+  avatarName?: string  // 头像显示名称
+  name?: string        // 用户名
+}
+```
+
+### LanguageOption
+
+```typescript
+interface LanguageOption {
+  key: string    // 语言标识，如 'zh-CN'
+  value: string  // 显示名称，如 '简体中文'
+}
+```
+
+### Application
+
+```typescript
+interface Application {
+  ApplicationId: string
+  Name: string
+  Avatar: string
+  Greeting: string
+  OpeningQuestions: string[]
+}
+```
+
+### ChatConversation
+
+```typescript
+interface ChatConversation {
+  Id: string
+  AccountId: string
+  Title: string
+  LastActiveAt: number
+  CreatedAt: number
+  ApplicationId: string
+}
+```

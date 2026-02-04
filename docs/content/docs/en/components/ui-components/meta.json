@@ -1,0 +1,11 @@
+{
+  "title": "UI Components",
+  "icon": "dashboard-line",
+  "pages": [
+    "index",
+    "layout",
+    "chat",
+    "basic",
+    "common"
+  ]
+}

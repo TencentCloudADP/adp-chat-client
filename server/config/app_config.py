@@ -65,6 +65,12 @@ class TAgenticConfig(
         default="100/minute",
     )
 
+    CORS_ORIGINS: str = Field(
+        description="Allowed CORS origins. Multiple origins separated by comma, "
+            "e.g. 'http://localhost,http://127.0.0.1:3000'",
+        default="http://localhost",
+    )
+
     model_config = SettingsConfigDict(
         # read from dotenv format config file
         env_file=".env",

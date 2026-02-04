@@ -1,0 +1,11 @@
+{
+  "title": "Chat Components",
+  "icon": "chat-3-line",
+  "pages": [
+    "chat",
+    "chat-item",
+    "sender",
+    "app-type",
+    "back-to-bottom"
+  ]
+}
