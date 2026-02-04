@@ -6,7 +6,7 @@
     "build": "next build",
     "dev": "next dev",
     "start": "next start",
-    "export": "NEXT_PUBLIC_BASE_PATH=/adp-chat-client next build && npm run copy-redirect",
+    "export": "GITHUB_PAGES=true next build && npm run copy-redirect",
     "postinstall": "fumadocs-mdx",
     "copy-redirect": "cp public/index.html out/index.html"
   },

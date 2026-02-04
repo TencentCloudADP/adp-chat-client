@@ -2,24 +2,21 @@ import { createMDX } from 'fumadocs-mdx/next';
 
 const withMDX = createMDX();
 
-// GitHub Pages 配置
-const isGithubPages = process.env.NEXT_PUBLIC_BASE_PATH;
-const basePath = isGithubPages ? process.env.NEXT_PUBLIC_BASE_PATH : '';
+// GitHub Pages 配置 - 只在明确指定 GITHUB_PAGES=true 时启用
+const isGithubPages = process.env.GITHUB_PAGES === 'true';
+const basePath = isGithubPages ? '/adp-chat-client' : '';
 
-// 只在生产构建时使用静态导出
+// 只在 GitHub Pages 部署时使用静态导出
 const isProduction = process.env.NODE_ENV === 'production';
 
 /** @type {import('next').NextConfig} */
 const config = {
   reactStrictMode: true,
   turbopack: false,
-  // 只在生产环境使用静态导出
-  ...(isProduction && { output: 'export' }),
-  trailingSlash: true,
-  // 使用相对路径，支持 file:// 协议
-  assetPrefix: '',
-  // 只在 GitHub Pages 部署时设置 basePath 和 assetPrefix
+  // 只在 GitHub Pages 部署时使用静态导出
   ...(isGithubPages && {
+    output: 'export',
+    trailingSlash: true,
     basePath: basePath,
     assetPrefix: basePath,
   }),
