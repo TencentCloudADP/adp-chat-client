@@ -1,3 +1,58 @@
+## v0.3.0 (2026-02-04)
+
+### Feat
+
+- **client**: sync isSidePanelOverlay value with new default
+- **client**: adjust default value of isSidePanelOverlay​
+- **client**: rename fullscreen and fix styling inconsistencies​
+- **client**: resolve HTML example styling, refactor props naming, and clean unused attributes​
+- **client**: add framework examples and enhance UI display​
+- **client**: adjust props, enhance documentation, fix interactions, and add React example​
+- **client**: downgrade TDesign version and update interface definitions​
+- **client**: update HTML and React examples for clarity and best practices​
+- **client**: simplify demo and fix TDesign style consistency​
+- **client**: reduce cyclomatic complexity and extract shared component interfaces​
+- **client**: migrate to component-based architecture and add framework examples​
+- **client**: enhance ChatList component with performance and feature improvements​
+- **client**: update quick start guide and clean up unused base components
+- **client**: relocate component library documentation and fix KaTeX CDN
+- **client**: add component mode with demos, update docs, and upgrade dependencies​
+- **adp-chat-component**: allow a simpler way to embed
+- **adp-chat-component**: add adp-chat-component to allow users to embed a chat box into an existing web page
+- **vendor:adp**: add support for ADP private cloud
+- **server**: add third‑party account lookup and document using OpenId in custom variables when available
+- **server**: add CORS config
+
+### Fix
+
+- **client**: center align app information on mobile devices​
+- **client**: resolve type errors during build process
+- **client**: enhance uploading state and optimize mobile UI display
+- **client**: resolve login page layout issues and integrate share component​
+- **client**: fix compilation errors, add share component, and implement code analysis​
+- **client**: resolve compilation errors in production build​
+- **client**: adjust menu bar width for proper layout alignment
+- **client**: resolve compilation errors and application navigation issues​
+- **client**: reduce cyclomatic complexity and extract shared component interfaces​
+- **client**: fix build problem due to vue default import
+- **app**: implement AUTO_CREATE_ACCOUNT in /account/info router
+- **example**: update default paramaters
+- **example**: fix html example and simplify full mode layout in all examples
+- **example**: fix build problem in vue-init-example
+- **adp-chat-component**: remove files that shouldn’t be committed to git, and remove the dev-only auto-init block from the chat component
+- **adp-chat-component**: fix type error TS4023 about Props export
+- **adp-chat-component**: add type export, fix build problems
+- **pack**: fix build order
+- **makefile**: add component example to make dev target
+- **makefile**: add build_component target
+- **makefile**: fix make dev problem
+- **vendor**: fix "chunk too big" error by increasing the streaming chunk size limit
+- **server**: implement AUTO_CREATE_ACCOUNT in /account/info router instead of static file router
+
+### Refactor
+
+- **adp-chat-component**: generate ES bundle excluding Vue and TDesign, while UMD bundle including all dependencies for browser use
+
 ## v0.2.1 (2025-12-19)
 
 ### Feat
