@@ -94,7 +94,7 @@ class TCADP(BaseVendor):
             conversation = await conversation_cb.create()  # 创建会话
             yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=True)
             conversation_id = str(conversation.Id)
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(read_bufsize=1*1024*1024) as session:
             incremental = True
             param = {
                 "content": query,
@@ -195,12 +195,14 @@ class TCADP(BaseVendor):
         if 'Error' in resp:
             logging.error(resp)
             raise Exception(resp['Error']['Message'])
+
         cos = AsyncWareHouseS3(
             secretId=resp['Credentials']['TmpSecretId'],
             secretKey=resp['Credentials']['TmpSecretKey'],
             tmpToken=resp['Credentials']['Token'],
             region=resp['Region'],
-            bucket=resp['Bucket']
+            bucket=resp['Bucket'],
+            config=self.tc_config()['cos'],
         )
 
         async with cos.put_multipart(resp['UploadPath']) as uploader:
@@ -233,37 +235,77 @@ class TCADP(BaseVendor):
         }
         await tc_request(self.tc_config(), action, payload)
 
+    def tc_config_private_url(self, config: dict, private_url: str) -> dict:
+        for key, value in config.items():
+            if type(value) is str:
+                value = value.replace('{PrivateUrl}', private_url)
+            elif type(value) is dict:
+                value = self.tc_config_private_url(value, private_url)
+            config[key] = value
+        return config
+
     def tc_config(self):
-        international = False
-        if 'International' in self.config:
-            international = self.config['International']
-        return service_configs['International'] if international else service_configs['China']
+        private = self.config.get('Private', False)
+        private_url = self.config.get('PrivateUrl', '')
+        international = self.config.get('International', False)
+        if international:
+            return service_configs['International']
+        if private:
+            config = json.loads(json.dumps(service_configs['Private']))
+            config = self.tc_config_private_url(config, private_url)
+            return config
+        return service_configs['China']
 
 
 service_configs = {
+    'Private': {
+        'lke': {
+            'url': '{PrivateUrl}',
+            'region': 'ap-guangzhou',
+            "version": "2023-11-30"
+        },
+        'lkeap': {
+            'url': '{PrivateUrl}',
+            'region': 'ap-jakarta',
+            "version": "2024-05-22"
+        },
+        'cos': {
+            'ep': '{PrivateUrl}:30900',
+            'access': '{PrivateUrl}:30900/{bucket}'
+        },
+        'sse': '{PrivateUrl}/v1/qbot/chat/sse'
+    },
     'International': {
         'lke': {
-            'host': 'lke.intl.tencentcloudapi.com',
+            'url': 'https://lke.intl.tencentcloudapi.com',
             'region': 'ap-jakarta',
             "version": "2023-11-30"
         },
         'lkeap': {
-            'host': 'lkeap.intl.tencentcloudapi.com',
+            'url': 'https://lkeap.intl.tencentcloudapi.com',
             'region': 'ap-jakarta',
             "version": "2024-05-22"
+        },
+        'cos': {
+            'ep': 'http://cos.{region}.myqcloud.com',
+            'access': 'http://{bucket}.cos.{region}.myqcloud.com'
         },
         'sse': 'https://wss.lke.tencentcloud.com/v1/qbot/chat/sse'
     },
     'China': {
         'lke': {
-            'host': 'lke.tencentcloudapi.com',
+            'url': 'https://lke.tencentcloudapi.com',
             'region': 'ap-guangzhou',
             "version": "2023-11-30"
         },
         'lkeap': {
-            'host': 'lkeap.tencentcloudapi.com',
+            'url': 'https://lkeap.tencentcloudapi.com',
             'region': 'ap-guangzhou',
             "version": "2024-05-22"
+        },
+        'cos': {
+            'ep': 'http://cos.{region}.myqcloud.com',
+            'access': 'http://{bucket}.cos.{region}.myqcloud.com'
         },
         'sse': 'https://wss.lke.cloud.tencent.com/v1/qbot/chat/sse'
     }

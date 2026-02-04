@@ -1,0 +1,84 @@
+---
+title: 基础组件概览
+description: 所有可用 UI 组件概览
+---
+
+# 基础组件
+
+本章节包含所有可以独立使用的 UI 组件。这些是底层构建模块，你可以自由组合来创建自定义聊天界面。
+
+## 何时使用基础组件
+
+当你需要以下特性时，选择使用基础组件：
+- **完全控制**：对布局和行为拥有完全控制权
+- **自定义集成**：与现有应用程序集成
+- **部分功能**：仅使用特定组件，而不需要完整的聊天布局
+- **高级定制**：高度定制化的用户体验
+
+## 组件分类
+
+### 布局组件
+用于构建聊天界面结构的基础布局组件。
+- **MainLayout** - 主内容区域布局
+- **SideLayout** - 侧边栏布局组件
+
+### 聊天组件
+核心聊天功能组件。
+- **Chat** - 主聊天消息列表容器
+- **ChatItem** - 单条聊天消息项
+- **Sender** - 消息输入和发送组件
+- **AppType** - 应用类型选择器
+
+### 基础组件
+支持常见功能的 UI 组件。
+- **ApplicationList** - 应用选择列表
+- **HistoryList** - 会话历史列表
+- **Settings** - 设置面板
+- **Search** - 搜索输入组件
+- **PersonalAccount** - 用户账户显示
+- **LogoArea** - Logo 显示区域
+- **CreateConversation** - 新建会话按钮
+- **CustomizedIcon** - 自定义图标组件
+- **SidebarToggle** - 侧边栏切换按钮
+- **AIWarning** - AI 免责声明警告
+
+### 通用组件
+用于各种用途的工具组件。
+- **FileList** - 文件列表显示
+- **OptionCard** - 选项选择卡片
+- **RecordIcon** - 语音录制图标
+
+## 使用示例
+
+```vue
+<template>
+  <div class="my-chat-app">
+    <SideLayout>
+      <LogoArea />
+      <ApplicationList :applications="apps" />
+      <HistoryList :conversations="conversations" />
+    </SideLayout>
+    <MainLayout>
+      <Chat :chat-list="messages">
+        <template #chat-item="{ item }">
+          <ChatItem :record="item" />
+        </template>
+      </Chat>
+      <Sender @send="handleSend" />
+    </MainLayout>
+  </div>
+</template>
+
+<script setup>
+import {
+  SideLayout,
+  MainLayout,
+  LogoArea,
+  ApplicationList,
+  HistoryList,
+  Chat,
+  ChatItem,
+  Sender
+} from 'adp-chat-component';
+</script>
+```

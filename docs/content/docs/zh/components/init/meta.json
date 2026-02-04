@@ -1,0 +1,9 @@
+{
+  "title": "API 调用",
+  "icon": "play-line",
+  "pages": [
+    "index",
+    "update",
+    "unmount"
+  ]
+}

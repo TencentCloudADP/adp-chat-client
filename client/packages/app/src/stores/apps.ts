@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { handleLoadApplication } from '@/service/application';
-import type { Application } from '@/model/application'
+import type { Application } from 'adp-chat-component'
 
 /**
  * 定义应用商店，管理应用相关状态
@@ -28,6 +27,19 @@ export const useAppsStore = defineStore('apps', () => {
   }
 
   /**
+   * 设置当前应用Id
+   * @param {string} applicationId - 应用Id
+   */
+  const setCurrentApplicationId = (applicationId: string) => {
+    const appsStore = useAppsStore();
+    let app = appsStore.applications.find(a => a.ApplicationId === applicationId);
+    if (!app) {
+        app = appsStore.applications[0];
+    }
+    appsStore.setCurrentApplication(app);
+  }
+
+  /**
    * 设置应用列表
    * @param {Application[]} apps - 应用选项数组
    */
@@ -40,6 +52,7 @@ export const useAppsStore = defineStore('apps', () => {
     setApplications,
     currentApplication,
     setCurrentApplication,
+    setCurrentApplicationId,
     currentApplicationId,
     currentApplicationAvatar,
     currentApplicationName,
@@ -47,25 +60,3 @@ export const useAppsStore = defineStore('apps', () => {
     currentApplicationOpeningQuestions
   }
 })
-
-/**
- * 获取应用列表并更新到store中
- * 调用handleLoadApplication接口获取应用数据
- * 将数据格式化为应用选项列表并存储
- * @returns {Promise<void>} 无返回值
- */
-export const getApplications = async () => {
-  const { Applications } = await handleLoadApplication();
-  console.log('Applications:', Applications);
-  const appsStore = useAppsStore();
-  appsStore.setApplications(Applications);
-}
-
-// 加载应用列表并设置默认智能体
-export const fetchApplicationInfo = async () => {
-  await getApplications();
-  const appsStore = useAppsStore()
-  if (!appsStore.currentApplication && appsStore.applications.length > 0) {
-    appsStore.setCurrentApplication(appsStore.applications[0]);
-  }
-}

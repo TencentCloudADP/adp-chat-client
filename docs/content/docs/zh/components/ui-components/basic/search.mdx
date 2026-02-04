@@ -1,0 +1,46 @@
+---
+title: Search
+description: 搜索组件
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# Search
+
+搜索输入框组件。
+
+## vue中使用
+
+```vue
+<template>
+  <Search
+    placeholder="搜索会话"
+    @search="handleSearch"
+  />
+</template>
+```
+
+## html/react或其他框架中使用
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.Search.mount('#containerId', {
+  placeholder: '搜索会话',
+  onSearch: (value) => console.log('search', value)
+})
+</script>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'placeholder', type: 'string', default: "'搜索'", description: '占位符文本' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: '主题模式' },
+]} />
+
+<EventsTable data={[
+  { name: 'search', params: 'string', description: '输入内容变化时触发' },
+  { name: 'focus', description: '获得焦点时触发' },
+  { name: 'blur', description: '失去焦点时触发' },
+]} />

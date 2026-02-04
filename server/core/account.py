@@ -34,6 +34,15 @@ class CoreAccountProvider:
 
 class CoreAccount:
     @staticmethod
+    async def get_third_party(db: AsyncSession, account_id: str) -> AccountThirdParty:
+        account_third_party = (await db.execute(
+            select(AccountThirdParty)
+                .where(AccountThirdParty.AccountId == account_id)
+                .limit(1)
+        )).scalar()
+        return account_third_party
+
+    @staticmethod
     async def find(
         db: AsyncSession, email: Optional[str] = None, provider: Optional[str] = None, open_id: Optional[str] = None
     ) -> Account:
@@ -227,7 +236,7 @@ class CoreAccount:
         timestamp: Optional[int],
         extra_info: Optional[str],
         code: Optional[str]
-    ) -> None:
+    ) -> Account:
         provider = 'customer'
 
         # 注意：需要对传入信息进行验证！避免被恶意批量注册

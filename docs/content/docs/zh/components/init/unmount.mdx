@@ -1,0 +1,106 @@
+---
+title: Unmount 卸载组件
+description: 使用 unmount 方法卸载已挂载的聊天组件
+---
+
+使用 `unmount` 方法可以卸载已挂载的组件并清理相关资源。
+
+```typescript
+ADPChatComponent.unmount(container: string)
+```
+
+## 参数
+
+| 参数 | 类型 | 说明 |
+| --- | --- | --- |
+| container | `string` | 挂载容器的 CSS 选择器 |
+
+## 基本用法
+
+```javascript
+// 卸载指定容器的组件
+ADPChatComponent.unmount('#chat-container')
+```
+
+## 使用场景
+
+### 页面切换时清理
+
+```javascript
+// 在 SPA 路由切换时卸载组件
+router.beforeEach((to, from, next) => {
+  if (from.path === '/chat') {
+    ADPChatComponent.unmount('#chat-container');
+  }
+  next();
+});
+```
+
+### 条件渲染
+
+```javascript
+// 根据条件显示/隐藏聊天组件
+function toggleChat(show) {
+  if (show) {
+    ADPChatComponent.init('#chat-container', {
+      theme: 'light'
+    });
+  } else {
+    ADPChatComponent.unmount('#chat-container');
+  }
+}
+```
+
+### 组件销毁钩子
+
+```javascript
+// 在 Vue 组件销毁时清理
+onUnmounted(() => {
+  ADPChatComponent.unmount('#chat-container');
+});
+
+// 在 React 组件销毁时清理
+useEffect(() => {
+  return () => {
+    ADPChatComponent.unmount('#chat-container');
+  };
+}, []);
+```
+
+## 完整生命周期示例
+
+```javascript
+// 1. 初始化组件
+const instance = ADPChatComponent.init('#chat-container', {
+  theme: 'light',
+  logoTitle: 'AI 助手',
+  apiConfig: {
+    baseURL: 'https://api.example.com'
+  }
+});
+
+// 2. 获取当前配置
+const currentConfig = ADPChatComponent.getProps('#chat-container');
+console.log('当前主题:', currentConfig?.theme);
+
+// 3. 动态更新配置
+ADPChatComponent.update('#chat-container', {
+  theme: 'dark',
+  logoTitle: '智能助手'
+});
+
+// 4. 在适当时机卸载组件
+ADPChatComponent.unmount('#chat-container');
+
+// 5. 如需要，可以重新初始化
+ADPChatComponent.init('#chat-container', {
+  theme: 'light'
+});
+```
+
+## 注意事项
+
+- 卸载后，组件实例和相关 DOM 元素都会被移除
+- 如果需要再次使用组件，必须重新调用 `init` 方法
+- 卸载不存在的容器不会报错，会静默失败
+- 建议在组件不再需要时及时卸载，以释放内存资源

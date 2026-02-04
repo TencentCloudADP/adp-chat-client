@@ -23,6 +23,7 @@ dependencies = [
     "sqlalchemy==2.0.41",
     "termcolor==3.1.0",
     "ujson==5.10.0",
+    "limits>=5.6.0",
 ]
 [project.optional-dependencies]
 dev = [

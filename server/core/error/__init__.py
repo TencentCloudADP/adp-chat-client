@@ -1,6 +1,7 @@
 from typing import Optional
+from sanic.exceptions import SanicException
 
 
-class BaseError(ValueError):
+class BaseError(SanicException):
     def __init__(self, description: Optional[str] = None):
-        self.description = description
+        super().__init__(description)

@@ -1,0 +1,53 @@
+---
+title: FileList
+description: 文件列表组件
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# FileList
+
+展示已上传的文件列表。
+
+## 基础用法
+
+```vue
+<template>
+  <FileList
+    :file-list="files"
+    :on-delete="handleDelete"
+  />
+</template>
+
+<script setup>
+const files = [
+  { uid: '1', url: 'https://example.com/file1.png', name: 'file1.png' },
+  { uid: '2', url: 'https://example.com/file2.pdf', name: 'file2.pdf' },
+]
+
+const handleDelete = (index) => {
+  files.splice(index, 1)
+}
+</script>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'fileList', type: 'FileProps[]', required: true, description: '文件列表' },
+  { name: 'onDelete', type: '(index: number) => void', required: true, description: '删除回调' },
+]} />
+
+## 类型定义
+
+### FileProps
+
+```typescript
+interface FileProps {
+  uid: string;
+  url: string;
+  name?: string;
+  status?: string;
+  response?: string;
+}
+```

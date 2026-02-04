@@ -1,98 +1,66 @@
 <template>
-  <t-layout class="page-container">
-    <!-- 分享聊天内容容器 -->
-    <div class="share-container">
-      <!-- 聊天组件，用于展示分享的聊天记录 -->
-      <TChat ref="chatRef" :reverse="false" style="height: 100%" :clear-history="false">
-        <!-- 遍历聊天记录列表，渲染每条消息 -->
-        <ChatItem v-for="(item, index) in chatList" :isLastMsg="index === (chatList.length - 1)" :item="item"
-          :index="index" :loading="loading" :isStreamLoad="isStreamLoad" :showActions="false" />
-      </TChat>
-    </div>
-  </t-layout>
+  <TLayout class="page-container">
+    <!-- 使用 adp-chat-component 的 ShareChat 组件 -->
+    <ShareChat 
+      v-if="shareId"
+      :share-id="shareId"
+      :api-config="apiConfig"
+      :theme="uiStore.theme || 'light'"
+      @load-error="handleLoadError"
+    />
+  </TLayout>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { Chat as TChat } from '@tdesign-vue-next/chat';
+import { Layout as TLayout } from 'tdesign-vue-next';
+import { ShareChat, type ApiConfig } from 'adp-chat-component';
 import { useRoute, useRouter } from 'vue-router';
-import ChatItem from '@/components/Chat/ChatItem.vue';
-import type { Record } from '@/model/chat';
-import { LoadingPlugin,MessagePlugin } from 'tdesign-vue-next';
-import { handleLoadConversationDetail } from '@/service/chat';
+import { useUiStore } from '@/stores/ui';
+import { getBaseURL } from '@/utils/url';
+
+const uiStore = useUiStore();
+
 const router = useRouter();
 const route = useRoute();
-const { t } = useI18n();
 
 /**
  * 分享ID
- * @type {Ref<string>}
  */
-const ShareId = ref<string>("");
+const shareId = ref<string>("");
 
 /**
- * 聊天消息列表（倒序渲染）
- * @type {Ref<Record[]>}
+ * API 配置 - 与 Home.vue 保持一致
  */
-const chatList = ref<Record[]>([]);
-
-/**
- * 聊天加载状态
- * @type {Ref<boolean>}
- */
-const loading = ref(false);
-
-/**
- * 是否流式加载中
- * @type {Ref<boolean>}
- */
-const isStreamLoad = ref(false);
-
-/**
- * 加载聊天会话详情
- * @param {string} ShareId - 分享ID
- * @returns {Promise<void>}
- */
-const handleGetConversationDetail = async (ShareId: string) => {
-  if (!ShareId) return
-  const loadingInstance = LoadingPlugin({
-    attach: '#chat-content',
-    size: 'medium',
-    showOverlay: false,
-  });
-  loading.value = true;
-  try {
-    const ChatConversation = await handleLoadConversationDetail({
-      ShareId: ShareId
-    });
-    loading.value = false;
-    chatList.value = ChatConversation?.Response.Records;
-    loadingInstance.hide();
-  } catch (err) {
-    console.log('handleGetConversationDetail',err)
-    loadingInstance.hide();
+const apiConfig: ApiConfig = {
+  baseURL: getBaseURL(),
+  timeout: 1000 * 60,
+  apiDetailConfig: {
+    conversationDetailApi: '/chat/messages',
   }
 };
 
-onMounted(async () => {
-  console.log('ShareId',route.query.ShareId)
-  if (route.query.ShareId) {
-    ShareId.value = route.query.ShareId?.toString();
-    handleGetConversationDetail(ShareId.value);
-  }else{
+/**
+ * 加载失败处理
+ */
+const handleLoadError = (error: Error) => {
+  console.error('加载分享内容失败:', error);
+};
+
+onMounted(() => {
+  // 优先从 params 获取 shareId，兼容 query 参数
+  const shareIdParam = route?.params?.shareId || route?.query?.ShareId;
+  if (shareIdParam) {
+    shareId.value = shareIdParam.toString();
+  } else {
     // 分享地址有误时跳回首页
-    router.push({ name: 'Home' });
+    router.push({ name: 'home' });
   }
 });
 </script>
 
 <style scoped>
-/* 分享页面容器样式 */
-.share-container {
-  padding: var(--td-comp-size-xxs) 10%;
-  background-color: var(--td-bg-color-container);
+.page-container {
   height: 100vh;
-  overflow: auto;
 }
 </style>

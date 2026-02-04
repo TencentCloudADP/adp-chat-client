@@ -17,11 +17,15 @@
 #### 目录
 
 - [部署](#部署)
+  - [账户体系对接](#账户体系对接)
 - [开发指南](#开发指南)
   - [后端](#后端)
   - [前端](#前端)
 - [专题](#专题)
-  - [变量-API参数](#变量-API参数)
+  - [智能体: 变量-API参数](#智能体-变量-API参数)
+  - [部署: 子路径](#部署-子路径)
+  - [部署: 限流](#部署-限流)
+  - [部署: CORS](#部署-cors)
 
 # 部署
 
@@ -32,6 +36,16 @@
 - CPU >= 2 Core
 - RAM >= 4 GiB
 - 操作系统：Linux/macOS。如果你希望在Windows系统运行，需要通过WSL，或者使用Linux系统的云服务器
+
+## 浏览器兼容性（H5）
+
+本项目基于 Vue 3 和 Vite 构建，需要现代浏览器支持：
+
+| <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/chrome/chrome_48x48.png" alt="Chrome" width="24"> Chrome | <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/firefox/firefox_48x48.png" alt="Firefox" width="24"> Firefox | <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/safari/safari_48x48.png" alt="Safari" width="24"> Safari | <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/edge/edge_48x48.png" alt="Edge" width="24"> Edge | <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/safari-ios/safari-ios_48x48.png" alt="iOS Safari" width="24"> iOS Safari | <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/chrome/chrome_48x48.png" alt="Android Chrome" width="24"> Android |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| >= 87 | >= 78 | >= 14 | >= 88 | >= 14 | >= 87 |
+
+> ⚠️ **注意**：**不支持** Internet Explorer。Vue 3 已放弃对 IE11 的支持。
 
 ## Docker快速部署
 
@@ -84,6 +98,7 @@ APP_CONFIGS='[
 
 # JWT密钥，一个随机字符串，可以使用uuidgen命令生成
 SECRET_KEY=
+
 ```
 
 > ⚠️ **注意**：
@@ -158,6 +173,8 @@ OAUTH_GITHUB_SECRET=
 # you can obtain it from https://entra.microsoft.com
 OAUTH_MICROSOFT_ENTRA_CLIENT_ID=
 OAUTH_MICROSOFT_ENTRA_SECRET=
+# Endpoint (optional, if you have a tenant id, default: common), see: https://learn.microsoft.com/en-us/entra/identity-platform/authentication-national-cloud
+OAUTH_MICROSOFT_ENTRA_ENDPOINT=common
 ```
 > 📝 **注意**：创建Microsoft Entra ID OAuth应用时，callback URL填写：SERVICE_API_URL+/oauth/callback/ms_entra_id，例如：http://localhost:8000/oauth/callback/ms_entra_id
 
@@ -189,6 +206,16 @@ OAuth协议可以帮助实现无缝的身份验证和授权，开发者可以根
 > 1. 以上参数需要分别进行url_encode，详细实现可以参考代码 `server/core/account.py` 内 CoreAccount.customer_auth 部分；生成url的方式可以参考 `server/main.py`的generate_customer_account_url。
 
 > 2. 需要在.env文件中配置CUSTOMER_ACCOUNT_SECRET_KEY，一个随机字符串，可以使用uuidgen命令生成。
+
+### 我希望用户不登录就能直接使用
+
+如果你没有自己的账号体系，希望新用户打开链接就能进入对话界面开始使用，可以通过在.env文件设置`AUTO_CREATE_ACCOUNT`实现:
+
+```
+AUTO_CREATE_ACCOUNT=true
+```
+
+> 📝 **注意**: 这会为每个新用户自动创建账户，虽然本系统有流控设置，但是能不加限制的创建新账户，仍然是很容易突破流控的，不建议在生产系统中使用这个模式
 
 # 开发指南
 
@@ -252,7 +279,7 @@ make dev
 
 # 专题
 
-## 变量-API参数
+## 智能体: 变量-API参数
 
 调用智能体对话时，可以向智能体传递参数，根据具体情况，可以选择在前端还是后端进行传递，这是一个后端附加API参数的示例
 
@@ -274,15 +301,64 @@ class ChatMessageApi(HTTPMethodView):
         vendor_app = app.get_vendor_app(application_id)
 
         # 新增以下代码，就能在对话时附加额外的API参数：
+        import json
         from core.account import CoreAccount
         account = await CoreAccount.get(request.ctx.db, request.ctx.account_id)
+        account_third_party = await CoreAccount.get_third_party(request.ctx.db, request.ctx.account_id)
         # 注意这里的json.dumps，腾讯云ADP约定：如果值是字典，需要进行一次json编码，转换为json字符串
         args['CustomVariables']['account'] = json.dumps({
-            "id": str(account.Id),
-            "name": account.Name,
+            "id": account_third_party.OpenId if account_third_party else str(account.Id),
+            "name": account.Name if account else "",
         })
         logging.info(f"[ChatMessageApi] ApplicationId: {application_id},\n\
             CustomVariables: {args['CustomVariables']},\n\
             vendor_app: {vendor_app}")
 
+```
+
+## 部署: 子路径
+
+如果希望部署到一个子路径里（如：/chat），需要结合nginx的rewrite功能，这里以部署到`https://example.com/chat`为例进行说明
+
+.env
+```
+SERVICE_API_URL=https://example.com/chat
+SERVER_HTTP_PORT=8000
+```
+
+nginx.conf
+```
+http {
+    server {
+        location /chat {
+            proxy_pass http://127.0.0.1:8000/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Prefix /chat;
+            rewrite ^/chat/(.*)$ /$1 break;
+        }
+    }
+}
+```
+
+## 部署: 限流
+
+本系统基于路径+账户或IP(未登录时基于IP，登录后基于账户)进行限流，可以在.env文件里通过`RATE_LIMIT`更改限制
+
+```
+RATE_LIMIT=100/minute
+```
+
+配置格式参考：[limit string](https://limits.readthedocs.io/en/latest/quickstart.html#rate-limit-string-notation)
+
+## 部署: CORS
+
+如果前端和后端部署在不同域名/端口下，需要在`.env`中配置`CORS_ORIGINS`，允许浏览器进行跨域请求。
+
+多个 origin 用英文逗号分隔：
+
+```
+CORS_ORIGINS=http://localhost,http://127.0.0.1:3000
 ```

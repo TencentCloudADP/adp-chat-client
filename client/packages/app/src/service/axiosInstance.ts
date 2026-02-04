@@ -1,34 +1,11 @@
 import axios from 'axios';
 import router from '@/router'
-
-// 根据环境动态设置baseURL
-const isDev = import.meta.env.DEV
-
-// 开发环境使用/api代理，生产环境使用相对路径
-let baseURL: string
-if (isDev) {
-  baseURL = '/api'
-} else {
-  // 获取当前页面的路径
-  const currentPath = window.location.pathname
-  // 找到/static的位置，计算需要返回的层级
-  const staticIndex = currentPath.indexOf('/static')
-  if (staticIndex !== -1) {
-    // 计算从当前路径到/static前的路径需要多少层../
-    const pathAfterStatic = currentPath.substring(staticIndex + '/static'.length)
-    const pathSegments = pathAfterStatic.split('/').filter((segment) => segment.length > 0)
-    // 需要返回的层级数 = 路径段数
-    const levelsToGoUp = pathSegments.length
-    baseURL = '../'.repeat(levelsToGoUp)
-  } else {
-    // 如果没找到/static，使用安全的默认值
-    baseURL = './'
-  }
-}
+import { logout } from '@/service/login';
+import { getBaseURL } from '@/utils/url';
 
 // 创建axios实例
 const instance = axios.create({
-  baseURL,
+  baseURL: getBaseURL(),
   timeout: 1000 * 60, // 请求超时时间
   headers: {
     'Content-Type': 'application/json',
@@ -80,7 +57,7 @@ instance.interceptors.response.use(
     }
     console.log('error',error)
     if (error.response && error.response.data && error.response.data.Error && error.response.data.Error.Exception == 'AccountUnauthorized') {
-      router.push({ name: 'login' })
+      logout(() => router.replace({ name: 'login' }));
     }
     return Promise.reject(error)
   },

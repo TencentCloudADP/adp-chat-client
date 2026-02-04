@@ -1,0 +1,9 @@
+{
+  "title": "API Usage",
+  "icon": "play-line",
+  "pages": [
+    "index",
+    "update",
+    "unmount"
+  ]
+}

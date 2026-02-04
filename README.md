@@ -16,11 +16,15 @@
 #### Table of Contents
 
 - [Deployment](#deployment)
+  - [Account System Integration](#account-system-integration)
 - [Development Guide](#development-guide)
   - [Backend](#backend)
   - [Frontend](#frontend)
 - [Advanced Topics](#advanced-topics)
-  - [Variables - API Parameters](#variables---api-parameters)
+  - [Agent: Variables - API Parameters](#agent-variables---api-parameters)
+  - [Deployment: Subpath](#deployment-subpath)
+  - [Deployment: Rate Limiting](#deployment-rate-limiting)
+  - [Deployment: CORS](#deployment-cors)
 
 # Deployment
 
@@ -31,6 +35,16 @@ Please ensure the machine meets the minimum requirements:
 - CPU >= 2 Core
 - RAM >= 4 GiB
 - Operating System: Linux/macOS. If you want to run on Windows, you need to use WSL or a cloud server with a Linux system.
+
+## Browser Compatibility (H5)
+
+This project is built with Vue 3 and Vite, which requires modern browser support:
+
+| <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/chrome/chrome_48x48.png" alt="Chrome" width="24"> Chrome | <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/firefox/firefox_48x48.png" alt="Firefox" width="24"> Firefox | <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/safari/safari_48x48.png" alt="Safari" width="24"> Safari | <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/edge/edge_48x48.png" alt="Edge" width="24"> Edge | <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/safari-ios/safari-ios_48x48.png" alt="iOS Safari" width="24"> iOS Safari | <img src="https://cdnjs.cloudflare.com/ajax/libs/browser-logos/75.0.1/chrome/chrome_48x48.png" alt="Android Chrome" width="24"> Android |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| >= 87 | >= 78 | >= 14 | >= 88 | >= 14 | >= 87 |
+
+> ⚠️ **Note**: Internet Explorer is **NOT** supported. Vue 3 has dropped IE11 support.
 
 ## Docker
 
@@ -82,6 +96,7 @@ APP_CONFIGS='[
 
 # JWT secret key, a random string, can be generated using the uuidgen command
 SECRET_KEY=
+
 ```
 
 > ⚠️ **Note**:
@@ -158,6 +173,8 @@ Microsoft Entra ID OAuth is supported by default. You can can configure it as ne
 # you can obtain it from https://entra.microsoft.com
 OAUTH_MICROSOFT_ENTRA_CLIENT_ID=
 OAUTH_MICROSOFT_ENTRA_SECRET=
+# Endpoint (optional, if you have a tenant id, default: common), see: https://learn.microsoft.com/en-us/entra/identity-platform/authentication-national-cloud
+OAUTH_MICROSOFT_ENTRA_ENDPOINT=common
 ```
 > 📝 **Note**：When creating a Microsoft Entra ID OAuth application, fill in the callback URL as：SERVICE_API_URL+/oauth/callback/ms_entra_id, for example: http://localhost:8000/oauth/callback/ms_entra_id
 
@@ -187,6 +204,16 @@ If you have an existing account system but do not implement a standard OAuth flo
 > 📝 **Note**:
 > 1. The parameters above must be URL-encoded, for more details you can refer to the CoreAccount.customer_auth in `server/core/account.py` file, and generate_customer_account_url in `server/main.py` file for URL generation method.
 > 2. Configure CUSTOMER_ACCOUNT_SECRET_KEY in the .env file, a random string that can be generated using the uuidgen command.
+
+### I want users to be able to use the service directly without logging in.
+
+If you don't have your own account system and want new users to be able to access the chat interface immediately upon opening the link, you can achieve this by setting `AUTO_CREATE_ACCOUNT` in your .env file:
+
+```
+AUTO_CREATE_ACCOUNT=true
+```
+
+> 📝 **Note:** This will automatically create an account for each new user. Although this system has flow control settings, creating new accounts without restrictions makes it easy to bypass flow control. Using this mode in a publicly production system is not recommended.
 
 # Development Guide
 
@@ -251,7 +278,7 @@ make dev
 
 # Advanced Topics
 
-## Variables - API Parameters
+## Agent: Variables - API Parameters
 
 When calling the agent for conversation, you can pass parameters to the agent. Depending on the specific situation, you can choose to pass them on the frontend or backend. Here is an example of adding API parameters on the backend:
 
@@ -273,15 +300,64 @@ class ChatMessageApi(HTTPMethodView):
         vendor_app = app.get_vendor_app(application_id)
 
         # Add the following code to attach additional API parameters during conversation:
+        import json
         from core.account import CoreAccount
         account = await CoreAccount.get(request.ctx.db, request.ctx.account_id)
+        account_third_party = await CoreAccount.get_third_party(request.ctx.db, request.ctx.account_id)
         # Note the json.dumps here: Tencent Cloud ADP convention requires that if the value is a dictionary, it needs to be JSON-encoded once and converted to a JSON string
         args['CustomVariables']['account'] = json.dumps({
-            "id": str(account.Id),
-            "name": account.Name,
+            "id": account_third_party.OpenId if account_third_party else str(account.Id),
+            "name": account.Name if account else "",
         })
         logging.info(f"[ChatMessageApi] ApplicationId: {application_id},\n\
             CustomVariables: {args['CustomVariables']},\n\
             vendor_app: {vendor_app}")
 
+```
+
+## Deployment: Subpath
+
+If you want to deploy the application to a subpath (e.g., /chat), you need to combine it with nginx's rewrite functionality. Here's an example of deploying to `https://example.com/chat`:
+
+.env
+```
+SERVICE_API_URL=https://example.com/chat
+SERVER_HTTP_PORT=8000
+```
+
+nginx.conf
+```
+http {
+    server {
+        location /chat {
+            proxy_pass http://127.0.0.1:8000/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Prefix /chat;
+            rewrite ^/chat/(.*)$ /$1 break;
+        }
+    }
+}
+```
+
+## Deployment: Rate Limiting
+
+This system limits traffic based on path + account or IP address (IP address when not logged in, account address when logged in). The limit can be changed in the .env file using `RATE_LIMIT`.
+
+```
+RATE_LIMIT=100/minute
+```
+
+Configuration format reference: [limit string](https://limits.readthedocs.io/en/latest/quickstart.html#rate-limit-string-notation)
+
+## Deployment: CORS
+
+If your frontend and backend are on different domains/ports, configure `CORS_ORIGINS` in `.env` to allow the browser to make cross-origin requests.
+
+Multiple origins are separated by commas:
+
+```
+CORS_ORIGINS=http://localhost,http://127.0.0.1:3000
 ```

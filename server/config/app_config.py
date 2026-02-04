@@ -50,9 +50,25 @@ class TAgenticConfig(
         default=24,
     )
 
+    AUTO_CREATE_ACCOUNT: bool = Field(
+        description="Whether to automatically create an account for new users",
+        default=False,
+    )
+
     CHAT_MESSAGE_PAGE_SIZE: PositiveInt = Field(
         description="Number of messages to load per page when browsing chat history",
         default=100,
+    )
+
+    RATE_LIMIT: str = Field(
+        description="Rate limit configuration in format 'requests/period' (e.g., '100/minute')",
+        default="100/minute",
+    )
+
+    CORS_ORIGINS: str = Field(
+        description="Allowed CORS origins. Multiple origins separated by comma, "
+            "e.g. 'http://localhost,http://127.0.0.1:3000'",
+        default="http://localhost",
     )
 
     model_config = SettingsConfigDict(

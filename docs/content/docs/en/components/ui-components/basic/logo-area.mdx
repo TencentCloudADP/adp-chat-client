@@ -1,0 +1,40 @@
+---
+title: LogoArea
+description: Logo area component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# LogoArea
+
+Display logo and title.
+
+## Usage in Vue
+
+```vue
+<template>
+  <LogoArea
+    :logo-url="logoUrl"
+    title="ADP Chat"
+  />
+</template>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.LogoArea.mount('#containerId', {
+  logoUrl: '/logo.png',
+  title: 'ADP Chat'
+})
+</script>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'logoUrl', type: 'string', default: "''", description: 'Logo image URL' },
+  { name: 'title', type: 'string', default: "''", description: 'Title text' },
+]} />

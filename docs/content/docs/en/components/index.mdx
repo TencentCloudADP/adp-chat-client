@@ -1,0 +1,57 @@
+---
+title: Introduction
+description: ADP Chat Component is a complete AI chat component library
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# ADP Chat Component
+
+ADP Chat Component is a complete AI chat component library built with Vue 3 + TDesign, providing rich chat interface components.
+
+## Features
+
+- **Complete Chat Interface** - Provides core components like ADPChat, Chat, Sender
+- **Flexible Layout** - Supports sidebar, main content area and various layout options
+- **Theme Customization** - Supports light/dark theme switching
+- **Internationalization** - Built-in Chinese and English support, customizable text
+- **Dynamic Mounting** - Supports both Vue component and dynamic mounting usage
+- **API Mode** - Supports configuring API for automatic data loading
+
+## Quick Start
+
+```vue
+<template>
+  <ADPChat
+    :applications="applications"
+    :conversations="conversations"
+    :chat-list="chatList"
+    @send="handleSend"
+  />
+</template>
+
+<script setup lang="ts">
+import { ADPChat } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+</script>
+```
+
+## Component List
+
+### Layout Components
+- [ADPChat](/docs/en/components/layout/chat-layout) - Complete chat layout
+- [MainLayout](/docs/en/components/layout/main-layout) - Main content area layout
+- [SideLayout](/docs/en/components/layout/side-layout) - Sidebar layout
+
+### Chat Components
+- [Chat](/docs/en/components/chat/chat) - Main chat component
+- [ChatItem](/docs/en/components/chat/chat-item) - Chat message item
+- [ChatSender](/docs/en/components/chat/sender) - Message sender
+- [ChatAppType](/docs/en/components/chat/app-type) - Application welcome page
+
+### Basic Components
+- [Button](/docs/en/components/basic/button) - Button
+- [AIWarning](/docs/en/components/basic/ai-warning) - AI warning tip
+- [ApplicationList](/docs/en/components/basic/application-list) - Application list
+- [HistoryList](/docs/en/components/basic/history-list) - History conversation list
+- [Settings](/docs/en/components/basic/settings) - Settings component
