@@ -1,0 +1,81 @@
+---
+title: ChatSender
+description: 消息发送器组件
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# ChatSender
+
+消息输入和发送组件，支持文本输入、文件上传、语音录入等功能。
+
+## vue中使用
+
+```vue
+<template>
+  <ChatSender
+    :is-stream-load="isLoading"
+    @send="handleSend"
+    @stop="handleStop"
+  />
+</template>
+```
+
+## html/react或其他框架中使用
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.ChatSender.mount('#containerId', {
+  isStreamLoad: false,
+  onSend: (value, fileList) => {},
+  onStop: () => {}
+})
+</script>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'modelOptions', type: 'any[]', default: '[]', description: '模型选项列表' },
+  { name: 'selectModel', type: 'any', description: '当前选中的模型' },
+  { name: 'isDeepThinking', type: 'boolean', default: 'true', description: '是否启用深度思考模式' },
+  { name: 'isStreamLoad', type: 'boolean', default: 'false', description: '是否正在流式加载' },
+  { name: 'isMobile', type: 'boolean', default: 'false', description: '是否为移动端' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: '主题模式' },
+  { name: 'i18n', type: 'object', description: '国际化文本' },
+]} />
+
+### i18n 默认值
+
+```typescript
+{
+  placeholder: '请输入您的问题',
+  placeholderMobile: '请输入',
+  uploadImg: '上传图片',
+  startRecord: '开始录音',
+  stopRecord: '停止录音',
+  answering: '正在回答中...',
+  notSupport: '不支持的文件格式',
+  uploadError: '上传失败',
+  recordTooLong: '录音时间过长'
+}
+```
+
+<EventsTable data={[
+  { name: 'stop', description: '停止生成' },
+  { name: 'send', params: '(value, fileList)', description: '发送消息' },
+  { name: 'modelChange', params: 'option', description: '切换模型' },
+  { name: 'toggleDeepThinking', description: '切换深度思考模式' },
+  { name: 'uploadFile', params: 'File[]', description: '上传文件' },
+  { name: 'startRecord', description: '开始录音' },
+  { name: 'stopRecord', description: '停止录音' },
+  { name: 'message', params: '(type, message)', description: '消息提示' },
+]} />
+
+<MethodsTable data={[
+  { name: 'changeSenderVal', params: '(value, files)', description: '修改输入框内容' },
+  { name: 'addFile', params: 'file', description: '添加文件到列表' },
+  { name: 'setRecording', params: 'value', description: '设置录音状态' },
+  { name: 'updateInputValue', params: 'value', description: '更新输入值' },
+]} />

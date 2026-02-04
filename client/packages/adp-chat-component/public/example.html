@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ADP Chat Demo</title>
+    </head>
+    <body>
+        <script src="adp-chat-component.umd.js"></script>
+        <link rel="stylesheet" href="adp-chat-component.css">
+        <script>
+            var isOverlay = true;
+            var isOpen = false;
+
+            window.onload = function() {
+                ADPChatComponent.init('#chat-container', {
+                    width: 400,
+                    height: '80vh',
+                    logoTitle: 'ADP Chat',
+                    showOverlayButton: true,
+                    showToggleButton: true,
+                    isOverlay: true,
+                    onOpenChange: function(open) {
+                        isOpen = open;
+                        document.getElementById('chat-container').classList.toggle('chat-container--expanded', !isOverlay && isOpen);
+                    },
+                    onOverlayChange: function(newIsOverlay) {
+                        isOverlay = newIsOverlay;
+                        document.getElementById('chat-container').classList.toggle('chat-container--expanded', !isOverlay && isOpen);
+                        ADPChatComponent.update('#chat-container', {
+                            isOverlay: isOverlay,
+                        });
+                    }
+                });
+            }
+        </script>
+        <div id="container">
+            <div id="main">
+                <div class="main-content">
+                    <h1>ADP Chat Demo</h1>
+                </div>
+            </div>
+            <div id="chat-container"></div>
+        </div>
+    </body>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        #container {
+            display: flex;
+            flex-direction: row;
+            width: 100vw;
+            height: 100vh;
+        }
+        #chat-container {
+            position: relative;
+            height: 100vh;
+            flex-shrink: 0;
+            width: 0;
+            transition: width 0.3s ease;
+        }
+        #chat-container.chat-container--expanded {
+            width: 400px;
+        }
+        #main {
+            flex-grow: 1;
+            width: 100%;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+        .main-content {
+            text-align: center;
+            max-width: 600px;
+        }
+        .main-content h1 {
+            font-size: 2.5rem;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+        body {
+            overflow: hidden;
+        }
+    </style>
+</html>

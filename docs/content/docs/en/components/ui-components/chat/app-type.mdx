@@ -1,0 +1,53 @@
+---
+title: ChatAppType
+description: Application welcome page component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# ChatAppType
+
+Display current application greeting and suggested questions.
+
+## Usage in Vue
+
+```vue
+<template>
+  <ChatAppType
+    :current-application-avatar="avatar"
+    :current-application-name="name"
+    :current-application-greeting="greeting"
+    :current-application-opening-questions="questions"
+    @select-question="handleSelectQuestion"
+  />
+</template>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.ChatAppType.mount('#containerId', {
+  currentApplicationAvatar: '/avatar.png',
+  currentApplicationName: 'App Name',
+  currentApplicationGreeting: 'Hello, how can I help you?',
+  currentApplicationOpeningQuestions: ['Question 1', 'Question 2'],
+  onSelectQuestion: (question) => console.log('selected', question)
+})
+</script>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'currentApplicationAvatar', type: 'string', default: "''", description: 'Current application avatar' },
+  { name: 'currentApplicationName', type: 'string', default: "''", description: 'Current application name' },
+  { name: 'currentApplicationGreeting', type: 'string', default: "''", description: 'Current application greeting' },
+  { name: 'currentApplicationOpeningQuestions', type: 'string[]', default: '[]', description: 'Opening questions list' },
+  { name: 'isMobile', type: 'boolean', default: 'false', description: 'Whether mobile' },
+]} />
+
+<EventsTable data={[
+  { name: 'selectQuestion', params: 'question', description: 'Select suggested question' },
+]} />

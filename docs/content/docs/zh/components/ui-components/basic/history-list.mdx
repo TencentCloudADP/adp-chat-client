@@ -1,0 +1,63 @@
+---
+title: HistoryList
+description: 历史会话列表组件
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# HistoryList
+
+展示聊天会话历史记录。
+
+## vue中使用
+
+```vue
+<template>
+  <HistoryList
+    :conversations="conversations"
+    :current-conversation-id="currentId"
+    @select="handleSelect"
+  />
+</template>
+```
+
+## html/react或其他框架中使用
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.HistoryList.mount('#containerId', {
+  conversations: [],
+  currentConversationId: '',
+  onSelect: (conversation) => console.log('selected', conversation)
+})
+</script>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'conversations', type: 'ChatConversation[]', default: '[]', description: '会话列表' },
+  { name: 'currentConversationId', type: 'string', default: "''", description: '当前选中的会话ID' },
+  { name: 'todayText', type: 'string', default: "'今天'", description: '"今天"文本' },
+  { name: 'recentText', type: 'string', default: "'最近'", description: '"最近"文本' },
+]} />
+
+<EventsTable data={[
+  { name: 'select', params: 'ChatConversation', description: '选择会话时触发' },
+]} />
+
+## 类型定义
+
+### ChatConversation
+
+```typescript
+interface ChatConversation {
+  Id: string;
+  AccountId: string;
+  Title: string;
+  LastActiveAt: number;
+  CreatedAt: number;
+  ApplicationId: string;
+}
+```

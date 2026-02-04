@@ -6,6 +6,8 @@
     "quick-start",
     "develop",
     "multi-vendors",
-    "deploy"
+    "deploy",
+    "---adp-chat-components---",
+    "components"
   ]
 }

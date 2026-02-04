@@ -1,0 +1,76 @@
+/* Reset styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Container */
+#container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: row;
+}
+
+/* Main content area */
+#main {
+  flex-grow: 1;
+  width: 100%;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.main-content {
+  text-align: center;
+  max-width: 600px;
+}
+
+.main-content h1 {
+  font-size: 2.5rem;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+  font-weight: 700;
+}
+
+.main-content p {
+  font-size: 1.1rem;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+/* Chat container */
+#chat-container {
+  position: relative;
+  height: 100vh;
+  flex-shrink: 0;
+  width: 0;
+  transition: width 0.3s ease;
+}
+
+/* 弹出模式：覆盖在container上 */
+/* 非浮层模式：和container分享页面宽度 */
+#chat-container.chat-container--expanded {
+  width: 400px;
+}
+
+#chat-container * {
+  pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+  .main-content h1 {
+    font-size: 1.75rem;
+  }
+}

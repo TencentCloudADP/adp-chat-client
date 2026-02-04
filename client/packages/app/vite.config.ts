@@ -2,55 +2,41 @@ import { fileURLToPath, URL } from 'node:url'
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
-import vueDevTools from 'vite-plugin-vue-devtools'
-import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
-import AutoImport from 'unplugin-auto-import/vite'
-import Components from 'unplugin-vue-components/vite'
-import { TDesignResolver } from 'unplugin-vue-components/resolvers'
-import path from 'path';
+import { visualizer } from 'rollup-plugin-visualizer'
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  const isAnalyze = mode === 'analyze'
   return {
     base: './',
     plugins: [
       vue(),
-        createSvgIconsPlugin({
-        // 指定需要缓存的图标文件夹（绝对路径）
-        iconDirs: [path.resolve(process.cwd(), 'src/assets/icons')],
-        // 指定 symbolId 的生成格式
-        // [name] 为 SVG 文件名，[dir] 为相对于 iconDirs 的目录名
-        symbolId: 'icon-[dir]-[name]',
-        // （可选）自定义 SVG 雪碧图插入到 HTML 的位置，默认为 'body-last'
-        inject: 'body-last',
-        // （可选）自定义 SVG 雪碧图的 DOM 元素 ID，默认为 '__svg__icons__dom__'
-        customDomId: '__svg__icons__dom__',
-      }),
       vueJsx() as any,
-      vueDevTools(),
-      AutoImport({
-        resolvers: [
-          TDesignResolver({
-            library: 'vue-next',
-          }),
-        ],
+      // 打包分析插件，使用 pnpm build --mode analyze 启用
+      isAnalyze && visualizer({
+        open: true,
+        filename: 'dist/stats.html',
+        gzipSize: true,
+        brotliSize: true,
       }),
-      Components({
-        resolvers: [
-          TDesignResolver({
-            library: 'vue-next',
-          }),
-        ],
-      }),
-    ],
+    ].filter(Boolean),
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
+      // 确保依赖去重，避免多个 Vue/TDesign 实例
+      dedupe: ['vue', 'tdesign-vue-next'],
+    },
+    // 优化依赖预构建
+    optimizeDeps: {
+      include: ['tdesign-vue-next'],
+      // 排除 workspace 包，让其使用源码
+      exclude: ['adp-chat-component'],
     },
     server: {
       host: '0.0.0.0',
-      port: 5173,
+      port: 5174,
       strictPort: true,
       proxy: {
         '/api': {

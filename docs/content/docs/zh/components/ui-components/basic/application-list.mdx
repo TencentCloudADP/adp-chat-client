@@ -1,0 +1,64 @@
+---
+title: ApplicationList
+description: 应用列表组件
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# ApplicationList
+
+展示和切换应用列表。
+
+## vue中使用
+
+```vue
+<template>
+  <ApplicationList
+    :applications="applications"
+    :current-application-id="currentAppId"
+    @select="handleSelect"
+  />
+</template>
+```
+
+## html/react或其他框架中使用
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.ApplicationList.mount('#containerId', {
+  applications: [],
+  currentApplicationId: '',
+  onSelect: (app) => console.log('selected', app)
+})
+</script>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'applications', type: 'Application[]', default: '[]', description: '应用列表' },
+  { name: 'currentApplicationId', type: 'string', default: "''", description: '当前选中的应用ID' },
+  { name: 'maxAppLen', type: 'number', default: '4', description: '最大显示数量' },
+  { name: 'moreText', type: 'string', default: "'更多'", description: '"更多"文本' },
+  { name: 'collapseText', type: 'string', default: "'收起'", description: '"收起"文本' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: '主题模式' },
+]} />
+
+<EventsTable data={[
+  { name: 'select', params: 'Application', description: '选择应用时触发' },
+]} />
+
+## 类型定义
+
+### Application
+
+```typescript
+interface Application {
+  ApplicationId: string;
+  Name: string;
+  Avatar: string;
+  Greeting: string;
+  OpeningQuestions: string[];
+}
+```

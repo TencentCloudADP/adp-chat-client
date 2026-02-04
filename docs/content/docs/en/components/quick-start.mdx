@@ -1,0 +1,631 @@
+---
+title: Quick Start
+description: Get started with ADP Chat Component quickly
+---
+
+# Quick Start
+
+This guide will help you quickly integrate ADP Chat Component into your project.
+
+## Installation
+
+The component library is not yet published to npm. You need to install it locally.
+
+### Option 1: Local File Reference
+
+1. Copy the `adp-chat-component` directory to your project
+2. Add local dependency in `package.json`:
+
+```json
+{
+  "dependencies": {
+    "adp-chat-component": "file:./path/to/adp-chat-component"
+  }
+}
+```
+
+3. Install dependencies:
+
+```bash
+npm install
+# or
+pnpm install
+```
+
+### Option 2: Monorepo Workspace
+
+If your project uses pnpm workspace or other monorepo solutions, place the component library in the packages directory:
+
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - 'packages/*'
+```
+
+Then reference it in your project:
+
+```json
+{
+  "dependencies": {
+    "adp-chat-component": "workspace:*"
+  }
+}
+```
+
+### Option 3: Direct Build Output Import
+
+If you only need to use the built output, you can directly import files from the dist directory:
+
+```html
+<!-- In HTML -->
+<link rel="stylesheet" href="path/to/adp-chat-component/dist/es/adp-chat-component.css">
+<script src="path/to/adp-chat-component/dist/adp-chat-component.umd.js"></script>
+```
+
+Or in JavaScript:
+
+```javascript
+// ES Module
+import ADPChatComponent from 'path/to/adp-chat-component/dist/adp-chat-component.es.js'
+import 'path/to/adp-chat-component/dist/es/adp-chat-component.css'
+```
+
+## Basic Usage
+
+### Using in Simple HTML Pages
+Create ADPChat using API. See [API Reference](./init) for API parameters.
+
+1. Import adpchat js and css
+```html
+<script src="adp-chat-component.umd.js"></script>
+<link rel="stylesheet" href="adp-chat-component.css">
+```
+
+2. Create an element with id like chat-container to bindADPChat
+ADPChat will render based on chat-container layout
+```html
+<div id="container">
+    <div id="main">
+        <div class="main-content">
+            <h1>ADP Chat Demo</h1>
+        </div>
+    </div>
+    <div id="chat-container">
+    </div>
+</div>
+```
+
+3. Initialize adpchat
+```javascript
+window.onload = function() {
+  ADPChatComponent.init('#chat-container')
+}
+```
+
+### Using in Vue Projects
+
+#### 2.1 Quick Creation with API (Recommended)
+
+Manage components through `init`, `update`, `unmount` methods.
+
+a. Create mount container
+```vue
+<script setup lang="ts">
+import { useChat } from './shared/useChat'
+import './shared/styles.css'
+
+const { isOverlay, isOpen } = useChat({
+  getConfig: ({ isOverlay }) => ({
+    width: 400,
+    height: 640,
+    isSidePanelOverlay: isOverlay,
+    isOverlay: isOverlay,
+    logoTitle: 'ADP Chat',
+    showOverlayButton: true,
+    showToggleButton: true,
+  }),
+})
+</script>
+
+<template>
+  <div id="container">
+    <div id="main">
+      <div class="main-content">
+        <h1>ADP Chat Demo</h1>
+      </div>
+    </div>
+    <div id="chat-container" :class="{ 'chat-container--expanded': !isOverlay && isOpen }"></div>
+  </div>
+</template>
+```
+
+b. Create useChat Composable to manage component lifecycle
+```typescript
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import ADPChatComponent from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+import { defaultConfig } from './config'
+
+// Extend type to include update method
+type ADPChatComponentType = typeof ADPChatComponent & {
+  update: (container?: string, config?: Record<string, unknown>) => boolean
+}
+const ADPChat = ADPChatComponent as ADPChatComponentType
+
+export interface UseChatOptions {
+  containerId?: string
+  getConfig: (state: { isOpen: boolean; isOverlay: boolean }) => Record<string, unknown>
+}
+
+export function useChat(options: UseChatOptions) {
+  const { containerId = '#chat-container', getConfig } = options
+  
+  const instanceRef = ref<unknown>(null)
+  const isOpen = ref(false)
+  const isOverlay = ref(true)
+
+  const updateChat = () => {
+    // Skip if not initialized
+    if (!instanceRef.value) return
+    
+    const userConfig = getConfig({ isOpen: isOpen.value, isOverlay: isOverlay.value })
+    ADPChat.update(containerId, {
+      ...userConfig,
+      isOpen: isOpen.value,
+      isOverlay: isOverlay.value,
+    })
+  }
+
+  const initChat = () => {
+    // Ensure container exists
+    const container = document.querySelector(containerId)
+    if (!container) {
+      console.warn(`Container ${containerId} not found, retrying...`)
+      return
+    }
+
+    // If already initialized, use update
+    if (instanceRef.value) {
+      updateChat()
+      return
+    }
+
+    const userConfig = getConfig({ isOpen: isOpen.value, isOverlay: isOverlay.value })
+    
+    instanceRef.value = ADPChat.init(containerId, {
+      ...defaultConfig,
+      ...userConfig,
+      isOpen: isOpen.value,
+      isOverlay: isOverlay.value,
+      onOpenChange: (open: boolean) => {
+        isOpen.value = open
+        ;(userConfig.onOpenChange as ((open: boolean) => void) | undefined)?.(open)
+      },
+      onOverlayChange: (newIsOverlay: boolean) => {
+        isOverlay.value = newIsOverlay
+        ;(userConfig.onOverlayChange as ((overlay: boolean) => void) | undefined)?.(isOverlay.value)
+        nextTick(() => updateChat())
+      },
+    })
+  }
+
+  const openChat = () => {
+    isOpen.value = true
+    nextTick(() => instanceRef.value ? updateChat() : initChat())
+  }
+
+  const closeChat = () => {
+    isOpen.value = false
+    nextTick(() => instanceRef.value ? updateChat() : initChat())
+  }
+
+  const toggleOverlay = () => {
+    isOverlay.value = !isOverlay.value
+    nextTick(() => instanceRef.value ? updateChat() : initChat())
+  }
+
+  onMounted(() => {
+    nextTick(() => initChat())
+  })
+
+  onUnmounted(() => {
+    if (instanceRef.value) {
+      try {
+        ADPChat.unmount('chat-container-app')
+      } catch { /* ignore */ }
+    }
+  })
+
+  return { isOpen, isOverlay, initChat, openChat, closeChat, toggleOverlay }
+}
+```
+
+c. Style configuration
+```css
+#container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: row;
+}
+
+#chat-container {
+  position: relative;
+  height: 100vh;
+  flex-shrink: 0;
+  width: 0;
+  transition: width 0.3s ease;
+}
+
+#chat-container.chat-container--expanded {
+  width: 400px;
+}
+
+#chat-container :deep(*) {
+  pointer-events: auto;
+}
+```
+
+#### 2.2 Using ADPChat Component (JSX Style)
+
+Use Vue component directly:
+
+```vue
+<template>
+  <ADPChat
+    :api-config="apiConfig"
+    :auto-load="true"
+    @data-loaded="handleDataLoaded"
+    @send="handleSend"
+  />
+</template>
+
+<script setup lang="ts">
+import { ADPChat } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+
+const apiConfig = {
+  baseURL: './',
+  timeout: 1000 * 60,
+}
+
+const handleDataLoaded = (type, data) => {
+  console.log(`${type} loaded:`, data)
+}
+
+const handleSend = (query, fileList, conversationId, applicationId) => {
+  // Handle send message
+}
+</script>
+```
+
+#### 2.3 Custom Assembly with Basic Components
+
+Refer to the basic components documentation
+
+### Using in React or Other Frameworks
+
+Since adp-chat-component is a Vue-based component library, integration in React or other frameworks requires using the mounting API.
+
+#### 3.1 Quick Creation with API (Recommended)
+
+Similar to using API in Vue projects, you can manage components through `init`, `update`, `unmount` methods.
+
+a. Create mount container
+```tsx
+const App: React.FC = () => {
+  const { isOverlay, isOpen } = useChat({
+    getConfig: ({ isOverlay }) => ({
+      width: 400,
+      height: 640,
+      isSidePanelOverlay: isOverlay,
+      isOverlay: isOverlay,
+      logoTitle: 'ADP Chat',
+      showOverlayButton: true,
+      showToggleButton: true,
+    }),
+  })
+
+  return (
+    <div id="container">
+      <div id="main">
+        <div className="main-content">
+          <h1>ADP Chat Demo</h1>
+        </div>
+      </div>
+      <div id="chat-container" className={!isOverlay && isOpen ? 'chat-container--expanded' : ''}></div>
+    </div>
+  )
+}
+```
+
+b. Create useChat Hook to manage component lifecycle
+```typescript
+import { useEffect, useRef, useState, useCallback } from 'react'
+import ADPChatComponent from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+import { defaultConfig } from './config'
+
+// Extend type to include update method
+type ADPChatComponentType = typeof ADPChatComponent & {
+  update: (container?: string, config?: Record<string, unknown>) => boolean
+}
+const ADPChat = ADPChatComponent as ADPChatComponentType
+
+export interface UseChatOptions {
+  containerId?: string
+  getConfig: (state: { isOpen: boolean; isOverlay: boolean }) => Record<string, unknown>
+}
+
+export function useChat(options: UseChatOptions) {
+  const { containerId = '#chat-container', getConfig } = options
+  
+  const instanceRef = useRef<unknown>(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isOverlay, setIsOverlay] = useState(true)
+  
+  // Use ref to track latest state
+  const stateRef = useRef({ isOpen, isOverlay })
+  stateRef.current = { isOpen, isOverlay }
+
+  const updateChat = useCallback(() => {
+    // Skip if not initialized
+    if (!instanceRef.current) return
+    
+    const userConfig = getConfig({ isOpen: stateRef.current.isOpen, isOverlay: stateRef.current.isOverlay })
+    ADPChat.update(containerId, {
+      ...userConfig,
+      isOverlay: stateRef.current.isOverlay,
+      isOpen: stateRef.current.isOpen,
+    })
+  }, [containerId, getConfig])
+
+  const initChat = useCallback(() => {
+    // Ensure container exists
+    const container = document.querySelector(containerId)
+    if (!container) {
+      console.warn(`Container ${containerId} not found, retrying...`)
+      return
+    }
+
+    // If already initialized, use update
+    if (instanceRef.current) {
+      updateChat()
+      return
+    }
+
+    const userConfig = getConfig({ isOpen: stateRef.current.isOpen, isOverlay: stateRef.current.isOverlay })
+    
+    instanceRef.current = ADPChat.init(containerId, {
+      ...defaultConfig,
+      ...userConfig,
+      isOpen: stateRef.current.isOpen,
+      isOverlay: stateRef.current.isOverlay,
+      onOpenChange: (newOpen: boolean) => {
+        setIsOpen(newOpen)
+        stateRef.current.isOpen = newOpen
+        ;(userConfig.onOpenChange as ((open: boolean) => void) | undefined)?.(newOpen)
+      },
+      onOverlayChange: (newIsOverlay: boolean) => {
+        setIsOverlay(newIsOverlay)
+        stateRef.current.isOverlay = newIsOverlay
+        ;(userConfig.onOverlayChange as ((overlay: boolean) => void) | undefined)?.(newIsOverlay)
+        // Use setTimeout to ensure state is updated before updating config
+        setTimeout(() => updateChat(), 0)
+      },
+    })
+  }, [containerId, getConfig, updateChat])
+
+  const openChat = useCallback(() => {
+    setIsOpen(true)
+    stateRef.current.isOpen = true
+    setTimeout(() => instanceRef.current ? updateChat() : initChat(), 0)
+  }, [initChat, updateChat])
+
+  const closeChat = useCallback(() => {
+    setIsOpen(false)
+    stateRef.current.isOpen = false
+    setTimeout(() => instanceRef.current ? updateChat() : initChat(), 0)
+  }, [initChat, updateChat])
+
+  const toggleOverlay = useCallback(() => {
+    const newIsOverlay = !stateRef.current.isOverlay
+    setIsOverlay(newIsOverlay)
+    stateRef.current.isOverlay = newIsOverlay
+    setTimeout(() => instanceRef.current ? updateChat() : initChat(), 0)
+  }, [initChat, updateChat])
+
+  useEffect(() => {
+    // Use setTimeout to ensure DOM is ready
+    const timer = setTimeout(() => initChat(), 0)
+    return () => {
+      clearTimeout(timer)
+      if (instanceRef.current) {
+        try {
+          ADPChat.unmount('chat-container-app')
+        } catch { /* ignore */ }
+      }
+    }
+  }, [])
+
+  return { isOpen, isOverlay, initChat, openChat, closeChat, toggleOverlay }
+}
+```
+
+c. Style configuration
+```css
+#container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: row;
+}
+
+#chat-container {
+  position: relative;
+  height: 100vh;
+  flex-shrink: 0;
+  width: 0;
+  transition: width 0.3s ease;
+}
+
+#chat-container.chat-container--expanded {
+  width: 400px;
+}
+
+#chat-container * {
+  pointer-events: auto;
+}
+```
+
+#### 3.2 Wrap as React Component (JSX Style)
+
+If you prefer using JSX component style, you can wrap a React component that internally calls `ADPChat.mount` to mount the Vue component.
+
+a. Wrap ADPChat React Component
+```tsx
+import React, { useEffect, useRef, useId } from 'react'
+import ADPChatComponent from 'adp-chat-component'
+import type { ApiConfig, ThemeType, Application, ChatConversation } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+
+export interface ADPChatProps {
+  apiConfig?: ApiConfig
+  autoLoad?: boolean
+  theme?: ThemeType
+  isSidePanelOverlay?: boolean
+  currentApplicationId?: string
+  currentConversationId?: string
+  onSelectApplication?: (app: Application) => void
+  onSelectConversation?: (conversation: ChatConversation) => void
+  onToggleTheme?: () => void
+  onDataLoaded?: (type: string, data: unknown) => void
+  // ... more props
+}
+
+const ADPChat: React.FC<ADPChatProps> = (props) => {
+  const uniqueId = useId()
+  const containerId = `adp-chat-${uniqueId.replace(/:/g, '-')}`
+  const containerRef = useRef<HTMLDivElement>(null)
+  const mountedIdRef = useRef<string | null>(null)
+
+  const getConfig = () => ({
+    apiConfig: props.apiConfig,
+    autoLoad: props.autoLoad ?? true,
+    theme: props.theme ?? 'light',
+    isSidePanelOverlay: props.isSidePanelOverlay ?? true,
+    currentApplicationId: props.currentApplicationId ?? '',
+    currentConversationId: props.currentConversationId ?? '',
+    onSelectApplication: props.onSelectApplication,
+    onSelectConversation: props.onSelectConversation,
+    onToggleTheme: props.onToggleTheme,
+    onDataLoaded: props.onDataLoaded,
+  })
+
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    // Unmount old instance
+    if (mountedIdRef.current) {
+      try {
+        ADPChatComponent.ADPChat.unmount(mountedIdRef.current)
+      } catch { /* ignore */ }
+    }
+
+    // Mount new instance
+    mountedIdRef.current = ADPChatComponent.ADPChat.mount(`#${containerId}`, getConfig()) || null
+
+    return () => {
+      if (mountedIdRef.current) {
+        try {
+          ADPChatComponent.ADPChat.unmount(mountedIdRef.current)
+        } catch { /* ignore */ }
+        mountedIdRef.current = null
+      }
+    }
+  }, [containerId, props.theme, props.currentApplicationId, props.currentConversationId])
+
+  return (
+    <div
+      id={containerId}
+      ref={containerRef}
+      style={{ width: '100%', height: '100%' }}
+    />
+  )
+}
+
+export default ADPChat
+```
+
+b. Use in page
+```tsx
+import React from 'react'
+import ADPChat from './components/ADPChat'
+
+const Home: React.FC = () => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [currentAppId, setCurrentAppId] = useState('')
+  const [currentConvId, setCurrentConvId] = useState('')
+
+  return (
+    <div style={{ width: '100vw', height: '100vh' }}>
+      <ADPChat
+        apiConfig={{ baseURL: '/api', timeout: 60000 }}
+        autoLoad={true}
+        theme={theme}
+        currentApplicationId={currentAppId}
+        currentConversationId={currentConvId}
+        onSelectApplication={(app) => setCurrentAppId(app.ApplicationId)}
+        onSelectConversation={(conv) => setCurrentConvId(conv.Id)}
+        onToggleTheme={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+        onDataLoaded={(type, data) => console.log(`${type} loaded:`, data)}
+      />
+    </div>
+  )
+}
+
+export default Home
+```
+
+## Theme Switching
+
+Components support light and dark themes:
+
+```vue
+<template>
+  <ADPChat
+    :theme="theme"
+    @toggle-theme="toggleTheme"
+  />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const theme = ref('light')
+
+const toggleTheme = () => {
+  theme.value = theme.value === 'light' ? 'dark' : 'light'
+}
+</script>
+```
+
+## Internationalization
+
+Customize text through i18n related props:
+
+```vue
+<template>
+  <ADPChat
+    :chat-i18n="{
+      loading: 'Loading...',
+      thinking: 'Thinking...',
+      sendError: 'Send failed'
+    }"
+    :sender-i18n="{
+      placeholder: 'Type your message...',
+      uploadImg: 'Upload image'
+    }"
+  />
+</template>
+```

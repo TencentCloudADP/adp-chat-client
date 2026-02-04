@@ -1,7 +1,6 @@
 import '../global.css';
 import 'remixicon/fonts/remixicon.css';
 import { ClientRootProvider } from '@/components/providers/client-root-provider';
-import { Inter } from 'next/font/google';
 import { use } from 'react';
 import type { ReactNode } from 'react';
 import type { Translations } from 'fumadocs-ui/i18n';
@@ -14,10 +13,6 @@ export function generateStaticParams() {
     lang,
   }));
 }
-
-const inter = Inter({
-  subsets: ['latin'],
-});
 
 // Chinese translations
 const zh: Partial<Translations> = {

@@ -1,0 +1,569 @@
+---
+title: 快速开始
+description: 快速上手 ADP Chat Component
+---
+
+# 快速开始
+
+本指南将帮助你快速集成 ADP Chat Component 到你的项目中。
+
+## 安装
+
+当前组件库暂未发布到 npm，需要通过本地方式引入。
+
+### 方式一：本地文件引入
+
+1. 将 `adp-chat-component` 目录复制到你的项目中
+2. 在 `package.json` 中添加本地依赖：
+
+```json
+{
+  "dependencies": {
+    "adp-chat-component": "file:./path/to/adp-chat-component"
+  }
+}
+```
+
+3. 安装依赖：
+
+```bash
+npm install
+# 或
+pnpm install
+```
+
+### 方式二：Monorepo 工作区引入
+
+如果你的项目使用 pnpm workspace 或其他 monorepo 方案，可以将组件库放入 packages 目录：
+
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - 'packages/*'
+```
+
+然后在项目中引用：
+
+```json
+{
+  "dependencies": {
+    "adp-chat-component": "workspace:*"
+  }
+}
+```
+
+### 方式三：构建产物直接引入
+
+如果只需要使用构建后的产物，可以直接引入 dist 目录中的文件：
+
+```html
+<!-- 在 HTML 中引入 -->
+<link rel="stylesheet" href="path/to/adp-chat-component/dist/es/adp-chat-component.css">
+<script src="path/to/adp-chat-component/dist/adp-chat-component.umd.js"></script>
+```
+
+或在 JavaScript 中：
+
+```javascript
+// ES Module
+import ADPChatComponent from 'path/to/adp-chat-component/dist/adp-chat-component.es.js'
+import 'path/to/adp-chat-component/dist/es/adp-chat-component.css'
+```
+
+## 基础使用
+
+### 在简单HTML页面中使用
+使用api形式创建ADPChat，api参数详见[api调用](./init)
+1. 引入adpchat的js和css
+```html
+<script src="adp-chat-component.umd.js"></script>
+<link rel="stylesheet" href="adp-chat-component.css">
+```
+
+2. 创建id如chat-container将adpchat绑定到该标签上
+ADPChat将根据chat-container布局渲染
+```html
+<div id="container">
+            <div id="main">
+                <div class="main-content">
+                    <h1>ADP Chat Demo</h1>
+                </div>
+            </div>
+            <div id="chat-container">
+            </div>
+        </div>
+```
+3. 初始化adpchat
+```javascript
+window.onload = function() {
+  ADPChatComponent.init('#chat-container')
+}
+
+```
+
+### 在 Vue 项目中使用
+
+#### 2.1 使用 API 快速创建（推荐）
+通过 `init`、`update`、`unmount` 方法管理组件。
+```vue
+<script setup lang="ts">
+import ADPChatComponent from 'adp-chat-component'
+
+// 初始化
+ADPChatComponent.init('#chat-container')
+// 更新
+ADPChatComponent.update('#chat-container')
+//  卸载
+ADPChatComponent.unmount('#chat-container')
+</script>
+
+<template>
+  <div id="container">
+    <div id="main">
+      <div class="main-content">
+        <h1>ADP Chat Demo</h1>
+      </div>
+    </div>
+    <div id="chat-container" :class="{ 'chat-container--expanded': !isOverlay && isOpen }"></div>
+  </div>
+</template>
+```
+更新方法需要保证同一个实例，请在vue中缓存
+完整示例参考usechat方法
+```typescript
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import ADPChatComponent from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+import { defaultConfig } from './config'
+
+// 扩展类型以包含 update 方法
+type ADPChatComponentType = typeof ADPChatComponent & {
+  update: (container?: string, config?: Record<string, unknown>) => boolean
+}
+const ADPChat = ADPChatComponent as ADPChatComponentType
+
+export interface UseChatOptions {
+  containerId?: string
+  getConfig: (state: { isOpen: boolean; isOverlay: boolean }) => Record<string, unknown>
+}
+
+export function useChat(options: UseChatOptions) {
+  const { containerId = '#chat-container', getConfig } = options
+  
+  const instanceRef = ref<unknown>(null)
+  const isOpen = ref(false)
+  const isOverlay = ref(true)
+
+  const updateChat = () => {
+    // 如果还没有初始化，不执行更新
+    if (!instanceRef.value) return
+    
+    const userConfig = getConfig({ isOpen: isOpen.value, isOverlay: isOverlay.value })
+    ADPChat.update(containerId, {
+      ...userConfig,
+      isOpen: isOpen.value,
+      isOverlay: isOverlay.value,
+    })
+  }
+
+  const initChat = () => {
+    // 确保容器存在
+    const container = document.querySelector(containerId)
+    if (!container) {
+      console.warn(`Container ${containerId} not found, retrying...`)
+      return
+    }
+
+    // 已初始化则使用 update 更新
+    if (instanceRef.value) {
+      updateChat()
+      return
+    }
+
+    const userConfig = getConfig({ isOpen: isOpen.value, isOverlay: isOverlay.value })
+    
+    instanceRef.value = ADPChat.init(containerId, {
+      ...defaultConfig,
+      ...userConfig,
+      isOpen: isOpen.value,
+      isOverlay: isOverlay.value,
+      onOpenChange: (open: boolean) => {
+        isOpen.value = open
+        ;(userConfig.onOpenChange as ((open: boolean) => void) | undefined)?.(open)
+      },
+      onOverlayChange: (newIsOverlay: boolean) => {
+        isOverlay.value = newIsOverlay
+        ;(userConfig.onOverlayChange as ((overlay: boolean) => void) | undefined)?.(isOverlay.value)
+        nextTick(() => updateChat())
+      },
+    })
+  }
+
+  const openChat = () => {
+    isOpen.value = true
+    nextTick(() => instanceRef.value ? updateChat() : initChat())
+  }
+
+  const closeChat = () => {
+    isOpen.value = false
+    nextTick(() => instanceRef.value ? updateChat() : initChat())
+  }
+
+  const toggleOverlay = () => {
+    isOverlay.value = !isOverlay.value
+    nextTick(() => instanceRef.value ? updateChat() : initChat())
+  }
+
+  onMounted(() => {
+    nextTick(() => initChat())
+  })
+
+  onUnmounted(() => {
+    if (instanceRef.value) {
+      try {
+        ADPChat.unmount('chat-container-app')
+      } catch { /* ignore */ }
+    }
+  })
+
+  return { isOpen, isOverlay, initChat, openChat, closeChat, toggleOverlay }
+}
+```
+
+#### 2.2 使用 ADPChat 组件
+
+直接使用 Vue 组件方式：
+
+```vue
+<template>
+  <ADPChat
+    :api-config="apiConfig"
+    :auto-load="true"
+    @data-loaded="handleDataLoaded"
+    @send="handleSend"
+  />
+</template>
+
+<script setup lang="ts">
+import { ADPChat } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+
+const apiConfig = {
+  baseURL: './',
+  timeout: 1000 * 60,
+}
+
+const handleDataLoaded = (type, data) => {
+  console.log(`${type} loaded:`, data)
+}
+
+const handleSend = (query, fileList, conversationId, applicationId) => {
+  // 处理发送消息
+}
+</script>
+```
+
+#### 2.3 使用基础组件拼接自定义
+
+参考基础组件使用文档
+
+
+### 在React或其他框架项目中使用
+
+由于 adp-chat-component 是基于 Vue 开发的组件库，在 React 或其他框架中使用时，需要通过挂载 API 的方式集成。
+
+#### 3.1 使用 API 快速创建（推荐）
+
+与 Vue 项目中使用 API 方式类似，可以通过 `init`、`update`、`unmount` 方法管理组件。
+
+a. 创建挂载容器
+```tsx
+import ADPChatComponent from 'adp-chat-component'
+
+const App: React.FC = () => {
+
+  // 初始化
+  ADPChatComponent.init('#chat-container')
+  // 更新
+  ADPChatComponent.update('#chat-container')
+  //  卸载
+  ADPChatComponent.unmount('#chat-container')
+
+  return (
+    <div id="container">
+      <div id="main">
+        <div className="main-content">
+          <h1>ADP Chat Demo</h1>
+        </div>
+      </div>
+      <div id="chat-container" className={!isOverlay && isOpen ? 'chat-container--expanded' : ''}></div>
+    </div>
+  )
+}
+```
+更新方法需要保证同一个实例，请在react中缓存
+完整示例参考usechat方法
+```typescript
+import { useEffect, useRef, useState, useCallback } from 'react'
+import ADPChatComponent from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+import { defaultConfig } from './config'
+
+// 扩展类型以包含 update 方法
+type ADPChatComponentType = typeof ADPChatComponent & {
+  update: (container?: string, config?: Record<string, unknown>) => boolean
+}
+const ADPChat = ADPChatComponent as ADPChatComponentType
+
+export interface UseChatOptions {
+  containerId?: string
+  getConfig: (state: { isOpen: boolean; isOverlay: boolean }) => Record<string, unknown>
+}
+
+export function useChat(options: UseChatOptions) {
+  const { containerId = '#chat-container', getConfig } = options
+  
+  const instanceRef = useRef<unknown>(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isOverlay, setIsOverlay] = useState(true)
+  
+  // 使用 ref 追踪最新状态
+  const stateRef = useRef({ isOpen, isOverlay })
+  stateRef.current = { isOpen, isOverlay }
+
+  const updateChat = useCallback(() => {
+    // 如果还没有初始化，不执行更新
+    if (!instanceRef.current) return
+    
+    const userConfig = getConfig({ isOpen: stateRef.current.isOpen, isOverlay: stateRef.current.isOverlay })
+    ADPChat.update(containerId, {
+      ...userConfig,
+      isOverlay: stateRef.current.isOverlay,
+      isOpen: stateRef.current.isOpen,
+    })
+  }, [containerId, getConfig])
+
+  const initChat = useCallback(() => {
+    // 确保容器存在
+    const container = document.querySelector(containerId)
+    if (!container) {
+      console.warn(`Container ${containerId} not found, retrying...`)
+      return
+    }
+
+    // 已初始化则使用 update 更新
+    if (instanceRef.current) {
+      updateChat()
+      return
+    }
+
+    const userConfig = getConfig({ isOpen: stateRef.current.isOpen, isOverlay: stateRef.current.isOverlay })
+    
+    instanceRef.current = ADPChat.init(containerId, {
+      ...defaultConfig,
+      ...userConfig,
+      isOpen: stateRef.current.isOpen,
+      isOverlay: stateRef.current.isOverlay,
+      onOpenChange: (newOpen: boolean) => {
+        setIsOpen(newOpen)
+        stateRef.current.isOpen = newOpen
+        ;(userConfig.onOpenChange as ((open: boolean) => void) | undefined)?.(newOpen)
+      },
+      onOverlayChange: (newIsOverlay: boolean) => {
+        setIsOverlay(newIsOverlay)
+        stateRef.current.isOverlay = newIsOverlay
+        ;(userConfig.onOverlayChange as ((overlay: boolean) => void) | undefined)?.(newIsOverlay)
+        // 使用 setTimeout 确保状态更新后再更新配置
+        setTimeout(() => updateChat(), 0)
+      },
+    })
+  }, [containerId, getConfig, updateChat])
+
+  const openChat = useCallback(() => {
+    setIsOpen(true)
+    stateRef.current.isOpen = true
+    setTimeout(() => instanceRef.current ? updateChat() : initChat(), 0)
+  }, [initChat, updateChat])
+
+  const closeChat = useCallback(() => {
+    setIsOpen(false)
+    stateRef.current.isOpen = false
+    setTimeout(() => instanceRef.current ? updateChat() : initChat(), 0)
+  }, [initChat, updateChat])
+
+  const toggleOverlay = useCallback(() => {
+    const newIsOverlay = !stateRef.current.isOverlay
+    setIsOverlay(newIsOverlay)
+    stateRef.current.isOverlay = newIsOverlay
+    setTimeout(() => instanceRef.current ? updateChat() : initChat(), 0)
+  }, [initChat, updateChat])
+
+  useEffect(() => {
+    // 使用 setTimeout 确保 DOM 准备就绪
+    const timer = setTimeout(() => initChat(), 0)
+    return () => {
+      clearTimeout(timer)
+      if (instanceRef.current) {
+        try {
+          ADPChat.unmount('chat-container-app')
+        } catch { /* ignore */ }
+      }
+    }
+  }, [])
+
+  return { isOpen, isOverlay, initChat, openChat, closeChat, toggleOverlay }
+}
+```
+
+
+#### 3.2 封装 React 组件使用（JSX 方式）
+
+如果希望以 JSX 组件的方式使用，可以封装一个 React 组件，内部调用 `ADPChat.mount` 方法挂载 Vue 组件。
+
+a. 封装 ADPChat React 组件
+```tsx
+import React, { useEffect, useRef, useId } from 'react'
+import ADPChatComponent from 'adp-chat-component'
+import type { ApiConfig, ThemeType, Application, ChatConversation } from 'adp-chat-component'
+import 'adp-chat-component/dist/es/adp-chat-component.css'
+
+export interface ADPChatProps {
+  apiConfig?: ApiConfig
+  autoLoad?: boolean
+  theme?: ThemeType
+  isSidePanelOverlay?: boolean
+  currentApplicationId?: string
+  currentConversationId?: string
+  onSelectApplication?: (app: Application) => void
+  onSelectConversation?: (conversation: ChatConversation) => void
+  onToggleTheme?: () => void
+  onDataLoaded?: (type: string, data: unknown) => void
+  // ... 更多 props
+}
+
+const ADPChat: React.FC<ADPChatProps> = (props) => {
+  const uniqueId = useId()
+  const containerId = `adp-chat-${uniqueId.replace(/:/g, '-')}`
+  const containerRef = useRef<HTMLDivElement>(null)
+  const mountedIdRef = useRef<string | null>(null)
+
+  const getConfig = () => ({
+    apiConfig: props.apiConfig,
+    autoLoad: props.autoLoad ?? true,
+    theme: props.theme ?? 'light',
+    isSidePanelOverlay: props.isSidePanelOverlay ?? true,
+    currentApplicationId: props.currentApplicationId ?? '',
+    currentConversationId: props.currentConversationId ?? '',
+    onSelectApplication: props.onSelectApplication,
+    onSelectConversation: props.onSelectConversation,
+    onToggleTheme: props.onToggleTheme,
+    onDataLoaded: props.onDataLoaded,
+  })
+
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    // 卸载旧实例
+    if (mountedIdRef.current) {
+      try {
+        ADPChatComponent.ADPChat.unmount(mountedIdRef.current)
+      } catch { /* ignore */ }
+    }
+
+    // 挂载新实例
+    mountedIdRef.current = ADPChatComponent.ADPChat.mount(`#${containerId}`, getConfig()) || null
+
+    return () => {
+      if (mountedIdRef.current) {
+        try {
+          ADPChatComponent.ADPChat.unmount(mountedIdRef.current)
+        } catch { /* ignore */ }
+        mountedIdRef.current = null
+      }
+    }
+  }, [containerId, props.theme, props.currentApplicationId, props.currentConversationId])
+
+  return (
+    <div
+      id={containerId}
+      ref={containerRef}
+      style={{ width: '100%', height: '100%' }}
+    />
+  )
+}
+
+export default ADPChat
+```
+
+b. 在页面中使用
+```tsx
+import React from 'react'
+import ADPChat from './components/ADPChat'
+
+const Home: React.FC = () => {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [currentAppId, setCurrentAppId] = useState('')
+  const [currentConvId, setCurrentConvId] = useState('')
+
+  return (
+    <div style={{ width: '100vw', height: '100vh' }}>
+      <ADPChat
+        apiConfig={{ baseURL: '/api', timeout: 60000 }}
+        autoLoad={true}
+        theme={theme}
+        currentApplicationId={currentAppId}
+        currentConversationId={currentConvId}
+        onSelectApplication={(app) => setCurrentAppId(app.ApplicationId)}
+        onSelectConversation={(conv) => setCurrentConvId(conv.Id)}
+        onToggleTheme={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+        onDataLoaded={(type, data) => console.log(`${type} loaded:`, data)}
+      />
+    </div>
+  )
+}
+
+export default Home
+```
+
+## 主题切换
+
+组件支持亮色和暗色主题：
+
+```vue
+<template>
+  <ADPChat
+    :theme="theme"
+    @toggle-theme="toggleTheme"
+  />
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const theme = ref('light')
+
+const toggleTheme = () => {
+  theme.value = theme.value === 'light' ? 'dark' : 'light'
+}
+</script>
+```
+
+## 国际化
+
+通过 i18n 相关 props 自定义文本：
+
+```vue
+<template>
+  <ADPChat
+    :chat-i18n="{
+      loading: 'Loading...',
+      thinking: 'Thinking...',
+      sendError: 'Send failed'
+    }"
+    :sender-i18n="{
+      placeholder: 'Type your message...',
+      uploadImg: 'Upload image'
+    }"
+  />
+</template>
+```

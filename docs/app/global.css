@@ -2,6 +2,11 @@
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 
+/* 使用系统字体栈 */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
 /* 画中画效果的全局样式 */
 /* 
  * 注意：scroll-state 容器查询是实验性特性，浏览器支持度低

@@ -1,0 +1,44 @@
+---
+title: CreateConversation
+description: 新建对话按钮组件
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# CreateConversation
+
+新建对话的快捷按钮。
+
+## vue中使用
+
+```vue
+<template>
+  <CreateConversation
+    tooltip-text="新建对话"
+    @create="handleCreate"
+  />
+</template>
+```
+
+## html/react或其他框架中使用
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.CreateConversation.mount('#containerId', {
+  tooltipText: '新建对话',
+  onCreate: () => console.log('create')
+})
+</script>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'tooltipText', type: 'string', default: "'新建对话'", description: '提示文本' },
+  { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: '主题模式' },
+]} />
+
+<EventsTable data={[
+  { name: 'create', description: '点击新建时触发' },
+]} />

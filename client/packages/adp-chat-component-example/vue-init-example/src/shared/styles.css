@@ -1,0 +1,138 @@
+/* Reset styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+/* Common page container */
+.page-container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Control panel */
+.control-panel {
+  position: absolute;
+  text-align: center;
+  z-index: 1;
+}
+
+.control-panel h2 {
+  font-size: 1.5rem;
+  color: #1e293b;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.control-panel p {
+  color: #64748b;
+  margin-bottom: 16px;
+}
+
+/* Control buttons */
+.control-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.control-btn {
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #6366f1;
+  color: #fff;
+  transition: all 0.2s;
+}
+
+.control-btn:hover {
+  background: #4f46e5;
+}
+
+.control-btn--secondary {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.control-btn--secondary:hover {
+  background: #e2e8f0;
+}
+
+/* Chat container */
+#chat-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* Chat wrapper for compact modes */
+.chat-wrapper {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.chat-wrapper.overlay-expanded {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Background variants */
+.bg-gradient-purple {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.bg-gradient-purple .control-panel h2 {
+  color: #fff;
+}
+
+.bg-gradient-purple .control-panel p {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.bg-gradient-purple .control-btn {
+  background: #fff;
+  color: #6366f1;
+}
+
+.bg-gradient-purple .control-btn:hover {
+  background: #f8fafc;
+}
+
+.bg-gradient-gray {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.bg-gradient-light {
+  background: linear-gradient(135deg, #e0e5ec 0%, #f5f7fa 100%);
+}
+
+.bg-plain {
+  background: #f8fafc;
+}
+
+/* Non-overlay transition */
+.page-container.is-expanded {
+  padding: 0 !important;
+}

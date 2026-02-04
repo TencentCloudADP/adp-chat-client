@@ -1,0 +1,63 @@
+---
+title: HistoryList
+description: History conversation list component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# HistoryList
+
+Display chat conversation history.
+
+## Usage in Vue
+
+```vue
+<template>
+  <HistoryList
+    :conversations="conversations"
+    :current-conversation-id="currentId"
+    @select="handleSelect"
+  />
+</template>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.HistoryList.mount('#containerId', {
+  conversations: [],
+  currentConversationId: '',
+  onSelect: (conversation) => console.log('selected', conversation)
+})
+</script>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'conversations', type: 'ChatConversation[]', default: '[]', description: 'Conversation list' },
+  { name: 'currentConversationId', type: 'string', default: "''", description: 'Current conversation ID' },
+  { name: 'todayText', type: 'string', default: "'Today'", description: 'Today text' },
+  { name: 'recentText', type: 'string', default: "'Recent'", description: 'Recent text' },
+]} />
+
+<EventsTable data={[
+  { name: 'select', params: 'ChatConversation', description: 'Triggered on select' },
+]} />
+
+## Type Definitions
+
+### ChatConversation
+
+```typescript
+interface ChatConversation {
+  Id: string;
+  AccountId: string;
+  Title: string;
+  LastActiveAt: number;
+  CreatedAt: number;
+  ApplicationId: string;
+}
+```

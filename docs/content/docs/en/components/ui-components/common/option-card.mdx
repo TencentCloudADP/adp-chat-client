@@ -1,0 +1,48 @@
+---
+title: OptionCard
+description: Option card component
+---
+
+import { PropsTable, EventsTable, SlotsTable, MethodsTable } from '@/components/docs/api-table';
+
+# OptionCard
+
+Display clickable option card list, commonly used for quick options in AI replies.
+
+## Usage in Vue
+
+```vue
+<template>
+  <OptionCard
+    :cards="options"
+    :send-message="handleSendMessage"
+  />
+</template>
+
+<script setup>
+const options = ['Option 1', 'Option 2', 'Option 3']
+
+const handleSendMessage = (text) => {
+  console.log('Send message:', text)
+}
+</script>
+```
+
+## Usage in HTML/React or Other Frameworks
+
+```html
+<div id="containerId"></div>
+<script>
+ADPChatComponent.OptionCard.mount('#containerId', {
+  cards: ['Option 1', 'Option 2', 'Option 3'],
+  sendMessage: (text) => console.log('Send message:', text)
+})
+</script>
+```
+
+## API
+
+<PropsTable data={[
+  { name: 'cards', type: 'string[]', required: true, description: 'Option card list' },
+  { name: 'sendMessage', type: '(text: string) => void', description: 'Send message callback' },
+]} />
