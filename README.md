@@ -288,12 +288,14 @@ class ChatMessageApi(HTTPMethodView):
         vendor_app = app.get_vendor_app(application_id)
 
         # Add the following code to attach additional API parameters during conversation:
+        import json
         from core.account import CoreAccount
         account = await CoreAccount.get(request.ctx.db, request.ctx.account_id)
+        account_third_party = await CoreAccount.get_third_party(request.ctx.db, request.ctx.account_id)
         # Note the json.dumps here: Tencent Cloud ADP convention requires that if the value is a dictionary, it needs to be JSON-encoded once and converted to a JSON string
         args['CustomVariables']['account'] = json.dumps({
-            "id": str(account.Id),
-            "name": account.Name,
+            "id": account_third_party.OpenId if account_third_party else str(account.Id),
+            "name": account.Name if account else "",
         })
         logging.info(f"[ChatMessageApi] ApplicationId: {application_id},\n\
             CustomVariables: {args['CustomVariables']},\n\

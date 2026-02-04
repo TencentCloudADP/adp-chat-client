@@ -34,6 +34,15 @@ class CoreAccountProvider:
 
 class CoreAccount:
     @staticmethod
+    async def get_third_party(db: AsyncSession, account_id: str) -> AccountThirdParty:
+        account_third_party = (await db.execute(
+            select(AccountThirdParty)
+                .where(AccountThirdParty.AccountId == account_id)
+                .limit(1)
+        )).scalar()
+        return account_third_party
+
+    @staticmethod
     async def find(
         db: AsyncSession, email: Optional[str] = None, provider: Optional[str] = None, open_id: Optional[str] = None
     ) -> Account:
