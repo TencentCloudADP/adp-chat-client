@@ -1,6 +1,7 @@
-from functools import wraps
-from sanic.request.types import Request
 import logging
+from functools import wraps
+
+from sanic.request.types import Request
 
 from util.helper import get_remote_ip, get_path_base
 from core.error.account import AccountUnauthorized
