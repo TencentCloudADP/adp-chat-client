@@ -230,7 +230,6 @@ class ApplicationInterface:
 class ChatInterface:
     async def chat(
         self,
-        db: AsyncSession,
         account_id: str,
         query: str,
         conversation_id: str,
@@ -244,7 +243,6 @@ class ChatInterface:
         核心聊天交互接口，处理用户查询并实时返回对话结果。
 
         Args:
-            db (AsyncSession): SQLAlchemy db连接对象
             account_id (str): 用户账户唯一标识，用于标识不同用户
             query (str): 用户输入的查询文本
             conversation_id (str): 对话会话唯一标识

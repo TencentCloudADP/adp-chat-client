@@ -4,6 +4,7 @@ from sqlalchemy import select
 from core.conversation import CoreConversation
 from model.chat import ChatRecord, ChatConversation
 from vendor.interface import BaseVendor, ConversationCallback
+from util.database import db_connection
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,6 @@ class CoreChat:
     @staticmethod
     async def message(
         vendor_app: BaseVendor,
-        db: AsyncSession,
         account_id: str,
         query: str,
         conversation_id: str,
@@ -24,29 +24,30 @@ class CoreChat:
                 # create
                 if title is None:
                     title = query[:10]
-                conversation = await CoreConversation.create(
-                    db,
-                    account_id,
-                    vendor_app.application_id,
-                    title=title,
-                    conversation_id=conversation_id
-                )
-                return conversation
+                async with db_connection() as db:
+                    conversation = await CoreConversation.create(
+                        db,
+                        account_id,
+                        vendor_app.application_id,
+                        title=title,
+                        conversation_id=conversation_id
+                    )
+                    return conversation
 
             async def update(self, conversation_id: str = None, title: str = None) -> ChatConversation:
                 # update
-                conversation = await CoreConversation.get(db, conversation_id)
-                if conversation is None:
-                    raise Exception(f'conversation not found: {conversation_id}')
-                await CoreConversation.update(db, conversation, title=title)
-                return conversation
+                async with db_connection() as db:
+                    conversation = await CoreConversation.get(db, conversation_id)
+                    if conversation is None:
+                        raise Exception(f'conversation not found: {conversation_id}')
+                    await CoreConversation.update(db, conversation, title=title)
+                    return conversation
 
         is_new_conversation = False
         if conversation_id is None or conversation_id == '':
             is_new_conversation = True
 
         async for message in vendor_app.chat(
-            db,
             account_id,
             query,
             conversation_id,
