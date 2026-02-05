@@ -37,7 +37,6 @@ class ChatMessageApi(HTTPMethodView):
         async def streaming_fn(response):
             async for data in CoreChat.message(
                 vendor_app,
-                request.ctx.db,
                 request.ctx.account_id,
                 args['Query'],
                 args['ConversationId'],

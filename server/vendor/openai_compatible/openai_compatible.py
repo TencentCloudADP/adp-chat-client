@@ -10,6 +10,7 @@ from core.chat import CoreMessage
 
 from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, MessageType, _AgentThought, _ProcedureThought, _DebuggingThought
 from util.helper import to_message
+from util.database import db_connection
 
 
 logger = logging.getLogger(__name__)
@@ -42,7 +43,6 @@ class OpenAICompatible(BaseVendor):
 
     async def chat(
         self,
-        db,
         account_id,
         query,
         conversation_id,
@@ -55,7 +55,6 @@ class OpenAICompatible(BaseVendor):
         Main chat method using OpenAI-compatible API
 
         Args:
-            db: Database session
             account_id: User account ID
             query: User's message
             conversation_id: Current conversation ID
@@ -100,8 +99,9 @@ class OpenAICompatible(BaseVendor):
             # Build messages array with history
             messages = []
             if not is_new_conversation:
-                # Load existing messages from ChatRecord
-                chat_records = await CoreMessage.list(db, conversation_id)
+                async with db_connection() as db:
+                    # Load existing messages from ChatRecord
+                    chat_records = await CoreMessage.list(db, conversation_id)
                 for record in chat_records:
                     role = "user" if record.FromRole == "user" else "assistant"
                     try:
@@ -213,11 +213,29 @@ class OpenAICompatible(BaseVendor):
             # Save messages to ChatRecord
             logger.info(f"[OpenAICompatible] Final content length: {len(content)}")
             if content:
-                # Save user message
-                related_record = await CoreMessage.create(db, conversation_id, "user", json.dumps({'Content': query}, ensure_ascii=False))
+                async with db_connection() as db:
+                    # Save user message
+                    related_record = await CoreMessage.create(
+                        db,
+                        conversation_id,
+                        "user",
+                        json.dumps({'Content': query}, ensure_ascii=False)
+                    )
 
-                # Save assistant message
-                await CoreMessage.create(db, conversation_id, "assistant", json.dumps({'RelatedId': str(related_record.Id), 'Content': content, 'ReasoningContent': reasoning_content}, ensure_ascii=False))
+                    # Save assistant message
+                    await CoreMessage.create(
+                        db,
+                        conversation_id,
+                        "assistant",
+                        json.dumps(
+                            {
+                                'RelatedId': str(related_record.Id),
+                                'Content': content,
+                                'ReasoningContent': reasoning_content
+                            },
+                            ensure_ascii=False
+                        )
+                    )
 
                 logger.info(f"[OpenAICompatible] Saved message pair to ChatRecord")
 

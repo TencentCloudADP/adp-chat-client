@@ -81,7 +81,6 @@ class TCADP(BaseVendor):
     # ChatInterface
     async def chat(
         self,
-        db: AsyncSession,
         account_id: str,
         query: str,
         conversation_id: str,
