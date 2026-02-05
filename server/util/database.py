@@ -15,7 +15,12 @@ def create_db_engine(app: TAgenticApp, override_db: str = None) -> tuple[AsyncSe
         f'{app.config.PGSQL_USER}:{app.config.PGSQL_PASSWORD}@'
         f'{app.config.PGSQL_HOST}:{app.config.PGSQL_PORT}/{db}'
     )
-    db_engine = create_async_engine(f"postgresql+asyncpg://{db_config}", echo=(tagentic_config.LOG_LEVEL == 'DEBUG'))
+    db_engine = create_async_engine(
+        f"postgresql+asyncpg://{db_config}",
+        pool_size=20,
+        max_overflow=20,
+        pool_timeout=10,
+    )
     _sessionmaker = sessionmaker(db_engine, class_=AsyncSession, expire_on_commit=False)
     return db_engine, _sessionmaker
 
