@@ -16,13 +16,14 @@ class AsyncWareHouseS3():
                 'http://{bucket}.cos.{region}.myqcloud.com'
             ).format(bucket=bucket, region=region),
             's3bucket': bucket,
+            'addressing_style': config.get('addressing_style', 'virtual')
         }
         self.session = aioboto3.Session(
             aws_access_key_id=secretId, aws_secret_access_key=secretKey, aws_session_token=tmpToken
         )
 
     async def list(self, prefix=''):
-        cos_config = Config(s3={'addressing_style': 'virtual'})
+        cos_config = Config(s3={'addressing_style': self.dict['addressing_style']})
         async with self.session.resource('s3', endpoint_url=self.dict['s3ep'], config=cos_config) as s3:
             bucket = await s3.Bucket(self.dict['s3bucket'])
             lst = [objects.key async for objects in bucket.objects.filter(Prefix=prefix)]
@@ -30,7 +31,7 @@ class AsyncWareHouseS3():
 
     async def put(self, path, body):
         path = self.pure_path(path)
-        cos_config = Config(s3={'addressing_style': 'virtual'})
+        cos_config = Config(s3={'addressing_style': self.dict['addressing_style']})
         async with self.session.resource('s3', endpoint_url=self.dict['s3ep'], config=cos_config) as s3:
             obj = await s3.Object(self.dict['s3bucket'], path)
             await obj.put(Body=body)
@@ -48,7 +49,7 @@ class AsyncWareHouseS3():
 
     async def get(self, path, decode='utf-8'):
         path = self.pure_path(path)
-        cos_config = Config(s3={'addressing_style': 'virtual'})
+        cos_config = Config(s3={'addressing_style': self.dict['addressing_style']})
         async with self.session.resource('s3', endpoint_url=self.dict['s3ep'], config=cos_config) as s3:
             obj = await s3.Object(self.dict['s3bucket'], path)
             obj = await obj.get()
@@ -79,7 +80,7 @@ class MultipartUploader:
         self.part_number = 1
 
     async def __aenter__(self):
-        cos_config = Config(s3={'addressing_style': 'virtual'})
+        cos_config = Config(s3={'addressing_style': self.dict['addressing_style']})
         s3_resource = self.session.resource('s3', endpoint_url=self.dict['s3ep'], config=cos_config)
         self.s3 = await s3_resource.__aenter__()
         obj = await self.s3.Object(self.dict['s3bucket'], self.path)
