@@ -269,8 +269,9 @@ service_configs = {
             "version": "2024-05-22"
         },
         'cos': {
-            'ep': '{PrivateUrl}:30900',
-            'access': '{PrivateUrl}:30900/{bucket}'
+            'ep': '{PrivateUrl}',
+            'access': '{PrivateUrl}/{bucket}',
+            'addressing_style': 'path'
         },
         'sse': '{PrivateUrl}/v1/qbot/chat/sse'
     },
