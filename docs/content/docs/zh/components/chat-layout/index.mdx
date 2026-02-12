@@ -115,7 +115,7 @@ ADPChatComponent.ADPChat.mount('#containerId', {
   { name: 'stopRecord', description: '停止录音' },
   { name: 'message', params: '(code: MessageCode, message: string)', description: '消息提示，code 为消息码常量' },
   { name: 'conversationChange', params: 'conversationId', description: '会话变化' },
-  { name: 'dataLoaded', params: '(type, data)', description: '数据加载完成' },
+  { name: 'dataLoaded', params: "(type: 'applications' | 'conversations' | 'chatList' | 'user' | 'systemConfig', data)", description: '数据加载完成' },
 ]} />
 
 ### Slots
@@ -133,6 +133,7 @@ ADPChatComponent.ADPChat.mount('#containerId', {
   { name: 'loadConversations', description: '加载会话列表' },
   { name: 'loadConversationDetail', params: 'conversationId', description: '加载会话详情' },
   { name: 'loadUserInfo', description: '加载用户信息' },
+  { name: 'loadSystemConfig', description: '加载系统配置' },
 ]} />
 
 ## 类型定义
@@ -159,6 +160,7 @@ interface ApiDetailConfig {
   userInfoApi?: string          // 用户信息接口
   uploadApi?: string            // 文件上传接口
   asrUrlApi?: string            // ASR 语音识别 URL 接口
+  systemConfigApi?: string      // 系统配置接口
 }
 ```
 

@@ -22,7 +22,9 @@ import {
     createShare,
     fetchUserInfo,
     uploadFile,
+    fetchSystemConfig,
 } from '../../service/api';
+import type { SystemConfig } from '../../service/api';
 import { MessageCode } from '../../model/messages';
 import { fetchSSE } from '../../model/sseRequest-reasoning';
 import { mergeRecord } from '../../utils/util';
@@ -150,7 +152,7 @@ const emit = defineEmits<{
     (e: 'stopRecord'): void;
     (e: 'message', code: MessageCode, message: string): void;
     (e: 'conversationChange', conversationId: string): void;
-    (e: 'dataLoaded', type: 'applications' | 'conversations' | 'chatList' | 'user', data: any): void;
+    (e: 'dataLoaded', type: 'applications' | 'conversations' | 'chatList' | 'user' | 'systemConfig', data: any): void;
 }>();
 
 // 解构 props 保持响应式
@@ -187,9 +189,13 @@ const internalCurrentApplication = ref<Application | undefined>(undefined);
 const internalCurrentConversation = ref<ChatConversation | undefined>(undefined);
 const internalIsChatting = ref(false);
 const abortController = ref<AbortController | null>(null);
+const internalSystemConfig = ref<SystemConfig>({ EnableVoiceInput: true });
 
 // 判断是否使用 API 模式（始终启用）
 const useApiMode = computed(() => true);
+
+// 是否启用语音输入
+const enableVoiceInput = computed(() => internalSystemConfig.value.EnableVoiceInput);
 
 // 合并默认值和传入值的 chatI18n
 const mergedChatI18n = computed(() => ({
@@ -299,6 +305,18 @@ const loadUserInfo = async () => {
     } catch (error) {
         // 用户信息获取失败不影响主流程
         console.error('获取用户信息失败:', error);
+    }
+};
+
+const loadSystemConfig = async () => {
+    if (!useApiMode.value) return;
+    try {
+        const data = await fetchSystemConfig(mergedApiDetailConfig.value.systemConfigApi);
+        internalSystemConfig.value = data;
+        emit('dataLoaded', 'systemConfig', internalSystemConfig.value);
+    } catch (error) {
+        // 系统配置获取失败不影响主流程，默认不启用语音输入
+        console.error('获取系统配置失败:', error);
     }
 };
 
@@ -719,8 +737,11 @@ watch([() => props.currentConversation, () => actualApplications.value], async (
 onMounted(async () => {
     if (useApiMode.value && props.autoLoad) {
         // axios 配置已由 useApiConfig composable 自动处理
-        // 先加载用户信息，因为如果配置了AUTO_CREATE_ACCOUNT，会在加载用户信息时创建账户
-        await loadUserInfo()
+        // 先加载用户信息和系统配置，因为如果配置了AUTO_CREATE_ACCOUNT，会在加载用户信息时创建账户
+        await Promise.all([
+            loadUserInfo(),
+            loadSystemConfig(),
+        ]);
         await Promise.all([
             loadApplications(),
             loadConversations(),
@@ -734,6 +755,7 @@ defineExpose({
     loadConversations,
     loadConversationDetail,
     loadUserInfo,
+    loadSystemConfig,
     notifyLoaded: () => mainLayoutRef.value?.notifyLoaded(),
     notifyComplete: () => mainLayoutRef.value?.notifyComplete(),
 });
@@ -796,6 +818,7 @@ defineExpose({
                 :senderI18n="props.senderI18n"
                 :useInternalRecord="useApiMode"
                 :asrUrlApi="mergedApiDetailConfig.asrUrlApi"
+                :enableVoiceInput="enableVoiceInput"
                 :isUploading="isUploading"
                 :isOverlay="props.isOverlay"
                 @toggleSidebar="handleToggleSidebar"

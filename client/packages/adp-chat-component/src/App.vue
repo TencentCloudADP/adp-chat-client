@@ -139,7 +139,7 @@ const emit = defineEmits<{
     (e: 'stopRecord'): void;
     (e: 'message', type: 'warning' | 'error' | 'info' | 'success', message: string): void;
     (e: 'conversationChange', conversationId: string): void;
-    (e: 'dataLoaded', type: 'applications' | 'conversations' | 'chatList' | 'user', data: any): void;
+    (e: 'dataLoaded', type: 'applications' | 'conversations' | 'chatList' | 'user' | 'systemConfig', data: any): void;
     (e: 'overlay', isOverlay: boolean): void;
     (e: 'openChange', open: boolean): void;
 }>();
@@ -326,7 +326,7 @@ const actualAutoLoad = computed(() => props.autoLoad);
                 @stopRecord="emit('stopRecord')"
                 @message="(code: MessageCode, message: string) => emit('message', getMessage(code).type, message)"
                 @conversationChange="(conversationId: string) => emit('conversationChange', conversationId)"
-                @dataLoaded="(type: 'applications' | 'conversations' | 'chatList' | 'user', data: any) => emit('dataLoaded', type, data)"
+                @dataLoaded="(type: 'applications' | 'conversations' | 'chatList' | 'user' | 'systemConfig', data: any) => emit('dataLoaded', type, data)"
             >
                 <template #sider-logo>
                     <slot name="sider-logo"></slot>

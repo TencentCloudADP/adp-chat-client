@@ -20,6 +20,7 @@ export const apiConfig: ApiConfig = {
     userInfoApi: '/account/info',
     uploadApi: '/file/upload',
     asrUrlApi: '/helper/asr/url',
+    systemConfigApi: '/system/config',
   }
 }
 
