@@ -221,9 +221,9 @@ const handleStartRecord = async () => {
             };
         } catch (error) {
             recording.value = false;
-            const msg = getMessage(MessageCode.ASR_SERVICE_FAILED);
-            MessagePlugin[msg.type](msg.message);
-            emit('message', MessageCode.ASR_SERVICE_FAILED, msg.message);
+            const text = i18n.value.asrServiceFailed || getMessage(MessageCode.ASR_SERVICE_FAILED).message;
+            MessagePlugin.error(text);
+            emit('message', MessageCode.ASR_SERVICE_FAILED, text);
         }
     }
     
@@ -242,7 +242,7 @@ const startRecording = () => {
         }
     };
     recorder.value.OnError = (err) => {
-        const errMsg = typeof err === 'string' ? err : getMessage(MessageCode.RECORD_FAILED).message;
+        const errMsg = typeof err === 'string' ? err : (i18n.value.recordFailed || getMessage(MessageCode.RECORD_FAILED).message);
         MessagePlugin.error(errMsg);
         emit('message', MessageCode.RECORD_FAILED, errMsg);
         recording.value = false;
@@ -355,22 +355,22 @@ defineExpose({
         </template>
         <template #prefix>
             <div class="sender-control-container">
-                <TUpload class="sender-upload" ref="uploadRef1" :max="10" :multiple="true" :request-method="handleFileSelect"
+                <TUpload class="sender-upload"  ref="uploadRef1" :max="10" :multiple="true" :request-method="handleFileSelect"
                     accept="image/*" theme="custom">
                     <TTooltip :content="i18n.uploadImg">
-                        <span class="recording-icon">
-                            <CustomizedIcon name="picture" :theme="theme" />
+                        <span class="recording-icon" :class="{ isMobile: isMobile }">
+                            <CustomizedIcon name="picture" :theme="theme" :showHoverBg="!isMobile"/>
                         </span>
                     </TTooltip>
                 </TUpload>
                 <TTooltip v-if="!recording" :content="i18n.startRecord">
-                    <span class="recording-icon" @click="handleStartRecord">
-                        <CustomizedIcon name="voice_input" :theme="theme" />
+                    <span class="recording-icon" :class="{ isMobile: isMobile }" @click="handleStartRecord">
+                        <CustomizedIcon name="voice_input" :theme="theme" :showHoverBg="!isMobile"/>
                     </span>
                 </TTooltip>
 
                 <TTooltip v-if="recording" :content="i18n.stopRecord">
-                    <span class="recording-icon stop-icon" @click="handleStopRecord">
+                    <span class="recording-icon stop-icon" :class="{ isMobile: isMobile }" @click="handleStopRecord">
                         <RecordIcon />
                     </span>
                 </TTooltip>
@@ -432,5 +432,9 @@ defineExpose({
 .recording-icon{
     height: var(--td-comp-size-m);
     display: inline-block;
+    margin-right: var(--td-comp-paddingLR-xs);
+}
+.recording-icon.isMobile{
+    margin-right: var(--td-comp-paddingLR-m);
 }
 </style>

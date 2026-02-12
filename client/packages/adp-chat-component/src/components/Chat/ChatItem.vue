@@ -164,9 +164,9 @@ const handleSendMessage = (message: string) => {
             <div v-else>
                 <div v-if="item.IsFromSelf" class="user-message">
                     <MdContent :content="item.Content" role="user" :theme="theme" :quoteInfos="item.QuoteInfos" />
-                    <CustomizedIcon v-if="showActions && !isMobile" class="control-icon copy-icon" name="copy" :theme="theme"
+                    <CustomizedIcon :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon copy-icon" name="copy" :theme="theme"
                         @click="(e: any) => copyContent(e, item.Content, 'user')" />
-                    <CustomizedIcon v-if="showActions && !isMobile" class="control-icon share-icon" name="share" :theme="theme"
+                    <CustomizedIcon :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon share-icon" name="share" :theme="theme"
                         @click="share(item)" />
                 </div>
                 <MdContent v-else :content="item.Content" role="assistant" :theme="theme" :quoteInfos="item.QuoteInfos" />
@@ -186,26 +186,26 @@ const handleSendMessage = (message: string) => {
         <template #actions v-if="showActions" >
             <div v-show="!isStreamLoad || !isLastMsg" class="actions-container" :class="{ isMobile: isMobile }">
                 <Tooltip :content="i18n.copy" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon size="s" class="control-icon copy-icon icon" name="copy" :theme="theme"
+                    <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon copy-icon icon" name="copy" :theme="theme"
                         @click="(e: any) => copyContent(e, item.Content, 'assistant')" />
                 </Tooltip>
                 <Tooltip :content="i18n.replay" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon size="s" class="control-icon icon" name="refresh" :theme="theme"
+                    <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon icon" name="refresh" :theme="theme"
                         @click="emit('resend', item.RelatedRecordId)" />
                 </Tooltip>
                 <Tooltip :content="i18n.share" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon size="s" class="control-icon share-icon icon" name="share" :theme="theme" @click="share(item)" />
+                    <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon share-icon icon" name="share" :theme="theme" @click="share(item)" />
                 </Tooltip>
                 <Tooltip :content="i18n.good" destroyOnClose showArrow theme="default">
                     <CustomizedIcon
-                        size="s"
+                        :size="isMobile ? 'm' : 's'"
                         :class="{ disabled: isRated(record) && record.Score !== ScoreValue.Like, 'not-allowed': isRated(record) }"
                         :color="record.Score === ScoreValue.Like ? 'var(--td-brand-color)' : undefined"
                         class="control-icon icon" name="thumbs_up" :theme="theme" @click="rate(item, ScoreValue.Like)" />
                 </Tooltip>
                 <Tooltip :content="i18n.bad" destroyOnClose showArrow theme="default">
                     <CustomizedIcon
-                        size="s"
+                        :size="isMobile ? 'm' : 's'"
                         :class="{ disabled: isRated(record) && record.Score !== ScoreValue.Dislike, 'not-allowed': isRated(record) }"
                         :color="record.Score === ScoreValue.Dislike ? 'var(--td-brand-color)' : undefined"
                         class="control-icon icon" name="thumbs_down" :theme="theme" @click="rate(item, ScoreValue.Dislike)" />
