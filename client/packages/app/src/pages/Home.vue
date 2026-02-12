@@ -57,6 +57,7 @@ const sideI18n = computed(() => ({
 
 // 聊天国际化
 const chatI18n = computed(() => ({
+    uploading: t('common.uploading'),
     loading: t('common.loading'),
     thinking: t('common.thinking'),
     checkAll: t('operation.checkAll'),
@@ -65,6 +66,15 @@ const chatI18n = computed(() => ({
     cancelShare: t('operation.cancelShare'),
     sendError: t('conversation.sendError'),
     networkError: t('conversation.networkError'),
+    createConversation: t('conversation.createConversation'),
+    copySuccess: t('common.copySuccess'),
+    copyFailed: t('common.copyFailed'),
+    shareFailed: t('common.shareFailed'),
+    rateFailed: t('common.rateFailed'),
+    loadMoreFailed: t('common.loadMoreFailed'),
+    getAppListFailed: t('common.getAppListFailed'),
+    getConversationListFailed: t('common.getConversationListFailed'),
+    getConversationDetailFailed: t('common.getConversationDetailFailed'),
 }));
 
 // ChatItem 国际化
@@ -93,6 +103,8 @@ const senderI18n = computed(() => ({
     notSupport: t('sender.notSupport'),
     uploadError: t('sender.uploadError'),
     recordTooLong: t('sender.recordTooLong'),
+    asrServiceFailed: t('sender.asrServiceFailed'),
+    recordFailed: t('sender.recordFailed'),
 }));
 
 /**

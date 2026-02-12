@@ -103,6 +103,8 @@ export interface SenderI18n {
   notSupport?: string
   uploadError?: string
   recordTooLong?: string
+  asrServiceFailed?: string
+  recordFailed?: string
 }
 
 /** 侧边栏布局 Props */
@@ -181,7 +183,7 @@ export const defaultChatI18n: Required<ChatI18n> = {
   thinking: '思考中',
   checkAll: '全选',
   shareFor: '分享至',
-  copyUrl: '复制链接',
+  copyUrl: '链接',
   cancelShare: '取消分享',
   sendError: '发送失败',
   networkError: '网络错误',
@@ -222,6 +224,8 @@ export const defaultSenderI18n: Required<SenderI18n> = {
   notSupport: '当前浏览器不支持录音',
   uploadError: '上传失败',
   recordTooLong: '录音时长超过限制',
+  asrServiceFailed: '获取语音识别服务失败',
+  recordFailed: '录音失败',
 }
 
 // ============================================================
@@ -246,7 +250,7 @@ export const defaultChatI18nEn: Required<ChatI18n> = {
   thinking: 'Thinking',
   checkAll: 'Select All',
   shareFor: 'Share to',
-  copyUrl: 'Copy Link',
+  copyUrl: 'Link',
   cancelShare: 'Cancel Share',
   sendError: 'Send Failed',
   networkError: 'Network Error',
@@ -287,6 +291,8 @@ export const defaultSenderI18nEn: Required<SenderI18n> = {
   notSupport: 'Recording not supported',
   uploadError: 'Upload Failed',
   recordTooLong: 'Recording too long',
+  asrServiceFailed: 'Failed to get ASR service',
+  recordFailed: 'Recording failed',
 }
 
 /** 根据语言获取 i18n 默认值 */

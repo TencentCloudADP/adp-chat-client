@@ -23,7 +23,7 @@ import {
     fetchUserInfo,
     uploadFile,
 } from '../../service/api';
-import { MessageCode, getMessage } from '../../model/messages';
+import { MessageCode } from '../../model/messages';
 import { fetchSSE } from '../../model/sseRequest-reasoning';
 import { mergeRecord } from '../../utils/util';
 import { copyToClipboard } from '../../utils/clipboard';
@@ -496,9 +496,9 @@ const handleInternalRate = async (conversationId: string, recordId: string, scor
             MessagePlugin.info(message);
         }
     } catch (error) {
-        const msg = getMessage(MessageCode.RATE_FAILED);
-        MessagePlugin[msg.type](msg.message);
-        emit('message', MessageCode.RATE_FAILED, msg.message);
+        const text = mergedChatI18n.value.rateFailed;
+        MessagePlugin.error(text);
+        emit('message', MessageCode.RATE_FAILED, text);
     }
 };
 
@@ -518,19 +518,18 @@ const handleInternalShare = async (conversationId: string, applicationId: string
         await copyToClipboard(shareUrl, {
             isMobile: isMobile.value,
             onSuccess: () => {
-                const msg = getMessage(MessageCode.COPY_SUCCESS);
-                MessagePlugin[msg.type](msg.message);
+                MessagePlugin.success(mergedChatI18n.value.copySuccess);
             },
             onError: () => {
-                const msg = getMessage(MessageCode.COPY_FAILED);
-                MessagePlugin[msg.type](msg.message);
-                emit('message', MessageCode.COPY_FAILED, msg.message);
+                const text = mergedChatI18n.value.copyFailed;
+                MessagePlugin.error(text);
+                emit('message', MessageCode.COPY_FAILED, text);
             },
         });
     } catch (error) {
-        const msg = getMessage(MessageCode.SHARE_FAILED);
-        MessagePlugin[msg.type](msg.message);
-        emit('message', MessageCode.SHARE_FAILED, msg.message);
+        const text = mergedChatI18n.value.shareFailed;
+        MessagePlugin.error(text);
+        emit('message', MessageCode.SHARE_FAILED, text);
     }
 };
 
@@ -594,13 +593,12 @@ const handleInternalCopy = async (rowtext: string | undefined, content: string |
         rawText: rowtext,
         isMobile: isMobile.value,
         onSuccess: () => {
-            const msg = getMessage(MessageCode.COPY_SUCCESS);
-            MessagePlugin[msg.type](msg.message);
+            MessagePlugin.success(mergedChatI18n.value.copySuccess);
         },
         onError: () => {
-            const msg = getMessage(MessageCode.COPY_FAILED);
-            MessagePlugin[msg.type](msg.message);
-            emit('message', MessageCode.COPY_FAILED, msg.message);
+            const text = mergedChatI18n.value.copyFailed;
+            MessagePlugin.error(text);
+            emit('message', MessageCode.COPY_FAILED, text);
         },
     });
     emit('copy', rowtext, content, type);

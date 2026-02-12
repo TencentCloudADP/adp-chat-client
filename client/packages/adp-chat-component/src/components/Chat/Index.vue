@@ -74,9 +74,9 @@
                     :theme="theme"
                     @click="handleClickBackToBottom" 
                 />
-                <TCard v-if="isSelecting" size="small" class="share-setting-container" :class="{ isMobile: isMobile }" shadow
+                <TCard v-if="isSelecting" size="small" class="share-setting-container"  shadow
                     bodyClassName="share-setting-card">
-                    <div class="share-setting-content" :class="{ isMobile: isMobile }">
+                    <div class="share-setting-content">
                         <TCheckbox :indeterminate="selectedIds.length !== chatList.length && selectedIds.length !== 0"
                             :checked="checkall" @change="handleCheckAll">{{ i18n.checkAll }}</TCheckbox>
                         <TDivider layout="vertical"></TDivider>
@@ -84,7 +84,7 @@
                             {{ i18n.shareFor }}
                             <div class="icon__share-copy" :class="{ disabled: selectedIds.length <= 0 }"
                                 @click="handleCopyShare()">
-                                <CustomizedIcon size="s" name="copy_link" :theme="theme" />
+                                <CustomizedIcon size="xs" name="copy_link" :theme="theme" />
                                 <span>{{ i18n.copyUrl }}</span>
                             </div>
                         </div>
@@ -624,14 +624,19 @@ defineExpose({
 
 .share-setting-container {
     z-index: 10;
-    position: fixed;
-    bottom: 146px;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: calc((var(--td-size-4) + var(--td-size-1)) * -1);
+    translate: 0 -100%;
+    width: max-content;
 }
 
 .share-setting-content {
     display: flex;
     justify-content: center;
     align-items: center;
+    font-size: var(--td-font-size-link-medium);
 }
 
 .icon__share-copy {
@@ -662,7 +667,7 @@ defineExpose({
 
 .icon__share-close {
     cursor: pointer;
-    margin-left: var(--td-pop-padding-xl);
+    margin-left: var(--td-comp-margin-m);
     padding-left: var(--td-comp-paddingLR-xxs);
 }
 
@@ -739,11 +744,6 @@ defineExpose({
     box-sizing: border-box;
     box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 18px rgba(18, 19, 25, 0.08), 0px 16px 64px rgba(18, 19, 25, 0.16);
     border-radius: 6px;
-}
-
-/* 移动端样式 */
-.share-setting-container.isMobile {
-    bottom: 120px;
 }
 
 .share-setting-content.isMobile {
