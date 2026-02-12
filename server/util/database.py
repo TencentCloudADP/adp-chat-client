@@ -4,7 +4,6 @@ from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from app_factory import TAgenticApp
-from config import tagentic_config
 
 
 def create_db_engine(app: TAgenticApp, override_db: str = None) -> tuple[AsyncSession, sessionmaker]:
