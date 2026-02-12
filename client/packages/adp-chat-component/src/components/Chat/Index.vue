@@ -109,6 +109,7 @@
                     :isStreamLoad="isChatting" 
                     :isMobile="isMobile"
                     :theme="theme"
+                    :language="props.language"
                     :i18n="senderI18n"
                     :useInternalRecord="useInternalRecord"
                     :asrUrlApi="asrUrlApi"
@@ -135,7 +136,7 @@ import { ScoreValue } from '../../model/chat'
 import type { FileProps } from '../../model/file';
 import { MessageCode } from '../../model/messages';
 import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type'
-import { chatRelatedPropsDefaults, defaultChatI18n, defaultChatItemI18n, defaultSenderI18n } from '../../model/type'
+import { chatRelatedPropsDefaults, defaultChatI18n, defaultChatI18nEn, defaultChatItemI18n, defaultChatItemI18nEn, defaultSenderI18n, defaultSenderI18nEn } from '../../model/type'
 
 import AppType from './AppType.vue'
 import Sender from './Sender.vue'
@@ -214,21 +215,21 @@ const {
     asrUrlApi
 } = toRefs(props);
 
-// 合并默认值和传入值
-const i18n = computed(() => ({
-    ...defaultChatI18n,
-    ...props.i18n
-}));
+// 合并默认值和传入值（根据 language 选择对应语言的默认值）
+const i18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultChatI18nEn : defaultChatI18n;
+    return { ...defaults, ...props.i18n };
+});
 
-const chatItemI18n = computed(() => ({
-    ...defaultChatItemI18n,
-    ...props.chatItemI18n
-}));
+const chatItemI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultChatItemI18nEn : defaultChatItemI18n;
+    return { ...defaults, ...props.chatItemI18n };
+});
 
-const senderI18n = computed(() => ({
-    ...defaultSenderI18n,
-    ...props.senderI18n
-}));
+const senderI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultSenderI18nEn : defaultSenderI18n;
+    return { ...defaults, ...props.senderI18n };
+});
 
 const emit = defineEmits<{
     (e: 'send', query: string, fileList: FileProps[], conversationId: string, applicationId: string): void;

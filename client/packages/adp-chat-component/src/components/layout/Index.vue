@@ -46,11 +46,18 @@ import {
     themePropsDefaults,
     overlayPropsDefaults,
     defaultChatI18n,
+    defaultChatI18nEn,
     defaultChatItemI18n,
-    defaultSenderI18n
+    defaultChatItemI18nEn,
+    defaultSenderI18n,
+    defaultSenderI18nEn,
+    defaultSideI18n,
+    defaultSideI18nEn
 } from '../../model/type';
 
 export interface Props extends ThemeProps, OverlayProps {
+    /** 当前语言标识，用于自动选择内部默认 i18n（如 'zh-CN'、'en-US'） */
+    language?: string;
     /** 是否为浮层模式 */
     isOverlay?: boolean;
     /** 宽度（仅在 isOverlay 为 true 时用于计算 isMobile） */
@@ -108,6 +115,7 @@ export interface Props extends ThemeProps, OverlayProps {
 const props = withDefaults(defineProps<Props>(), {
     ...themePropsDefaults,
     ...overlayPropsDefaults,
+    language: 'zh-CN',
     isOverlay: false,
     width: 0,
     height: 0,
@@ -197,17 +205,17 @@ const useApiMode = computed(() => true);
 // 是否启用语音输入
 const enableVoiceInput = computed(() => internalSystemConfig.value.EnableVoiceInput);
 
-// 合并默认值和传入值的 chatI18n
-const mergedChatI18n = computed(() => ({
-    ...defaultChatI18n,
-    ...props.chatI18n
-}));
+// 合并默认值和传入值的 chatI18n（根据 language 选择对应语言的默认值）
+const mergedChatI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultChatI18nEn : defaultChatI18n;
+    return { ...defaults, ...props.chatI18n };
+});
 
-// 合并默认值和传入值的 senderI18n
-const mergedSenderI18n = computed(() => ({
-    ...defaultSenderI18n,
-    ...props.senderI18n
-}));
+// 合并默认值和传入值的 senderI18n（根据 language 选择对应语言的默认值）
+const mergedSenderI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultSenderI18nEn : defaultSenderI18n;
+    return { ...defaults, ...props.senderI18n };
+});
 
 // 使用 composable 统一管理 API 配置
 const { mergedApiDetailConfig } = useApiConfig({
@@ -811,6 +819,7 @@ defineExpose({
                 :isChatting="actualIsChatting"
                 :isMobile="isMobile"
                 :theme="theme"
+                :language="props.language"
                 :showSidebarToggle="!sidebarVisible"
                 :aiWarningText="aiWarningText"
                 :i18n="props.chatI18n"

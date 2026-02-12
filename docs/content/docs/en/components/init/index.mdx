@@ -119,6 +119,11 @@ Returns Vue component instance for subsequent operations.
   recordTooLong?: string     // Recording too long
   asrServiceFailed?: string  // ASR service failed
   recordFailed?: string      // Recording failed
+  chromeSecurityError?: string // Chrome security restriction for recording
+  browserNotSupport?: string   // Browser does not support recording
+  audioContextNotSupport?: string // Browser does not support AudioContext
+  webAudioApiNotSupport?: string  // Browser does not support Web Audio API
+  mediaStreamSourceNotSupport?: string // MediaStreamSource not supported
 }
 ```
 
