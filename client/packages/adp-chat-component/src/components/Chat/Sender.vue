@@ -21,6 +21,8 @@ export interface Props extends ChatRelatedProps {
     useInternalRecord?: boolean;
     /** ASR URL API 路径 */
     asrUrlApi?: string;
+    /** 是否启用语音输入 */
+    enableVoiceInput?: boolean;
     /** 国际化文本 */
     i18n?: SenderI18n;
 }
@@ -30,6 +32,7 @@ const props = withDefaults(defineProps<Props>(), {
     isStreamLoad: false,
     useInternalRecord: false,
     asrUrlApi: '',
+    enableVoiceInput: true,
     i18n: () => ({})
 });
 
@@ -363,13 +366,13 @@ defineExpose({
                         </span>
                     </TTooltip>
                 </TUpload>
-                <TTooltip v-if="!recording" :content="i18n.startRecord">
+                <TTooltip v-if="enableVoiceInput && !recording" :content="i18n.startRecord">
                     <span class="recording-icon" :class="{ isMobile: isMobile }" @click="handleStartRecord">
                         <CustomizedIcon name="voice_input" :theme="theme" :showHoverBg="!isMobile"/>
                     </span>
                 </TTooltip>
 
-                <TTooltip v-if="recording" :content="i18n.stopRecord">
+                <TTooltip v-if="enableVoiceInput && recording" :content="i18n.stopRecord">
                     <span class="recording-icon stop-icon" :class="{ isMobile: isMobile }" @click="handleStopRecord">
                         <RecordIcon />
                     </span>

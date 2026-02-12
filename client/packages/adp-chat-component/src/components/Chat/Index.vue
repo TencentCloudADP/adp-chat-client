@@ -112,6 +112,7 @@
                     :i18n="senderI18n"
                     :useInternalRecord="useInternalRecord"
                     :asrUrlApi="asrUrlApi"
+                    :enableVoiceInput="props.enableVoiceInput"
                     @stop="onStop"
                     @send="handleSend"
                     @uploadFile="handleUploadFile"
@@ -169,6 +170,8 @@ export interface Props extends ChatRelatedProps {
     useInternalRecord?: boolean;
     /** ASR URL API 路径 */
     asrUrlApi?: string;
+    /** 是否启用语音输入 */
+    enableVoiceInput?: boolean;
     /** 是否正在上传文件 */
     isUploading?: boolean;
     /** 是否显示遮罩层 */
@@ -190,6 +193,7 @@ const props = withDefaults(defineProps<Props>(), {
     senderI18n: () => ({}),
     useInternalRecord: false,
     asrUrlApi: '',
+    enableVoiceInput: true,
     isUploading: false,
     isOverlay: false
 });

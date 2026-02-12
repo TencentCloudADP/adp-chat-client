@@ -29,6 +29,8 @@ export interface ApiDetailConfig {
     uploadApi?: string;
     /** ASR 语音识别 URL 接口路径 */
     asrUrlApi?: string;
+    /** 系统配置接口路径 */
+    systemConfigApi?: string;
 }
 
 /**
@@ -52,6 +54,7 @@ export const defaultApiDetailConfig: ApiDetailConfig = {
     userInfoApi: '/account/info',
     uploadApi: '/file/upload',
     asrUrlApi: '/helper/asr/url',
+    systemConfigApi: '/system/config',
 };
 
 /**
@@ -209,6 +212,26 @@ export const getAsrUrl = async (apiPath?: string): Promise<{ url: string }> => {
         return response;
     } catch (error) {
         console.error('获取ASR URL失败:', error);
+        throw error;
+    }
+};
+
+/** 系统配置响应类型 */
+export interface SystemConfig {
+    EnableVoiceInput: boolean;
+}
+
+/**
+ * 获取系统配置
+ * @param apiPath API 路径
+ */
+export const fetchSystemConfig = async (apiPath?: string): Promise<SystemConfig> => {
+    if (!apiPath) throw new Error('apiPath is required');
+    try {
+        const response: { Config: SystemConfig } = await httpService.get(apiPath);
+        return response.Config || { EnableVoiceInput: false };
+    } catch (error) {
+        console.error('获取系统配置失败:', error);
         throw error;
     }
 };
