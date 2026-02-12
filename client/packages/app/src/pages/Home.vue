@@ -106,6 +106,11 @@ const senderI18n = computed(() => ({
     recordTooLong: t('sender.recordTooLong'),
     asrServiceFailed: t('sender.asrServiceFailed'),
     recordFailed: t('sender.recordFailed'),
+    chromeSecurityError: t('sender.chromeSecurityError'),
+    browserNotSupport: t('sender.browserNotSupport'),
+    audioContextNotSupport: t('sender.audioContextNotSupport'),
+    webAudioApiNotSupport: t('sender.webAudioApiNotSupport'),
+    mediaStreamSourceNotSupport: t('sender.mediaStreamSourceNotSupport'),
 }));
 
 /**
@@ -208,6 +213,7 @@ const handleConversationChange = (conversationId: string) => {
         :apiConfig="apiConfig"
         :autoLoad="true"
         :theme="uiStore.theme || 'light'"
+        :language="uiStore.language || 'zh'"
         :languageOptions="languageOptions"
         :isSidePanelOverlay="uiStore.isMobile"
         :showCloseButton="false"

@@ -105,6 +105,11 @@ export interface SenderI18n {
   recordTooLong?: string
   asrServiceFailed?: string
   recordFailed?: string
+  chromeSecurityError?: string
+  browserNotSupport?: string
+  audioContextNotSupport?: string
+  webAudioApiNotSupport?: string
+  mediaStreamSourceNotSupport?: string
 }
 
 /** 侧边栏布局 Props */
@@ -117,7 +122,10 @@ export interface SidePanelProps {
 export interface CommonLayoutProps extends ThemeProps, MobileProps, SidePanelProps {}
 
 /** 聊天相关 Props - 组合聊天组件常用 props */
-export interface ChatRelatedProps extends CommonLayoutProps {}
+export interface ChatRelatedProps extends CommonLayoutProps {
+  /** 当前语言标识，用于自动选择内部默认 i18n（如 'zh-CN'、'en-US'） */
+  language?: string
+}
 
 // ============================================================
 // Props 默认值
@@ -153,6 +161,7 @@ export const commonLayoutPropsDefaults = {
 /** 聊天相关 Props 默认值 */
 export const chatRelatedPropsDefaults = {
   ...commonLayoutPropsDefaults,
+  language: 'zh-CN',
 }
 
 /** 默认语言选项 */
@@ -226,6 +235,11 @@ export const defaultSenderI18n: Required<SenderI18n> = {
   recordTooLong: '录音时长超过限制',
   asrServiceFailed: '获取语音识别服务失败',
   recordFailed: '录音失败',
+  chromeSecurityError: 'Chrome下获取录音功能需要在localhost、127.0.0.1或https下才能获取权限',
+  browserNotSupport: '无法获取浏览器录音功能，请升级浏览器或使用Chrome',
+  audioContextNotSupport: '浏览器不支持AudioContext',
+  webAudioApiNotSupport: '浏览器不支持webAudioApi相关接口',
+  mediaStreamSourceNotSupport: '不支持MediaStreamSource',
 }
 
 // ============================================================
@@ -293,6 +307,11 @@ export const defaultSenderI18nEn: Required<SenderI18n> = {
   recordTooLong: 'Recording too long',
   asrServiceFailed: 'Failed to get ASR service',
   recordFailed: 'Recording failed',
+  chromeSecurityError: 'Chrome requires localhost, 127.0.0.1 or HTTPS to access recording',
+  browserNotSupport: 'Browser does not support recording, please upgrade or use Chrome',
+  audioContextNotSupport: 'Browser does not support AudioContext',
+  webAudioApiNotSupport: 'Browser does not support Web Audio API',
+  mediaStreamSourceNotSupport: 'MediaStreamSource is not supported',
 }
 
 /** 根据语言获取 i18n 默认值 */

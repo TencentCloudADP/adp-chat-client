@@ -21,6 +21,11 @@ export const MessageCode = {
     RATE_FAILED: 'RATE_FAILED',
     ASR_SERVICE_FAILED: 'ASR_SERVICE_FAILED',
     RECORD_FAILED: 'RECORD_FAILED',
+    CHROME_SECURITY_ERROR: 'CHROME_SECURITY_ERROR',
+    BROWSER_NOT_SUPPORT: 'BROWSER_NOT_SUPPORT',
+    AUDIO_CONTEXT_NOT_SUPPORT: 'AUDIO_CONTEXT_NOT_SUPPORT',
+    WEB_AUDIO_API_NOT_SUPPORT: 'WEB_AUDIO_API_NOT_SUPPORT',
+    MEDIA_STREAM_SOURCE_NOT_SUPPORT: 'MEDIA_STREAM_SOURCE_NOT_SUPPORT',
     
     // 警告类
     ANSWERING: 'ANSWERING',
@@ -112,6 +117,31 @@ export const MESSAGE_MAP: Record<MessageCode, MessageConfig> = {
     [MessageCode.RECORD_FAILED]: {
         code: MessageCode.RECORD_FAILED,
         message: '录音失败',
+        type: 'error',
+    },
+    [MessageCode.CHROME_SECURITY_ERROR]: {
+        code: MessageCode.CHROME_SECURITY_ERROR,
+        message: 'Chrome下获取录音功能需要在localhost、127.0.0.1或https下才能获取权限',
+        type: 'error',
+    },
+    [MessageCode.BROWSER_NOT_SUPPORT]: {
+        code: MessageCode.BROWSER_NOT_SUPPORT,
+        message: '无法获取浏览器录音功能，请升级浏览器或使用Chrome',
+        type: 'error',
+    },
+    [MessageCode.AUDIO_CONTEXT_NOT_SUPPORT]: {
+        code: MessageCode.AUDIO_CONTEXT_NOT_SUPPORT,
+        message: '浏览器不支持AudioContext',
+        type: 'error',
+    },
+    [MessageCode.WEB_AUDIO_API_NOT_SUPPORT]: {
+        code: MessageCode.WEB_AUDIO_API_NOT_SUPPORT,
+        message: '浏览器不支持webAudioApi相关接口',
+        type: 'error',
+    },
+    [MessageCode.MEDIA_STREAM_SOURCE_NOT_SUPPORT]: {
+        code: MessageCode.MEDIA_STREAM_SOURCE_NOT_SUPPORT,
+        message: '不支持MediaStreamSource',
         type: 'error',
     },
     

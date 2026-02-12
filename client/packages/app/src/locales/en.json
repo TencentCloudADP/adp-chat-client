@@ -97,7 +97,12 @@
     "recordTooLong":"Voice input up to 60 seconds has been stopped and converted to text",
     "answering":"Answering in progress, please wait or click to stop the response.",
     "asrServiceFailed": "Failed to get ASR service",
-    "recordFailed": "Recording failed"
+    "recordFailed": "Recording failed",
+    "chromeSecurityError": "Chrome requires localhost, 127.0.0.1 or HTTPS to access recording",
+    "browserNotSupport": "Browser does not support recording, please upgrade or use Chrome",
+    "audioContextNotSupport": "Browser does not support AudioContext",
+    "webAudioApiNotSupport": "Browser does not support Web Audio API",
+    "mediaStreamSourceNotSupport": "MediaStreamSource is not supported"
   },
   "login":{
     "according":"Please configure the login method according to the ",

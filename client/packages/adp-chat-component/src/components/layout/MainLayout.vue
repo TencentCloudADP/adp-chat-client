@@ -205,6 +205,7 @@ defineExpose({
                 :currentApplicationOpeningQuestions="currentApplicationOpeningQuestions"
                 :isMobile="isMobile"
                 :theme="theme"
+                :language="props.language"
                 :i18n="i18n"
                 :chatItemI18n="chatItemI18n"
                 :senderI18n="senderI18n"
