@@ -200,15 +200,19 @@ const handleSendMessage = (message: string) => {
                     <CustomizedIcon
                         :size="isMobile ? 'm' : 's'"
                         :class="{ disabled: isRated(record) && record.Score !== ScoreValue.Like, 'not-allowed': isRated(record) }"
-                        :color="record.Score === ScoreValue.Like ? 'var(--td-brand-color)' : undefined"
-                        class="control-icon icon" name="thumbs_up" :theme="theme" @click="rate(item, ScoreValue.Like)" />
+                        class="control-icon icon"
+                        :name="record.Score === ScoreValue.Like ? 'thumbs_up_active' : 'thumbs_up'"
+                        :nativeIcon="record.Score === ScoreValue.Like"
+                        :theme="theme" @click="rate(item, ScoreValue.Like)" />
                 </Tooltip>
                 <Tooltip :content="i18n.bad" destroyOnClose showArrow theme="default">
                     <CustomizedIcon
                         :size="isMobile ? 'm' : 's'"
                         :class="{ disabled: isRated(record) && record.Score !== ScoreValue.Dislike, 'not-allowed': isRated(record) }"
-                        :color="record.Score === ScoreValue.Dislike ? 'var(--td-brand-color)' : undefined"
-                        class="control-icon icon" name="thumbs_down" :theme="theme" @click="rate(item, ScoreValue.Dislike)" />
+                        class="control-icon icon"
+                        :name="record.Score === ScoreValue.Dislike ? 'thumbs_down_active' : 'thumbs_down'"
+                        :nativeIcon="record.Score === ScoreValue.Dislike"
+                        :theme="theme" @click="rate(item, ScoreValue.Dislike)" />
                 </Tooltip>
             </div>
         </template>
