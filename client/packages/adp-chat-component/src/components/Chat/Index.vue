@@ -74,9 +74,9 @@
                     :theme="theme"
                     @click="handleClickBackToBottom" 
                 />
-                <TCard v-if="isSelecting" size="small" class="share-setting-container" :class="{ isMobile: isMobile }" shadow
+                <TCard v-if="isSelecting" size="small" class="share-setting-container"  shadow
                     bodyClassName="share-setting-card">
-                    <div class="share-setting-content" :class="{ isMobile: isMobile }">
+                    <div class="share-setting-content">
                         <TCheckbox :indeterminate="selectedIds.length !== chatList.length && selectedIds.length !== 0"
                             :checked="checkall" @change="handleCheckAll">{{ i18n.checkAll }}</TCheckbox>
                         <TDivider layout="vertical"></TDivider>
@@ -84,7 +84,7 @@
                             {{ i18n.shareFor }}
                             <div class="icon__share-copy" :class="{ disabled: selectedIds.length <= 0 }"
                                 @click="handleCopyShare()">
-                                <CustomizedIcon size="s" name="copy_link" :theme="theme" />
+                                <CustomizedIcon size="xs" name="copy_link" :theme="theme" />
                                 <span>{{ i18n.copyUrl }}</span>
                             </div>
                         </div>
@@ -109,9 +109,11 @@
                     :isStreamLoad="isChatting" 
                     :isMobile="isMobile"
                     :theme="theme"
+                    :language="props.language"
                     :i18n="senderI18n"
                     :useInternalRecord="useInternalRecord"
                     :asrUrlApi="asrUrlApi"
+                    :enableVoiceInput="props.enableVoiceInput"
                     @stop="onStop"
                     @send="handleSend"
                     @uploadFile="handleUploadFile"
@@ -134,7 +136,7 @@ import { ScoreValue } from '../../model/chat'
 import type { FileProps } from '../../model/file';
 import { MessageCode } from '../../model/messages';
 import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type'
-import { chatRelatedPropsDefaults, defaultChatI18n, defaultChatItemI18n, defaultSenderI18n } from '../../model/type'
+import { chatRelatedPropsDefaults, defaultChatI18n, defaultChatI18nEn, defaultChatItemI18n, defaultChatItemI18nEn, defaultSenderI18n, defaultSenderI18nEn } from '../../model/type'
 
 import AppType from './AppType.vue'
 import Sender from './Sender.vue'
@@ -169,6 +171,8 @@ export interface Props extends ChatRelatedProps {
     useInternalRecord?: boolean;
     /** ASR URL API 路径 */
     asrUrlApi?: string;
+    /** 是否启用语音输入 */
+    enableVoiceInput?: boolean;
     /** 是否正在上传文件 */
     isUploading?: boolean;
     /** 是否显示遮罩层 */
@@ -190,6 +194,7 @@ const props = withDefaults(defineProps<Props>(), {
     senderI18n: () => ({}),
     useInternalRecord: false,
     asrUrlApi: '',
+    enableVoiceInput: true,
     isUploading: false,
     isOverlay: false
 });
@@ -210,21 +215,21 @@ const {
     asrUrlApi
 } = toRefs(props);
 
-// 合并默认值和传入值
-const i18n = computed(() => ({
-    ...defaultChatI18n,
-    ...props.i18n
-}));
+// 合并默认值和传入值（根据 language 选择对应语言的默认值）
+const i18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultChatI18nEn : defaultChatI18n;
+    return { ...defaults, ...props.i18n };
+});
 
-const chatItemI18n = computed(() => ({
-    ...defaultChatItemI18n,
-    ...props.chatItemI18n
-}));
+const chatItemI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultChatItemI18nEn : defaultChatItemI18n;
+    return { ...defaults, ...props.chatItemI18n };
+});
 
-const senderI18n = computed(() => ({
-    ...defaultSenderI18n,
-    ...props.senderI18n
-}));
+const senderI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultSenderI18nEn : defaultSenderI18n;
+    return { ...defaults, ...props.senderI18n };
+});
 
 const emit = defineEmits<{
     (e: 'send', query: string, fileList: FileProps[], conversationId: string, applicationId: string): void;
@@ -624,14 +629,19 @@ defineExpose({
 
 .share-setting-container {
     z-index: 10;
-    position: fixed;
-    bottom: 146px;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: calc((var(--td-size-4) + var(--td-size-1)) * -1);
+    translate: 0 -100%;
+    width: max-content;
 }
 
 .share-setting-content {
     display: flex;
     justify-content: center;
     align-items: center;
+    font-size: var(--td-font-size-link-medium);
 }
 
 .icon__share-copy {
@@ -662,7 +672,7 @@ defineExpose({
 
 .icon__share-close {
     cursor: pointer;
-    margin-left: var(--td-pop-padding-xl);
+    margin-left: var(--td-comp-margin-m);
     padding-left: var(--td-comp-paddingLR-xxs);
 }
 
@@ -731,7 +741,7 @@ defineExpose({
     box-sizing: border-box;
     box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 18px rgba(18, 19, 25, 0.08), 0px 16px 64px rgba(18, 19, 25, 0.16);
     border-radius: 6px;
-    padding: var(--td-comp-paddingLR-s) var(--td-size-10) var(--td-comp-paddingLR-s) var(--td-comp-paddingLR-xl);
+    padding: var(--td-comp-paddingLR-s) var(--td-size-10) var(--td-comp-paddingLR-s) var(--td-comp-paddingLR-xl) !important;
 }
 
 :deep(.share-setting-container) {
@@ -739,11 +749,6 @@ defineExpose({
     box-sizing: border-box;
     box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 18px rgba(18, 19, 25, 0.08), 0px 16px 64px rgba(18, 19, 25, 0.16);
     border-radius: 6px;
-}
-
-/* 移动端样式 */
-.share-setting-container.isMobile {
-    bottom: 120px;
 }
 
 .share-setting-content.isMobile {

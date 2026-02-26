@@ -115,7 +115,7 @@ ADPChatComponent.ADPChat.mount('#containerId', {
   { name: 'stopRecord', description: 'Stop recording' },
   { name: 'message', params: '(code: MessageCode, message: string)', description: 'Message tip, code is message code constant' },
   { name: 'conversationChange', params: 'conversationId', description: 'Conversation change' },
-  { name: 'dataLoaded', params: '(type, data)', description: 'Data loaded' },
+  { name: 'dataLoaded', params: "(type: 'applications' | 'conversations' | 'chatList' | 'user' | 'systemConfig', data)", description: 'Data loaded' },
 ]} />
 
 ### Slots
@@ -133,6 +133,7 @@ ADPChatComponent.ADPChat.mount('#containerId', {
   { name: 'loadConversations', description: 'Load conversations' },
   { name: 'loadConversationDetail', params: 'conversationId', description: 'Load conversation detail' },
   { name: 'loadUserInfo', description: 'Load user info' },
+  { name: 'loadSystemConfig', description: 'Load system config' },
 ]} />
 
 ## Type Definitions
@@ -159,6 +160,7 @@ interface ApiDetailConfig {
   userInfoApi?: string          // User info API
   uploadApi?: string            // File upload API
   asrUrlApi?: string            // ASR URL API
+  systemConfigApi?: string      // System config API
 }
 ```
 

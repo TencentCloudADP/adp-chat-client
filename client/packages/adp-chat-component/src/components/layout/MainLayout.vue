@@ -50,6 +50,8 @@ export interface Props extends ChatRelatedProps {
     useInternalRecord?: boolean;
     /** ASR URL API 路径 */
     asrUrlApi?: string;
+    /** 是否启用语音输入 */
+    enableVoiceInput?: boolean;
     /** 是否正在上传文件 */
     isUploading?: boolean;
     /** 是否显示遮罩层 */
@@ -70,6 +72,7 @@ const props = withDefaults(defineProps<Props>(), {
     showSidebarToggle: true,
     aiWarningText: '内容由AI生成，仅供参考',
     isUploading: false,
+    enableVoiceInput: true,
     isOverlay: false,
 });
 
@@ -202,11 +205,13 @@ defineExpose({
                 :currentApplicationOpeningQuestions="currentApplicationOpeningQuestions"
                 :isMobile="isMobile"
                 :theme="theme"
+                :language="props.language"
                 :i18n="i18n"
                 :chatItemI18n="chatItemI18n"
                 :senderI18n="senderI18n"
                 :useInternalRecord="useInternalRecord"
                 :asrUrlApi="asrUrlApi"
+                :enableVoiceInput="enableVoiceInput"
                 :isUploading="isUploading"
                 :isOverlay="isOverlay"
                 @send="(query, fileList, conversationId, applicationId) => emit('send', query, fileList, conversationId, applicationId)"

@@ -191,11 +191,11 @@ export default class WebRecorder {
                 this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
             } else {
                 this.isLog && console.log(this.requestId, '浏览器不支持AudioContext', TAG);
-                this.OnError('浏览器不支持AudioContext');
+                this.OnError({ code: 'AUDIO_CONTEXT_NOT_SUPPORT' });
             }
         } catch (e) {
             this.isLog && console.log(this.requestId, '浏览器不支持webAudioApi相关接口', e, TAG);
-            this.OnError('浏览器不支持webAudioApi相关接口');
+            this.OnError({ code: 'WEB_AUDIO_API_NOT_SUPPORT' });
         }
 
         this.getUserMedia(this.requestId, this.getAudioSuccess.bind(this), this.getAudioFail.bind(this));
@@ -256,10 +256,10 @@ export default class WebRecorder {
         } else {
             if (navigator.userAgent.toLowerCase().match(/chrome/) && location.origin.indexOf('https://') < 0) {
                 this.isLog && console.log(this.requestId, 'chrome下获取浏览器录音功能，因为安全性问题，需要在localhost或127.0.0.1或https下才能获取权限', TAG);
-                this.OnError('chrome下获取浏览器录音功能，因为安全性问题，需要在localhost或127.0.0.1或https下才能获取权限');
+                this.OnError({ code: 'CHROME_SECURITY_ERROR' });
             } else {
                 this.isLog && console.log(this.requestId, '无法获取浏览器录音功能，请升级浏览器或使用chrome', TAG);
-                this.OnError('无法获取浏览器录音功能，请升级浏览器或使用chrome');
+                this.OnError({ code: 'BROWSER_NOT_SUPPORT' });
             }
             this.audioContext && this.audioContext.close();
         }
@@ -290,7 +290,7 @@ export default class WebRecorder {
             }
         } else {
             this.isLog && console.log(this.requestId, '不支持MediaStreamSource', TAG);
-            this.OnError('不支持MediaStreamSource');
+            this.OnError({ code: 'MEDIA_STREAM_SOURCE_NOT_SUPPORT' });
         }
     }
 

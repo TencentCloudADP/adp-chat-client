@@ -20,6 +20,7 @@ export const apiConfig: ApiConfig = {
     userInfoApi: '/account/info',
     uploadApi: '/file/upload',
     asrUrlApi: '/helper/asr/url',
+    systemConfigApi: '/system/config',
   }
 }
 
@@ -46,7 +47,7 @@ export const chatI18n: ChatI18n = {
   thinking: '思考中...',
   checkAll: '查看全部',
   shareFor: '分享范围',
-  copyUrl: '复制链接',
+  copyUrl: '链接',
   cancelShare: '取消分享',
   sendError: '发送失败',
   networkError: '网络错误',
