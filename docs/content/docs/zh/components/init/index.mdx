@@ -78,7 +78,7 @@ ADPChatComponent.init(container?: string, config?: ChatConfig)
   thinking?: string          // 思考中
   checkAll?: string          // 全选
   shareFor?: string          // 分享至
-  copyUrl?: string           // 复制链接
+  copyUrl?: string           // 链接
   cancelShare?: string       // 取消分享
   sendError?: string         // 发送失败
   networkError?: string      // 网络错误
@@ -117,6 +117,13 @@ ADPChatComponent.init(container?: string, config?: ChatConfig)
   notSupport?: string        // 不支持
   uploadError?: string       // 上传失败
   recordTooLong?: string     // 录音时间过长
+  asrServiceFailed?: string  // 语音识别服务失败
+  recordFailed?: string      // 录音失败
+  chromeSecurityError?: string // Chrome安全限制录音提示
+  browserNotSupport?: string   // 浏览器不支持录音提示
+  audioContextNotSupport?: string // 浏览器不支持AudioContext
+  webAudioApiNotSupport?: string  // 浏览器不支持webAudioApi
+  mediaStreamSourceNotSupport?: string // 不支持MediaStreamSource
 }
 ```
 

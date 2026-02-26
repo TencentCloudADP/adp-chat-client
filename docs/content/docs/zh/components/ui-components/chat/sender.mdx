@@ -44,6 +44,7 @@ ADPChatComponent.ChatSender.mount('#containerId', {
   { name: 'isMobile', type: 'boolean', default: 'false', description: '是否为移动端' },
   { name: 'theme', type: "'light' | 'dark'", default: "'light'", description: '主题模式' },
   { name: 'i18n', type: 'object', description: '国际化文本' },
+  { name: 'enableVoiceInput', type: 'boolean', default: 'true', description: '是否启用语音输入（由系统配置控制）' },
 ]} />
 
 ### i18n 默认值
@@ -58,7 +59,14 @@ ADPChatComponent.ChatSender.mount('#containerId', {
   answering: '正在回答中...',
   notSupport: '不支持的文件格式',
   uploadError: '上传失败',
-  recordTooLong: '录音时间过长'
+  recordTooLong: '录音时间过长',
+  asrServiceFailed: '语音识别服务失败',
+  recordFailed: '录音失败',
+  chromeSecurityError: 'Chrome下获取录音功能需要在localhost、127.0.0.1或https下才能获取权限',
+  browserNotSupport: '无法获取浏览器录音功能，请升级浏览器或使用Chrome',
+  audioContextNotSupport: '浏览器不支持AudioContext',
+  webAudioApiNotSupport: '浏览器不支持webAudioApi相关接口',
+  mediaStreamSourceNotSupport: '不支持MediaStreamSource'
 }
 ```
 

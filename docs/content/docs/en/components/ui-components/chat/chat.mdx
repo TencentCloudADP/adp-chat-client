@@ -60,6 +60,7 @@ ADPChatComponent.Chat.mount('#containerId', {
   { name: 'senderI18n', type: 'SenderI18n', description: 'Sender i18n text' },
   { name: 'useInternalRecord', type: 'boolean', default: 'false', description: 'Use internal recording (API mode)' },
   { name: 'asrUrlApi', type: 'string', default: "''", description: 'ASR URL API path' },
+  { name: 'enableVoiceInput', type: 'boolean', default: 'true', description: 'Enable voice input (controlled by system config)' },
 ]} />
 
 ### i18n Defaults
@@ -70,7 +71,7 @@ ADPChatComponent.Chat.mount('#containerId', {
   thinking: 'Thinking',
   checkAll: 'Select All',
   shareFor: 'Share to',
-  copyUrl: 'Copy Link',
+  copyUrl: 'Link',
   cancelShare: 'Cancel Share',
   sendError: 'Send Failed',
   networkError: 'Network Error'

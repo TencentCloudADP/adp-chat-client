@@ -60,6 +60,7 @@ ADPChatComponent.Chat.mount('#containerId', {
   { name: 'senderI18n', type: 'SenderI18n', description: 'Sender 国际化文本' },
   { name: 'useInternalRecord', type: 'boolean', default: 'false', description: '是否使用内部录音处理（API 模式）' },
   { name: 'asrUrlApi', type: 'string', default: "''", description: 'ASR URL API 路径' },
+  { name: 'enableVoiceInput', type: 'boolean', default: 'true', description: '是否启用语音输入（由系统配置控制）' },
 ]} />
 
 ### i18n 默认值
@@ -70,7 +71,7 @@ ADPChatComponent.Chat.mount('#containerId', {
   thinking: '思考中',
   checkAll: '全选',
   shareFor: '分享至',
-  copyUrl: '复制链接',
+  copyUrl: '链接',
   cancelShare: '取消分享',
   sendError: '发送失败',
   networkError: '网络错误'

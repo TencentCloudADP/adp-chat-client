@@ -78,7 +78,7 @@ Returns Vue component instance for subsequent operations.
   thinking?: string           // Thinking
   checkAll?: string           // Select All
   shareFor?: string           // Share to
-  copyUrl?: string            // Copy Link
+  copyUrl?: string            // Link
   cancelShare?: string        // Cancel Share
   sendError?: string          // Send Failed
   networkError?: string       // Network Error
@@ -117,6 +117,13 @@ Returns Vue component instance for subsequent operations.
   notSupport?: string        // Not supported
   uploadError?: string       // Upload failed
   recordTooLong?: string     // Recording too long
+  asrServiceFailed?: string  // ASR service failed
+  recordFailed?: string      // Recording failed
+  chromeSecurityError?: string // Chrome security restriction for recording
+  browserNotSupport?: string   // Browser does not support recording
+  audioContextNotSupport?: string // Browser does not support AudioContext
+  webAudioApiNotSupport?: string  // Browser does not support Web Audio API
+  mediaStreamSourceNotSupport?: string // MediaStreamSource not supported
 }
 ```
 

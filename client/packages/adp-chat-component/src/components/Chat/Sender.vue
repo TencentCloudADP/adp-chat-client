@@ -7,7 +7,7 @@ import type { UploadFile, RequestMethodResponse } from 'tdesign-vue-next'
 import type { FileProps } from '../../model/file';
 import { MessageCode, getMessage } from '../../model/messages';
 import type { ChatRelatedProps, SenderI18n } from '../../model/type';
-import { chatRelatedPropsDefaults, defaultSenderI18n } from '../../model/type';
+import { chatRelatedPropsDefaults, defaultSenderI18n, defaultSenderI18nEn } from '../../model/type';
 import RecordIcon from '../Common/RecordIcon.vue';
 import FileList from '../Common/FileList.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
@@ -21,6 +21,8 @@ export interface Props extends ChatRelatedProps {
     useInternalRecord?: boolean;
     /** ASR URL API 路径 */
     asrUrlApi?: string;
+    /** 是否启用语音输入 */
+    enableVoiceInput?: boolean;
     /** 国际化文本 */
     i18n?: SenderI18n;
 }
@@ -30,14 +32,15 @@ const props = withDefaults(defineProps<Props>(), {
     isStreamLoad: false,
     useInternalRecord: false,
     asrUrlApi: '',
+    enableVoiceInput: true,
     i18n: () => ({})
 });
 
-// 合并默认值和传入值
-const i18n = computed(() => ({
-    ...defaultSenderI18n,
-    ...props.i18n
-}));
+// 合并默认值和传入值（根据 language 选择对应语言的默认值）
+const i18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultSenderI18nEn : defaultSenderI18n;
+    return { ...defaults, ...props.i18n };
+});
 
 const emit = defineEmits<{
     (e: 'stop'): void;
@@ -221,9 +224,9 @@ const handleStartRecord = async () => {
             };
         } catch (error) {
             recording.value = false;
-            const msg = getMessage(MessageCode.ASR_SERVICE_FAILED);
-            MessagePlugin[msg.type](msg.message);
-            emit('message', MessageCode.ASR_SERVICE_FAILED, msg.message);
+            const text = i18n.value.asrServiceFailed || getMessage(MessageCode.ASR_SERVICE_FAILED).message;
+            MessagePlugin.error(text);
+            emit('message', MessageCode.ASR_SERVICE_FAILED, text);
         }
     }
     
@@ -242,9 +245,28 @@ const startRecording = () => {
         }
     };
     recorder.value.OnError = (err) => {
-        const errMsg = typeof err === 'string' ? err : getMessage(MessageCode.RECORD_FAILED).message;
+        let errMsg: string;
+        let errCode: MessageCode = MessageCode.RECORD_FAILED;
+        if (err && typeof err === 'object' && 'code' in err) {
+            const errorCodeMap: Record<string, { i18nKey: keyof SenderI18n; messageCode: MessageCode }> = {
+                CHROME_SECURITY_ERROR: { i18nKey: 'chromeSecurityError', messageCode: MessageCode.CHROME_SECURITY_ERROR },
+                BROWSER_NOT_SUPPORT: { i18nKey: 'browserNotSupport', messageCode: MessageCode.BROWSER_NOT_SUPPORT },
+                AUDIO_CONTEXT_NOT_SUPPORT: { i18nKey: 'audioContextNotSupport', messageCode: MessageCode.AUDIO_CONTEXT_NOT_SUPPORT },
+                WEB_AUDIO_API_NOT_SUPPORT: { i18nKey: 'webAudioApiNotSupport', messageCode: MessageCode.WEB_AUDIO_API_NOT_SUPPORT },
+                MEDIA_STREAM_SOURCE_NOT_SUPPORT: { i18nKey: 'mediaStreamSourceNotSupport', messageCode: MessageCode.MEDIA_STREAM_SOURCE_NOT_SUPPORT },
+            };
+            const mapping = errorCodeMap[err.code as string];
+            if (mapping) {
+                errMsg = i18n.value[mapping.i18nKey] || getMessage(mapping.messageCode).message;
+                errCode = mapping.messageCode;
+            } else {
+                errMsg = i18n.value.recordFailed || getMessage(MessageCode.RECORD_FAILED).message;
+            }
+        } else {
+            errMsg = typeof err === 'string' ? err : (i18n.value.recordFailed || getMessage(MessageCode.RECORD_FAILED).message);
+        }
         MessagePlugin.error(errMsg);
-        emit('message', MessageCode.RECORD_FAILED, errMsg);
+        emit('message', errCode, errMsg);
         recording.value = false;
     };
     recorder.value.start();
@@ -355,22 +377,22 @@ defineExpose({
         </template>
         <template #prefix>
             <div class="sender-control-container">
-                <TUpload class="sender-upload" ref="uploadRef1" :max="10" :multiple="true" :request-method="handleFileSelect"
+                <TUpload class="sender-upload"  ref="uploadRef1" :max="10" :multiple="true" :request-method="handleFileSelect"
                     accept="image/*" theme="custom">
                     <TTooltip :content="i18n.uploadImg">
-                        <span class="recording-icon">
-                            <CustomizedIcon name="picture" :theme="theme" />
+                        <span class="recording-icon" :class="{ isMobile: isMobile }">
+                            <CustomizedIcon name="picture" :theme="theme" :showHoverBg="!isMobile"/>
                         </span>
                     </TTooltip>
                 </TUpload>
-                <TTooltip v-if="!recording" :content="i18n.startRecord">
-                    <span class="recording-icon" @click="handleStartRecord">
-                        <CustomizedIcon name="voice_input" :theme="theme" />
+                <TTooltip v-if="enableVoiceInput && !recording" :content="i18n.startRecord">
+                    <span class="recording-icon" :class="{ isMobile: isMobile }" @click="handleStartRecord">
+                        <CustomizedIcon name="voice_input" :theme="theme" :showHoverBg="!isMobile"/>
                     </span>
                 </TTooltip>
 
-                <TTooltip v-if="recording" :content="i18n.stopRecord">
-                    <span class="recording-icon stop-icon" @click="handleStopRecord">
+                <TTooltip v-if="enableVoiceInput && recording" :content="i18n.stopRecord">
+                    <span class="recording-icon stop-icon" :class="{ isMobile: isMobile }" @click="handleStopRecord">
                         <RecordIcon />
                     </span>
                 </TTooltip>
@@ -432,5 +454,9 @@ defineExpose({
 .recording-icon{
     height: var(--td-comp-size-m);
     display: inline-block;
+    margin-right: var(--td-comp-paddingLR-xs);
+}
+.recording-icon.isMobile{
+    margin-right: var(--td-comp-paddingLR-m);
 }
 </style>

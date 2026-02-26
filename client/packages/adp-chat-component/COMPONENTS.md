@@ -279,7 +279,7 @@ adp-chat-component/
     thinking: '思考中',
     checkAll: '全选',
     shareFor: '分享至',
-    copyUrl: '复制链接',
+    copyUrl: '链接',
     cancelShare: '取消分享',
     sendError: '发送失败',
     networkError: '网络错误'

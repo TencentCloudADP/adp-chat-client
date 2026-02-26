@@ -22,8 +22,10 @@ import {
     createShare,
     fetchUserInfo,
     uploadFile,
+    fetchSystemConfig,
 } from '../../service/api';
-import { MessageCode, getMessage } from '../../model/messages';
+import type { SystemConfig } from '../../service/api';
+import { MessageCode } from '../../model/messages';
 import { fetchSSE } from '../../model/sseRequest-reasoning';
 import { mergeRecord } from '../../utils/util';
 import { copyToClipboard } from '../../utils/clipboard';
@@ -44,11 +46,18 @@ import {
     themePropsDefaults,
     overlayPropsDefaults,
     defaultChatI18n,
+    defaultChatI18nEn,
     defaultChatItemI18n,
-    defaultSenderI18n
+    defaultChatItemI18nEn,
+    defaultSenderI18n,
+    defaultSenderI18nEn,
+    defaultSideI18n,
+    defaultSideI18nEn
 } from '../../model/type';
 
 export interface Props extends ThemeProps, OverlayProps {
+    /** 当前语言标识，用于自动选择内部默认 i18n（如 'zh-CN'、'en-US'） */
+    language?: string;
     /** 是否为浮层模式 */
     isOverlay?: boolean;
     /** 宽度（仅在 isOverlay 为 true 时用于计算 isMobile） */
@@ -106,6 +115,7 @@ export interface Props extends ThemeProps, OverlayProps {
 const props = withDefaults(defineProps<Props>(), {
     ...themePropsDefaults,
     ...overlayPropsDefaults,
+    language: 'zh-CN',
     isOverlay: false,
     width: 0,
     height: 0,
@@ -150,7 +160,7 @@ const emit = defineEmits<{
     (e: 'stopRecord'): void;
     (e: 'message', code: MessageCode, message: string): void;
     (e: 'conversationChange', conversationId: string): void;
-    (e: 'dataLoaded', type: 'applications' | 'conversations' | 'chatList' | 'user', data: any): void;
+    (e: 'dataLoaded', type: 'applications' | 'conversations' | 'chatList' | 'user' | 'systemConfig', data: any): void;
 }>();
 
 // 解构 props 保持响应式
@@ -187,21 +197,25 @@ const internalCurrentApplication = ref<Application | undefined>(undefined);
 const internalCurrentConversation = ref<ChatConversation | undefined>(undefined);
 const internalIsChatting = ref(false);
 const abortController = ref<AbortController | null>(null);
+const internalSystemConfig = ref<SystemConfig>({ EnableVoiceInput: true });
 
 // 判断是否使用 API 模式（始终启用）
 const useApiMode = computed(() => true);
 
-// 合并默认值和传入值的 chatI18n
-const mergedChatI18n = computed(() => ({
-    ...defaultChatI18n,
-    ...props.chatI18n
-}));
+// 是否启用语音输入
+const enableVoiceInput = computed(() => internalSystemConfig.value.EnableVoiceInput);
 
-// 合并默认值和传入值的 senderI18n
-const mergedSenderI18n = computed(() => ({
-    ...defaultSenderI18n,
-    ...props.senderI18n
-}));
+// 合并默认值和传入值的 chatI18n（根据 language 选择对应语言的默认值）
+const mergedChatI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultChatI18nEn : defaultChatI18n;
+    return { ...defaults, ...props.chatI18n };
+});
+
+// 合并默认值和传入值的 senderI18n（根据 language 选择对应语言的默认值）
+const mergedSenderI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultSenderI18nEn : defaultSenderI18n;
+    return { ...defaults, ...props.senderI18n };
+});
 
 // 使用 composable 统一管理 API 配置
 const { mergedApiDetailConfig } = useApiConfig({
@@ -299,6 +313,18 @@ const loadUserInfo = async () => {
     } catch (error) {
         // 用户信息获取失败不影响主流程
         console.error('获取用户信息失败:', error);
+    }
+};
+
+const loadSystemConfig = async () => {
+    if (!useApiMode.value) return;
+    try {
+        const data = await fetchSystemConfig(mergedApiDetailConfig.value.systemConfigApi);
+        internalSystemConfig.value = data;
+        emit('dataLoaded', 'systemConfig', internalSystemConfig.value);
+    } catch (error) {
+        // 系统配置获取失败不影响主流程，默认不启用语音输入
+        console.error('获取系统配置失败:', error);
     }
 };
 
@@ -496,9 +522,9 @@ const handleInternalRate = async (conversationId: string, recordId: string, scor
             MessagePlugin.info(message);
         }
     } catch (error) {
-        const msg = getMessage(MessageCode.RATE_FAILED);
-        MessagePlugin[msg.type](msg.message);
-        emit('message', MessageCode.RATE_FAILED, msg.message);
+        const text = mergedChatI18n.value.rateFailed;
+        MessagePlugin.error(text);
+        emit('message', MessageCode.RATE_FAILED, text);
     }
 };
 
@@ -518,19 +544,18 @@ const handleInternalShare = async (conversationId: string, applicationId: string
         await copyToClipboard(shareUrl, {
             isMobile: isMobile.value,
             onSuccess: () => {
-                const msg = getMessage(MessageCode.COPY_SUCCESS);
-                MessagePlugin[msg.type](msg.message);
+                MessagePlugin.success(mergedChatI18n.value.copySuccess);
             },
             onError: () => {
-                const msg = getMessage(MessageCode.COPY_FAILED);
-                MessagePlugin[msg.type](msg.message);
-                emit('message', MessageCode.COPY_FAILED, msg.message);
+                const text = mergedChatI18n.value.copyFailed;
+                MessagePlugin.error(text);
+                emit('message', MessageCode.COPY_FAILED, text);
             },
         });
     } catch (error) {
-        const msg = getMessage(MessageCode.SHARE_FAILED);
-        MessagePlugin[msg.type](msg.message);
-        emit('message', MessageCode.SHARE_FAILED, msg.message);
+        const text = mergedChatI18n.value.shareFailed;
+        MessagePlugin.error(text);
+        emit('message', MessageCode.SHARE_FAILED, text);
     }
 };
 
@@ -594,13 +619,12 @@ const handleInternalCopy = async (rowtext: string | undefined, content: string |
         rawText: rowtext,
         isMobile: isMobile.value,
         onSuccess: () => {
-            const msg = getMessage(MessageCode.COPY_SUCCESS);
-            MessagePlugin[msg.type](msg.message);
+            MessagePlugin.success(mergedChatI18n.value.copySuccess);
         },
         onError: () => {
-            const msg = getMessage(MessageCode.COPY_FAILED);
-            MessagePlugin[msg.type](msg.message);
-            emit('message', MessageCode.COPY_FAILED, msg.message);
+            const text = mergedChatI18n.value.copyFailed;
+            MessagePlugin.error(text);
+            emit('message', MessageCode.COPY_FAILED, text);
         },
     });
     emit('copy', rowtext, content, type);
@@ -721,8 +745,11 @@ watch([() => props.currentConversation, () => actualApplications.value], async (
 onMounted(async () => {
     if (useApiMode.value && props.autoLoad) {
         // axios 配置已由 useApiConfig composable 自动处理
-        // 先加载用户信息，因为如果配置了AUTO_CREATE_ACCOUNT，会在加载用户信息时创建账户
-        await loadUserInfo()
+        // 先加载用户信息和系统配置，因为如果配置了AUTO_CREATE_ACCOUNT，会在加载用户信息时创建账户
+        await Promise.all([
+            loadUserInfo(),
+            loadSystemConfig(),
+        ]);
         await Promise.all([
             loadApplications(),
             loadConversations(),
@@ -736,6 +763,7 @@ defineExpose({
     loadConversations,
     loadConversationDetail,
     loadUserInfo,
+    loadSystemConfig,
     notifyLoaded: () => mainLayoutRef.value?.notifyLoaded(),
     notifyComplete: () => mainLayoutRef.value?.notifyComplete(),
 });
@@ -791,6 +819,7 @@ defineExpose({
                 :isChatting="actualIsChatting"
                 :isMobile="isMobile"
                 :theme="theme"
+                :language="props.language"
                 :showSidebarToggle="!sidebarVisible"
                 :aiWarningText="aiWarningText"
                 :i18n="props.chatI18n"
@@ -798,6 +827,7 @@ defineExpose({
                 :senderI18n="props.senderI18n"
                 :useInternalRecord="useApiMode"
                 :asrUrlApi="mergedApiDetailConfig.asrUrlApi"
+                :enableVoiceInput="enableVoiceInput"
                 :isUploading="isUploading"
                 :isOverlay="props.isOverlay"
                 @toggleSidebar="handleToggleSidebar"

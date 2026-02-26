@@ -58,7 +58,9 @@ import stars from '../assets/icons/stars.svg?raw';
 import tencent_docs from '../assets/icons/tencent_docs.svg?raw';
 import thinking from '../assets/icons/thinking.svg?raw';
 import thumbs_down from '../assets/icons/thumbs_down.svg?raw';
+import thumbs_down_active from '../assets/icons/thumbs_down_active.svg?raw';
 import thumbs_up from '../assets/icons/thumbs_up.svg?raw';
+import thumbs_up_active from '../assets/icons/thumbs_up_active.svg?raw';
 import url from '../assets/icons/url.svg?raw';
 import voice_input from '../assets/icons/voice_input.svg?raw';
 
@@ -97,7 +99,9 @@ const svgMap: Record<string, string> = {
     tencent_docs,
     thinking,
     thumbs_down,
+    thumbs_down_active,
     thumbs_up,
+    thumbs_up_active,
     url,
     voice_input,
 };
