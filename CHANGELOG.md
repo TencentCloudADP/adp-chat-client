@@ -1,3 +1,20 @@
+## v0.3.1 (2026-02-26)
+
+### Feat
+
+- **client**: add system/config API integration to control voice recording display
+- **server**: add api to retrieve system config
+
+### Fix
+
+- **client**: add missing English translations for recording failure error prompts
+- **client**: align UI with design specs and correct English mode prompts
+- **vendor**: disable incremental response due to upstream api problem
+- **vendor**: fix file uploader on private cloud
+- **server**: fix get_remote_ip, the limiter works as expected
+- **server**: increase the default db connection pool size
+- **server**: refactor DB usage to short-lived sessions with async context manager in chat flow
+
 ## v0.3.0 (2026-02-04)
 
 ### Feat
