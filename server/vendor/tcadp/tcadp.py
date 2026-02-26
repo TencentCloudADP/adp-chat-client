@@ -94,7 +94,7 @@ class TCADP(BaseVendor):
             yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=True)
             conversation_id = str(conversation.Id)
         async with aiohttp.ClientSession(read_bufsize=1*1024*1024) as session:
-            incremental = True
+            incremental = False
             param = {
                 "content": query,
                 "bot_app_key": self.config['AppKey'],
