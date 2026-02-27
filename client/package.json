@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "cd packages/app && npm run dev",
-    "build": "mkdir ../server/static; NODE_OPTIONS='--max-old-space-size=4096' npm run build_component && npm run build_app",
+    "build": "mkdir ../server/static; export NODE_OPTIONS='--max-old-space-size=4096' && npm run build_component && npm run build_app",
     "build_component": "cd packages/adp-chat-component && npm run build && cd ../../../server/static && rm -rf adp-chat-component && cp -r ../../client/packages/adp-chat-component/dist adp-chat-component",
     "build_app": "cd packages/app && npm run build && cd ../../../server/static && rm -rf app && cp -r ../../client/packages/app/dist app",
     "build_app0": "cd packages/app0 && npm run build && cd ../../../server/static && rm -rf app && cp -r ../../client/packages/app0/dist app"
