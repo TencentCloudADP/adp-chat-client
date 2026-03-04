@@ -26,6 +26,7 @@
   - [部署: 子路径](#部署-子路径)
   - [部署: 限流](#部署-限流)
   - [部署: CORS](#部署-cors)
+  - [部署: Iframe 嵌入白名单](#部署-iframe-嵌入白名单)
 
 # 部署
 
@@ -362,3 +363,21 @@ RATE_LIMIT=100/minute
 ```
 CORS_ORIGINS=http://localhost,http://127.0.0.1:3000
 ```
+
+## 部署: Iframe 嵌入白名单
+
+如果需要允许页面被其他站点以 iframe 嵌入，可以在`.env`中配置`IFRAME_ORIGINS`。多个 origin 用英文逗号分隔。
+
+```
+IFRAME_ORIGINS=https://example.com
+```
+
+推荐优先使用同域名嵌入（父页面与本系统同域），这种情况下不需要配置`IFRAME_ORIGINS`。
+
+只有在跨域嵌入时才需要配置`IFRAME_ORIGINS`。
+
+配置后会自动开启 iframe 登录所需的 cookie 策略（`SameSite=None; Secure`）并启用 CORS credentials。请确保站点使用 HTTPS。
+
+留空时，默认仅允许同源嵌入（`frame-ancestors 'self'`）。
+
+请注意：iframe 场景受浏览器安全策略影响，部分 OAuth 登录流程可能被拒绝或受限。

@@ -71,6 +71,13 @@ class TAgenticConfig(
         default="http://localhost",
     )
 
+    IFRAME_ORIGINS: str = Field(
+        description="Allowed parent origins for iframe embedding via CSP frame-ancestors. "
+            "Multiple origins separated by comma, e.g. 'https://example.com,https://foo.bar'. "
+            "Leave empty to allow only same-origin embedding.",
+        default="",
+    )
+
     model_config = SettingsConfigDict(
         # read from dotenv format config file
         env_file=".env",

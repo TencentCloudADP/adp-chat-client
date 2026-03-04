@@ -7,6 +7,7 @@ import { getBaseURL } from '@/utils/url';
 const instance = axios.create({
   baseURL: getBaseURL(),
   timeout: 1000 * 60, // 请求超时时间
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
