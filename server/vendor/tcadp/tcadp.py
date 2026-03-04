@@ -103,6 +103,7 @@ class TCADP(BaseVendor):
                 "search_network": "enable" if search_network else "disable",
                 "custom_variables": custom_variables,
                 "incremental": incremental,
+                "streaming_throttle": 2,
             }
             headers = {
                 "Accept": "text/event-stream",
