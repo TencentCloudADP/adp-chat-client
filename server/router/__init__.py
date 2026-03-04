@@ -4,6 +4,7 @@ from functools import wraps
 from sanic.request.types import Request
 
 from util.helper import get_remote_ip, get_path_base
+from util.auth_cookie import add_auth_token_cookie
 from core.error.account import AccountUnauthorized
 from core.session import SessionToken
 from core.account import CoreAccount
@@ -51,12 +52,12 @@ async def auto_login(request: Request):
             logging.info(
                 '[auto_login] new account registed {}'.format(account.Id)
             )
-            resp.add_cookie(
-                "token",
-                token,
+            add_auth_token_cookie(
+                resp,
+                config=request.app.config,
+                token=token,
                 path=get_path_base(),
                 max_age=315360000,
-                secure=False,
             )
             return resp
         setup_account_info(request, token)

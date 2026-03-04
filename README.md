@@ -25,6 +25,7 @@
   - [Deployment: Subpath](#deployment-subpath)
   - [Deployment: Rate Limiting](#deployment-rate-limiting)
   - [Deployment: CORS](#deployment-cors)
+  - [Deployment: Iframe Embed Origins](#deployment-iframe-embed-origins)
 
 # Deployment
 
@@ -361,3 +362,19 @@ Multiple origins are separated by commas:
 ```
 CORS_ORIGINS=http://localhost,http://127.0.0.1:3000
 ```
+
+## Deployment: Iframe Embed Origins
+
+If you need to allow other sites to embed this page in an iframe, configure `IFRAME_ORIGINS` in `.env`. Multiple origins are separated by commas.
+
+```
+IFRAME_ORIGINS=https://example.com
+```
+
+Same-origin embedding is recommended (parent page and this system on the same domain). In that case, you do not need to configure `IFRAME_ORIGINS`. Configure `IFRAME_ORIGINS` only for cross-origin embedding.
+
+When configured, the server will automatically enable iframe-login cookie policy (`SameSite=None; Secure`) and CORS credentials. Ensure your site is served over HTTPS.
+
+When empty, only same-origin embedding is allowed (`frame-ancestors 'self'`).
+
+Please note: due to browser security restrictions, some OAuth login flows may be blocked or limited in iframe scenarios.

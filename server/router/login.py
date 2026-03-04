@@ -3,6 +3,7 @@ from sanic.views import HTTPMethodView
 from sanic_restful_api import reqparse
 from sanic.request.types import Request
 from util.helper import get_remote_ip
+from util.auth_cookie import add_auth_token_cookie
 from core.account import CoreAccount
 from config import tagentic_config
 from app_factory import TAgenticApp
@@ -20,11 +21,11 @@ class LoginApi(HTTPMethodView):
         token = await CoreAccount.login(request.ctx.db, account, get_remote_ip(request))
 
         response = json({"Token": token})
-        response.add_cookie(
-            "token",
-            token,
+        add_auth_token_cookie(
+            response,
+            config=app.config,
+            token=token,
             max_age=tagentic_config.ACCESS_TOKEN_EXPIRE_HOURS * 3600,
-            secure=False,
         )
         return response
 
