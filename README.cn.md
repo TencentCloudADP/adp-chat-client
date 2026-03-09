@@ -23,6 +23,7 @@
   - [前端](#前端)
 - [专题](#专题)
   - [智能体: 变量-API参数](#智能体-变量-API参数)
+  - [部署: nginx](#部署-nginx)
   - [部署: 子路径](#部署-子路径)
   - [部署: 限流](#部署-限流)
   - [部署: CORS](#部署-cors)
@@ -317,6 +318,43 @@ class ChatMessageApi(HTTPMethodView):
 
 ```
 
+## 部署: nginx
+
+生产环境通常会使用 nginx 反向代理到本系统。以下配置不能遗漏，否则容易出现流式响应卡住、后端拿不到真实客户端 IP、限流误判等问题。
+
+必须保留的设置：
+
+1. `proxy_buffering off;`
+
+聊天接口使用 SSE 流式返回内容。如果遗漏这项，nginx 可能会缓存上游响应，导致前端长时间收不到增量消息，或者直到响应结束才一次性显示。
+
+2. `proxy_set_header X-Real-IP $remote_addr;`
+
+后端需要拿到真实客户端 IP，用于日志记录、风控和未登录场景的限流。如果不透传，服务端看到的可能只有 nginx 容器或内网代理地址。
+
+3. `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`
+
+这会保留完整的代理链路 IP。经过多层代理或负载均衡时，后端可以基于该请求头继续还原来源地址；如果遗漏，链路信息可能丢失。
+
+最小示例：
+
+```nginx
+http {
+    server {
+        location / {
+            proxy_pass http://127.0.0.1:8000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_buffering off;
+        }
+    }
+}
+```
+
+如果需要部署到子路径（如 `/chat`），还需要结合下一节的 rewrite 和 `X-Forwarded-Prefix` 配置。
+
 ## 部署: 子路径
 
 如果希望部署到一个子路径里（如：/chat），需要结合nginx的rewrite功能，这里以部署到`https://example.com/chat`为例进行说明
@@ -338,6 +376,7 @@ http {
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
             proxy_set_header X-Forwarded-Prefix /chat;
+            proxy_buffering off;
             rewrite ^/chat/(.*)$ /$1 break;
         }
     }
