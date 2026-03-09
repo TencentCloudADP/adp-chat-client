@@ -22,6 +22,7 @@
   - [Frontend](#frontend)
 - [Advanced Topics](#advanced-topics)
   - [Agent: Variables - API Parameters](#agent-variables---api-parameters)
+  - [Deployment: nginx](#deployment-nginx)
   - [Deployment: Subpath](#deployment-subpath)
   - [Deployment: Rate Limiting](#deployment-rate-limiting)
   - [Deployment: CORS](#deployment-cors)
@@ -316,6 +317,43 @@ class ChatMessageApi(HTTPMethodView):
 
 ```
 
+## Deployment: nginx
+
+In production, the system is usually deployed behind nginx. The following settings must not be omitted, otherwise you may see stalled streaming responses, missing real client IPs on the backend, or incorrect rate limiting behavior.
+
+Required settings:
+
+1. `proxy_buffering off;`
+
+The chat API uses SSE to stream responses. If this is omitted, nginx may buffer upstream responses, causing the frontend to receive delayed chunks or only see the response after the stream finishes.
+
+2. `proxy_set_header X-Real-IP $remote_addr;`
+
+The backend needs the real client IP for logging, risk control, and rate limiting when the user is not logged in. Without this header, the service may only see the nginx container or an internal proxy address.
+
+3. `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`
+
+This preserves the full proxy chain. When requests pass through multiple proxies or load balancers, the backend can still reconstruct the original client source; without it, that chain information may be lost.
+
+Minimal example:
+
+```nginx
+http {
+    server {
+        location / {
+            proxy_pass http://127.0.0.1:8000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_buffering off;
+        }
+    }
+}
+```
+
+If you need to deploy under a subpath such as `/chat`, also apply the rewrite and `X-Forwarded-Prefix` settings in the next section.
+
 ## Deployment: Subpath
 
 If you want to deploy the application to a subpath (e.g., /chat), you need to combine it with nginx's rewrite functionality. Here's an example of deploying to `https://example.com/chat`:
@@ -337,6 +375,7 @@ http {
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
             proxy_set_header X-Forwarded-Prefix /chat;
+            proxy_buffering off;
             rewrite ^/chat/(.*)$ /$1 break;
         }
     }
