@@ -60,6 +60,11 @@ class TAgenticConfig(
         default=100,
     )
 
+    SERVER_RESPONSE_TIMEOUT: PositiveInt = Field(
+        description="Response timeout for the server in seconds.",
+        default=300,
+    )
+
     RATE_LIMIT: str = Field(
         description="Rate limit configuration in format 'requests/period' (e.g., '100/minute')",
         default="100/minute",
