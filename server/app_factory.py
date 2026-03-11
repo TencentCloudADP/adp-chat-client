@@ -28,6 +28,7 @@ class TAgenticApp(Sanic):
     def __init__(self, *args, **kwargs):
         super().__init__(dumps=custom_dumps, *args, **kwargs)
         self.config.update(tagentic_config.model_dump())
+        self.config.RESPONSE_TIMEOUT = tagentic_config.SERVER_RESPONSE_TIMEOUT
         logging.basicConfig(
             level=logging.getLevelNamesMapping()[self.config.LOG_LEVEL],
             format='%(asctime)s - %(levelname)s - %(message)s'
