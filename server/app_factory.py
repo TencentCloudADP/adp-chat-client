@@ -1,7 +1,14 @@
 import os
 import logging
 import time
+from pathlib import Path
+
+from dotenv import load_dotenv
 from sanic import Sanic
+
+env_path = Path(__file__).resolve().parent / ".env"
+logging.getLogger(__name__).warning("Loading dotenv from %s (exists=%s)", env_path, env_path.exists())
+load_dotenv(env_path, override=False)
 
 from util.module import autodiscover
 from util.module import autodiscover_vendor
@@ -50,20 +57,11 @@ class TAgenticApp(Sanic):
         raise Exception(f'application_id {application_id} not found')
 
 
-def _has_iframe_origins(config_value: str) -> bool:
-    return any(origin.strip() for origin in config_value.split(","))
-
-
 def create_app_with_configs() -> TAgenticApp:
     """
     create a sanic app and load configs from .env file
     """
-    tagentic_app = TAgenticApp(__name__)
-    tagentic_app.config.CORS_ORIGINS = tagentic_config.CORS_ORIGINS
-    tagentic_app.config.IFRAME_ORIGINS = tagentic_config.IFRAME_ORIGINS
-    tagentic_app.config.CORS_SUPPORTS_CREDENTIALS = _has_iframe_origins(tagentic_config.IFRAME_ORIGINS)
-
-    return tagentic_app
+    return TAgenticApp(__name__)
 
 
 def create_app() -> TAgenticApp:
