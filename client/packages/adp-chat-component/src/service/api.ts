@@ -4,7 +4,7 @@
  */
 import { httpService } from './httpService';
 import type { Application } from '../model/application';
-import type { ChatConversation, Record, ChatConversationProps } from '../model/chat';
+import type { ChatConversation, Record, ChatConversationProps, Reference } from '../model/chat';
 import type { AxiosRequestConfig } from 'axios';
 
 /**
@@ -27,6 +27,8 @@ export interface ApiDetailConfig {
     userInfoApi?: string;
     /** 文件上传接口路径 */
     uploadApi?: string;
+    /** 引用详情接口路径 */
+    referenceDetailApi?: string;
     /** ASR 语音识别 URL 接口路径 */
     asrUrlApi?: string;
     /** 系统配置接口路径 */
@@ -53,9 +55,16 @@ export const defaultApiDetailConfig: ApiDetailConfig = {
     shareApi: '/share/create',
     userInfoApi: '/account/info',
     uploadApi: '/file/upload',
+    referenceDetailApi: '/reference/detail',
     asrUrlApi: '/helper/asr/url',
     systemConfigApi: '/system/config',
 };
+
+export interface ReferenceDetailParams {
+    ApplicationId?: string;
+    ShareId?: string;
+    ReferenceIds: string[];
+}
 
 /**
  * 加载应用列表
@@ -197,6 +206,25 @@ export const uploadFile = async (file: File, applicationId?: string, apiPath?: s
         return response;
     } catch (error) {
         console.error('文件上传失败:', error);
+        throw error;
+    }
+};
+
+/**
+ * 获取引用详情
+ * @param params 请求参数
+ * @param apiPath API 路径
+ */
+export const fetchReferenceDetails = async (
+    params: ReferenceDetailParams,
+    apiPath?: string
+): Promise<Reference[]> => {
+    if (!apiPath) throw new Error('apiPath is required');
+    try {
+        const response: { References: Reference[] } = await httpService.post(apiPath, params);
+        return response.References || [];
+    } catch (error) {
+        console.error('获取引用详情失败:', error);
         throw error;
     }
 };

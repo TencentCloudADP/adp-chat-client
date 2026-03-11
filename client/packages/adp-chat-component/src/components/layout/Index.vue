@@ -9,7 +9,7 @@ import SideLayout from './SideLayout.vue';
 import LogoArea from '../LogoArea.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import type { Application } from '../../model/application';
-import type { ChatConversation, Record } from '../../model/chat';
+import type { ChatConversation, Record, Reference } from '../../model/chat';
 import type { FileProps } from '../../model/file';
 import { ScoreValue } from '../../model/chat';
 import type { ApiConfig } from '../../service/api';
@@ -17,6 +17,7 @@ import {
     fetchApplicationList,
     fetchConversationList,
     fetchConversationDetail,
+    fetchReferenceDetails,
     sendMessage,
     rateMessage,
     createShare,
@@ -28,6 +29,7 @@ import type { SystemConfig } from '../../service/api';
 import { MessageCode } from '../../model/messages';
 import { fetchSSE } from '../../model/sseRequest-reasoning';
 import { mergeRecord } from '../../utils/util';
+import { hydrateType2References } from '../../utils/reference';
 import { copyToClipboard } from '../../utils/clipboard';
 import { useApiConfig } from '../../composables';
 import { computeIsMobile } from '../../utils/device';
@@ -198,6 +200,8 @@ const internalCurrentConversation = ref<ChatConversation | undefined>(undefined)
 const internalIsChatting = ref(false);
 const abortController = ref<AbortController | null>(null);
 const internalSystemConfig = ref<SystemConfig>({ EnableVoiceInput: true });
+const referenceDetailCache = new Map<string, Reference>();
+const referenceDetailPendingKeys = new Set<string>();
 
 // 判断是否使用 API 模式（始终启用）
 const useApiMode = computed(() => true);
@@ -221,6 +225,26 @@ const mergedSenderI18n = computed(() => {
 const { mergedApiDetailConfig } = useApiConfig({
     apiConfig: computed((): ApiConfig | undefined => props.apiConfig),
 });
+
+const hydrateReferences = async (
+    records: Record[],
+    options: { applicationId?: string; shareId?: string } = {}
+) => {
+    if (records.length === 0) {
+        return;
+    }
+
+    try {
+        await hydrateType2References(records, {
+            ...options,
+            cache: referenceDetailCache,
+            pending: referenceDetailPendingKeys,
+            fetcher: (params) => fetchReferenceDetails(params, mergedApiDetailConfig.value.referenceDetailApi),
+        });
+    } catch (error) {
+        console.error('补充引用切片失败:', error);
+    }
+};
 
 // 实际使用的数据（优先使用 props，否则使用内部数据）
 const actualApplications = computed(() => 
@@ -292,6 +316,9 @@ const loadConversationDetail = async (conversationId: string) => {
             mergedApiDetailConfig.value.conversationDetailApi
         );
         internalChatList.value = response?.Response?.Records || [];
+        await hydrateReferences(internalChatList.value, {
+            applicationId: response?.Response?.ApplicationId,
+        });
         emit('dataLoaded', 'chatList', internalChatList.value);
     } catch (error) {
         const text = mergedChatI18n.value.getConversationDetailFailed;
@@ -397,13 +424,18 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
                     } else {
                         const lastIndex = internalChatList.value.length - 1;
                         const lastRecord = internalChatList.value[lastIndex];
+                        let targetRecord = record;
                         if (lastRecord && lastRecord.RecordId === 'placeholder-agent') {
                             lastRecord.RecordId = record.RecordId;
                         }
                         if (lastIndex >= 0 && lastRecord && lastRecord.RecordId === record.RecordId) {
                             mergeRecord(lastRecord, record, result.type);
+                            targetRecord = lastRecord;
                         } else {
                             internalChatList.value.push(record);
+                        }
+                        if (result.type === 'reference') {
+                            void hydrateReferences([targetRecord], { applicationId });
                         }
                     }
                 }
@@ -480,6 +512,9 @@ const handleInternalLoadMore = async (conversationId: string, lastRecordId: stri
         );
         const newRecords = response?.Response?.Records || [];
         if (newRecords.length > 0) {
+            await hydrateReferences(newRecords, {
+                applicationId: response?.Response?.ApplicationId || internalCurrentApplication.value?.ApplicationId,
+            });
             internalChatList.value = [...newRecords, ...internalChatList.value];
             mainLayoutRef.value?.notifyLoaded();
         } else {
