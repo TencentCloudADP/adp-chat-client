@@ -90,6 +90,8 @@ export interface ChatItemI18n {
   thxForGood?: string
   thxForBad?: string
   references?: string
+  openSource?: string
+  referenceSlice?: string
 }
 
 /** Sender 国际化文本 */
@@ -220,6 +222,8 @@ export const defaultChatItemI18n: Required<ChatItemI18n> = {
   thxForGood: '感谢您的反馈',
   thxForBad: '感谢您的反馈',
   references: '参考来源',
+  openSource: '打开原文',
+  referenceSlice: '引用切片',
 }
 
 /** Sender i18n 默认值 */
@@ -292,6 +296,8 @@ export const defaultChatItemI18nEn: Required<ChatItemI18n> = {
   thxForGood: 'Thanks for your feedback',
   thxForBad: 'Thanks for your feedback',
   references: 'References',
+  openSource: 'Open Source',
+  referenceSlice: 'Reference Slice',
 }
 
 /** Sender i18n 英文默认值 */

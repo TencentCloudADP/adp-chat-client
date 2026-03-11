@@ -249,6 +249,49 @@ class TCADP(BaseVendor):
         }
         await tc_request(self.tc_config(), action, payload)
 
+    async def get_reference_details(
+        self,
+        account_id: str | None,
+        reference_ids: list[str],
+    ) -> list[dict]:
+        del account_id
+
+        unique_reference_ids = []
+        seen_reference_ids = set()
+        for reference_id in reference_ids:
+            if not reference_id or reference_id in seen_reference_ids:
+                continue
+            seen_reference_ids.add(reference_id)
+            unique_reference_ids.append(reference_id)
+
+        if not unique_reference_ids:
+            return []
+
+        action = "DescribeRefer"
+        payload = {
+            "BotBizId": self.config['BotBizId'],
+            "ReferBizIds": unique_reference_ids,
+        }
+        resp = await tc_request(self.tc_config(), action, payload)
+        response = resp.get('Response', resp)
+        if 'Error' in response:
+            logging.error(resp)
+            raise Exception(response['Error']['Message'])
+
+        detail_map = {}
+        for item in response.get('List', []):
+            detail = dict(item)
+            refer_biz_id = detail.get('ReferBizId')
+            if refer_biz_id and 'Id' not in detail:
+                detail['Id'] = refer_biz_id
+            if detail.get('DocName') and 'Name' not in detail:
+                detail['Name'] = detail['DocName']
+            detail_id = detail.get('Id', refer_biz_id)
+            if detail_id:
+                detail_map[detail_id] = detail
+
+        return [detail_map[reference_id] for reference_id in unique_reference_ids if reference_id in detail_map]
+
     def tc_config_private_url(self, config: dict, private_url: str) -> dict:
         for key, value in config.items():
             if type(value) is str:
