@@ -8,11 +8,24 @@ from util.tca import tc_request
 from util.warehouse import AsyncWareHouseS3
 
 from util.helper import to_message, convert_dict_keys_to_pascal
+from util.database import db_connection
+from core.account import CoreAccount
 from core.completion import CoreCompletion
 from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, ConversationCallback, MessageType
 
 
 class TCADP(BaseVendor):
+    async def get_customer_account_id(self, account_id: str) -> str:
+        async with db_connection() as db:
+            third_party_account = await CoreAccount.get_third_party(db, account_id)
+
+        if third_party_account is None or not third_party_account.OpenId:
+            logging.warning(
+                f"[TCADP] third_party_account not found for account_id={account_id}"
+            )
+            return account_id
+
+        return third_party_account.OpenId
 
     # ApplicationInterface
     @classmethod
@@ -93,13 +106,14 @@ class TCADP(BaseVendor):
             conversation = await conversation_cb.create()  # 创建会话
             yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=True)
             conversation_id = str(conversation.Id)
+        customer_account_id = await self.get_customer_account_id(account_id)
         async with aiohttp.ClientSession(read_bufsize=1*1024*1024) as session:
             incremental = False
             param = {
                 "content": query,
                 "bot_app_key": self.config['AppKey'],
                 "session_id": conversation_id,
-                "visitor_biz_id": account_id,
+                "visitor_biz_id": customer_account_id,
                 "search_network": "enable" if search_network else "disable",
                 "custom_variables": custom_variables,
                 "incremental": incremental,
