@@ -166,6 +166,9 @@ class MessageType(Enum):
     CONVERSATION = 'conversation'
     """会话级别消息（用于通知新会话ID、更新会话摘要等） / Conversation-level notification (new session ID, summary updates etc.)"""
 
+    HEARTBEAT = 'heartbeat'
+    """心跳消息（用于保持连接活跃） / Heartbeat message (keeping connection alive)"""
+
     def __str__(self):
         return self.value
 

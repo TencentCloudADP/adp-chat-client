@@ -11,6 +11,7 @@ from util.helper import to_message, convert_dict_keys_to_pascal
 from util.database import db_connection
 from core.account import CoreAccount
 from core.completion import CoreCompletion
+from config import tagentic_config
 from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, ConversationCallback, MessageType
 
 
@@ -107,7 +108,8 @@ class TCADP(BaseVendor):
             yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=True)
             conversation_id = str(conversation.Id)
         customer_account_id = await self.get_customer_account_id(account_id)
-        async with aiohttp.ClientSession(read_bufsize=1*1024*1024) as session:
+        timeout = aiohttp.ClientTimeout(total=None, sock_read=tagentic_config.SERVER_RESPONSE_TIMEOUT)
+        async with aiohttp.ClientSession(read_bufsize=1*1024*1024, timeout=timeout) as session:
             incremental = False
             param = {
                 "content": query,
@@ -163,6 +165,8 @@ class TCADP(BaseVendor):
                                 record = MsgRecord.model_validate(payload)
 
                                 yield to_message(msg_type, record=record, incremental=incremental)
+                            elif msg_type == MessageType.HEARTBEAT:
+                                yield to_message(msg_type)
                             elif msg_type in {MessageType.ERROR}:
                                 if 'payload' in data:
                                     msg = data['payload']['error']['message']
