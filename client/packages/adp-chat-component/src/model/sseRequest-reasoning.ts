@@ -49,6 +49,8 @@ export const fetchSSE = async (fetchFn: FetchFn, options: FetchSSEOptions): Prom
           type: 'conversation',
           data: record
         })
+      } else if (msg_type == 'heartbeat') {
+        // 心跳消息，不处理
       } else if (msg_type == 'error') {
         // 错误信息
         let errorMsg = msg_map['Payload']['Error']['Message'];

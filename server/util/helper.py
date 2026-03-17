@@ -108,6 +108,8 @@ def to_message(
             raise ValueError("CONVERSATION 需要'conversation'参数 / requires 'conversation' parameter")
         payload['Payload'] = conversation.to_dict()
         payload['Payload']['IsNewConversation'] = is_new_conversation
+    elif type == MessageType.HEARTBEAT:
+        payload['Payload'] = {}
     elif type == MessageType.ERROR:
         if error_msg is None:
             raise ValueError("ERROR 需要'error_msg'参数 / requires 'error_msg' parameter")
