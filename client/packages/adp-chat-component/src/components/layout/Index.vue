@@ -616,10 +616,20 @@ const handleSelectApplication = (app: Application) => {
 };
 
 const handleSelectConversation = async (conversation: ChatConversation) => {
+    const isSameConversation = conversation.Id === internalCurrentConversation.value?.Id;
+
     // 停止当前正在进行的对话
     if (internalIsChatting.value) {
         handleInternalStop();
     }
+
+    if (isSameConversation) {
+        if (isMobile.value) {
+            sidebarVisible.value = false;
+        }
+        return;
+    }
+
     if (useApiMode.value) {
         internalCurrentConversation.value = conversation;
         // 清空聊天列表，让 InfiniteLoading 来加载数据
@@ -732,10 +742,9 @@ watch(
                         internalCurrentApplication.value = convApp;
                     }
                 }
-                // 如果是 API 模式，自动加载会话详情
+                // 与手动切会话保持一致，交给 InfiniteLoading 首次加载，避免刷新时重复入状态
                 if (useApiMode.value) {
                     internalChatList.value = [];
-                    await loadConversationDetail(foundConv.Id);
                 }
             }
         } else if (!convId && prevConvId) {
@@ -757,7 +766,7 @@ watch(() => props.currentApplication, (newApp) => {
     }
 }, { immediate: true });
 
-// 监听外部传入的 currentConversation 对象变化，同步内部状态并加载会话详情
+// 监听外部传入的 currentConversation 对象变化，同步内部状态
 watch([() => props.currentConversation, () => actualApplications.value], async ([newConversation, apps]) => {
     if (newConversation && newConversation.Id !== internalCurrentConversation.value?.Id) {
         internalCurrentConversation.value = newConversation;
@@ -768,10 +777,9 @@ watch([() => props.currentConversation, () => actualApplications.value], async (
                 internalCurrentApplication.value = foundApp;
             }
         }
-        // 如果是 API 模式，自动加载会话详情
+        // 与手动切会话保持一致，交给 InfiniteLoading 首次加载，避免刷新时重复入状态
         if (useApiMode.value) {
             internalChatList.value = [];
-            await loadConversationDetail(newConversation.Id);
         }
     }
 }, { immediate: true });
