@@ -22,11 +22,12 @@
 import { onMounted, ref, watch, toRef } from 'vue';
 import { Chat as TChat } from '@tdesign-vue-next/chat';
 import ChatItem from './Chat/ChatItem.vue';
-import { fetchConversationDetail } from '../service/api';
+import { fetchConversationDetail, fetchReferenceDetails } from '../service/api';
 import type { ApiConfig } from '../service/api';
 import { useApiConfig } from '../composables';
-import type { Record } from '../model/chat';
+import type { Record, Reference } from '../model/chat';
 import type { ThemeType } from '../model/type';
+import { hydrateType2References } from '../utils/reference';
 
 /**
  * ShareChat 组件 Props
@@ -73,6 +74,25 @@ const loading = ref(false);
  * 是否流式加载中（分享页面固定为 false）
  */
 const isStreamLoad = ref(false);
+const referenceDetailCache = new Map<string, Reference>();
+const referenceDetailPendingKeys = new Set<string>();
+
+const hydrateReferences = async (records: Record[], shareId: string) => {
+  if (records.length === 0) {
+    return
+  }
+
+  try {
+    await hydrateType2References(records, {
+      shareId,
+      cache: referenceDetailCache,
+      pending: referenceDetailPendingKeys,
+      fetcher: (params) => fetchReferenceDetails(params, mergedApiDetailConfig.value.referenceDetailApi),
+    })
+  } catch (error) {
+    console.error('补充分享引用切片失败:', error)
+  }
+}
 
 /**
  * 加载聊天会话详情
@@ -88,6 +108,7 @@ const loadConversationDetail = async (shareId: string) => {
     );
     loading.value = false;
     chatList.value = response?.Response?.Records || [];
+    await hydrateReferences(chatList.value, shareId)
     
     // 触发回调
     props.onLoadComplete?.(chatList.value)

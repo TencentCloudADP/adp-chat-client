@@ -309,6 +309,26 @@ class FileInterface:
         raise NotImplementedError("Subclasses must implement this method")
 
 
+class ReferenceInterface:
+    async def get_reference_details(
+        self,
+        account_id: Optional[str],
+        reference_ids: List[str],
+    ) -> List[Dict[str, Any]]:
+        """批量获取引用详情
+
+        用于补充引用切片等详情数据，前端可基于该接口做统一 hydration
+
+        Args:
+            account_id (Optional[str]): 当前账户ID。某些无登录场景（如分享页）可为空
+            reference_ids (List[str]): 引用ID列表
+
+        Returns:
+            List[Dict[str, Any]]: 按引用ID返回的详情列表
+        """
+        raise NotImplementedError("Subclasses must implement this method")
+
+
 class FeedbackInterface:
     async def rate(
         self,
@@ -334,7 +354,7 @@ class FeedbackInterface:
         raise NotImplementedError("Subclasses must implement this method")
 
 
-class BaseVendor(ChatInterface, MessageInterface, FileInterface, FeedbackInterface, ApplicationInterface):
+class BaseVendor(ChatInterface, MessageInterface, FileInterface, ReferenceInterface, FeedbackInterface, ApplicationInterface):
     """厂商基类，实现具体的厂商接口需要从该类继承
     """
     def __init__(self, config: dict = {}, application_id: str = ''):
