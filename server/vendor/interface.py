@@ -120,13 +120,18 @@ class WebSearchRefer(BaseModel):
     Url: str
 
 
+DocReferModel = DocRefer
+QaReferModel = QaRefer
+WebSearchReferModel = WebSearchRefer
+
+
 class Reference(BaseModel):
     Index: int
     Type: int
     Name: str
-    DocRefer: Optional[DocRefer] = None
-    QaRefer: Optional[QaRefer] = None
-    WebSearchRefer: Optional[WebSearchRefer] = None
+    DocRefer: Optional[DocReferModel] = None
+    QaRefer: Optional[QaReferModel] = None
+    WebSearchRefer: Optional[WebSearchReferModel] = None
 
 
 class Sandbox(BaseModel):
@@ -152,16 +157,22 @@ class Widget(BaseModel):
     EncodedWidget: str
 
 
+SandboxModel = Sandbox
+WebSearchModel = WebSearch
+FileCollectionModel = FileCollection
+WidgetModel = Widget
+
+
 class Image(BaseModel):
     QuoteInfos: Optional[List[QuoteInfo]] = None
     References: Optional[List[Reference]] = None
     OptionCards: Optional[List[str]] = None
     CustomParams: Optional[List[str]] = None
-    Sandbox: Optional[Sandbox] = None
-    WebSearch: Optional[WebSearch] = None
-    FileCollection: Optional[FileCollection] = None
+    Sandbox: Optional[SandboxModel] = None
+    WebSearch: Optional[WebSearchModel] = None
+    FileCollection: Optional[FileCollectionModel] = None
     RelatedRecordId: Optional[str] = None
-    Widget: Optional[Widget] = None
+    Widget: Optional[WidgetModel] = None
 
 
 class FileInfo(BaseModel):
@@ -180,6 +191,9 @@ class WidgetAction(BaseModel):
     DocBizId: Optional[str] = None
 
 
+WidgetActionModel = WidgetAction
+
+
 class Content(BaseModel):
     Type: ContentType
     Text: Optional[str] = None
@@ -188,13 +202,13 @@ class Content(BaseModel):
     References: Optional[List[Reference]] = None
     OptionCards: Optional[List[str]] = None
     CustomParams: Optional[List[str]] = None
-    Sandbox: Optional[Sandbox] = None
-    WebSearch: Optional[WebSearch] = None
-    FileCollection: Optional[FileCollection] = None
+    Sandbox: Optional[SandboxModel] = None
+    WebSearch: Optional[WebSearchModel] = None
+    FileCollection: Optional[FileCollectionModel] = None
     RelatedRecordId: Optional[str] = None
-    Widget: Optional[Widget] = None
+    Widget: Optional[WidgetModel] = None
     CustomVariables: Optional[Dict[str, str]] = None
-    WidgetAction: Optional[WidgetAction] = None
+    WidgetAction: Optional[WidgetActionModel] = None
 
 
 def extract_text_from_contents(contents: Optional[List[Union["Content", Dict[str, Any]]]]) -> str:
@@ -267,6 +281,9 @@ class OptionCardIndex(BaseModel):
     Index: int
 
 
+OptionCardIndexModel = OptionCardIndex
+
+
 class RunNode(BaseModel):
     Elapsed: str
     NodeId: str
@@ -281,7 +298,7 @@ class WorkflowProcedure(BaseModel):
     WorkflowRunId: str
     Content: str
     Outputs: List[str]
-    OptionCardIndex: Optional[OptionCardIndex] = None
+    OptionCardIndex: Optional[OptionCardIndexModel] = None
     OptionCards: Optional[List[str]] = None
     RunNodes: Optional[List[RunNode]] = None
 
@@ -324,6 +341,10 @@ class Agent(BaseModel):
     CustomVariables: Optional[List[str]] = None
 
 
+KnowledgeModel = Knowledge
+AgentModel = Agent
+
+
 class Procedure(BaseModel):
     ParentMessageId: Optional[str] = None
     Name: str
@@ -332,9 +353,9 @@ class Procedure(BaseModel):
     IntentCate: Optional[str] = None
     ResourceStatus: Optional[int] = None
     Type: str
-    Knowledge: Optional[Knowledge] = None
+    Knowledge: Optional[KnowledgeModel] = None
     Workflow: Optional[WorkflowProcedure] = None
-    Agent: Optional[Agent] = None
+    Agent: Optional[AgentModel] = None
     StatInfos: Optional[List[StatInfo]] = None
 
 
@@ -355,6 +376,9 @@ class RecordExtraInfo(BaseModel):
     HasRead: Optional[bool] = None
 
 
+StatInfoModel = StatInfo
+
+
 class Record(BaseModel):
     Role: RecordRole
     RecordId: str
@@ -364,7 +388,7 @@ class Record(BaseModel):
     StatusDesc: Optional[str] = None
     Messages: Optional[List[Message]] = None
     Procedures: Optional[List[Procedure]] = None
-    StatInfo: Optional[StatInfo] = None
+    StatInfo: Optional[StatInfoModel] = None
     ExtraInfo: Optional[RecordExtraInfo] = None
 
 
