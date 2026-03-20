@@ -106,6 +106,7 @@ export interface Reference {
   OrgData?: string;
   PageInfos?: number[];
   SheetInfos?: string[];
+  DocType?: number;
   Status?: string;
 }
 

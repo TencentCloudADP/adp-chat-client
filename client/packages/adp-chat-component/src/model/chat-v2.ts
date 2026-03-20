@@ -26,8 +26,16 @@ export type MessageType =
 export interface Content {
   Type: ContentType
   Text?: string
-  Image?: Image
   File?: FileInfo
+  QuoteInfos?: QuoteInfo[]
+  References?: Reference[]
+  OptionCards?: string[]
+  CustomParams?: string[]
+  Sandbox?: Sandbox
+  WebSearch?: WebSearch
+  FileCollection?: FileCollection
+  RelatedRecordId?: string
+  Widget?: Widget
   CustomVariables?: { [key: string]: string }
   WidgetAction?: WidgetAction
 }
@@ -89,6 +97,7 @@ export interface Reference {
   OrgData?: string
   PageInfos?: number[]
   SheetInfos?: string[]
+  DocType?: number
   Status?: string
   DocRefer?: DocRefer
   QaRefer?: QaRefer
@@ -98,9 +107,12 @@ export interface Reference {
 export interface DocRefer {
   ReferBizId: string
   DocBizId: string
+  DocId?: string
   DocName: string
   KnowledgeBizId: string
+  KnowledgeId?: string
   KnowledgeName?: string
+  ReferenceId?: string
   Url: string
 }
 
@@ -362,6 +374,14 @@ export interface ContentAddedEvent {
   Content: Content
 }
 
+export interface ReferenceAddedEvent {
+  Type: 'reference.added'
+  MessageId: string
+  ContentIndex: number
+  Reference: Reference
+  Timestamp?: NumberLike
+}
+
 export interface TextDeltaEvent {
   Type: 'text.delta'
   MessageId: string
@@ -384,5 +404,6 @@ export type SseEvent =
   | MessageProcessingEvent
   | MessageDoneEvent
   | ContentAddedEvent
+  | ReferenceAddedEvent
   | TextDeltaEvent
   | ErrorEvent

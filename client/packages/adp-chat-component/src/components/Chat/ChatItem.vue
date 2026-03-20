@@ -96,29 +96,27 @@ const reasoningContents = computed(() => {
         .filter((text) => text.length > 0);
 });
 
-const collectFromContents = <T,>(picker: (content: Content) => T[] | undefined): T[] => {
+const collectFromMessageContents = <T,>(message: Message | undefined, picker: (content: Content) => T[] | undefined): T[] => {
     const values: T[] = [];
-    for (const message of messages.value) {
-        for (const content of message.Contents ?? []) {
-            const picked = picker(content);
-            if (picked?.length) {
-                values.push(...picked);
-            }
+    for (const content of message?.Contents ?? []) {
+        const picked = picker(content);
+        if (picked?.length) {
+            values.push(...picked);
         }
     }
     return values;
 };
 
 const optionCards = computed(() => {
-    return collectFromContents((content) => content.Image?.OptionCards ?? []);
+    return collectFromMessageContents(primaryMessage.value, (content) => content.OptionCards ?? []);
 });
 
 const quoteInfos = computed<QuoteInfoLike[]>(() => {
-    return collectFromContents((content) => content.Image?.QuoteInfos ?? []);
+    return collectFromMessageContents(primaryMessage.value, (content) => content.QuoteInfos ?? []);
 });
 
 const references = computed<ReferenceLike[]>(() => {
-    return collectFromContents((content) => content.Image?.References ?? []);
+    return collectFromMessageContents(primaryMessage.value, (content) => content.References ?? []);
 });
 
 const isFinal = computed(() => {
@@ -232,8 +230,12 @@ const isSliceReference = (reference: ReferenceLike) => {
     return reference.Type === 2 && Boolean(reference.PageContent || reference.OrgData);
 };
 
+const getReferenceId = (reference: ReferenceLike) => {
+    return reference.Id || reference.DocRefer?.ReferenceId || reference.ReferBizId || reference.DocRefer?.ReferBizId;
+};
+
 const getReferenceTitle = (reference: ReferenceLike) => {
-    return reference.DocName || reference.Name || '未命名来源';
+    return reference.DocRefer?.DocName || reference.DocName || reference.Name || '未命名来源';
 };
 
 const getReferenceContent = (reference: ReferenceLike) => {
@@ -297,7 +299,7 @@ const referenceDialogTitle = computed(() => {
                     <ol class="reference-list">
                         <li
                             v-for="(reference, idx) in references"
-                            :key="`${reference.Id || reference.Url || reference.Name || idx}-${idx}`"
+                            :key="`${getReferenceId(reference) || getReferenceUrl(reference) || getReferenceTitle(reference) || idx}-${idx}`"
                             class="reference-list__item"
                         >
                             <button
@@ -324,11 +326,14 @@ const referenceDialogTitle = computed(() => {
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >
-                                {{ reference.Name }}
+                                {{ getReferenceTitle(reference) }}
                             </TLink>
                             <span v-else class="reference-link">
-                                {{ reference.Name }}
+                                {{ getReferenceTitle(reference) }}
                             </span>
+                            <div v-if="getReferenceMeta(reference)" class="reference-link__meta">
+                                {{ getReferenceMeta(reference) }}
+                            </div>
                         </li>
                     </ol>
                 </div>
@@ -513,7 +518,8 @@ const referenceDialogTitle = computed(() => {
     font-weight: 600;
 }
 
-.reference-slice__meta {
+.reference-slice__meta,
+.reference-link__meta {
     color: var(--td-text-color-placeholder);
     font-size: var(--td-font-size-body-small);
     margin-top: var(--td-comp-margin-xxs);
