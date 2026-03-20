@@ -183,8 +183,16 @@ class WidgetAction(BaseModel):
 class Content(BaseModel):
     Type: ContentType
     Text: Optional[str] = None
-    Image: Optional[Image] = None
     File: Optional[FileInfo] = None
+    QuoteInfos: Optional[List[QuoteInfo]] = None
+    References: Optional[List[Reference]] = None
+    OptionCards: Optional[List[str]] = None
+    CustomParams: Optional[List[str]] = None
+    Sandbox: Optional[Sandbox] = None
+    WebSearch: Optional[WebSearch] = None
+    FileCollection: Optional[FileCollection] = None
+    RelatedRecordId: Optional[str] = None
+    Widget: Optional[Widget] = None
     CustomVariables: Optional[Dict[str, str]] = None
     WidgetAction: Optional[WidgetAction] = None
 

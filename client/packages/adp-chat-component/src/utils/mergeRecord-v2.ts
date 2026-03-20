@@ -15,6 +15,8 @@ export function applySseEventToRecord(event: SseEvent, current?: Record): Record
       return upsertMessage(current, event.Message)
     case 'content.added':
       return addContent(current, event.MessageId, event.ContentIndex, event.Content)
+    case 'reference.added':
+      return addReference(current, event.MessageId, event.ContentIndex, event.Reference)
     case 'text.delta':
       return appendTextDelta(current, event.MessageId, event.ContentIndex, event.Text)
     default:
@@ -110,6 +112,34 @@ function appendTextDelta(
   return { ...current, Messages: messages }
 }
 
+function addReference(
+  current: Record | undefined,
+  messageId: string,
+  contentIndex: number,
+  reference: NonNullable<Extract<SseEvent, { Type: 'reference.added' }>['Reference']>,
+): Record | undefined {
+  if (!current) {
+    return undefined
+  }
+  const { message, messages, messageIndex } = ensureMessage(current, messageId)
+  if (!message) {
+    return { ...current, Messages: messages }
+  }
+
+  const contents = message.Contents ? [...message.Contents] : []
+  const existing = contents[contentIndex]
+  const base: Content = existing ?? { Type: 'text', Text: '' }
+  const currentReferences = base.References ? [...base.References] : []
+  const nextReferences = upsertReference(currentReferences, reference)
+
+  contents[contentIndex] = {
+    ...base,
+    References: nextReferences,
+  }
+  messages[messageIndex] = { ...message, Contents: contents }
+  return { ...current, Messages: messages }
+}
+
 function ensureMessage(current: Record, messageId: string) {
   const messages = current.Messages ? [...current.Messages] : []
   let messageIndex = messages.findIndex((msg) => msg.MessageId === messageId)
@@ -128,4 +158,45 @@ function ensureMessage(current: Record, messageId: string) {
   }
   const message = messages[messageIndex]
   return { message, messages, messageIndex }
+}
+
+function upsertReference(
+  references: NonNullable<Content['References']>,
+  incoming: NonNullable<Extract<SseEvent, { Type: 'reference.added' }>['Reference']>,
+) {
+  const next = [...(references ?? [])]
+  const incomingKey = getReferenceKey(incoming)
+  const idx = next.findIndex((reference) => getReferenceKey(reference) === incomingKey)
+  if (idx === -1) {
+    next.push(incoming)
+  } else {
+    const existing = next[idx]
+    if (existing) {
+      next[idx] = {
+        ...existing,
+        ...incoming,
+        DocRefer: incoming.DocRefer ? { ...(existing.DocRefer ?? {}), ...incoming.DocRefer } : existing.DocRefer,
+        QaRefer: incoming.QaRefer ? { ...(existing.QaRefer ?? {}), ...incoming.QaRefer } : existing.QaRefer,
+        WebSearchRefer: incoming.WebSearchRefer
+          ? { ...(existing.WebSearchRefer ?? {}), ...incoming.WebSearchRefer }
+          : existing.WebSearchRefer,
+      }
+    } else {
+      next[idx] = incoming
+    }
+  }
+  return next
+}
+
+function getReferenceKey(reference: NonNullable<Extract<SseEvent, { Type: 'reference.added' }>['Reference']>) {
+  return (
+    reference.Id ||
+    reference.ReferBizId ||
+    reference.DocRefer?.ReferenceId ||
+    reference.DocRefer?.ReferBizId ||
+    reference.QaRefer?.ReferBizId ||
+    reference.Url ||
+    reference.DocRefer?.Url ||
+    `${reference.Index ?? ''}:${reference.Name ?? ''}`
+  )
 }

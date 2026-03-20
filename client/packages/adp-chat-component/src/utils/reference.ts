@@ -52,7 +52,7 @@ function collectType2References(records: Record[]): Reference[] {
   for (const record of records) {
     for (const message of record.Messages || []) {
       for (const content of message.Contents || []) {
-        for (const reference of content.Image?.References || []) {
+        for (const reference of content.References || []) {
           if (reference.Type === 2 && getReferenceId(reference)) {
             references.push(reference)
           }
@@ -61,6 +61,20 @@ function collectType2References(records: Record[]): Reference[] {
     }
   }
   return references
+}
+
+function collectType2ReferencesById(records: Record[]): Map<string, Reference[]> {
+  const referencesById = new Map<string, Reference[]>()
+  for (const reference of collectType2References(records)) {
+    const referenceId = getReferenceId(reference)
+    if (!referenceId) {
+      continue
+    }
+    const references = referencesById.get(referenceId) || []
+    references.push(reference)
+    referencesById.set(referenceId, references)
+  }
+  return referencesById
 }
 
 export async function hydrateType2References(
@@ -73,18 +87,14 @@ export async function hydrateType2References(
     return
   }
 
-  const referencesById = new Map<string, Reference[]>()
-  for (const reference of type2References) {
-    const referenceId = getReferenceId(reference)
-    if (!referenceId) {
-      continue
-    }
-    const references = referencesById.get(referenceId) || []
-    references.push(reference)
-    referencesById.set(referenceId, references)
+  const referencesById = collectType2ReferencesById(records)
+  for (const [referenceId, references] of referencesById.entries()) {
     const cacheKey = getCacheKey(referenceId, applicationId, shareId)
     const cachedDetail = cache?.get(cacheKey)
-    if (cachedDetail) {
+    if (!cachedDetail) {
+      continue
+    }
+    for (const reference of references) {
       mergeReferenceDetail(reference, cachedDetail)
     }
   }
@@ -124,7 +134,7 @@ export async function hydrateType2References(
       }
       const cacheKey = getCacheKey(detailId, applicationId, shareId)
       cache?.set(cacheKey, detail)
-      const references = referencesById.get(detailId) || []
+      const references = collectType2ReferencesById(records).get(detailId) || referencesById.get(detailId) || []
       for (const reference of references) {
         mergeReferenceDetail(reference, detail)
       }
