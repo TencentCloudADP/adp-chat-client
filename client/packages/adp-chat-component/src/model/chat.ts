@@ -98,8 +98,15 @@ export interface Reference {
   QaBizId: string;
   Name: string;
   DocId: string;
+  ReferBizId?: string;
+  DocName?: string;
   KnowledgeBizId?: string;
   KnowledgeName?: string;
+  PageContent?: string;
+  OrgData?: string;
+  PageInfos?: number[];
+  SheetInfos?: string[];
+  Status?: string;
 }
 
 

@@ -1,12 +1,12 @@
 <!-- 聊天消息项组件，支持 Markdown、深度思考、操作按钮等 -->
 <script setup lang="tsx">
 import { ref, computed } from 'vue';
-import type { Record, AgentThought } from '../../model/chat';
+import type { Record, AgentThought, Reference } from '../../model/chat';
 import { ScoreValue } from '../../model/chat';
 import type { CommonLayoutProps, ChatItemI18n } from '../../model/type';
 import { commonLayoutPropsDefaults, defaultChatItemI18n } from '../../model/type';
 import {  ChatItem as TChatItem } from '@tdesign-vue-next/chat';
-import { Tooltip, Loading as TLoading, Link as TLink } from 'tdesign-vue-next';
+import { Tooltip, Loading as TLoading, Link as TLink, Dialog as TDialog } from 'tdesign-vue-next';
 import OptionCard from '../Common/OptionCard.vue';
 import MdContent from '../Common/MdContent.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
@@ -52,6 +52,9 @@ const emit = defineEmits<{
 // 响应式变量
 const record = ref(props.item);
 const expandStatus = ref(false);
+const referenceDialogVisible = ref(false);
+const activeReference = ref<Reference | null>(null);
+const references = computed(() => props.item.References || []);
 
 /**
  * 复制内容到剪贴板
@@ -141,6 +144,45 @@ const renderReasoning = (item: Record) => {
 const handleSendMessage = (message: string) => {
     emit('sendMessage', message);
 };
+
+const openReferenceDialog = (reference: Reference) => {
+    activeReference.value = reference;
+    referenceDialogVisible.value = true;
+};
+
+const isSliceReference = (reference: Reference) => {
+    return reference.Type === 2 && Boolean(reference.PageContent || reference.OrgData);
+};
+
+const getReferenceTitle = (reference: Reference) => {
+    return reference.DocName || reference.Name || '未命名来源';
+};
+
+const getReferenceContent = (reference: Reference) => {
+    return reference.PageContent || reference.OrgData || '';
+};
+
+const getReferenceMeta = (reference: Reference) => {
+    const meta: string[] = [];
+    if (reference.PageInfos && reference.PageInfos.length > 0) {
+        meta.push(`P${reference.PageInfos.join(', ')}`);
+    }
+    if (reference.SheetInfos && reference.SheetInfos.length > 0) {
+        meta.push(reference.SheetInfos.join(', '));
+    }
+    return meta.join(' · ');
+};
+
+const getReferencePreview = (reference: Reference) => {
+    return getReferenceContent(reference).replace(/\s+/g, ' ').trim();
+};
+
+const referenceDialogTitle = computed(() => {
+    if (!activeReference.value) {
+        return i18n.value.referenceSlice;
+    }
+    return getReferenceTitle(activeReference.value);
+});
 </script>
 
 <template>
@@ -174,9 +216,41 @@ const handleSendMessage = (message: string) => {
                 <div class="references-container"
                     v-if="item.References && item.References.length > 0 && !(item.IsFinal === false)">
                     <span class="title">{{ i18n.references }}: </span>
-                    <ol>
-                        <li v-for="(reference, idx) in item.References" :key="idx">
-                            <TLink theme="primary" :href="reference.Url" target="_blank" rel="noopener noreferrer">{{ reference.Name }}</TLink>
+                    <ol class="reference-list">
+                        <li
+                            v-for="(reference, idx) in references"
+                            :key="`${reference.Id || reference.Url || reference.Name || idx}-${idx}`"
+                            class="reference-list__item"
+                        >
+                            <button
+                                v-if="isSliceReference(reference)"
+                                type="button"
+                                class="reference-slice__trigger"
+                                @click="openReferenceDialog(reference)"
+                            >
+                                <div class="reference-slice__header">
+                                    <span class="reference-slice__name">{{ getReferenceTitle(reference) }}</span>
+                                </div>
+                                <div v-if="getReferenceMeta(reference)" class="reference-slice__meta">
+                                    {{ getReferenceMeta(reference) }}
+                                </div>
+                                <div class="reference-slice__preview">
+                                    {{ getReferencePreview(reference) }}
+                                </div>
+                            </button>
+                            <TLink
+                                v-else-if="reference.Url"
+                                class="reference-link"
+                                theme="primary"
+                                :href="reference.Url"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                {{ reference.Name }}
+                            </TLink>
+                            <span v-else class="reference-link">
+                                {{ reference.Name }}
+                            </span>
                         </li>
                     </ol>
                 </div>
@@ -217,6 +291,27 @@ const handleSendMessage = (message: string) => {
             </div>
         </template>
     </TChatItem>
+    <TDialog
+        v-model:visible="referenceDialogVisible"
+        :header="referenceDialogTitle"
+        :footer="false"
+        :width="isMobile ? '92%' : '720px'"
+        destroy-on-close
+    >
+        <div v-if="activeReference" class="reference-dialog">
+            <div v-if="getReferenceMeta(activeReference)" class="reference-dialog__meta">
+                {{ getReferenceMeta(activeReference) }}
+            </div>
+            <div v-if="activeReference.Url" class="reference-dialog__link">
+                <TLink theme="primary" :href="activeReference.Url" target="_blank" rel="noopener noreferrer">
+                    {{ i18n.openSource }}
+                </TLink>
+            </div>
+            <div class="reference-dialog__content">
+                {{ getReferenceContent(activeReference) }}
+            </div>
+        </div>
+    </TDialog>
 </template>
 
 <style scoped>
@@ -300,6 +395,86 @@ const handleSendMessage = (message: string) => {
 
 .references-container .title {
     color: var(--td-text-color-secondary);
+    display: inline-block;
+    margin-bottom: var(--td-comp-margin-s);
+}
+
+.reference-list {
+    margin: 0;
+    padding-left: var(--td-comp-margin-l);
+}
+
+.reference-list__item + .reference-list__item {
+    margin-top: var(--td-comp-margin-s);
+}
+
+.reference-slice__trigger {
+    width: 100%;
+    display: block;
+    text-align: left;
+    padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-m);
+    border: 1px solid var(--td-component-border);
+    border-radius: var(--td-radius-medium);
+    background: var(--td-bg-color-container-hover);
+    cursor: pointer;
+}
+
+.reference-slice__trigger:hover {
+    background: var(--td-bg-color-container-select);
+}
+
+.reference-slice__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--td-comp-margin-s);
+}
+
+.reference-slice__name {
+    color: var(--td-text-color-primary);
+    font-weight: 600;
+}
+
+.reference-slice__meta {
+    color: var(--td-text-color-placeholder);
+    font-size: var(--td-font-size-body-small);
+    margin-top: var(--td-comp-margin-xxs);
+}
+
+.reference-slice__preview {
+    color: var(--td-text-color-secondary);
+    margin-top: var(--td-comp-margin-xs);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+.reference-link {
+    word-break: break-word;
+}
+
+.reference-dialog {
+    max-height: min(70vh, 720px);
+    overflow: auto;
+}
+
+.reference-dialog__meta {
+    color: var(--td-text-color-placeholder);
+    font-size: var(--td-font-size-body-small);
+    margin-bottom: var(--td-comp-margin-xs);
+}
+
+.reference-dialog__link {
+    margin-bottom: var(--td-comp-margin-s);
+}
+
+.reference-dialog__content {
+    color: var(--td-text-color-primary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.7;
 }
 
 .loading-container {
