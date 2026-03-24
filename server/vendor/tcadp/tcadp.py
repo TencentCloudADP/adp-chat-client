@@ -201,14 +201,17 @@ class TCADP(BaseVendor):
         if not isinstance(debugging, dict):
             return ''
 
-        parts: list[str] = []
-        for key in ('DisplayContent', 'Content', 'DisplayThought', 'DisplayStatus'):
-            value = debugging.get(key)
-            if isinstance(value, str):
-                text = value.strip()
-                if text and text not in parts:
-                    parts.append(text)
-        return '\n'.join(parts)
+        display_content = debugging.get('DisplayContent')
+        if isinstance(display_content, str):
+            text = display_content.strip()
+            if text:
+                return text
+
+        content = debugging.get('Content')
+        if isinstance(content, str):
+            return content.strip()
+
+        return ''
 
     @classmethod
     def _build_thought_message(

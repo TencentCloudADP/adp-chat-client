@@ -19,6 +19,7 @@ init_server:
 	cd server; uv sync
 
 test_server:
+	cd server; uv sync --all-extras
 	source server/.venv/bin/activate; cd server; pytest test/unit_test -W ignore::DeprecationWarning
 
 # ----------------- pack -----------------
