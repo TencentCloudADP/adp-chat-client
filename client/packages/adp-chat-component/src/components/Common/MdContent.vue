@@ -75,6 +75,8 @@ const renderedMarkdown = computed(() => {
       'a', 'img', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
       'blockquote', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
       'sup', 'sub', 'span', 'div', 'hr',
+      // 多媒体相关标签
+      'video', 'source', 'audio',
       // KaTeX 相关标签
       'math', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub',
       'mfrac', 'mroot', 'msqrt', 'mtable', 'mtr', 'mtd', 'mtext',
@@ -82,6 +84,8 @@ const renderedMarkdown = computed(() => {
     ],
     ALLOWED_ATTR: [
       'href', 'src', 'alt', 'title', 'class', 'id', 'target', 'rel',
+      // 多媒体相关属性
+      'controls', 'autoplay', 'preload', 'type', 'muted', 'loop', 'poster',
       // KaTeX/SVG 相关属性
       'style', 'xmlns', 'width', 'height', 'viewBox', 'd', 'fill',
       'stroke', 'stroke-width', 'transform', 'x', 'y', 'x1', 'x2', 'y1', 'y2'
