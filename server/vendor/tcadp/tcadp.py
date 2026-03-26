@@ -195,6 +195,127 @@ class TCADP(BaseVendor):
             File=file_payload,
         )
 
+    @staticmethod
+    def _stringify_content_value(value: Any, default: str = '') -> str:
+        if value is None:
+            return default
+        if isinstance(value, str):
+            return value
+        if isinstance(value, (dict, list)):
+            return custom_dumps(value)
+        return str(value)
+
+    @classmethod
+    def _build_widget_content(cls, widget_info: dict[str, Any]) -> Content | None:
+        if not isinstance(widget_info, dict):
+            return None
+
+        widget_id = widget_info.get('WidgetId')
+        widget_run_id = widget_info.get('WidgetRunId')
+        if not widget_id or not widget_run_id:
+            return None
+
+        widget_payload: dict[str, Any] = {
+            'WidgetId': str(widget_id),
+            'WidgetRunId': str(widget_run_id),
+            'State': cls._stringify_content_value(widget_info.get('State')),
+            'EncodedWidget': cls._stringify_content_value(widget_info.get('EncodedWidget')),
+            'View': cls._stringify_content_value(widget_info.get('View')) if widget_info.get('View') is not None else None,
+            'Payload': cls._stringify_content_value(widget_info.get('Payload')) if widget_info.get('Payload') is not None else None,
+        }
+
+        position = cls._to_int(widget_info.get('Position'))
+        if position is not None:
+            widget_payload['Position'] = position
+
+        return Content.model_validate({
+            'Type': ContentType.WIDGET,
+            'Widget': widget_payload,
+        })
+
+    @classmethod
+    def _build_widget_action_content(cls, widget_action: dict[str, Any]) -> Content | None:
+        if not isinstance(widget_action, dict):
+            return None
+
+        widget_id = widget_action.get('WidgetId')
+        widget_run_id = widget_action.get('WidgetRunId')
+        action_type = widget_action.get('ActionType')
+        if not widget_id or not widget_run_id or not action_type:
+            return None
+
+        widget_action_payload: dict[str, Any] = {
+            'WidgetId': str(widget_id),
+            'WidgetRunId': str(widget_run_id),
+            'ActionType': str(action_type),
+            'Payload': cls._stringify_content_value(widget_action.get('Payload')),
+        }
+
+        doc_biz_id = widget_action.get('DocBizId')
+        if doc_biz_id is not None:
+            widget_action_payload['DocBizId'] = str(doc_biz_id)
+
+        return Content.model_validate({
+            'Type': ContentType.WIDGET_ACTION,
+            'WidgetAction': widget_action_payload,
+        })
+
+    @classmethod
+    def _build_reply_contents(cls, record_data: dict[str, Any]) -> list[Content]:
+        contents: list[Content] = []
+
+        text_content = cls._build_text_content(record_data)
+        if any((
+            text_content.Text,
+            text_content.QuoteInfos,
+            text_content.References,
+            text_content.OptionCards,
+            text_content.FileCollection,
+        )):
+            contents.append(text_content)
+
+        contents.extend(
+            content
+            for content in (
+                cls._build_file_content(file_info)
+                for file_info in (record_data.get('FileInfos') or [])
+            )
+            if content is not None
+        )
+
+        widget_entries: list[tuple[int, dict[str, Any]]] = []
+        raw_widgets = record_data.get('Widgets')
+        if isinstance(raw_widgets, list):
+            widget_entries.extend(
+                (idx, widget_info)
+                for idx, widget_info in enumerate(raw_widgets)
+                if isinstance(widget_info, dict)
+            )
+        elif isinstance(raw_widgets, dict):
+            widget_entries.append((0, raw_widgets))
+
+        single_widget = record_data.get('Widget')
+        if isinstance(single_widget, dict):
+            widget_entries.append((len(widget_entries), single_widget))
+
+        for _, widget_info in sorted(
+            widget_entries,
+            key=lambda item: (
+                cls._to_int(item[1].get('Position')) is None,
+                cls._to_int(item[1].get('Position')) or 0,
+                item[0],
+            ),
+        ):
+            widget_content = cls._build_widget_content(widget_info)
+            if widget_content is not None:
+                contents.append(widget_content)
+
+        widget_action_content = cls._build_widget_action_content(record_data.get('WidgetAction'))
+        if widget_action_content is not None:
+            contents.append(widget_action_content)
+
+        return contents
+
     @classmethod
     def _extract_thought_text(cls, procedure: dict[str, Any]) -> str:
         debugging = procedure.get('Debugging')
@@ -302,17 +423,7 @@ class TCADP(BaseVendor):
                 Name='',
                 Title='',
                 Status='completed',
-                Contents=[
-                    cls._build_text_content(record_data),
-                    *[
-                        content
-                        for content in (
-                            cls._build_file_content(file_info)
-                            for file_info in (record_data.get('FileInfos') or [])
-                        )
-                        if content is not None
-                    ],
-                ],
+                Contents=cls._build_reply_contents(record_data),
             )
         ]
 
@@ -416,6 +527,7 @@ class TCADP(BaseVendor):
             if self._is_v2_record(record_data):
                 record = Record.model_validate(record_data)
             else:
+                logging.error(json.dumps(record_data))
                 record = self._convert_legacy_record(record_data, conversation_id)
             records.append(record)
         return records

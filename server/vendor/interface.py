@@ -37,6 +37,7 @@ class RecordRole(str, Enum):
 class ContentType(str, Enum):
     TEXT = 'text'
     IMAGE = 'image'
+    WIDGET = 'widget'
     FILE = 'file'
     CUSTOM_VARIABLES = 'custom_variables'
     WIDGET_ACTION = 'widget_action'
@@ -155,6 +156,8 @@ class Widget(BaseModel):
     State: str
     Position: Optional[int] = None
     EncodedWidget: str
+    View: Optional[str] = None
+    Payload: Optional[str] = None
 
 
 SandboxModel = Sandbox
