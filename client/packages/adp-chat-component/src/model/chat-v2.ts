@@ -9,6 +9,7 @@ export type RecordRole = 'user' | 'assistant'
 export type ContentType =
   | 'text'
   | 'image'
+  | 'widget'
   | 'file'
   | 'custom_variables'
   | 'widget_action'
@@ -74,6 +75,8 @@ export interface Widget {
   State: string
   Position?: number
   EncodedWidget: string
+  View?: string
+  Payload?: string
 }
 
 export interface QuoteInfo {
