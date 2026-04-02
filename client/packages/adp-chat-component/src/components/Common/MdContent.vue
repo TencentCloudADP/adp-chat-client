@@ -64,6 +64,20 @@ const mdIt = MarkdownIt({
   .use(katex)
   .use(markdownItHighlightjs)
 
+type LinkOpenRenderer = NonNullable<typeof mdIt.renderer.rules.link_open>
+
+const defaultLinkOpenRenderer: LinkOpenRenderer =
+  mdIt.renderer.rules.link_open ??
+  ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options))
+
+/** 在新标签页打开链接 */
+mdIt.renderer.rules.link_open = (tokens, idx, options, env, self) => {
+  const token = tokens[idx]!
+  token.attrSet('target', '_blank')
+  token.attrSet('rel', 'noopener noreferrer')
+  return defaultLinkOpenRenderer(tokens, idx, options, env, self)
+}
+
 /** 渲染后的 HTML 内容（已通过 DOMPurify 消毒防止 XSS） */
 const renderedMarkdown = computed(() => {
   if (!props.content) return '';
