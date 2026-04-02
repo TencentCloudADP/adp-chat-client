@@ -261,7 +261,13 @@ nvm install v22
 # Initialize (only needed on the first run)
 make init_client
 
-# Run the backend/frontend in dev mode, the terminal will print the debugging URL, such as: [ui]   ➜  Local:   http://localhost:5173/
+# Run the backend/frontend together with a PostgreSQL container.
+# The terminal will print the debugging URL, such as: [ui]   ➜  Local:   http://localhost:5173/
+# The database data is persisted in deploy/dev/volume/db.
+# Ensure PGSQL_HOST in server/.env is localhost or 127.0.0.1.
+make dev_withdb
+
+# If you already have your own PostgreSQL instance and do not need to start a local one, run:
 make dev
 ```
 

@@ -1,4 +1,4 @@
-.PHONY: client server docs deploy build
+.PHONY: client server docs deploy build dev dev_withdb
 
 -include Makefile.local
 
@@ -81,6 +81,9 @@ url:
 
 dev:
 	npx concurrently "make run_server" "make run_client" "make run_component_example" --names server,ui,component --prefix-colors blue,green,yellow --kill-others
+
+dev_withdb:
+	npx concurrently "bash script/deploy.sh dev_withdb" "bash script/deploy.sh wait_devdb && make run_server" "make run_client" "make run_component_example" --names db,server,ui,component --prefix-colors magenta,blue,green,yellow --kill-others
 
 run_client:
 	set -a && source server/.env && set +a; cd client; npm run dev
