@@ -263,7 +263,12 @@ nvm install v22
 # 初始化（仅首次运行）
 make init_client
 
-# 调试运行，同时运行前后端，终端会打印调试网址，如：[ui]   ➜  Local:   http://localhost:5173/
+# 调试运行，同时运行前后端和一个 PostgreSQL 容器，终端会打印调试网址，如：[ui]   ➜  Local:   http://localhost:5173/
+# 数据会持久化到 deploy/dev/volume/db。
+# 需要确保 server/.env 中的 PGSQL_HOST 为 localhost 或 127.0.0.1。
+make dev_withdb
+
+# 如果你有自己的PostgreSQL实例，不需要本地自动启动新的实例，运行以下命令
 make dev
 ```
 
