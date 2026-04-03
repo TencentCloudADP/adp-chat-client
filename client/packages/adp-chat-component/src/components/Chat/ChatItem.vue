@@ -10,6 +10,7 @@ import { Tooltip, Loading as TLoading, Link as TLink, Dialog as TDialog } from '
 import OptionCard from '../Common/OptionCard.vue';
 import MdContent from '../Common/MdContent.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
+import { widgetContentToMarkdown } from '../../utils/mergeRecord-v2';
 
 interface Props extends CommonLayoutProps {
     /** 当前聊天记录项 */
@@ -77,7 +78,13 @@ const primaryMessage = computed(() => {
 const extractMessageText = (message?: Message) => {
     if (!message?.Contents?.length) return '';
     return message.Contents
-        .map((content) => content.Text ?? '')
+        .map((content) => {
+            // 处理 widget 类型内容，转换为 Markdown 代码块
+            if (content.Type === 'widget') {
+                return widgetContentToMarkdown(content);
+            }
+            return content.Text ?? '';
+        })
         .filter((text) => text.length > 0)
         .join('\n');
 };
