@@ -154,11 +154,6 @@ run_dev_with_db() {
     validate_dev_db_env
     ensure_dev_db_data_dir
 
-    if docker ps --format '{{.Names}}' | grep -Fx "$DEV_DB_CONTAINER" >/dev/null 2>&1; then
-        echo "dev db container '$DEV_DB_CONTAINER' is already running" >&2
-        exit 1
-    fi
-
     docker rm "$DEV_DB_CONTAINER" >/dev/null 2>&1 || true
 
     echo "Starting PostgreSQL in $DEV_DB_CONTAINER on localhost:$PGSQL_PORT"
