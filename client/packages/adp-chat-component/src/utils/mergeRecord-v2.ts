@@ -112,6 +112,64 @@ function appendTextDelta(
   return { ...current, Messages: messages }
 }
 
+/**
+ * 将 widget 内容转换为 Markdown 代码块格式
+ * @param content Content 对象
+ * @returns 包含 widget Markdown 代码块的文本，如果不是 widget 类型则返回空字符串
+ */
+export function widgetContentToMarkdown(content: Content): string {
+  if (content.Type !== 'widget' || !content.Widget) {
+    return ''
+  }
+  
+  // 调试日志
+  console.log('[Widget Debug] Content:', {
+    Type: content.Type,
+    hasWidget: !!content.Widget,
+    hasView: !!content.Widget?.View,
+    hasEncodedWidget: !!content.Widget?.EncodedWidget,
+    ViewType: typeof content.Widget?.View,
+    Widget: content.Widget
+  });
+  
+  // 优先使用 View 字段，如果没有则尝试解码 EncodedWidget
+  let widgetJson: string | undefined;
+  
+  if (content.Widget.View) {
+    // View 可能是字符串（JSON 格式）或对象
+    if (typeof content.Widget.View === 'string') {
+      // 已经是 JSON 字符串，直接使用
+      widgetJson = content.Widget.View;
+    } else {
+      // 是对象，需要序列化
+      widgetJson = JSON.stringify(content.Widget.View);
+    }
+  } else if (content.Widget.EncodedWidget) {
+    // 尝试从 EncodedWidget 解码（可能是 base64 编码或 URL 编码）
+    try {
+      // 首先尝试 base64 解码
+      widgetJson = atob(content.Widget.EncodedWidget);
+    } catch {
+      // 如果 base64 解码失败，尝试 URL 解码
+      try {
+        widgetJson = decodeURIComponent(content.Widget.EncodedWidget);
+      } catch {
+        // 如果都失败了，直接使用原始值
+        widgetJson = content.Widget.EncodedWidget;
+      }
+    }
+  }
+  
+  if (!widgetJson) {
+    console.log('[Widget Debug] No widget JSON available');
+    return '';
+  }
+  
+  console.log('[Widget Debug] Generated markdown, json length:', widgetJson.length);
+  console.log('[Widget Debug] Widget JSON preview:', widgetJson.substring(0, 200));
+  return `\n\n\`\`\`adp-widget\n${widgetJson}\n\`\`\``
+}
+
 function addReference(
   current: Record | undefined,
   messageId: string,
