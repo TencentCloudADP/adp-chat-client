@@ -24534,7 +24534,7 @@ sc = WU([
 class HU {
   render(t) {
     const r = {};
-    return t.data !== void 0 && (r.data = t.data), t.series !== void 0 && (r.series = t.series), t.xAxis !== void 0 && (r.xAxisKey = typeof t.xAxis == "string" ? t.xAxis : t.xAxis.dataKey), t.showTooltip !== void 0 && (r.showTooltip = t.showTooltip), t.showYAxis !== void 0 && (r.showYAxis = t.showYAxis), t.showLegend !== void 0 && (r.showLegend = t.showLegend), t.aspectRatio !== void 0 && (r.aspectRatio = t.aspectRatio), t.barGap !== void 0 && (r.barGap = t.barGap), t.barCategoryGap !== void 0 && (r.barCategoryGap = t.barCategoryGap), t.width !== void 0 && (r.width = t.width), t.minWidth !== void 0 && (r.minWidth = t.minWidth), t.maxWidth !== void 0 && (r.maxWidth = t.maxWidth), t.size !== void 0 && (r.size = t.size), t.flex !== void 0 && (r.flex = t.flex), {
+    return t.data !== void 0 && (r.data = t.data), t.series !== void 0 && (r.series = t.series), t.xAxis !== void 0 && (r.xAxis = typeof t.xAxis == "string" ? t.xAxis : t.xAxis.dataKey), t.showTooltip !== void 0 && (r.showTooltip = t.showTooltip), t.showYAxis !== void 0 && (r.showYAxis = t.showYAxis), t.showLegend !== void 0 && (r.showLegend = t.showLegend), t.aspectRatio !== void 0 && (r.aspectRatio = t.aspectRatio), t.barGap !== void 0 && (r.barGap = t.barGap), t.barCategoryGap !== void 0 && (r.barCategoryGap = t.barCategoryGap), t.width !== void 0 && (r.width = t.width), t.minWidth !== void 0 && (r.minWidth = t.minWidth), t.maxWidth !== void 0 && (r.maxWidth = t.maxWidth), t.size !== void 0 && (r.size = t.size), t.flex !== void 0 && (r.flex = t.flex), {
       tag: "chart-widget",
       props: r,
       attrs: {
