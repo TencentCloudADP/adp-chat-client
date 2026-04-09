@@ -291,6 +291,8 @@ export interface ADPChatConfig extends MountConfig {
   apiConfig?: ApiConfig
   autoLoad?: boolean
   onOverlayChange?: (isOverlay: boolean) => void
+  /** Widget SDK 的基础路径，支持绝对路径或 CDN 地址 */
+  widgetBasePath?: string
 }
 
 export interface MainLayoutConfig extends MountConfig {

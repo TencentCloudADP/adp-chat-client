@@ -4,44 +4,13 @@ import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import { visualizer } from 'rollup-plugin-visualizer'
 import path from 'node:path'
-import { existsSync, copyFileSync, mkdirSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 /**
- * 自定义插件：从 adp-chat-component 复制 widget 文件到 app 的构建输出目录
- */
-function copyWidgetFromComponentPlugin() {
-  return {
-    name: 'copy-widget-from-component',
-    closeBundle() {
-      // 生产构建时从 adp-chat-component 复制 widget 文件
-      const componentWidgetDir = path.resolve(__dirname, '../adp-chat-component/public/widget')
-      const destDir = path.resolve(__dirname, 'dist/widget')
-      
-      if (!existsSync(componentWidgetDir)) {
-        console.warn('Widget source directory not found:', componentWidgetDir)
-        return
-      }
-
-      if (!existsSync(destDir)) {
-        mkdirSync(destDir, { recursive: true })
-      }
-      
-      const files = readdirSync(componentWidgetDir)
-      for (const file of files) {
-        copyFileSync(
-          path.join(componentWidgetDir, file),
-          path.join(destDir, file)
-        )
-      }
-      console.log(`Copied widget files from adp-chat-component to ${destDir}`)
-    }
-  }
-}
-
-/**
  * 自定义插件：开发时服务 adp-chat-component 的 widget 静态资源
+ * 支持 /static/adp-chat-component/umd/widget/ 路径（与生产环境一致）
  */
 function serveWidgetPlugin() {
   const widgetDir = path.resolve(__dirname, '../adp-chat-component/public/widget')
@@ -50,9 +19,10 @@ function serveWidgetPlugin() {
     name: 'serve-widget',
     configureServer(server: any) {
       server.middlewares.use((req: any, res: any, next: any) => {
-        // 处理 /widget/ 路径的请求
-        if (req.url?.startsWith('/widget/')) {
-          const fileName = req.url.replace('/widget/', '')
+        // 处理 /static/adp-chat-component/umd/widget/ 路径的请求
+        const widgetPrefix = '/static/adp-chat-component/umd/widget/'
+        if (req.url?.startsWith(widgetPrefix)) {
+          const fileName = req.url.replace(widgetPrefix, '')
           const filePath = path.join(widgetDir, fileName)
           
           if (existsSync(filePath)) {
@@ -86,10 +56,8 @@ export default defineConfig(({ mode }) => {
         gzipSize: true,
         brotliSize: true,
       }),
-      // 开发时服务 widget 静态资源
+      // 开发时服务 widget 静态资源（widget 只存放于 adp-chat-component 中）
       serveWidgetPlugin(),
-      // 构建时复制 widget 文件
-      copyWidgetFromComponentPlugin(),
     ].filter(Boolean),
     resolve: {
       alias: {

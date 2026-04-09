@@ -27,14 +27,14 @@ interface Props extends ThemeProps {
   role?: 'user' | 'assistant' | 'system';
   /** 语言设置 */
   locale?: string;
-  /** Widget SDK 的基础路径，默认为 '/widget' */
+  /** Widget SDK 的基础路径，支持绝对路径或 CDN 地址，默认为 '/static/adp-chat-component/umd/widget' */
   widgetBasePath?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   role: 'assistant',
   locale: 'zh-CN',
-  widgetBasePath: '/widget',
+  widgetBasePath: '/static/adp-chat-component/umd/widget',
   ...themePropsDefaults,
 });
 
@@ -248,6 +248,71 @@ function hasWidgetContent(content: string | undefined): boolean {
 }
 
 /**
+ * 将 HTML 属性编码还原为原始字符串
+ */
+function unescapeHtmlAttr(str: string): string {
+  return str
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
+
+/**
+ * 格式化 JSON 字符串，带语法高亮
+ */
+function formatJsonWithHighlight(jsonStr: string): string {
+  try {
+    const obj = JSON.parse(jsonStr);
+    const formatted = JSON.stringify(obj, null, 2);
+    // 简单的语法高亮
+    return formatted
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
+      .replace(/: "([^"]*)"/g, ': <span class="json-string">"$1"</span>')
+      .replace(/: (\d+)/g, ': <span class="json-number">$1</span>')
+      .replace(/: (true|false)/g, ': <span class="json-boolean">$1</span>')
+      .replace(/: (null)/g, ': <span class="json-null">$1</span>');
+  } catch {
+    return jsonStr;
+  }
+}
+
+/**
+ * 显示 widget 加载失败时的回退 JSON 展示
+ */
+function showFallbackJson(wrappers: NodeListOf<Element>): void {
+  wrappers.forEach((wrapper) => {
+    const widgetEl = wrapper.querySelector('adp-widget');
+    if (!widgetEl) return;
+
+    // 从 widget-json 属性中获取原始 JSON
+    const encodedJson = widgetEl.getAttribute('widget-json') || '';
+    const originalJson = unescapeHtmlAttr(encodedJson);
+
+    // 创建回退展示元素
+    const fallbackEl = document.createElement('div');
+    fallbackEl.className = 'adp-widget-fallback';
+    fallbackEl.innerHTML = `
+      <div class="fallback-header">
+        <span class="fallback-icon">⚠️</span>
+        <span class="fallback-title">Widget 加载失败</span>
+      </div>
+      <div class="fallback-content">
+        <pre class="fallback-json"><code>${formatJsonWithHighlight(originalJson)}</code></pre>
+      </div>
+    `;
+
+    // 替换原来的 widget 元素
+    wrapper.innerHTML = '';
+    wrapper.appendChild(fallbackEl);
+  });
+}
+
+/**
  * 初始化页面中的所有 widget 事件监听器
  * 会自动懒加载 Widget SDK（如果尚未加载）
  * 
@@ -272,6 +337,8 @@ async function initWidgets(): Promise<void> {
     } catch (error) {
       console.error('[MdContent Debug] Failed to load widget SDK:', error);
       emit('widgetError', error instanceof Error ? error : new Error('Failed to load widget SDK'));
+      // 加载失败时显示回退的 JSON 原始数据
+      showFallbackJson(widgetWrappers);
       return;
     }
   }
@@ -399,5 +466,76 @@ onMounted(() => {
 :deep(.adp-widget-wrapper adp-widget) {
   display: block;
   width: 100%;
+}
+
+/* Widget 加载失败回退样式 */
+:deep(.adp-widget-fallback) {
+  background-color: var(--td-bg-color-container, #f5f5f5);
+  border: 1px solid var(--td-component-stroke, #e0e0e0);
+  border-radius: var(--td-radius-medium, 8px);
+  overflow: hidden;
+}
+
+:deep(.adp-widget-fallback .fallback-header) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: var(--td-warning-color-light, #fff7e6);
+  border-bottom: 1px solid var(--td-component-stroke, #e0e0e0);
+  font-size: 14px;
+  color: var(--td-warning-color, #ed7b2f);
+}
+
+:deep(.adp-widget-fallback .fallback-icon) {
+  font-size: 16px;
+}
+
+:deep(.adp-widget-fallback .fallback-title) {
+  font-weight: 500;
+}
+
+:deep(.adp-widget-fallback .fallback-content) {
+  padding: 12px 16px;
+  max-height: 400px;
+  overflow: auto;
+}
+
+:deep(.adp-widget-fallback .fallback-json) {
+  margin: 0;
+  padding: 12px;
+  background-color: var(--td-bg-color-secondarycontainer, #fafafa);
+  border-radius: var(--td-radius-small, 4px);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+:deep(.adp-widget-fallback .fallback-json code) {
+  background: none;
+  padding: 0;
+}
+
+/* JSON 语法高亮 */
+:deep(.adp-widget-fallback .json-key) {
+  color: #9876aa;
+}
+
+:deep(.adp-widget-fallback .json-string) {
+  color: #6a8759;
+}
+
+:deep(.adp-widget-fallback .json-number) {
+  color: #6897bb;
+}
+
+:deep(.adp-widget-fallback .json-boolean) {
+  color: #cc7832;
+}
+
+:deep(.adp-widget-fallback .json-null) {
+  color: #808080;
 }
 </style>
