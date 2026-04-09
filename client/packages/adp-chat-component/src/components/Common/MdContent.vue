@@ -27,11 +27,14 @@ interface Props extends ThemeProps {
   role?: 'user' | 'assistant' | 'system';
   /** 语言设置 */
   locale?: string;
+  /** Widget SDK 的基础路径，默认为 '/widget' */
+  widgetBasePath?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   role: 'assistant',
   locale: 'zh-CN',
+  widgetBasePath: '/widget',
   ...themePropsDefaults,
 });
 
@@ -86,10 +89,58 @@ function isWidgetSdkLoaded(): boolean {
   return typeof customElements !== 'undefined' && customElements.get('adp-widget') !== undefined;
 }
 
+// Widget SDK 加载状态
+let widgetSdkLoadPromise: Promise<void> | null = null;
+
+/**
+ * 懒加载 widget SDK
+ * 只在需要时加载，避免不必要的网络请求
+ */
+function loadWidgetSdk(): Promise<void> {
+  if (isWidgetSdkLoaded()) {
+    return Promise.resolve();
+  }
+
+  if (widgetSdkLoadPromise) {
+    return widgetSdkLoadPromise;
+  }
+
+  // 构建 widget SDK 路径
+  const basePath = props.widgetBasePath.endsWith('/') 
+    ? props.widgetBasePath.slice(0, -1) 
+    : props.widgetBasePath;
+  const widgetSdkUrl = `${basePath}/adp-widget.js`;
+
+  widgetSdkLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.type = 'module';
+    script.src = widgetSdkUrl;
+    script.onload = () => {
+      // 等待 custom element 注册完成
+      const checkRegistration = () => {
+        if (isWidgetSdkLoaded()) {
+          resolve();
+        } else {
+          setTimeout(checkRegistration, 50);
+        }
+      };
+      checkRegistration();
+    };
+    script.onerror = () => {
+      widgetSdkLoadPromise = null;
+      console.error('[MdContent] Failed to load widget SDK from:', widgetSdkUrl);
+      reject(new Error(`Failed to load widget SDK from ${widgetSdkUrl}`));
+    };
+    document.head.appendChild(script);
+  });
+
+  return widgetSdkLoadPromise;
+}
+
 /**
  * 自定义 markdown-it 插件：处理 adp-widget 代码块
  * 将 ```adp-widget 代码块渲染为 <adp-widget> 组件
- * 如果 widget SDK 未加载，则渲染为普通的 JSON 代码块
+ * Widget SDK 会在需要时懒加载
  */
 function markdownItWidgetPlugin(md: MarkdownIt): void {
   const defaultFence = md.renderer.rules.fence!;
@@ -104,21 +155,6 @@ function markdownItWidgetPlugin(md: MarkdownIt): void {
     // 检测 adp-widget 代码块
     if (info === 'adp-widget' || info.startsWith('adp-widget ')) {
       const widgetJson = token.content.trim();
-      
-      // 如果 widget SDK 未加载，渲染为普通的 JSON 代码块
-      if (!isWidgetSdkLoaded()) {
-        // 尝试格式化 JSON 以便于阅读
-        let formattedJson = widgetJson;
-        try {
-          const parsed = JSON.parse(widgetJson);
-          formattedJson = JSON.stringify(parsed, null, 2);
-        } catch {
-          // 如果解析失败，使用原始内容
-        }
-        // 直接返回 HTML 代码块，不修改 token
-        const escapedJson = md.utils.escapeHtml(formattedJson);
-        return `<pre><code class="language-json hljs">${escapedJson}</code></pre>`;
-      }
       
       // 生成唯一 ID
       const widgetId = `widget-${Date.now()}-${idx}`;
@@ -213,12 +249,12 @@ function hasWidgetContent(content: string | undefined): boolean {
 
 /**
  * 初始化页面中的所有 widget 事件监听器
- * 注意：Widget SDK 需要在宿主应用中预先加载（如在 index.html 中引入）
+ * 会自动懒加载 Widget SDK（如果尚未加载）
  * 
  * 由于使用 v-html 渲染，每次内容更新时 DOM 会被完全替换，
  * 因此每次都需要重新添加事件监听器
  */
-function initWidgets(): void {
+async function initWidgets(): Promise<void> {
   console.log('[MdContent Debug] initWidgets called, mdContentRef:', !!mdContentRef.value);
   if (!mdContentRef.value) return;
 
@@ -226,28 +262,67 @@ function initWidgets(): void {
   console.log('[MdContent Debug] Found widget wrappers:', widgetWrappers.length);
   if (widgetWrappers.length === 0) return;
 
+  // 懒加载 widget SDK
+  const wasLoaded = isWidgetSdkLoaded();
+  if (!wasLoaded) {
+    console.log('[MdContent Debug] Loading widget SDK...');
+    try {
+      await loadWidgetSdk();
+      console.log('[MdContent Debug] Widget SDK loaded successfully');
+    } catch (error) {
+      console.error('[MdContent Debug] Failed to load widget SDK:', error);
+      emit('widgetError', error instanceof Error ? error : new Error('Failed to load widget SDK'));
+      return;
+    }
+  }
+
   // 为每个 widget 添加事件监听器
   widgetWrappers.forEach((wrapper) => {
     const widgetEl = wrapper.querySelector('adp-widget');
     if (!widgetEl) return;
     
-    // 检查是否已经添加过事件监听器（通过自定义属性标记）
-    if (widgetEl.hasAttribute('data-events-attached')) return;
-    widgetEl.setAttribute('data-events-attached', 'true');
-    
-    // 添加事件监听器
-    widgetEl.addEventListener('widget-action', ((event: CustomEvent) => {
-      const { action } = event.detail || {};
-      if (action) {
-        emit('widgetAction', action);
+    // 如果 SDK 是刚刚加载的，需要手动升级已存在的 custom element
+    // 通过替换元素来触发升级
+    if (!wasLoaded) {
+      const parent = widgetEl.parentNode;
+      if (parent) {
+        // 创建新元素并复制属性
+        const newWidget = document.createElement('adp-widget');
+        Array.from(widgetEl.attributes).forEach(attr => {
+          newWidget.setAttribute(attr.name, attr.value);
+        });
+        parent.replaceChild(newWidget, widgetEl);
+        // 更新引用
+        const newWidgetEl = newWidget;
+        setupWidgetListeners(newWidgetEl);
+        return;
       }
-    }) as EventListener);
-
-    widgetEl.addEventListener('widget-rendered', ((event: CustomEvent) => {
-      const { success, error } = event.detail || {};
-      emit('widgetRendered', { success, error });
-    }) as EventListener);
+    }
+    
+    setupWidgetListeners(widgetEl);
   });
+}
+
+/**
+ * 为 widget 元素设置事件监听器
+ */
+function setupWidgetListeners(widgetEl: Element): void {
+  // 检查是否已经添加过事件监听器（通过自定义属性标记）
+  if (widgetEl.hasAttribute('data-events-attached')) return;
+  widgetEl.setAttribute('data-events-attached', 'true');
+  
+  // 添加事件监听器
+  widgetEl.addEventListener('widget-action', ((event: CustomEvent) => {
+    const { action } = event.detail || {};
+    if (action) {
+      emit('widgetAction', action);
+    }
+  }) as EventListener);
+
+  widgetEl.addEventListener('widget-rendered', ((event: CustomEvent) => {
+    const { success, error } = event.detail || {};
+    emit('widgetRendered', { success, error });
+  }) as EventListener);
 }
 
 // 监听内容变化，如果包含 widget 则初始化

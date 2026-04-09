@@ -15,11 +15,17 @@
     },
     "./style.css": "./src/style.css",
     "./dist/*": "./dist/*",
-    "./src/*": "./src/*"
+    "./src/*": "./src/*",
+    "./widget/*": {
+      "development": "./public/widget/*",
+      "default": "./dist/es/widget/*"
+    },
+    "./public/*": "./public/*"
   },
   "files": [
     "dist",
-    "src"
+    "src",
+    "public"
   ],
   "scripts": {
     "dev": "vite",
