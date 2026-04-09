@@ -393,4 +393,6 @@ export interface ChatConfig extends ChatRelatedProps, OverlayProps {
   apiConfig?: ApiConfig
   /** 是否自动加载数据（仅在使用 apiConfig 时生效） */
   autoLoad?: boolean
+  /** Widget SDK 的基础路径，支持绝对路径或 CDN 地址，默认为 '/static/adp-chat-component/umd/widget' */
+  widgetBasePath?: string
 }

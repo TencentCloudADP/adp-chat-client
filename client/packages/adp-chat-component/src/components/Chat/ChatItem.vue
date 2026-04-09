@@ -27,13 +27,16 @@ interface Props extends CommonLayoutProps {
     showActions?: boolean;
     /** 国际化文本 */
     i18n?: ChatItemI18n;
+    /** Widget SDK 的基础路径，支持相对路径或 CDN 地址 */
+    widgetBasePath?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     isLastMsg: false,
     showActions: true,
     ...commonLayoutPropsDefaults,
-    i18n: () => ({})
+    i18n: () => ({}),
+    widgetBasePath: undefined
 });
 
 // 合并默认值和传入值
@@ -206,7 +209,7 @@ const renderReasoningContent = (contents: string[]) => {
     return (
         <div>
             {contents.map((content, index) => (
-            <MdContent content={content} role="system" theme={props.theme} key={index} />
+            <MdContent content={content} role="system" theme={props.theme} widgetBasePath={props.widgetBasePath} key={index} />
             ))}
         </div>
     );
@@ -303,13 +306,13 @@ const referenceDialogTitle = computed(() => {
             </div>
             <div v-else>
                 <div v-if="isFromSelf" class="user-message">
-                    <MdContent :content="displayText" role="user" :theme="theme" :quoteInfos="quoteInfos" />
+                    <MdContent :content="displayText" role="user" :theme="theme" :quoteInfos="quoteInfos" :widgetBasePath="widgetBasePath" />
                     <CustomizedIcon :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon copy-icon" name="copy" :theme="theme"
                         @click="(e: any) => copyContent(e, displayText, 'user')" />
                     <CustomizedIcon :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon share-icon" name="share" :theme="theme"
                         @click="share(item)" />
                 </div>
-                <MdContent v-else :content="displayText" role="assistant" :theme="theme" :quoteInfos="quoteInfos" />
+                <MdContent v-else :content="displayText" role="assistant" :theme="theme" :quoteInfos="quoteInfos" :widgetBasePath="widgetBasePath" />
                 <OptionCard v-if="optionCards && optionCards.length" :cards="optionCards" :sendMessage="handleSendMessage" />
                 <div class="references-container"
                     v-if="references && references.length > 0 && isFinal">

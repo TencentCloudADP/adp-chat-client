@@ -48,6 +48,7 @@ Returns Vue component instance for subsequent operations.
   { name: 'currentConversationId', type: 'string', description: 'Currently selected conversation ID (higher priority than currentConversation)' },
   { name: 'aiWarningText', type: 'string', default: "'AI generated content'", description: 'AI warning text' },
   { name: 'languageOptions', type: 'LanguageOption[]', default: 'zh/en', description: 'Language options list' },
+  { name: 'widgetBasePath', type: 'string', default: "'/static/adp-chat-component/umd/widget'", description: 'Widget SDK base path, supports absolute path or CDN URL' },
   { name: 'sideI18n', type: 'SideI18n', description: 'Sidebar i18n text' },
   { name: 'chatI18n', type: 'ChatI18n', description: 'Chat i18n text' },
   { name: 'chatItemI18n', type: 'ChatItemI18n', description: 'ChatItem i18n text' },
@@ -143,6 +144,47 @@ ADPChatComponent.init('#chat-container', {
   }
 })
 ```
+
+## Widget Configuration
+
+The chat component supports rendering custom Widgets (such as charts, forms, and other interactive components). Widget SDK resources are loaded from `/static/adp-chat-component/umd/widget` path by default.
+
+### Loading Widget from CDN
+
+If you want to load Widget SDK resources from a CDN for better performance, you can configure `widgetBasePath`:
+
+```javascript
+ADPChatComponent.init('#chat-container', {
+  widgetBasePath: 'https://cdn.example.com/widget',
+  apiConfig: {
+    baseURL: 'https://api.example.com'
+  }
+})
+```
+
+### Custom Deployment Path
+
+If you deploy Widget resources to a custom path, you can also specify it via `widgetBasePath`:
+
+```javascript
+ADPChatComponent.init('#chat-container', {
+  widgetBasePath: '/assets/widget',
+  apiConfig: {
+    baseURL: 'https://api.example.com'
+  }
+})
+```
+
+### Widget Resource Files
+
+The Widget SDK contains the following files that need to be deployed to the directory specified by `widgetBasePath`:
+
+| Filename | Description |
+| --- | --- |
+| `adp-widget.js` | Widget core SDK |
+| `adp-widget-vendor.js` | Third-party dependencies (Vue, etc.) |
+| `adp-widget-chart.js` | Chart component (ECharts) |
+| `adp-widget-markdown.js` | Markdown rendering component |
 
 ## Mode Description
 
