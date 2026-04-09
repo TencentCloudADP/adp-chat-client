@@ -6,8 +6,44 @@ import dts from 'vite-plugin-dts'
 import { visualizer } from 'rollup-plugin-visualizer'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { copyFileSync, mkdirSync, readdirSync, existsSync } from 'fs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+/**
+ * 自定义插件：复制 widget 文件到 dist 目录
+ */
+function copyWidgetPlugin() {
+  return {
+    name: 'copy-widget',
+    closeBundle() {
+      const srcDir = path.resolve(__dirname, 'public/widget')
+      const destDirEs = path.resolve(__dirname, 'dist/es/widget')
+      const destDirUmd = path.resolve(__dirname, 'dist/umd/widget')
+      
+      if (!existsSync(srcDir)) {
+        console.warn('Widget source directory not found:', srcDir)
+        return
+      }
+
+      // 复制到 ES 和 UMD 目录
+      for (const destDir of [destDirEs, destDirUmd]) {
+        if (!existsSync(destDir)) {
+          mkdirSync(destDir, { recursive: true })
+        }
+        
+        const files = readdirSync(srcDir)
+        for (const file of files) {
+          copyFileSync(
+            path.join(srcDir, file),
+            path.join(destDir, file)
+          )
+        }
+        console.log(`Copied widget files to ${destDir}`)
+      }
+    }
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -50,6 +86,8 @@ export default defineConfig(({ mode }) => {
         gzipSize: true,
         brotliSize: true,
       }),
+      // 复制 widget 文件到 dist
+      copyWidgetPlugin(),
     ].filter(Boolean),
     resolve: {
       alias: {

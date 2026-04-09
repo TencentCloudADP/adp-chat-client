@@ -79,11 +79,22 @@ const extractMessageText = (message?: Message) => {
     if (!message?.Contents?.length) return '';
     return message.Contents
         .map((content) => {
-            // 处理 widget 类型内容，转换为 Markdown 代码块
-            if (content.Type === 'widget') {
-                return widgetContentToMarkdown(content);
+            const parts: string[] = [];
+            
+            // 先处理文本内容（如果有）
+            if (content.Text) {
+                parts.push(content.Text);
             }
-            return content.Text ?? '';
+            
+            // 处理 widget 类型内容，转换为 Markdown 代码块
+            if (content.Type === 'widget' && content.Widget) {
+                const widgetMarkdown = widgetContentToMarkdown(content);
+                if (widgetMarkdown) {
+                    parts.push(widgetMarkdown);
+                }
+            }
+            
+            return parts.join('');
         })
         .filter((text) => text.length > 0)
         .join('\n');
