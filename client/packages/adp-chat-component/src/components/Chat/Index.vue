@@ -55,7 +55,6 @@
                                 :isMobile="isMobile"
                                 :theme="theme"
                                 :i18n="chatItemI18n"
-                                :widgetBasePath="props.widgetBasePath"
                                 @resend="onResend"
                                 @share="onShare"
                                 @rate="onRate"
@@ -178,8 +177,6 @@ export interface Props extends ChatRelatedProps {
     isUploading?: boolean;
     /** 是否显示遮罩层 */
     isOverlay?: boolean;
-    /** Widget SDK 的基础路径，支持相对路径或 CDN 地址 */
-    widgetBasePath?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -199,8 +196,7 @@ const props = withDefaults(defineProps<Props>(), {
     asrUrlApi: '',
     enableVoiceInput: true,
     isUploading: false,
-    isOverlay: false,
-    widgetBasePath: undefined
+    isOverlay: false
 });
 
 // 解构 props 以便在模板中使用

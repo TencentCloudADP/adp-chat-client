@@ -27,14 +27,11 @@ interface Props extends ThemeProps {
   role?: 'user' | 'assistant' | 'system';
   /** 语言设置 */
   locale?: string;
-  /** Widget SDK 的基础路径，支持绝对路径或 CDN 地址，默认为 '/static/adp-chat-component/umd/widget' */
-  widgetBasePath?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   role: 'assistant',
   locale: 'zh-CN',
-  widgetBasePath: '/static/adp-chat-component/umd/widget',
   ...themePropsDefaults,
 });
 
@@ -105,18 +102,9 @@ function loadWidgetSdk(): Promise<void> {
     return widgetSdkLoadPromise;
   }
 
-  // 构建 widget SDK 路径
-  const basePath = props.widgetBasePath.endsWith('/') 
-    ? props.widgetBasePath.slice(0, -1) 
-    : props.widgetBasePath;
-  const widgetSdkUrl = `${basePath}/adp-widget.js`;
-
-  widgetSdkLoadPromise = new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.type = 'module';
-    script.src = widgetSdkUrl;
-    script.onload = () => {
-      // 等待 custom element 注册完成
+  widgetSdkLoadPromise = import('adp-widget').then(() => {
+    // 等待 custom element 注册完成
+    return new Promise<void>((resolve) => {
       const checkRegistration = () => {
         if (isWidgetSdkLoaded()) {
           resolve();
@@ -125,13 +113,11 @@ function loadWidgetSdk(): Promise<void> {
         }
       };
       checkRegistration();
-    };
-    script.onerror = () => {
-      widgetSdkLoadPromise = null;
-      console.error('[MdContent] Failed to load widget SDK from:', widgetSdkUrl);
-      reject(new Error(`Failed to load widget SDK from ${widgetSdkUrl}`));
-    };
-    document.head.appendChild(script);
+    });
+  }).catch((err) => {
+    widgetSdkLoadPromise = null;
+    console.error('[MdContent] Failed to load widget SDK:', err);
+    throw new Error('Failed to load widget SDK');
   });
 
   return widgetSdkLoadPromise;
