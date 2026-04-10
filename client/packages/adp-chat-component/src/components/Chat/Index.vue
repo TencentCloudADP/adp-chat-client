@@ -54,12 +54,14 @@
                                 :isStreamLoad="isChatting" 
                                 :isMobile="isMobile"
                                 :theme="theme"
+                                :language="props.language"
                                 :i18n="chatItemI18n"
                                 @resend="onResend"
                                 @share="onShare"
                                 @rate="onRate"
                                 @copy="onCopy"
-                                @sendMessage="inputEnter" 
+                                @sendMessage="inputEnter"
+                                @widgetEvent="onWidgetEvent"
                             />
                         </div>
                     </div>
@@ -243,6 +245,8 @@ const emit = defineEmits<{
     (e: 'stopRecord'): void;
     (e: 'message', code: MessageCode, message: string): void;
     (e: 'conversationChange', conversationId: string): void;
+    /** widget 事件（用于与 SSE/对话流交互） */
+    (e: 'widgetEvent', event: CustomEvent, widgetRunId: string, widgetId: string, recordId: string): void;
 }>();
 
 /**
@@ -552,6 +556,17 @@ const onRate = (record: Record, score: typeof ScoreValue[keyof typeof ScoreValue
  */
 const onCopy = (rowtext: string | undefined, content: string | undefined, type: string) => {
     emit('copy', rowtext, content, type);
+}
+
+/**
+ * 处理 widget 事件
+ * @param event - widget 事件
+ * @param widgetRunId - widget run id
+ * @param widgetId - widget id
+ * @param recordId - 消息 record id
+ */
+const onWidgetEvent = (event: CustomEvent, widgetRunId: string, widgetId: string, recordId: string) => {
+    emit('widgetEvent', event, widgetRunId, widgetId, recordId);
 }
 
 /**

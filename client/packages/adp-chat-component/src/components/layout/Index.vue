@@ -33,6 +33,11 @@ import { hydrateType2References } from '../../utils/reference';
 import { copyToClipboard } from '../../utils/clipboard';
 import { useApiConfig } from '../../composables';
 import { computeIsMobile } from '../../utils/device';
+import {
+    handleWidgetEvent as routeWidgetEvent,
+    disableWidgetsByRecordId,
+} from '../../widget';
+import type { WidgetActionRequest } from '../../widget';
 import type { 
     LanguageOption, 
     UserInfo,
@@ -163,6 +168,8 @@ const emit = defineEmits<{
     (e: 'message', code: MessageCode, message: string): void;
     (e: 'conversationChange', conversationId: string): void;
     (e: 'dataLoaded', type: 'applications' | 'conversations' | 'chatList' | 'user' | 'systemConfig', data: any): void;
+    /** Widget 事件（用于与 SSE/对话流交互） */
+    (e: 'widgetEvent', event: CustomEvent, widgetRunId: string, widgetId: string, recordId: string): void;
 }>();
 
 // 解构 props 保持响应式
@@ -863,6 +870,221 @@ const handleInternalCopy = async (rowtext: string | undefined, content: string |
     emit('copy', rowtext, content, type);
 };
 
+/**
+ * 发送 widget_action SSE 请求
+ * 从 handleInternalWidgetEvent 中提取的 SSE 通信逻辑
+ */
+const sendWidgetActionSSE = async (conversationId: string, applicationId: string, widgetAction: WidgetActionRequest) => {
+    let streamConversationKey = conversationId || currentConversationStateKey.value || createPendingConversationKey();
+    currentConversationStateKey.value = streamConversationKey;
+    const streamState = ensureConversationRuntimeState(streamConversationKey);
+    if (!streamState) return;
+
+    streamState.isChatting = true;
+    streamState.applicationId = applicationId || streamState.applicationId;
+    mainLayoutRef.value?.getChatRef()?.setHasUserScrolled(false);
+
+    const timestamp = Date.now();
+    const baseExtraInfo = (isFromSelf: boolean) => ({
+        RequestId: '',
+        TraceId: '',
+        Elapsed: 0,
+        StartTime: timestamp,
+        IsFromSelf: isFromSelf,
+    });
+
+    // 创建助手消息占位
+    const assistantRecord: Record = {
+        Role: 'assistant',
+        RecordId: 'placeholder-agent',
+        ConversationId: conversationId || streamConversationKey,
+        Status: 'processing',
+        StatusDesc: '',
+        Messages: [],
+        ExtraInfo: baseExtraInfo(false),
+    };
+    streamState.records.push(assistantRecord);
+
+    nextTick(() => {
+        mainLayoutRef.value?.getChatRef()?.backToBottom();
+    });
+
+    streamState.abortController = new AbortController();
+
+    const contents = [{ Type: 'widget_action', WidgetAction: widgetAction }];
+
+    await fetchSSE(
+        () => sendMessage(
+            {
+                Contents: contents,
+                ConversationId: conversationId || undefined,
+                ApplicationId: applicationId,
+            },
+            { signal: streamState.abortController?.signal },
+            mergedApiDetailConfig.value.sendMessageApi
+        ),
+        {
+            success(sseEvent: SseEvent) {
+                if (sseEvent.Type === 'conversation') {
+                    loadConversations();
+                    if (sseEvent.Payload.IsNewConversation) {
+                        const previousKey = streamConversationKey;
+                        streamConversationKey = moveConversationRuntimeState(
+                            previousKey,
+                            sseEvent.Payload.Id,
+                            sseEvent.Payload.ApplicationId || streamState.applicationId
+                        );
+                        if (currentConversationStateKey.value === previousKey) {
+                            currentConversationStateKey.value = streamConversationKey;
+                            internalCurrentConversation.value = sseEvent.Payload;
+                        }
+                    }
+                    return;
+                }
+
+                const targetState = ensureConversationRuntimeState(streamConversationKey);
+                if (!targetState) return;
+
+                const resolvedApplicationId =
+                    targetState.applicationId ||
+                    applicationId ||
+                    internalCurrentApplication.value?.ApplicationId;
+
+                const replacePlaceholder = (placeholderId: string, next: Record): Record | undefined => {
+                    const placeholderIdx = targetState.records.findIndex(item => item.RecordId === placeholderId);
+                    if (placeholderIdx !== -1) {
+                        targetState.records.splice(placeholderIdx, 1, next);
+                        return next;
+                    }
+                    return undefined;
+                };
+
+                const updateRecord = (next: Record, placeholderId: string): Record => {
+                    const idx = targetState.records.findIndex(item => item.RecordId === next.RecordId);
+                    if (idx !== -1) {
+                        if (targetState.records[idx] !== undefined) {
+                            Object.assign(targetState.records[idx], next);
+                            return targetState.records[idx] as Record;
+                        }
+                        return next;
+                    }
+                    const replaced = replacePlaceholder(placeholderId, next);
+                    if (replaced) return replaced;
+                    targetState.records.push(next);
+                    return next;
+                };
+
+                // Widget action 的 request_ack 包含用户消息记录
+                if (sseEvent.Type === 'request_ack') {
+                    const nextUser = applySseEventToRecord(sseEvent, undefined);
+                    if (nextUser) {
+                        const placeholderIdx = targetState.records.findIndex(item => item.RecordId === 'placeholder-agent');
+                        if (placeholderIdx !== -1) {
+                            targetState.records.splice(placeholderIdx, 0, nextUser);
+                        } else {
+                            const lastIdx = targetState.records.length - 1;
+                            targetState.records.splice(lastIdx, 0, nextUser);
+                        }
+                    }
+                    return;
+                } else {
+                    const lastIndex = targetState.records.length - 1;
+                    const lastRecord = targetState.records[lastIndex];
+                    const baseAssistant =
+                        lastRecord && (lastRecord.RecordId === 'placeholder-agent' || lastRecord.Role === 'assistant')
+                            ? lastRecord
+                            : undefined;
+                    const nextAssistant = applySseEventToRecord(sseEvent, baseAssistant);
+                    if (nextAssistant) {
+                        const appliedAssistant = updateRecord(nextAssistant, 'placeholder-agent');
+                        void hydrateReferences([appliedAssistant], { applicationId: resolvedApplicationId });
+                    }
+                }
+            },
+            complete(isOk, msg) {
+                const targetState = conversationRuntimeStates.value[streamConversationKey];
+                if (targetState) {
+                    targetState.isChatting = false;
+                    targetState.abortController = null;
+                }
+                if (currentConversationStateKey.value === streamConversationKey) {
+                    nextTick(() => {
+                        mainLayoutRef.value?.getChatRef()?.backToBottom();
+                    });
+                }
+                if (msg) {
+                    MessagePlugin.error(msg);
+                    emit('message', MessageCode.SEND_MESSAGE_FAILED, msg);
+                }
+            },
+            fail(msg) {
+                if (msg && typeof msg === 'object' &&
+                    (('name' in msg && msg.name === 'AbortError') || ('code' in msg && msg.code === 'ERR_CANCELED'))
+                ) {
+                    return;
+                }
+                const targetState = conversationRuntimeStates.value[streamConversationKey];
+                if (targetState) {
+                    targetState.isChatting = false;
+                }
+            }
+        }
+    );
+};
+
+// 内部 Widget 事件处理（API 模式）
+const handleInternalWidgetEvent = async (event: CustomEvent, widgetRunId: string, widgetId: string, recordId: string) => {
+    // 使用集中式事件处理器进行路由分发
+    const result = routeWidgetEvent(event, widgetRunId, widgetId);
+    
+    // sys.go_to_url / sys.download 等本地处理完成的事件
+    if (result.handled) {
+        emit('widgetEvent', event, widgetRunId, widgetId, recordId);
+        return;
+    }
+    
+    // sys.chat / sys.clarify - 需要发送 SSE 请求
+    if (result.widgetActionRequest) {
+        // 检查是否正在进行请求
+        const currentKey = currentConversationStateKey.value;
+        if (currentKey && isConversationChatting(currentKey)) {
+            console.warn('[layout/Index] widget action: 正在进行请求，跳过此次提交');
+            if (recordId) {
+                disableWidgetsByRecordId(recordId);
+            }
+            return;
+        }
+        
+        // 先禁用该消息下的所有 widgets（防止重复提交）
+        if (recordId) {
+            disableWidgetsByRecordId(recordId);
+        }
+        
+        if (!useApiMode.value) {
+            emit('widgetEvent', event, widgetRunId, widgetId, recordId);
+            return;
+        }
+        
+        const conversationId = internalCurrentConversation.value?.Id || currentConversationStateKey.value;
+        const applicationId = internalCurrentApplication.value?.ApplicationId || '';
+        
+        if (!conversationId) {
+            console.warn('[layout/Index] widget action: 没有当前会话');
+            emit('widgetEvent', event, widgetRunId, widgetId, recordId);
+            return;
+        }
+        
+        // 发送 widget_action SSE 请求
+        await sendWidgetActionSSE(conversationId, applicationId, result.widgetActionRequest);
+        
+        emit('widgetEvent', event, widgetRunId, widgetId, recordId);
+        return;
+    }
+    
+    // 其他事件类型，只向外传递
+    emit('widgetEvent', event, widgetRunId, widgetId, recordId);
+};
+
 // 内部文件上传处理（API 模式）
 const handleInternalUploadFile = async (files: File[]) => {
     if (!useApiMode.value) {
@@ -1086,6 +1308,7 @@ defineExpose({
                 @stopRecord="emit('stopRecord')"
                 @message="(code: MessageCode, message: string) => emit('message', code, message)"
                 @conversationChange="(conversationId: string) => emit('conversationChange', conversationId)"
+                @widgetEvent="handleInternalWidgetEvent"
             >
                 <template #header-overlay-content v-if="showOverlayButton || $slots['header-overlay-content']">
                     <slot name="header-overlay-content">

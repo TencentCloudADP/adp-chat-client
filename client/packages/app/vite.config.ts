@@ -70,7 +70,7 @@ export default defineConfig(({ mode }) => {
     optimizeDeps: {
       include: ['tdesign-vue-next'],
       // 排除 workspace 包，让其使用源码
-      exclude: ['adp-chat-component'],
+      exclude: ['adp-chat-component', 'adp-widget'],
     },
     server: {
       host: '0.0.0.0',
