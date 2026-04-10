@@ -122,51 +122,62 @@ export function widgetContentToMarkdown(content: Content): string {
     return ''
   }
   
-  // 调试日志
-  console.log('[Widget Debug] Content:', {
-    Type: content.Type,
-    hasWidget: !!content.Widget,
-    hasView: !!content.Widget?.View,
-    hasEncodedWidget: !!content.Widget?.EncodedWidget,
-    ViewType: typeof content.Widget?.View,
-    Widget: content.Widget
-  });
-  
   // 优先使用 View 字段，如果没有则尝试解码 EncodedWidget
   let widgetJson: string | undefined;
+  let widgetViewObj: { [key: string]: unknown } | undefined;
   
   if (content.Widget.View) {
     // View 可能是字符串（JSON 格式）或对象
     if (typeof content.Widget.View === 'string') {
-      // 已经是 JSON 字符串，直接使用
-      widgetJson = content.Widget.View;
+      // 已经是 JSON 字符串，尝试解析
+      try {
+        widgetViewObj = JSON.parse(content.Widget.View);
+      } catch {
+        widgetJson = content.Widget.View;
+      }
     } else {
-      // 是对象，需要序列化
-      widgetJson = JSON.stringify(content.Widget.View);
+      // 是对象
+      widgetViewObj = content.Widget.View as { [key: string]: unknown };
     }
   } else if (content.Widget.EncodedWidget) {
     // 尝试从 EncodedWidget 解码（可能是 base64 编码或 URL 编码）
+    let decoded: string | undefined;
     try {
       // 首先尝试 base64 解码
-      widgetJson = atob(content.Widget.EncodedWidget);
+      decoded = atob(content.Widget.EncodedWidget);
     } catch {
       // 如果 base64 解码失败，尝试 URL 解码
       try {
-        widgetJson = decodeURIComponent(content.Widget.EncodedWidget);
+        decoded = decodeURIComponent(content.Widget.EncodedWidget);
       } catch {
         // 如果都失败了，直接使用原始值
-        widgetJson = content.Widget.EncodedWidget;
+        decoded = content.Widget.EncodedWidget;
+      }
+    }
+    if (decoded) {
+      try {
+        widgetViewObj = JSON.parse(decoded);
+      } catch {
+        widgetJson = decoded;
       }
     }
   }
   
+  // 如果成功解析为对象，注入 WidgetId 和 WidgetRunId
+  if (widgetViewObj) {
+    // 将 WidgetId 和 WidgetRunId 注入到 widget JSON 中的 _meta 字段
+    // 这样 MdContent 可以从中提取这些信息
+    widgetViewObj._adp_widget_meta = {
+      widgetId: content.Widget.WidgetId || '',
+      widgetRunId: content.Widget.WidgetRunId || '',
+    };
+    widgetJson = JSON.stringify(widgetViewObj);
+  }
+  
   if (!widgetJson) {
-    console.log('[Widget Debug] No widget JSON available');
     return '';
   }
   
-  console.log('[Widget Debug] Generated markdown, json length:', widgetJson.length);
-  console.log('[Widget Debug] Widget JSON preview:', widgetJson.substring(0, 200));
   return `\n\n\`\`\`adp-widget\n${widgetJson}\n\`\`\``
 }
 

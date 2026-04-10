@@ -1,6 +1,6 @@
 <!-- 聊天消息项组件，支持 Markdown、深度思考、操作按钮等 -->
 <script setup lang="tsx">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import type { Content, Message, QuoteInfo, Record as RecordV2, Reference as ReferenceV2 } from '../../model/chat-v2';
 import { ScoreValue } from '../../model/chat-v2';
 import type { CommonLayoutProps, ChatItemI18n } from '../../model/type';
@@ -9,6 +9,7 @@ import {  ChatItem as TChatItem } from '@tdesign-vue-next/chat';
 import { Tooltip, Loading as TLoading, Link as TLink, Dialog as TDialog } from 'tdesign-vue-next';
 import OptionCard from '../Common/OptionCard.vue';
 import MdContent from '../Common/MdContent.vue';
+import WidgetActionTag from '../Common/WidgetActionTag.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import { widgetContentToMarkdown } from '../../utils/mergeRecord-v2';
 
@@ -27,11 +28,14 @@ interface Props extends CommonLayoutProps {
     showActions?: boolean;
     /** 国际化文本 */
     i18n?: ChatItemI18n;
+    /** 当前语言标识（如 'zh-CN'、'en-US'），用于 widget 国际化 */
+    language?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     isLastMsg: false,
     showActions: true,
+    language: 'zh-CN',
     ...commonLayoutPropsDefaults,
     i18n: () => ({}),
 });
@@ -48,6 +52,8 @@ const emit = defineEmits<{
     (e: 'rate', record: RecordV2, score: typeof ScoreValue[keyof typeof ScoreValue]): void;
     (e: 'copy', rowtext: string | undefined, content: string | undefined, type: string): void;
     (e: 'sendMessage', message: string): void;
+    /** widget 事件（用于与 SSE/对话流交互） */
+    (e: 'widgetEvent', event: CustomEvent, widgetRunId: string, widgetId: string, recordId: string): void;
 }>();
 
 // 响应式变量
@@ -59,6 +65,16 @@ const record = ref(props.item as ChatRecord);
 const expandStatus = ref(false);
 const referenceDialogVisible = ref(false);
 const activeReference = ref<ReferenceLike | null>(null);
+
+// 监听 props.item 变化，同步到 record
+// 这是必要的，因为 placeholder 消息的 RecordId 会在 SSE 返回后被更新
+watch(
+    () => props.item,
+    (newItem) => {
+        record.value = newItem as ChatRecord;
+    },
+    { deep: true }
+);
 
 const isFromSelf = computed(() => {
     return record.value.Role === 'user';
@@ -141,6 +157,18 @@ const isFinal = computed(() => {
     return record.value.Status !== 'processing';
 });
 
+/**
+ * 判断用户消息是否是 widget action 类型
+ * widget action 类型的消息应该显示为 "已进行操作" 样式，而不是原始 JSON 内容
+ */
+const isWidgetAction = computed(() => {
+    if (!isFromSelf.value) return false;
+    const message = primaryMessage.value;
+    if (!message?.Contents?.length) return false;
+    // 检查是否有 widget_action 类型的 content
+    return message.Contents.some(content => content.Type === 'widget_action');
+});
+
 const recordScore = computed(() => record.value.Score);
 
 const canRate = computed(() => {
@@ -206,7 +234,13 @@ const renderReasoningContent = (contents: string[]) => {
     return (
         <div>
             {contents.map((content, index) => (
-            <MdContent content={content} role="system" theme={props.theme} key={index} />
+            <MdContent 
+                content={content} 
+                role="system" 
+                theme={props.theme} 
+                language={props.language}
+                key={index} 
+            />
             ))}
         </div>
     );
@@ -237,6 +271,17 @@ const getReferenceUrl = (reference: ReferenceLike) => {
 
 const handleSendMessage = (message: string) => {
     emit('sendMessage', message);
+};
+
+/**
+ * 处理 widget 事件
+ * @param event - widget 事件
+ * @param widgetRunId - widget run id
+ * @param widgetId - widget id
+ */
+const handleWidgetEvent = (event: CustomEvent, widgetRunId: string, widgetId: string) => {
+    // 向上传递事件，附带当前消息的 recordId
+    emit('widgetEvent', event, widgetRunId, widgetId, record.value.RecordId || '');
 };
 
 const openReferenceDialog = (reference: ReferenceLike) => {
@@ -284,8 +329,12 @@ const referenceDialogTitle = computed(() => {
 </script>
 
 <template>
+    <!-- Widget action 类型的用户消息：独立于 TChatItem 居中显示 -->
+    <div v-if="isFromSelf && isWidgetAction" class="widget-action-row">
+        <WidgetActionTag :text="i18n.actionPerformed" />
+    </div>
     <!-- 聊天项组件 -->
-    <TChatItem animation="skeleton" :role="isFromSelf ? 'user' : 'assistant'" :text-loading="false"
+    <TChatItem v-else animation="skeleton" :role="isFromSelf ? 'user' : 'assistant'" :text-loading="false"
         :reasoning="renderReasoning()" >
         <!-- 内容插槽 -->
         <template #content>
@@ -302,14 +351,33 @@ const referenceDialogTitle = computed(() => {
                 </TLoading>
             </div>
             <div v-else>
+                <!-- 普通用户消息 -->
                 <div v-if="isFromSelf" class="user-message">
-                    <MdContent :content="displayText" role="user" :theme="theme" :quoteInfos="quoteInfos" />
+                    <MdContent 
+                        :content="displayText" 
+                        role="user" 
+                        :theme="theme" 
+                        :quoteInfos="quoteInfos"
+                        :language="language"
+                        :recordId="item.RecordId"
+                        @widgetEvent="handleWidgetEvent"
+                    />
                     <CustomizedIcon :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon copy-icon" name="copy" :theme="theme"
                         @click="(e: any) => copyContent(e, displayText, 'user')" />
                     <CustomizedIcon :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon share-icon" name="share" :theme="theme"
                         @click="share(item)" />
                 </div>
-                <MdContent v-else :content="displayText" role="assistant" :theme="theme" :quoteInfos="quoteInfos" />
+                <MdContent 
+                    v-else 
+                    :content="displayText" 
+                    role="assistant" 
+                    :theme="theme" 
+                    :quoteInfos="quoteInfos"
+                    :language="language"
+                    :recordId="item.RecordId"
+                    :disable="!isLastMsg"
+                    @widgetEvent="handleWidgetEvent"
+                />
                 <OptionCard v-if="optionCards && optionCards.length" :cards="optionCards" :sendMessage="handleSendMessage" />
                 <div class="references-container"
                     v-if="references && references.length > 0 && isFinal">
@@ -416,6 +484,15 @@ const referenceDialogTitle = computed(() => {
 </template>
 
 <style scoped>
+/* Widget action 独立行：在对话区域整行居中 */
+.widget-action-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: var(--td-comp-margin-l);
+}
+
 .flex {
     display: flex;
     align-items: center;
