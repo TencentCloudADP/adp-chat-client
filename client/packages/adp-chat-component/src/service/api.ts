@@ -4,7 +4,7 @@
  */
 import { httpService } from './httpService';
 import type { Application } from '../model/application';
-import type { ChatConversation, Record, ChatConversationProps, Reference } from '../model/chat';
+import type { ChatConversation, Record, ChatConversationProps, Reference } from '../model/chat-v2';
 import type { AxiosRequestConfig } from 'axios';
 
 /**

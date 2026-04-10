@@ -1,3 +1,7 @@
+"""
+ADP Chat Protocol V2 Data Structures and Vendor Interfaces
+"""
+
 from enum import Enum
 from typing import Protocol, List, Dict, Optional, Any, Union
 from pydantic import BaseModel
@@ -5,6 +9,13 @@ from sanic.request.types import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from model.chat import ChatConversation
 
+
+NumberLike = Union[int, str, float]
+
+
+# =============================================================================
+# Common Models
+# =============================================================================
 
 class ApplicationInfo(BaseModel):
     ApplicationId: str
@@ -14,164 +25,387 @@ class ApplicationInfo(BaseModel):
     OpeningQuestions: List[str] = []
 
 
-class _Debugging(BaseModel):
-    CustomVariables: Optional[List[Any]] = None
-    Histories: Optional[List[Any]] = None
-    Knowledge: Optional[List[Any]] = None
-    System: Optional[str] = None
-    TaskFlow: Optional[Dict[str, Any]] = None
-    WorkFlow: Optional[Dict[str, Any]] = None
-    Agent: Optional[Dict[str, str]] = None
-    Content: Optional[str] = None
+# =============================================================================
+# V2 Protocol Data Structures
+# =============================================================================
+
+class RecordRole(str, Enum):
+    USER = 'user'
+    ASSISTANT = 'assistant'
 
 
-class _Procedure(BaseModel):
-    Count: Optional[int] = None
-    Debugging: Optional[_Debugging] = None
-    Name: Optional[str] = None
-    ResourceStatus: Optional[int] = None
-    Status: Optional[str] = None
-    Title: Optional[str] = None
+class ContentType(str, Enum):
+    TEXT = 'text'
+    IMAGE = 'image'
+    WIDGET = 'widget'
+    FILE = 'file'
+    CUSTOM_VARIABLES = 'custom_variables'
+    WIDGET_ACTION = 'widget_action'
+    JSON_TEXT = 'json_text'
 
 
-class _TokenStat(BaseModel):
-    FreeCount: Optional[int] = None
-    Procedures: Optional[List[_Procedure]] = None
-    RequestId: Optional[str] = None
-    StatusSummary: Optional[str] = None
-    StatusSummaryTitle: Optional[str] = None
-    TokenCount: Optional[int] = None
-    Elapsed: Optional[int] = None
-    OrderCount: Optional[int] = None
-    RecordId: Optional[str] = None
-    SessionId: Optional[str] = None
-    TraceId: Optional[str] = None
-    UsedCount: Optional[int] = None
-
-
-class _WorkFlow(BaseModel):
-    WorkflowReleaseTime: Optional[Union[str, int]] = None
-    WorkflowRunId: Optional[str] = None
-    OptionCards: Optional[List[Any]] = None
-    Outputs: Optional[List[Any]] = None
-    WorkflowId: Optional[str] = None
-    WorkflowName: Optional[str] = None
-
-
-class _ExtraInfo(BaseModel):
-    EChartsInfo: Optional[List[Any]] = None
-
-
-class _DebuggingThought(BaseModel):
-    Content: Optional[str] = None
-    DisplayStatus: Optional[str] = None
-    QuoteInfos: Optional[List[Any]] = None
-    References: Optional[List[Any]] = None
-    SandboxUrl: Optional[str] = None
-    DisplayContent: Optional[str] = None
-    DisplayThought: Optional[str] = None
-    DisplayType: Optional[int] = None
-    DisplayUrl: Optional[str] = None
-
-
-class _ProcedureThought(BaseModel):
-    Index: Optional[int] = None
-    PluginType: Optional[int] = None
-    Debugging: Optional[_DebuggingThought] = None
-    ReplyIndex: Optional[int] = None
-    SourceAgentName: Optional[str] = None
-    Status: Optional[str] = None
-    WorkflowName: Optional[str] = None
-    Elapsed: Optional[int] = None
-    Name: Optional[str] = None
-    Switch: Optional[str] = None
-    TargetAgentName: Optional[str] = None
-    Title: Optional[str] = None
-    AgentIcon: Optional[str] = None
-    Icon: Optional[str] = None
-    NodeName: Optional[str] = None
-    StartTime: Optional[str] = None
-
-
-class _AgentThought(BaseModel):
-    Files: Optional[List[Any]] = None
-    IsWorkflow: Optional[bool] = None
-    Procedures: Optional[List[_ProcedureThought]] = None
-    RequestId: Optional[str] = None
-    Elapsed: Optional[int] = None
-    RecordId: Optional[str] = None
-    SessionId: Optional[str] = None
-    TraceId: Optional[str] = None
-    WorkflowName: Optional[str] = None
-
-
-class MsgRecord(BaseModel):
-    Content: Optional[str] = None
-    Type: Optional[int] = None
-    IsLlmGenerated: Optional[bool] = None
-    QuoteInfos: Optional[List[Any]] = None
-    Score: Optional[int] = None
-    FileInfos: Optional[List[Any]] = None
-    FromAvatar: Optional[str] = None
-    HasRead: Optional[bool] = None
-    IsFromSelf: Optional[bool] = None
-    IsFinal: Optional[bool] = None
-    CanRating: Optional[bool] = None
-    Timestamp: Optional[float] = None
-    CanFeedback: Optional[bool] = None
-    SessionId: Optional[str] = None
-    WorkFlow: Optional[_WorkFlow] = None
-    ImageUrls: Optional[List[str]] = None
-    Reasons: Optional[List[Any]] = None
-    TaskFlow: Optional[Any] = None
-    TokenStat: Optional[_TokenStat] = None
-    ExtraInfo: Optional[_ExtraInfo] = None
-    RelatedRecordId: Optional[str] = None
-    AgentPlan: Optional[Any] = None
-    RecordId: Optional[str] = None
-    FromName: Optional[str] = None
-    OptionCards: Optional[List[Any]] = None
-    ReplyMethod: Optional[int] = None
-    AgentThought: Optional[_AgentThought] = None
-    References: Optional[List[Any]] = None
-
-
-class MessageType(Enum):
-    """消息类型枚举，用于标识消息的性质 / Message type enum for categorizing message purposes
+class MessageType(str, Enum):
+    """V2 消息类型枚举 / V2 Message type enum
 
     Attributes:
-        REPLY: 回复消息 / Reply message (direct response to user)
+        REPLY: 回复消息 / Reply message
         THOUGHT: 思考过程消息 / Thought process message
-        REFERENCE: 引用消息 / Reference material
-        TOKEN_STAT: Token统计消息 / Token usage statistics
-        ERROR: 错误消息 / Error notification
-        CONVERSATION: 会话级别消息 / Conversation-level notification
+        TOOL_CALL: 工具调用消息 / Tool call message
+        TASK_EXECUTION: 任务执行消息 / Task execution message
+        RECOMMENDATION: 推荐消息 / Recommendation message
+        NOTICE: 通知消息 / Notice message
+        QUESTION: 问题消息 / Question message
     """
-
     REPLY = 'reply'
-    """回复消息（直接返回给用户的内容） / Reply message (direct response to user)"""
-
     THOUGHT = 'thought'
-    """思考过程消息（展示在"思考中"的内容） / Thought process message (showing intermediate reasoning)"""
+    TOOL_CALL = 'tool_call'
+    TASK_EXECUTION = 'task_execution'
+    RECOMMENDATION = 'recommendation'
+    NOTICE = 'notice'
+    QUESTION = 'question'
 
-    REFERENCE = 'reference'
-    """引用消息（提供参考来源） / Reference material (providing sources)"""
 
-    TOKEN_STAT = 'token_stat'
-    """Token统计消息（显示Token使用情况） / Token usage statistics (showing consumption)"""
+class EventType(str, Enum):
+    """V2 SSE 事件类型枚举 / V2 SSE event type enum
 
+    Attributes:
+        REQUEST_ACK: 请求确认 / Request acknowledgment
+        RESPONSE_CREATED: 响应创建 / Response created
+        RESPONSE_PROCESSING: 响应处理中 / Response processing
+        RESPONSE_COMPLETED: 响应完成 / Response completed
+        MESSAGE_ADDED: 消息添加 / Message added
+        MESSAGE_PROCESSING: 消息处理中 / Message processing
+        MESSAGE_DONE: 消息完成 / Message done
+        CONTENT_ADDED: 内容添加 / Content added
+        TEXT_DELTA: 文本增量 / Text delta
+        ERROR: 错误 / Error
+        CONVERSATION: 会话事件 / Conversation event
+    """
+    REQUEST_ACK = 'request_ack'
+    RESPONSE_CREATED = 'response.created'
+    RESPONSE_PROCESSING = 'response.processing'
+    RESPONSE_COMPLETED = 'response.completed'
+    MESSAGE_ADDED = 'message.added'
+    MESSAGE_PROCESSING = 'message.processing'
+    MESSAGE_DONE = 'message.done'
+    CONTENT_ADDED = 'content.added'
+    TEXT_DELTA = 'text.delta'
     ERROR = 'error'
-    """错误消息（错误提示） / Error notification (error message)"""
-
     CONVERSATION = 'conversation'
-    """会话级别消息（用于通知新会话ID、更新会话摘要等） / Conversation-level notification (new session ID, summary updates etc.)"""
 
-    HEARTBEAT = 'heartbeat'
-    """心跳消息（用于保持连接活跃） / Heartbeat message (keeping connection alive)"""
 
-    def __str__(self):
-        return self.value
+# Content-related models
 
+class QuoteInfo(BaseModel):
+    Position: int
+    Index: int
+
+
+class DocRefer(BaseModel):
+    ReferBizId: str
+    DocBizId: str
+    DocName: str
+    KnowledgeBizId: str
+    KnowledgeName: Optional[str] = None
+    Url: str
+
+
+class QaRefer(BaseModel):
+    ReferBizId: str
+    QaBizId: str
+    KnowledgeBizId: str
+    KnowledgeName: Optional[str] = None
+
+
+class WebSearchRefer(BaseModel):
+    Url: str
+
+
+DocReferModel = DocRefer
+QaReferModel = QaRefer
+WebSearchReferModel = WebSearchRefer
+
+
+class Reference(BaseModel):
+    Index: int
+    Type: int
+    Name: str
+    DocRefer: Optional[DocReferModel] = None
+    QaRefer: Optional[QaReferModel] = None
+    WebSearchRefer: Optional[WebSearchReferModel] = None
+
+
+class Sandbox(BaseModel):
+    Url: Optional[str] = None
+    DisplayUrl: Optional[str] = None
+    Content: Optional[str] = None
+
+
+class WebSearch(BaseModel):
+    Content: str
+
+
+class FileCollection(BaseModel):
+    MaxFileCount: int
+    SupportedFileTypes: List[str]
+
+
+class Widget(BaseModel):
+    WidgetId: str
+    WidgetRunId: str
+    State: str
+    Position: Optional[int] = None
+    EncodedWidget: str
+    View: Optional[str] = None
+    Payload: Optional[str] = None
+
+
+SandboxModel = Sandbox
+WebSearchModel = WebSearch
+FileCollectionModel = FileCollection
+WidgetModel = Widget
+
+
+class Image(BaseModel):
+    QuoteInfos: Optional[List[QuoteInfo]] = None
+    References: Optional[List[Reference]] = None
+    OptionCards: Optional[List[str]] = None
+    CustomParams: Optional[List[str]] = None
+    Sandbox: Optional[SandboxModel] = None
+    WebSearch: Optional[WebSearchModel] = None
+    FileCollection: Optional[FileCollectionModel] = None
+    RelatedRecordId: Optional[str] = None
+    Widget: Optional[WidgetModel] = None
+
+
+class FileInfo(BaseModel):
+    FileName: str
+    FileSize: str
+    FileUrl: str
+    FileType: str
+    Url: Optional[str] = None
+
+
+class WidgetAction(BaseModel):
+    WidgetId: str
+    WidgetRunId: str
+    ActionType: str
+    Payload: str
+    DocBizId: Optional[str] = None
+
+
+WidgetActionModel = WidgetAction
+
+
+class Content(BaseModel):
+    Type: ContentType
+    Text: Optional[str] = None
+    File: Optional[FileInfo] = None
+    QuoteInfos: Optional[List[QuoteInfo]] = None
+    References: Optional[List[Reference]] = None
+    OptionCards: Optional[List[str]] = None
+    CustomParams: Optional[List[str]] = None
+    Sandbox: Optional[SandboxModel] = None
+    WebSearch: Optional[WebSearchModel] = None
+    FileCollection: Optional[FileCollectionModel] = None
+    RelatedRecordId: Optional[str] = None
+    Widget: Optional[WidgetModel] = None
+    CustomVariables: Optional[Dict[str, str]] = None
+    WidgetAction: Optional[WidgetActionModel] = None
+
+
+def extract_text_from_contents(contents: Optional[List[Union["Content", Dict[str, Any]]]]) -> str:
+    if not contents:
+        return ""
+    for item in contents:
+        if item is None:
+            continue
+        if isinstance(item, Content):
+            content_type = item.Type
+            text = item.Text
+        elif isinstance(item, dict):
+            content_type = item.get("Type") or item.get("type")
+            text = item.get("Text") or item.get("text")
+        else:
+            content_type = getattr(item, "Type", None)
+            text = getattr(item, "Text", None)
+
+        if content_type in {ContentType.TEXT, ContentType.JSON_TEXT, "text", "json_text"} and text:
+            return text
+    return ""
+
+
+# Message-related models
+
+class MessageExtraInfo(BaseModel):
+    Elapsed: Optional[NumberLike] = None
+    StartTime: Optional[NumberLike] = None
+    AgentName: Optional[str] = None
+    AgentIcon: Optional[str] = None
+    ToolName: Optional[str] = None
+    ToolIcon: Optional[str] = None
+
+
+class Message(BaseModel):
+    Type: MessageType
+    MessageId: str
+    Name: str
+    Title: str
+    Icon: Optional[str] = None
+    Status: str
+    StatusDesc: Optional[str] = None
+    Contents: Optional[List[Content]] = None
+    ExtraInfo: Optional[MessageExtraInfo] = None
+
+
+# Procedure-related models
+
+class History(BaseModel):
+    Assistant: Optional[str] = None
+    User: Optional[str] = None
+
+
+class KnowledgeOutput(BaseModel):
+    Type: int
+    Content: str
+
+
+class Knowledge(BaseModel):
+    Content: str
+    System: Optional[str] = None
+    RewriteQuery: Optional[str] = None
+    CustomVariables: Optional[List[str]] = None
+    Histories: Optional[List[History]] = None
+    Outputs: Optional[List[KnowledgeOutput]] = None
+
+
+class OptionCardIndex(BaseModel):
+    RecordId: str
+    Index: int
+
+
+OptionCardIndexModel = OptionCardIndex
+
+
+class RunNode(BaseModel):
+    Elapsed: str
+    NodeId: str
+    NodeName: str
+    NodeType: int
+
+
+class WorkflowProcedure(BaseModel):
+    WorkflowId: str
+    WorkflowName: str
+    WorkflowReleaseTime: str
+    WorkflowRunId: str
+    Content: str
+    Outputs: List[str]
+    OptionCardIndex: Optional[OptionCardIndexModel] = None
+    OptionCards: Optional[List[str]] = None
+    RunNodes: Optional[List[RunNode]] = None
+
+
+class StatInfo(BaseModel):
+    Elapsed: Optional[NumberLike] = None
+    StartTime: Optional[NumberLike] = None
+    InputTokens: Optional[NumberLike] = None
+    OutputTokens: Optional[NumberLike] = None
+    TotalTokens: Optional[NumberLike] = None
+    ModelName: Optional[str] = None
+    Input: Optional[str] = None
+    Output: Optional[str] = None
+    Content: Optional[str] = None
+    System: Optional[str] = None
+    RewriteQuery: Optional[str] = None
+    CustomVariables: Optional[List[str]] = None
+    FirstTokenCost: Optional[NumberLike] = None
+    TotalCost: Optional[NumberLike] = None
+
+
+class Agent(BaseModel):
+    Status: int
+    Input: Optional[str] = None
+    InputRef: Optional[str] = None
+    Output: Optional[str] = None
+    OutputRef: Optional[str] = None
+    TaskOutput: Optional[str] = None
+    TaskOutputRef: Optional[str] = None
+    Reply: Optional[str] = None
+    FailCode: Optional[str] = None
+    FailMessage: Optional[str] = None
+    BelongNodeId: Optional[str] = None
+    IsCurrent: Optional[bool] = None
+    StatInfos: Optional[List[StatInfo]] = None
+    ModelName: Optional[str] = None
+    Content: Optional[str] = None
+    System: Optional[str] = None
+    RewriteQuery: Optional[str] = None
+    CustomVariables: Optional[List[str]] = None
+
+
+KnowledgeModel = Knowledge
+AgentModel = Agent
+
+
+class Procedure(BaseModel):
+    ParentMessageId: Optional[str] = None
+    Name: str
+    Title: str
+    Status: str
+    IntentCate: Optional[str] = None
+    ResourceStatus: Optional[int] = None
+    Type: str
+    Knowledge: Optional[KnowledgeModel] = None
+    Workflow: Optional[WorkflowProcedure] = None
+    Agent: Optional[AgentModel] = None
+    StatInfos: Optional[List[StatInfo]] = None
+
+
+# Record-related models
+
+class RecordExtraInfo(BaseModel):
+    RequestId: Optional[str] = None
+    TraceId: Optional[str] = None
+    Elapsed: Optional[NumberLike] = None
+    StartTime: Optional[NumberLike] = None
+    IsFromSelf: Optional[bool] = None
+    IsLlmGenerated: Optional[bool] = None
+    CanRating: Optional[bool] = None
+    CanFeedback: Optional[bool] = None
+    ReplyMethod: Optional[int] = None
+    FromName: Optional[str] = None
+    FromAvatar: Optional[str] = None
+    HasRead: Optional[bool] = None
+
+
+StatInfoModel = StatInfo
+
+
+class Record(BaseModel):
+    Role: RecordRole
+    RecordId: str
+    RelatedRecordId: Optional[str] = None
+    ConversationId: str
+    Status: str
+    StatusDesc: Optional[str] = None
+    Messages: Optional[List[Message]] = None
+    Procedures: Optional[List[Procedure]] = None
+    StatInfo: Optional[StatInfoModel] = None
+    ExtraInfo: Optional[RecordExtraInfo] = None
+
+
+class ErrorInfo(BaseModel):
+    Code: int
+    Message: str
+    RequestId: Optional[str] = None
+    TraceId: Optional[str] = None
+    Elapsed: Optional[NumberLike] = None
+    StartTime: Optional[NumberLike] = None
+
+# =============================================================================
+# Vendor Interfaces
+# =============================================================================
 
 class ConversationCallback(Protocol):
     async def create(
@@ -234,12 +468,12 @@ class ChatInterface:
     async def chat(
         self,
         account_id: str,
-        query: str,
+        contents: List[Content],
         conversation_id: str,
         is_new_conversation: bool,
         conversation_cb: ConversationCallback,
-        search_network = True,
-        custom_variables = {}
+        search_network=True,
+        custom_variables={}
     ):
         """执行聊天对话处理（异步方法）
 
@@ -247,7 +481,7 @@ class ChatInterface:
 
         Args:
             account_id (str): 用户账户唯一标识，用于标识不同用户
-            query (str): 用户输入的查询文本
+            contents (List[Content]): 用户输入内容列表，遵循 Content 结构
             conversation_id (str): 对话会话唯一标识
                 如果是新会话，conversation_id为None
             is_new_conversation (bool): 是否为新对话的标志
@@ -273,7 +507,7 @@ class MessageInterface:
         account_id: str,
         conversation_id: str,
         limit: int, last_record_id: str = None
-    ) -> list[MsgRecord]:
+    ) -> list[Record]:
         """异步获取指定对话的消息记录
 
         通过厂商接口，或本系统数据库查询特定会话的消息记录，支持通过last_record_id分页查询
@@ -288,7 +522,7 @@ class MessageInterface:
                 默认值: None (返回最新消息)
 
         Returns:
-            list[MsgRecord]: 消息对象列表，按时间升序排列
+            list[Record]: V2协议消息记录列表，按时间升序排列
         """
         raise NotImplementedError("Subclasses must implement this method")
 

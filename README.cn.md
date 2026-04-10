@@ -12,7 +12,7 @@
 
 # 关于
 
-**ADP-Chat-Client**是一个开源的AI智能体应用对话端。可以将[腾讯云智能体开发平台（Tencent Cloud ADP）](https://cloud.tencent.com/product/tcadp) 开发的AI智能体应用快速部署为Web应用（或嵌入到小程序、Android、iOS 应用中）。支持实时对话、对话历史管理、语音输入、图片理解、第三方账户体系对接等功能。支持通过Docker快速部署。
+**ADP-Chat-Client**是一个开源的AI智能体应用对话端。可以将[腾讯云智能体开发平台（Tencent Cloud ADP）](https://cloud.tencent.com/product/tcadp) 开发的AI智能体应用快速部署为Web应用（或嵌入到小程序、Android、iOS 应用中）。支持实时对话、对话历史管理、语音输入、图片理解、交互式Widget（图表、表单等）、第三方账户体系对接等功能。支持通过Docker快速部署。
 
 #### 目录
 
@@ -263,7 +263,12 @@ nvm install v22
 # 初始化（仅首次运行）
 make init_client
 
-# 调试运行，同时运行前后端，终端会打印调试网址，如：[ui]   ➜  Local:   http://localhost:5173/
+# 调试运行，同时运行前后端和一个 PostgreSQL 容器，终端会打印调试网址，如：[ui]   ➜  Local:   http://localhost:5173/
+# 数据会持久化到 deploy/dev/volume/db。
+# 需要确保 server/.env 中的 PGSQL_HOST 为 localhost 或 127.0.0.1。
+make dev_withdb
+
+# 如果你有自己的PostgreSQL实例，不需要本地自动启动新的实例，运行以下命令
 make dev
 ```
 

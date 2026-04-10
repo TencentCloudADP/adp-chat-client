@@ -3,9 +3,9 @@
 import { ref, computed, watch } from 'vue';
 import MainApp from './components/layout/Index.vue';
 import type { Application } from './model/application';
-import type { ChatConversation, Record } from './model/chat';
+import type { ChatConversation, Record } from './model/chat-v2';
 import type { FileProps } from './model/file';
-import { ScoreValue } from './model/chat';
+import { ScoreValue } from './model/chat-v2';
 import type { ApiConfig } from './service/api';
 import { defaultApiDetailConfig } from './service/api';
 import { getMessage, type MessageCode } from './model/messages';

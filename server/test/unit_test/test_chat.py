@@ -28,7 +28,12 @@ async def test_error_asgi_client(app, auth_token):
 
     # make a conversation
     params = {
-        "Query": "hello",
+        "Contents": [
+            {
+                "Type": "text",
+                "Text": "hello",
+            },
+        ],
         "ApplicationId": applications[0]["ApplicationId"],
     }
     post_json = json.dumps(params)

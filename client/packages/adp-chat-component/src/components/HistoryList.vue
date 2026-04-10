@@ -4,7 +4,7 @@
 -->
 <script setup lang="tsx">
 import { computed } from 'vue';
-import type { ChatConversation } from '../model/chat';
+import type { ChatConversation } from '../model/chat-v2';
 
 interface Props {
     /** 会话列表 */

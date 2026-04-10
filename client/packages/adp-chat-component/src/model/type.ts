@@ -1,5 +1,5 @@
 import type { Application } from './application'
-import type { ChatConversation, Record } from './chat'
+import type { ChatConversation, Record } from './chat-v2'
 import type { ApiConfig } from '../service/api'
 
 // ============================================================
@@ -92,6 +92,8 @@ export interface ChatItemI18n {
   references?: string
   openSource?: string
   referenceSlice?: string
+  /** widget action 用户消息显示文本 */
+  actionPerformed?: string
 }
 
 /** Sender 国际化文本 */
@@ -224,6 +226,7 @@ export const defaultChatItemI18n: Required<ChatItemI18n> = {
   references: '参考来源',
   openSource: '打开原文',
   referenceSlice: '引用切片',
+  actionPerformed: '已进行操作',
 }
 
 /** Sender i18n 默认值 */
@@ -298,6 +301,7 @@ export const defaultChatItemI18nEn: Required<ChatItemI18n> = {
   references: 'References',
   openSource: 'Open Source',
   referenceSlice: 'Reference Slice',
+  actionPerformed: 'Action performed',
 }
 
 /** Sender i18n 英文默认值 */
