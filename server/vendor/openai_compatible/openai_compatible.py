@@ -1,5 +1,6 @@
 # flake8: noqa: E501
 import logging
+import uuid
 import aiohttp
 import json
 from typing import AsyncGenerator
@@ -8,8 +9,13 @@ from sqlalchemy import select, desc
 from model.chat import ChatRecord
 from core.chat import CoreMessage
 
-from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, MessageType, _AgentThought, _ProcedureThought, _DebuggingThought
-from util.helper import to_message
+from vendor.interface import (
+    BaseVendor, ApplicationInfo,
+    EventType, Record, RecordRole, Message, MessageType, Content, ContentType,
+    RecordExtraInfo, Procedure, ErrorInfo, extract_text_from_contents
+)
+from util.helper import to_event
+from util.json_format import custom_dumps
 from util.database import db_connection
 
 
@@ -18,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class OpenAICompatible(BaseVendor):
     """
-    OpenAI-compatible vendor implementation
+    OpenAI-compatible vendor implementation (V2 Protocol)
 
     Supports:
     - OpenAI (GPT-3.5, GPT-4, GPT-5, o1, o3, etc.)
@@ -44,7 +50,7 @@ class OpenAICompatible(BaseVendor):
     async def chat(
         self,
         account_id,
-        query,
+        contents,
         conversation_id,
         is_new_conversation,
         conversation_cb,
@@ -52,30 +58,77 @@ class OpenAICompatible(BaseVendor):
         custom_variables={}
     ) -> AsyncGenerator:
         """
-        Main chat method using OpenAI-compatible API
-
-        Args:
-            account_id: User account ID
-            query: User's message
-            conversation_id: Current conversation ID
-            is_new_conversation: Whether this is a new conversation
-            conversation_cb: Callback for conversation operations
-            search_network: Whether to search network (not used)
-            custom_variables: Custom variables (not used)
-
-        Yields:
-            Messages with conversation info and AI responses
+        Main chat method using OpenAI-compatible API (V2 Protocol)
         """
+        # Generate IDs
+        user_record_id = str(uuid.uuid4())
+        assistant_record_id = str(uuid.uuid4())
+        reply_message_id = str(uuid.uuid4())
+        thought_message_id = str(uuid.uuid4())
+
         try:
+            normalized_contents = []
+            if contents:
+                for item in contents:
+                    if isinstance(item, Content):
+                        normalized_contents.append(item)
+                    else:
+                        normalized_contents.append(Content.model_validate(item))
+            if not normalized_contents:
+                normalized_contents = [Content(Type=ContentType.TEXT, Text="")]
+
+            query_text = extract_text_from_contents(normalized_contents).strip()
+            if not query_text:
+                query_text = "New Chat"
+
             # Create new conversation if needed
             if is_new_conversation:
                 conversation = await conversation_cb.create()
-                yield to_message(
-                    MessageType.CONVERSATION,
-                    conversation=conversation,
-                    is_new_conversation=True
-                )
+                yield to_event(EventType.CONVERSATION, conversation=conversation, is_new_conversation=True)
                 conversation_id = str(conversation.Id)
+
+            # 1. Emit request_ack (user's record)
+            user_record = Record(
+                Role=RecordRole.USER,
+                RecordId=user_record_id,
+                ConversationId=conversation_id,
+                Status='completed',
+                StatusDesc='',
+                Messages=[Message(
+                    Type=MessageType.REPLY,
+                    MessageId=f"{user_record_id}_msg",
+                    Name='',
+                    Title='',
+                    Status='completed',
+                    Contents=normalized_contents
+                )],
+                ExtraInfo=RecordExtraInfo(IsFromSelf=True)
+            )
+            yield to_event(EventType.REQUEST_ACK, record=user_record)
+
+            # 2. Emit response.created (assistant's record shell)
+            assistant_record = Record(
+                Role=RecordRole.ASSISTANT,
+                RecordId=assistant_record_id,
+                RelatedRecordId=user_record_id,
+                ConversationId=conversation_id,
+                Status='processing',
+                StatusDesc='',
+                Messages=[],
+                Procedures=[],
+            )
+            yield to_event(EventType.RESPONSE_CREATED, record=assistant_record)
+
+            # 3. Add reply message
+            reply_message = Message(
+                Type=MessageType.REPLY,
+                MessageId=reply_message_id,
+                Name='',
+                Title='',
+                Status='processing',
+                Contents=[Content(Type=ContentType.TEXT, Text='')]
+            )
+            yield to_event(EventType.MESSAGE_ADDED, message=reply_message)
 
             # Get configuration
             api_key = self.config.get('ApiKey', '')
@@ -94,8 +147,6 @@ class OpenAICompatible(BaseVendor):
 
             logger.info(f"[OpenAICompatible] Calling API: {base_url}/chat/completions with model: {model_name}")
 
-            # Get conversation history from ChatRecord
-
             # Build messages array with history
             messages = []
             if not is_new_conversation:
@@ -106,8 +157,12 @@ class OpenAICompatible(BaseVendor):
                     role = "user" if record.FromRole == "user" else "assistant"
                     try:
                         record_dict = json.loads(record.Content)
-                        content = record_dict.get('Content', '')
-                    except json.JSONDecodeError as e:
+                        content = record_dict.get('Content')
+                        if content is None and 'Contents' in record_dict:
+                            content = extract_text_from_contents(record_dict.get('Contents') or [])
+                        if content is None:
+                            content = ''
+                    except json.JSONDecodeError:
                         content = record.Content
 
                     messages.append({
@@ -116,7 +171,7 @@ class OpenAICompatible(BaseVendor):
                     })
 
             # Add current user message
-            messages.append({"role": "user", "content": query})
+            messages.append({"role": "user", "content": query_text})
 
             logger.info(f"[OpenAICompatible] Sending {len(messages)} messages (including {len(messages)-1} history messages)")
 
@@ -135,15 +190,15 @@ class OpenAICompatible(BaseVendor):
             # GPT-5 and reasoning models (o1, o3) have special parameter requirements
             if model_name.startswith('gpt-5') or model_name.startswith('o1') or model_name.startswith('o3'):
                 payload["max_completion_tokens"] = max_tokens
-                # These models only support temperature=1 (default), so we don't set it
             else:
-                # Standard models support temperature and max_tokens
                 payload["temperature"] = temperature
                 payload["max_tokens"] = max_tokens
 
             # Call OpenAI-compatible API
             content = ""
             reasoning_content = ""
+            has_thought_message = False
+
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     f"{base_url}/chat/completions",
@@ -167,7 +222,7 @@ class OpenAICompatible(BaseVendor):
                         _, line_str = line.split(':', 1)
 
                         # Check for end of stream
-                        if line_str == '[DONE]':
+                        if line_str.strip() == '[DONE]':
                             logger.info(f"[OpenAICompatible] Response completed")
                             break
 
@@ -181,24 +236,34 @@ class OpenAICompatible(BaseVendor):
                                 delta_content = delta.get('content', '')
 
                                 if delta_reasoning_content:
-                                    reasoning_content += delta_reasoning_content
-                                    # Send incremental content (delta)
+                                    # Add thought message if first reasoning content
+                                    if not has_thought_message:
+                                        thought_message = Message(
+                                            Type=MessageType.THOUGHT,
+                                            MessageId=thought_message_id,
+                                            Name='Reasoning',
+                                            Title='思考过程',
+                                            Status='processing',
+                                            Contents=[Content(Type=ContentType.TEXT, Text='')]
+                                        )
+                                        yield to_event(EventType.MESSAGE_ADDED, message=thought_message)
+                                        has_thought_message = True
 
-                                    record = MsgRecord(AgentThought=_AgentThought(Procedures=[_ProcedureThought(Debugging=_DebuggingThought(Content=delta_reasoning_content))]))
-                                    yield to_message(
-                                        MessageType.THOUGHT,
-                                        record=record,
-                                        incremental=True
+                                    reasoning_content += delta_reasoning_content
+                                    yield to_event(
+                                        EventType.TEXT_DELTA,
+                                        message_id=thought_message_id,
+                                        content_index=0,
+                                        text=delta_reasoning_content
                                     )
 
                                 if delta_content:
                                     content += delta_content
-                                    # Send incremental content (delta)
-                                    record = MsgRecord(Content=delta_content)
-                                    yield to_message(
-                                        MessageType.REPLY,
-                                        record=record,
-                                        incremental=True
+                                    yield to_event(
+                                        EventType.TEXT_DELTA,
+                                        message_id=reply_message_id,
+                                        content_index=0,
+                                        text=delta_content
                                     )
 
                                 # Check if finished
@@ -213,14 +278,20 @@ class OpenAICompatible(BaseVendor):
             # Save messages to ChatRecord
             logger.info(f"[OpenAICompatible] Final content length: {len(content)}")
             if content:
+                serialized_contents = [item.model_dump(exclude_none=True) for item in normalized_contents]
                 async with db_connection() as db:
                     # Save user message
                     related_record = await CoreMessage.create(
-                        db,
-                        conversation_id,
-                        "user",
-                        json.dumps({'Content': query}, ensure_ascii=False)
-                    )
+                        
+                    db,
+                       
+                    conversation_id,
+                       
+                    "user",
+                       
+                    json.dumps({'Content': query_text, 'Contents': serialized_contents}, ensure_ascii=False)
+                    
+                )
 
                     # Save assistant message
                     await CoreMessage.create(
@@ -239,29 +310,71 @@ class OpenAICompatible(BaseVendor):
 
                 logger.info(f"[OpenAICompatible] Saved message pair to ChatRecord")
 
+            # 4. Emit message.done for thought message (if exists)
+            if has_thought_message:
+                thought_message = Message(
+                    Type=MessageType.THOUGHT,
+                    MessageId=thought_message_id,
+                    Name='Reasoning',
+                    Title='思考过程',
+                    Status='completed',
+                    Contents=[Content(Type=ContentType.TEXT, Text=reasoning_content)]
+                )
+                yield to_event(EventType.MESSAGE_DONE, message_id=thought_message_id, message=thought_message)
+
+            # 5. Emit message.done for reply message
+            reply_message = Message(
+                Type=MessageType.REPLY,
+                MessageId=reply_message_id,
+                Name='',
+                Title='',
+                Status='completed',
+                Contents=[Content(Type=ContentType.TEXT, Text=content)]
+            )
+            yield to_event(EventType.MESSAGE_DONE, message_id=reply_message_id, message=reply_message)
+
+            # 6. Emit response.completed
+            all_messages = [reply_message]
+            if has_thought_message:
+                all_messages.append(thought_message)
+
+            assistant_record = Record(
+                Role=RecordRole.ASSISTANT,
+                RecordId=assistant_record_id,
+                RelatedRecordId=user_record_id,
+                ConversationId=conversation_id,
+                Status='completed',
+                StatusDesc='',
+                Messages=all_messages,
+                ExtraInfo=RecordExtraInfo(
+                    IsFromSelf=False,
+                    CanRating=False,
+                )
+            )
+            yield to_event(EventType.RESPONSE_COMPLETED, record=assistant_record)
+
             # Update conversation title if new
             if is_new_conversation and content:
-                title = query[:20] + "..." if len(query) > 20 else query
+                title = query_text[:20] + "..." if len(query_text) > 20 else query_text
                 conversation = await conversation_cb.update(
                     conversation_id=conversation_id,
                     title=title
                 )
-                yield to_message(
-                    MessageType.CONVERSATION,
-                    conversation=conversation,
-                    is_new_conversation=False
-                )
+                yield to_event(EventType.CONVERSATION, conversation=conversation, is_new_conversation=False)
 
             logger.info(f"[OpenAICompatible] Chat completed. Response length: {len(content)}")
 
         except Exception as e:
             logger.error(f"[OpenAICompatible] Error in chat: {str(e)}", exc_info=True)
-            # Yield error message
-            yield to_message(MessageType.ERROR, error_msg=str(e))
+            error_info = ErrorInfo(
+                Code=-1,
+                Message=str(e),
+            )
+            yield to_event(EventType.ERROR, error=error_info)
 
-    async def get_messages(self, db, account_id, conversation_id, limit, last_record_id=None):
+    async def get_messages(self, db, account_id, conversation_id, limit, last_record_id=None) -> list[Record]:
         """
-        Get message history from ChatRecord
+        Get message history from ChatRecord (V2 Protocol)
         Supports pagination using last_record_id
         """
         try:
@@ -274,7 +387,6 @@ class OpenAICompatible(BaseVendor):
 
             # Apply pagination if last_record_id is provided
             if last_record_id:
-                # Get the timestamp of the last record
                 last_record_result = await db.execute(
                     select(ChatRecord).where(ChatRecord.Id == last_record_id)
                 )
@@ -289,36 +401,69 @@ class OpenAICompatible(BaseVendor):
             result = await db.execute(query)
             chat_records = result.scalars().all()
 
-            # Convert to MsgRecord format
-            messages = []
-            for record in chat_records:
+            # Convert to V2 Record format
+            records = []
+            for db_record in chat_records:
                 related_id = None
-                content = record.Content
+                content_text = db_record.Content
                 reasoning_content = ''
-                agent_thought = None
                 try:
-                    record_dict = json.loads(record.Content)
+                    record_dict = json.loads(db_record.Content)
                     related_id = record_dict.get('RelatedId', None)
-                    content = record_dict.get('Content', '')
+                    content_text = record_dict.get('Content', '')
                     reasoning_content = record_dict.get('ReasoningContent', '')
-                    if reasoning_content:
-                        agent_thought = _AgentThought(Procedures=[_ProcedureThought(Debugging=_DebuggingThought(Content=reasoning_content))])
-                except json.JSONDecodeError as e:
+                except json.JSONDecodeError:
                     pass
-                msg_record = MsgRecord(
-                    RecordId=str(record.Id),
-                    RelatedRecordId=related_id,
-                    AgentThought=agent_thought,
-                    Content=content,
-                    IsFromSelf=(record.FromRole == "user"),
-                    Timestamp=record.CreatedAt.timestamp(),
-                    CanRating=False
-                )
-                messages.append(msg_record)
-            messages = messages[::-1]
 
-            logger.info(f"[OpenAICompatible] Loaded {len(messages)} messages from ChatRecord")
-            return messages
+                is_from_self = db_record.FromRole == "user"
+                role = RecordRole.USER if is_from_self else RecordRole.ASSISTANT
+                record_id = str(db_record.Id)
+
+                # Build messages
+                messages = []
+
+                # Reply message
+                reply_message = Message(
+                    Type=MessageType.REPLY,
+                    MessageId=f"{record_id}_reply",
+                    Name='',
+                    Title='',
+                    Status='completed',
+                    Contents=[Content(Type=ContentType.TEXT, Text=content_text)]
+                )
+                messages.append(reply_message)
+
+                # Thought message (if reasoning content exists)
+                if reasoning_content:
+                    thought_message = Message(
+                        Type=MessageType.THOUGHT,
+                        MessageId=f"{record_id}_thought",
+                        Name='Reasoning',
+                        Title='思考过程',
+                        Status='completed',
+                        Contents=[Content(Type=ContentType.TEXT, Text=reasoning_content)]
+                    )
+                    messages.append(thought_message)
+
+                record = Record(
+                    Role=role,
+                    RecordId=record_id,
+                    RelatedRecordId=related_id,
+                    ConversationId=conversation_id,
+                    Status='completed',
+                    StatusDesc='',
+                    Messages=messages,
+                    ExtraInfo=RecordExtraInfo(
+                        IsFromSelf=is_from_self,
+                        CanRating=False,
+                    )
+                )
+                records.append(record)
+
+            records = records[::-1]
+
+            logger.info(f"[OpenAICompatible] Loaded {len(records)} records from ChatRecord")
+            return records
 
         except Exception as e:
             logger.error(f"[OpenAICompatible] Error loading messages: {str(e)}", exc_info=True)
@@ -333,16 +478,9 @@ class OpenAICompatible(BaseVendor):
         raise NotImplementedError("OpenAI-compatible vendor does not support message rating")
 
 
-# Vendor aliases - these classes share the same implementation as OpenAICompatible
-# but allow users to use different Vendor names in configuration
+# Vendor aliases
 class OpenAI(OpenAICompatible):
-    """
-    OpenAI vendor alias
-
-    This is an alias for OpenAICompatible that allows users to use
-    "Vendor": "OpenAI" in their configuration while sharing the same
-    implementation logic.
-    """
+    """OpenAI vendor alias"""
 
     @classmethod
     def get_vendor(cls) -> str:
@@ -350,13 +488,7 @@ class OpenAI(OpenAICompatible):
 
 
 class Ollama(OpenAICompatible):
-    """
-    Ollama vendor alias
-
-    This is an alias for OpenAICompatible that allows users to use
-    "Vendor": "Ollama" in their configuration while sharing the same
-    implementation logic.
-    """
+    """Ollama vendor alias"""
 
     @classmethod
     def get_vendor(cls) -> str:

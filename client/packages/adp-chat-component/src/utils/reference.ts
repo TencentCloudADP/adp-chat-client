@@ -1,4 +1,4 @@
-import type { Record, Reference } from '../model/chat'
+import type { Record, Reference } from '../model/chat-v2'
 import type { ReferenceDetailParams } from '../service/api'
 
 export type ReferenceDetailFetcher = (params: ReferenceDetailParams) => Promise<Reference[]>
@@ -22,12 +22,27 @@ function getCacheKey(referenceId: string, applicationId?: string, shareId?: stri
   return `${getScopeKey(applicationId, shareId)}:${referenceId}`
 }
 
+function getReferenceId(reference: Reference): string | undefined {
+  return reference.Id || reference.ReferBizId || reference.DocRefer?.ReferBizId || reference.QaRefer?.ReferBizId
+}
+
+function getReferenceName(reference: Reference): string | undefined {
+  return reference.Name || reference.DocName || reference.DocRefer?.DocName
+}
+
+function getReferenceUrl(reference: Reference): string | undefined {
+  return reference.Url || reference.DocRefer?.Url || reference.WebSearchRefer?.Url
+}
+
 function mergeReferenceDetail(reference: Reference, detail: Reference): void {
+  const detailId = getReferenceId(detail)
   const merged: Reference = {
     ...detail,
     ...reference,
-    Id: reference.Id || detail.Id || detail.ReferBizId || '',
-    Name: reference.Name || detail.Name || detail.DocName || '',
+    Id: getReferenceId(reference) || detailId,
+    ReferBizId: reference.ReferBizId || detail.ReferBizId || detailId,
+    Name: getReferenceName(reference) || getReferenceName(detail),
+    Url: getReferenceUrl(reference) || getReferenceUrl(detail),
   }
   Object.assign(reference, merged)
 }
@@ -35,13 +50,31 @@ function mergeReferenceDetail(reference: Reference, detail: Reference): void {
 function collectType2References(records: Record[]): Reference[] {
   const references: Reference[] = []
   for (const record of records) {
-    for (const reference of record.References || []) {
-      if (reference.Type === 2 && reference.Id) {
-        references.push(reference)
+    for (const message of record.Messages || []) {
+      for (const content of message.Contents || []) {
+        for (const reference of content.References || []) {
+          if (reference.Type === 2 && getReferenceId(reference)) {
+            references.push(reference)
+          }
+        }
       }
     }
   }
   return references
+}
+
+function collectType2ReferencesById(records: Record[]): Map<string, Reference[]> {
+  const referencesById = new Map<string, Reference[]>()
+  for (const reference of collectType2References(records)) {
+    const referenceId = getReferenceId(reference)
+    if (!referenceId) {
+      continue
+    }
+    const references = referencesById.get(referenceId) || []
+    references.push(reference)
+    referencesById.set(referenceId, references)
+  }
+  return referencesById
 }
 
 export async function hydrateType2References(
@@ -54,14 +87,14 @@ export async function hydrateType2References(
     return
   }
 
-  const referencesById = new Map<string, Reference[]>()
-  for (const reference of type2References) {
-    const references = referencesById.get(reference.Id) || []
-    references.push(reference)
-    referencesById.set(reference.Id, references)
-    const cacheKey = getCacheKey(reference.Id, applicationId, shareId)
+  const referencesById = collectType2ReferencesById(records)
+  for (const [referenceId, references] of referencesById.entries()) {
+    const cacheKey = getCacheKey(referenceId, applicationId, shareId)
     const cachedDetail = cache?.get(cacheKey)
-    if (cachedDetail) {
+    if (!cachedDetail) {
+      continue
+    }
+    for (const reference of references) {
       mergeReferenceDetail(reference, cachedDetail)
     }
   }
@@ -95,13 +128,13 @@ export async function hydrateType2References(
     })
 
     for (const detail of details) {
-      const detailId = detail.Id || detail.ReferBizId
+      const detailId = getReferenceId(detail)
       if (!detailId) {
         continue
       }
       const cacheKey = getCacheKey(detailId, applicationId, shareId)
       cache?.set(cacheKey, detail)
-      const references = referencesById.get(detailId) || []
+      const references = collectType2ReferencesById(records).get(detailId) || referencesById.get(detailId) || []
       for (const reference of references) {
         mergeReferenceDetail(reference, detail)
       }

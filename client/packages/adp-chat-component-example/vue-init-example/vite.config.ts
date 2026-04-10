@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
     },
     optimizeDeps: {
       include: ['tdesign-vue-next'],
-      exclude: ['adp-chat-component'],
+      exclude: ['adp-chat-component', 'adp-widget'],
     },
     build: {
       rollupOptions: {

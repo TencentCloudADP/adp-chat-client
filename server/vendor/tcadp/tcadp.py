@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sanic.request.types import Request
 import asyncio
@@ -7,26 +8,458 @@ import json
 from util.tca import tc_request
 from util.warehouse import AsyncWareHouseS3
 
-from util.helper import to_message, convert_dict_keys_to_pascal
-from util.database import db_connection
-from core.account import CoreAccount
 from core.completion import CoreCompletion
 from config import tagentic_config
-from vendor.interface import BaseVendor, ApplicationInfo, MsgRecord, ConversationCallback, MessageType
+from vendor.interface import (
+    BaseVendor,
+    ApplicationInfo,
+    ConversationCallback,
+    Content,
+    ContentType,
+    EventType,
+    Message,
+    MessageExtraInfo,
+    MessageType,
+    Record,
+    RecordExtraInfo,
+    RecordRole,
+    ErrorInfo,
+    extract_text_from_contents,
+)
+from util.helper import to_event
+from util.json_format import custom_dumps
 
 
 class TCADP(BaseVendor):
-    async def get_customer_account_id(self, account_id: str) -> str:
-        async with db_connection() as db:
-            third_party_account = await CoreAccount.get_third_party(db, account_id)
+    @staticmethod
+    def _is_v2_record(record_data: dict[str, Any]) -> bool:
+        return all(field in record_data for field in ('Role', 'RecordId', 'ConversationId', 'Status'))
 
-        if third_party_account is None or not third_party_account.OpenId:
-            logging.warning(
-                f"[TCADP] third_party_account not found for account_id={account_id}"
+    @staticmethod
+    def _normalize_status(status: Any, default: str = 'completed') -> str:
+        if status is None:
+            return default
+
+        value = str(status).strip().lower()
+        if value in {'success', 'stop', 'done', 'finish', 'finished', 'completed'}:
+            return 'completed'
+        if value in {'processing', 'running', 'in_progress', 'pending'}:
+            return 'processing'
+        if value in {'failed', 'fail', 'error'}:
+            return 'failed'
+        return value or default
+
+    @staticmethod
+    def _to_int(value: Any) -> int | None:
+        if value is None or value == '':
+            return None
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    @classmethod
+    def _normalize_quote_infos(cls, quote_infos: list[dict[str, Any]] | None) -> list[dict[str, int]] | None:
+        normalized: list[dict[str, int]] = []
+        for item in quote_infos or []:
+            if not isinstance(item, dict):
+                continue
+            position = cls._to_int(item.get('Position'))
+            index = cls._to_int(item.get('Index'))
+            if position is None or index is None:
+                continue
+            normalized.append({
+                'Position': position,
+                'Index': index,
+            })
+        return normalized or None
+
+    @staticmethod
+    def _normalize_option_cards(option_cards: list[Any] | None) -> list[str] | None:
+        normalized: list[str] = []
+        for item in option_cards or []:
+            if isinstance(item, str) and item:
+                normalized.append(item)
+                continue
+            if not isinstance(item, dict):
+                continue
+            for key in ('Text', 'Title', 'Name', 'Label', 'Content'):
+                value = item.get(key)
+                if isinstance(value, str) and value:
+                    normalized.append(value)
+                    break
+        return normalized or None
+
+    @classmethod
+    def _normalize_references(cls, references: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
+        normalized: list[dict[str, Any]] = []
+
+        for idx, item in enumerate(references or []):
+            if not isinstance(item, dict):
+                continue
+
+            reference: dict[str, Any] = {
+                'Index': cls._to_int(item.get('Index')) if item.get('Index') is not None else idx,
+                'Type': cls._to_int(item.get('Type')) or 0,
+                'Name': (
+                    item.get('Name')
+                    or item.get('DocName')
+                    or item.get('Title')
+                    or item.get('Url')
+                    or f'Reference {idx + 1}'
+                ),
+            }
+
+            refer_biz_id = item.get('ReferBizId') or item.get('Id')
+            doc_biz_id = item.get('DocBizId') or item.get('DocId')
+            qa_biz_id = item.get('QaBizId')
+            knowledge_biz_id = item.get('KnowledgeBizId')
+            knowledge_name = item.get('KnowledgeName')
+            url = item.get('Url') or item.get('DisplayUrl') or item.get('PageUrl')
+
+            if doc_biz_id or item.get('DocName') or knowledge_biz_id or refer_biz_id:
+                reference['DocRefer'] = {
+                    'ReferBizId': str(refer_biz_id or doc_biz_id or f'ref_{idx}'),
+                    'DocBizId': str(doc_biz_id or ''),
+                    'DocName': item.get('DocName') or reference['Name'],
+                    'KnowledgeBizId': str(knowledge_biz_id or ''),
+                    'KnowledgeName': knowledge_name,
+                    'Url': url or '',
+                }
+
+            if qa_biz_id:
+                reference['QaRefer'] = {
+                    'ReferBizId': str(refer_biz_id or qa_biz_id),
+                    'QaBizId': str(qa_biz_id),
+                    'KnowledgeBizId': str(knowledge_biz_id or ''),
+                    'KnowledgeName': knowledge_name,
+                }
+
+            if url and 'DocRefer' not in reference and 'QaRefer' not in reference:
+                reference['WebSearchRefer'] = {
+                    'Url': url,
+                }
+
+            normalized.append(reference)
+
+        return normalized or None
+
+    @classmethod
+    def _build_text_content(cls, record_data: dict[str, Any]) -> Content:
+        content_payload: dict[str, Any] = {
+            'Type': ContentType.TEXT,
+            'Text': record_data.get('Content') or '',
+        }
+
+        quote_infos = cls._normalize_quote_infos(record_data.get('QuoteInfos'))
+        if quote_infos:
+            content_payload['QuoteInfos'] = quote_infos
+
+        references = cls._normalize_references(record_data.get('References'))
+        if references:
+            content_payload['References'] = references
+
+        option_cards = cls._normalize_option_cards(record_data.get('OptionCards'))
+        if option_cards:
+            content_payload['OptionCards'] = option_cards
+
+        related_record_id = record_data.get('RelatedRecordId')
+        if related_record_id:
+            content_payload['RelatedRecordId'] = related_record_id
+
+        file_collection = record_data.get('FileCollection')
+        if isinstance(file_collection, dict):
+            content_payload['FileCollection'] = file_collection
+
+        return Content.model_validate(content_payload)
+
+    @staticmethod
+    def _build_file_content(file_info: dict[str, Any]) -> Content | None:
+        if not isinstance(file_info, dict):
+            return None
+
+        file_name = file_info.get('FileName') or file_info.get('Name')
+        file_url = file_info.get('FileUrl') or file_info.get('Url')
+        if not file_name or not file_url:
+            return None
+
+        file_payload = {
+            'FileName': file_name,
+            'FileSize': str(file_info.get('FileSize') or '0'),
+            'FileUrl': file_url,
+            'FileType': file_info.get('FileType') or '',
+            'Url': file_info.get('Url') or file_url,
+        }
+        return Content(
+            Type=ContentType.FILE,
+            File=file_payload,
+        )
+
+    @staticmethod
+    def _stringify_content_value(value: Any, default: str = '') -> str:
+        if value is None:
+            return default
+        if isinstance(value, str):
+            return value
+        if isinstance(value, (dict, list)):
+            return custom_dumps(value)
+        return str(value)
+
+    @classmethod
+    def _build_widget_content(cls, widget_info: dict[str, Any]) -> Content | None:
+        if not isinstance(widget_info, dict):
+            return None
+
+        widget_id = widget_info.get('WidgetId')
+        widget_run_id = widget_info.get('WidgetRunId')
+        if not widget_id or not widget_run_id:
+            return None
+
+        widget_payload: dict[str, Any] = {
+            'WidgetId': str(widget_id),
+            'WidgetRunId': str(widget_run_id),
+            'State': cls._stringify_content_value(widget_info.get('State')),
+            'EncodedWidget': cls._stringify_content_value(widget_info.get('EncodedWidget')),
+            'View': cls._stringify_content_value(widget_info.get('View')) if widget_info.get('View') is not None else None,
+            'Payload': cls._stringify_content_value(widget_info.get('Payload')) if widget_info.get('Payload') is not None else None,
+        }
+
+        position = cls._to_int(widget_info.get('Position'))
+        if position is not None:
+            widget_payload['Position'] = position
+
+        return Content.model_validate({
+            'Type': ContentType.WIDGET,
+            'Widget': widget_payload,
+        })
+
+    @classmethod
+    def _build_widget_action_content(cls, widget_action: dict[str, Any]) -> Content | None:
+        if not isinstance(widget_action, dict):
+            return None
+
+        widget_id = widget_action.get('WidgetId')
+        widget_run_id = widget_action.get('WidgetRunId')
+        action_type = widget_action.get('ActionType')
+        if not widget_id or not widget_run_id or not action_type:
+            return None
+
+        widget_action_payload: dict[str, Any] = {
+            'WidgetId': str(widget_id),
+            'WidgetRunId': str(widget_run_id),
+            'ActionType': str(action_type),
+            'Payload': cls._stringify_content_value(widget_action.get('Payload')),
+        }
+
+        doc_biz_id = widget_action.get('DocBizId')
+        if doc_biz_id is not None:
+            widget_action_payload['DocBizId'] = str(doc_biz_id)
+
+        return Content.model_validate({
+            'Type': ContentType.WIDGET_ACTION,
+            'WidgetAction': widget_action_payload,
+        })
+
+    @classmethod
+    def _build_reply_contents(cls, record_data: dict[str, Any]) -> list[Content]:
+        contents: list[Content] = []
+
+        text_content = cls._build_text_content(record_data)
+        if any((
+            text_content.Text,
+            text_content.QuoteInfos,
+            text_content.References,
+            text_content.OptionCards,
+            text_content.FileCollection,
+        )):
+            contents.append(text_content)
+
+        contents.extend(
+            content
+            for content in (
+                cls._build_file_content(file_info)
+                for file_info in (record_data.get('FileInfos') or [])
             )
-            return account_id
+            if content is not None
+        )
 
-        return third_party_account.OpenId
+        widget_entries: list[tuple[int, dict[str, Any]]] = []
+        raw_widgets = record_data.get('Widgets')
+        if isinstance(raw_widgets, list):
+            widget_entries.extend(
+                (idx, widget_info)
+                for idx, widget_info in enumerate(raw_widgets)
+                if isinstance(widget_info, dict)
+            )
+        elif isinstance(raw_widgets, dict):
+            widget_entries.append((0, raw_widgets))
+
+        single_widget = record_data.get('Widget')
+        if isinstance(single_widget, dict):
+            widget_entries.append((len(widget_entries), single_widget))
+
+        for _, widget_info in sorted(
+            widget_entries,
+            key=lambda item: (
+                cls._to_int(item[1].get('Position')) is None,
+                cls._to_int(item[1].get('Position')) or 0,
+                item[0],
+            ),
+        ):
+            widget_content = cls._build_widget_content(widget_info)
+            if widget_content is not None:
+                contents.append(widget_content)
+
+        widget_action_content = cls._build_widget_action_content(record_data.get('WidgetAction'))
+        if widget_action_content is not None:
+            contents.append(widget_action_content)
+
+        return contents
+
+    @classmethod
+    def _extract_thought_text(cls, procedure: dict[str, Any]) -> str:
+        debugging = procedure.get('Debugging')
+        if not isinstance(debugging, dict):
+            return ''
+
+        display_content = debugging.get('DisplayContent')
+        if isinstance(display_content, str):
+            text = display_content.strip()
+            if text:
+                return text
+
+        content = debugging.get('Content')
+        if isinstance(content, str):
+            return content.strip()
+
+        return ''
+
+    @classmethod
+    def _build_thought_message(
+        cls,
+        record_id: str,
+        procedure: dict[str, Any],
+        index: int,
+    ) -> Message | None:
+        if not isinstance(procedure, dict):
+            return None
+
+        thought_text = cls._extract_thought_text(procedure)
+        if not thought_text:
+            return None
+
+        debugging = procedure.get('Debugging') if isinstance(procedure.get('Debugging'), dict) else {}
+        content_payload: dict[str, Any] = {
+            'Type': ContentType.TEXT,
+            'Text': thought_text,
+        }
+
+        quote_infos = cls._normalize_quote_infos(debugging.get('QuoteInfos'))
+        if quote_infos:
+            content_payload['QuoteInfos'] = quote_infos
+
+        references = cls._normalize_references(debugging.get('References'))
+        if references:
+            content_payload['References'] = references
+
+        sandbox_url = debugging.get('SandboxUrl')
+        display_url = debugging.get('DisplayUrl')
+        if sandbox_url or display_url:
+            content_payload['Sandbox'] = {
+                'Url': sandbox_url,
+                'DisplayUrl': display_url,
+            }
+
+        option_cards = cls._normalize_option_cards(
+            (debugging.get('WorkFlow') or {}).get('OptionCards')
+            if isinstance(debugging.get('WorkFlow'), dict) else None
+        )
+        if option_cards:
+            content_payload['OptionCards'] = option_cards
+
+        message_extra_info: dict[str, Any] = {}
+        for key in ('Elapsed', 'StartTime'):
+            if procedure.get(key) is not None:
+                message_extra_info[key] = procedure.get(key)
+        agent_name = procedure.get('TargetAgentName') or procedure.get('SourceAgentName')
+        if agent_name:
+            message_extra_info['AgentName'] = agent_name
+        if procedure.get('AgentIcon'):
+            message_extra_info['AgentIcon'] = procedure.get('AgentIcon')
+        if procedure.get('Name'):
+            message_extra_info['ToolName'] = procedure.get('Name')
+        if procedure.get('Icon'):
+            message_extra_info['ToolIcon'] = procedure.get('Icon')
+
+        message_payload: dict[str, Any] = {
+            'Type': MessageType.THOUGHT,
+            'MessageId': f'{record_id}_thought_{index}',
+            'Name': procedure.get('Name') or f'thought_{index}',
+            'Title': procedure.get('Title') or procedure.get('Name') or '思考',
+            'Icon': procedure.get('Icon'),
+            'Status': cls._normalize_status(procedure.get('Status')),
+            'StatusDesc': debugging.get('DisplayStatus') if isinstance(debugging.get('DisplayStatus'), str) else None,
+            'Contents': [Content.model_validate(content_payload)],
+        }
+        if message_extra_info:
+            message_payload['ExtraInfo'] = MessageExtraInfo.model_validate(message_extra_info)
+
+        return Message.model_validate(message_payload)
+
+    @classmethod
+    def _convert_legacy_record(
+        cls,
+        record_data: dict[str, Any],
+        conversation_id: str,
+    ) -> Record:
+        record_id = record_data.get('RecordId') or ''
+        is_from_self = bool(record_data.get('IsFromSelf'))
+        role = RecordRole.USER if is_from_self else RecordRole.ASSISTANT
+
+        messages: list[Message] = [
+            Message(
+                Type=MessageType.REPLY,
+                MessageId=f'{record_id}_reply',
+                Name='',
+                Title='',
+                Status='completed',
+                Contents=cls._build_reply_contents(record_data),
+            )
+        ]
+
+        agent_thought = record_data.get('AgentThought')
+        if isinstance(agent_thought, dict):
+            for idx, procedure in enumerate(agent_thought.get('Procedures') or []):
+                thought_message = cls._build_thought_message(record_id, procedure, idx)
+                if thought_message is not None:
+                    messages.append(thought_message)
+
+        extra_info_payload: dict[str, Any] = {
+            'IsFromSelf': is_from_self,
+            'IsLlmGenerated': record_data.get('IsLlmGenerated'),
+            'CanRating': record_data.get('CanRating'),
+            'CanFeedback': record_data.get('CanFeedback'),
+            'ReplyMethod': record_data.get('ReplyMethod'),
+            'FromName': record_data.get('FromName'),
+            'FromAvatar': record_data.get('FromAvatar'),
+            'HasRead': record_data.get('HasRead'),
+        }
+        if isinstance(agent_thought, dict):
+            for key in ('RequestId', 'TraceId', 'Elapsed'):
+                if agent_thought.get(key) is not None:
+                    extra_info_payload[key] = agent_thought.get(key)
+
+        record_payload = {
+            'Role': role,
+            'RecordId': record_id,
+            'RelatedRecordId': record_data.get('RelatedRecordId') or None,
+            'ConversationId': conversation_id or record_data.get('SessionId') or '',
+            'Status': cls._normalize_status(record_data.get('Status')),
+            'StatusDesc': record_data.get('StatusDesc'),
+            'Messages': messages,
+            'ExtraInfo': RecordExtraInfo.model_validate(extra_info_payload),
+        }
+        return Record.model_validate(record_payload)
 
     # ApplicationInterface
     @classmethod
@@ -55,27 +488,27 @@ class TCADP(BaseVendor):
         if 'Error' in resp['Response']:
             logging.error(resp)
             return ApplicationInfo(
-                ApplicationId = self.application_id,
-                Name = 'Unknown',
-                Greeting = 'Please check your AppKey/SseURL/TC_SECRET_ID/TC_SECRET_KEY',
+                ApplicationId=self.application_id,
+                Name='Unknown',
+                Greeting='Please check your AppKey/SseURL/TC_SECRET_ID/TC_SECRET_KEY',
             )
         else:
             return ApplicationInfo(
-                ApplicationId = self.application_id,
-                Name = resp['Response']['BaseConfig']['Name'],
-                Avatar = resp['Response']['BaseConfig']['Avatar'],
-                Greeting = resp['Response']['AppConfig']['KnowledgeQa']['Greeting'],
-                OpeningQuestions = resp['Response']['AppConfig']['KnowledgeQa']['OpeningQuestions'],
+                ApplicationId=self.application_id,
+                Name=resp['Response']['BaseConfig']['Name'],
+                Avatar=resp['Response']['BaseConfig']['Avatar'],
+                Greeting=resp['Response']['AppConfig']['KnowledgeQa']['Greeting'],
+                OpeningQuestions=resp['Response']['AppConfig']['KnowledgeQa']['OpeningQuestions'],
             )
 
-    # MessageInterface
+    # MessageInterface - V2 Protocol
     async def get_messages(
         self,
         db: AsyncSession,
         account_id: str,
         conversation_id: str,
         limit: int, last_record_id: str = None
-    ) -> list[MsgRecord]:
+    ) -> list[Record]:
         action = "GetMsgRecord"
         payload = {
             "Type": 5,
@@ -88,50 +521,63 @@ class TCADP(BaseVendor):
         resp = await tc_request(self.tc_config(), action, payload)
         if 'Error' in resp['Response']:
             raise Exception(resp['Response']['Error'])
-        records = [MsgRecord(**msg) for msg in resp['Response']['Records']]
-        return records
-        # return resp['Response']['Records']
 
-    # ChatInterface
+        records = []
+        for record_data in resp['Response']['Records']:
+            if self._is_v2_record(record_data):
+                record = Record.model_validate(record_data)
+            else:
+                logging.error(json.dumps(record_data))
+                record = self._convert_legacy_record(record_data, conversation_id)
+            records.append(record)
+        return records
+
+    # ChatInterface - V2 Protocol
     async def chat(
         self,
         account_id: str,
-        query: str,
+        contents: list,
         conversation_id: str,
         is_new_conversation: bool,
         conversation_cb: ConversationCallback,
-        search_network = True,
-        custom_variables = {}
+        search_network=True,
+        custom_variables={}
     ):
+        if not contents:
+            contents = [{"Type": "text", "Text": ""}]
+
         if is_new_conversation:
-            conversation = await conversation_cb.create()  # 创建会话
-            yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=True)
+            conversation = await conversation_cb.create()
+            yield to_event(EventType.CONVERSATION, conversation=conversation, is_new_conversation=True)
             conversation_id = str(conversation.Id)
-        customer_account_id = await self.get_customer_account_id(account_id)
+
         timeout = aiohttp.ClientTimeout(total=None, sock_read=tagentic_config.SERVER_RESPONSE_TIMEOUT)
         async with aiohttp.ClientSession(read_bufsize=1*1024*1024, timeout=timeout) as session:
-            incremental = False
             param = {
-                "content": query,
-                "bot_app_key": self.config['AppKey'],
-                "session_id": conversation_id,
-                "visitor_biz_id": customer_account_id,
-                "search_network": "enable" if search_network else "disable",
-                "custom_variables": custom_variables,
-                "incremental": incremental,
-                "streaming_throttle": 2,
+                "ConversationId": conversation_id,
+                "AppKey": self.config['AppKey'],
+                "Contents": contents,
+                "Incremental": True,
+                "EnableMultiIntent": True,
+                "Stream": "enable",
             }
             headers = {
                 "Accept": "text/event-stream",
                 "Content-Type": "application/json",
             }
 
+            reply_text = ""
+
             async with session.post(self.tc_config()['sse'], headers=headers, data=json.dumps(param)) as resp:
                 if resp.status != 200:
                     logging.error(f"Failed to chat: {resp}")
-                    raise Exception(f"SSE error: {resp.status}")
+                    error_info = ErrorInfo(
+                        Code=resp.status,
+                        Message=f"SSE error: {resp.status}",
+                    )
+                    yield to_event(EventType.ERROR, error=error_info)
+                    return
 
-                # 逐行读取事件流
                 try:
                     while True:
                         raw_line = await resp.content.readline()
@@ -142,62 +588,41 @@ class TCADP(BaseVendor):
                             continue
                         line_type, data = line.split(':', 1)
                         if line_type == 'data':
-                            # 转换为与云API一致的大驼峰风格
-                            data = json.loads(data)
                             try:
-                                msg_type = MessageType(data['type'])
-                            except ValueError:
-                                logging.info(f"Unknown message type: {data['type']}")
+                                data = json.loads(data)
+                            except json.JSONDecodeError:
                                 continue
+                            event_type = data.get('Type', '')
 
-                            if msg_type in {
-                                MessageType.REPLY, MessageType.THOUGHT, MessageType.REFERENCE, MessageType.TOKEN_STAT
-                            }:
-                                payload = convert_dict_keys_to_pascal(data['payload'])
-                                if msg_type == MessageType.REPLY:
-                                    pass
-                                elif msg_type == MessageType.THOUGHT:
-                                    payload = {'AgentThought': payload, **payload}
-                                elif msg_type == MessageType.REFERENCE:
-                                    payload = {'Reference': payload, **payload}
-                                elif msg_type == MessageType.TOKEN_STAT:
-                                    payload = {'TokenStat': payload, **payload}
-                                record = MsgRecord.model_validate(payload)
+                            # Collect reply text for title generation
+                            if event_type == 'text.delta':
+                                reply_text += data.get('Text', '')
+                            # Forward V2 event directly
+                            yield f'data: {custom_dumps(data)}\n\n'.encode('utf-8')
 
-                                yield to_message(msg_type, record=record, incremental=incremental)
-                            elif msg_type == MessageType.HEARTBEAT:
-                                yield to_message(msg_type)
-                            elif msg_type in {MessageType.ERROR}:
-                                if 'payload' in data:
-                                    msg = data['payload']['error']['message']
-                                elif 'error' in data:
-                                    msg = data['error']['message']
-                                else:
-                                    msg = f"未知错误: {str(data)}"
-                                yield to_message(msg_type, error_msg=msg)
-                            else:
-                                logging.info(f"Unknown message type: {data['type']}")
-
-                            # yield raw_line + '\n'.encode()
                 except asyncio.CancelledError:
                     logging.info("forward_request: cancelled")
                     resp.close()
+
             logging.info("forward_request: done")
 
-            try:
-                # 生成标题
-                summarize = None
-                if is_new_conversation:
-                    prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n请直接输出提炼结果，不要解释。'
-                    completion = CoreCompletion(
-                        self.tc_config(),
-                        system_prompt = prompt
-                    )
-                    summarize = await completion.chat(f'user: {query}\n\nassistance:')
-                conversation = await conversation_cb.update(conversation_id=conversation_id, title=summarize)  # 更新会话
-                yield to_message(MessageType.CONVERSATION, conversation=conversation, is_new_conversation=False)
-            except Exception as e:
-                logging.error(f'failed to summarize conversation title. error: {e}')
+        # Update conversation
+        try:
+            summarize = None
+            if is_new_conversation:
+                query_text = extract_text_from_contents(contents).strip()
+                if not query_text:
+                    query_text = "New Chat"
+                prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n请直接输出提炼结果，不要解释。'
+                completion = CoreCompletion(
+                    self.tc_config(),
+                    system_prompt=prompt
+                )
+                summarize = await completion.chat(f'user: {query_text}\n\nassistance: {reply_text[:200]}')
+            conversation = await conversation_cb.update(conversation_id=conversation_id, title=summarize)
+            yield to_event(EventType.CONVERSATION, conversation=conversation, is_new_conversation=False)
+        except Exception as e:
+            logging.error(f'failed to summarize conversation title. error: {e}')
 
     # FileInterface:
     async def upload(self, db: AsyncSession, request: Request, account_id: str, mime_type: str) -> str:
@@ -228,9 +653,7 @@ class TCADP(BaseVendor):
                 body = await request.stream.read()
                 if body is None:
                     break
-                # result += body.decode("utf-8")
                 print(f'upload: {len(body)}')
-                # print(f'upload: {body}')
                 await uploader.write(body)
 
         url = cos.get_full_url(resp['UploadPath'])
@@ -352,7 +775,7 @@ service_configs = {
             'ep': 'http://cos.{region}.myqcloud.com',
             'access': 'http://{bucket}.cos.{region}.myqcloud.com'
         },
-        'sse': 'https://wss.lke.tencentcloud.com/v1/qbot/chat/sse'
+        'sse': 'https://wss.lke.tencentcloud.com/adp/v2/chat'
     },
     'China': {
         'lke': {
@@ -369,7 +792,7 @@ service_configs = {
             'ep': 'http://cos.{region}.myqcloud.com',
             'access': 'http://{bucket}.cos.{region}.myqcloud.com'
         },
-        'sse': 'https://wss.lke.cloud.tencent.com/v1/qbot/chat/sse'
+        'sse': 'https://wss.lke.cloud.tencent.com/adp/v2/chat'
     }
 }
 

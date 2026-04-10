@@ -1,0 +1,17 @@
+{
+  "name": "adp-widget",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "src/adp-widget.js",
+  "types": "src/adp-widget.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/adp-widget.d.ts",
+      "default": "./src/adp-widget.js"
+    },
+    "./vendor": "./src/adp-widget-vendor.js",
+    "./markdown": "./src/adp-widget-markdown.js",
+    "./chart": "./src/adp-widget-chart.js"
+  }
+}

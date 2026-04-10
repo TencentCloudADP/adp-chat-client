@@ -25,7 +25,7 @@ import ChatItem from './Chat/ChatItem.vue';
 import { fetchConversationDetail, fetchReferenceDetails } from '../service/api';
 import type { ApiConfig } from '../service/api';
 import { useApiConfig } from '../composables';
-import type { Record, Reference } from '../model/chat';
+import type { Record, Reference } from '../model/chat-v2';
 import type { ThemeType } from '../model/type';
 import { hydrateType2References } from '../utils/reference';
 
