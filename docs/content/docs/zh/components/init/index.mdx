@@ -48,7 +48,6 @@ ADPChatComponent.init(container?: string, config?: ChatConfig)
   { name: 'currentConversationId', type: 'string', description: '当前选中的会话 ID（优先级高于 currentConversation）' },
   { name: 'aiWarningText', type: 'string', default: "'内容由AI生成，仅供参考'", description: 'AI 警告文本' },
   { name: 'languageOptions', type: 'LanguageOption[]', default: '中英文', description: '语言选项列表' },
-  { name: 'widgetBasePath', type: 'string', default: "'/static/adp-chat-component/umd/widget'", description: 'Widget SDK 的基础路径，支持绝对路径或 CDN 地址' },
   { name: 'sideI18n', type: 'SideI18n', description: '侧边栏国际化文本' },
   { name: 'chatI18n', type: 'ChatI18n', description: '聊天国际化文本' },
   { name: 'chatItemI18n', type: 'ChatItemI18n', description: 'ChatItem 国际化文本' },
@@ -144,47 +143,6 @@ ADPChatComponent.init('#chat-container', {
   }
 })
 ```
-
-## Widget 配置
-
-聊天组件支持渲染自定义 Widget（如图表、表单等交互式组件）。Widget SDK 资源默认从 `/static/adp-chat-component/umd/widget` 路径加载。
-
-### 使用 CDN 加载 Widget
-
-如果您希望从 CDN 加载 Widget SDK 资源以提升加载速度，可以配置 `widgetBasePath`：
-
-```javascript
-ADPChatComponent.init('#chat-container', {
-  widgetBasePath: 'https://cdn.example.com/widget',
-  apiConfig: {
-    baseURL: 'https://api.example.com'
-  }
-})
-```
-
-### 自定义部署路径
-
-如果您将 Widget 资源部署到自定义路径，也可以通过 `widgetBasePath` 指定：
-
-```javascript
-ADPChatComponent.init('#chat-container', {
-  widgetBasePath: '/assets/widget',
-  apiConfig: {
-    baseURL: 'https://api.example.com'
-  }
-})
-```
-
-### Widget 资源说明
-
-Widget SDK 包含以下文件，需要部署到 `widgetBasePath` 指定的目录下：
-
-| 文件名 | 说明 |
-| --- | --- |
-| `adp-widget.js` | Widget 核心 SDK |
-| `adp-widget-vendor.js` | 第三方依赖（Vue 等） |
-| `adp-widget-chart.js` | 图表组件（ECharts） |
-| `adp-widget-markdown.js` | Markdown 渲染组件 |
 
 ## 模式说明
 
