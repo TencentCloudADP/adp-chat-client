@@ -112,8 +112,6 @@ export interface Props extends ThemeProps, OverlayProps {
     apiConfig?: ApiConfig;
     /** 是否自动加载数据（仅在使用 apiConfig 时生效） */
     autoLoad?: boolean;
-    /** Widget SDK 的基础路径，支持绝对路径或 CDN 地址，默认为 '/static/adp-chat-component/umd/widget' */
-    widgetBasePath?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -140,7 +138,6 @@ const props = withDefaults(defineProps<Props>(), {
     aiWarningText: '内容由AI生成，仅供参考',
     apiConfig: () => ({}),
     autoLoad: true,
-    widgetBasePath: undefined,
 });
 
 const emit = defineEmits<{
@@ -1074,7 +1071,6 @@ defineExpose({
                 :enableVoiceInput="enableVoiceInput"
                 :isUploading="isUploading"
                 :isOverlay="props.isOverlay"
-                :widgetBasePath="props.widgetBasePath"
                 @toggleSidebar="handleToggleSidebar"
                 @createConversation="handleCreateConversation"
                 @close="handleClose"

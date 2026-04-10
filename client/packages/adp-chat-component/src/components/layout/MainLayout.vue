@@ -56,8 +56,6 @@ export interface Props extends ChatRelatedProps {
     isUploading?: boolean;
     /** 是否显示遮罩层 */
     isOverlay?: boolean;
-    /** Widget SDK 的基础路径，支持相对路径或 CDN 地址 */
-    widgetBasePath?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -76,7 +74,6 @@ const props = withDefaults(defineProps<Props>(), {
     isUploading: false,
     enableVoiceInput: true,
     isOverlay: false,
-    widgetBasePath: undefined,
 });
 
 // 合并 i18n 配置，获取 createConversation 文本
@@ -217,7 +214,6 @@ defineExpose({
                 :enableVoiceInput="enableVoiceInput"
                 :isUploading="isUploading"
                 :isOverlay="isOverlay"
-                :widgetBasePath="props.widgetBasePath"
                 @send="(query, fileList, conversationId, applicationId) => emit('send', query, fileList, conversationId, applicationId)"
                 @stop="emit('stop')"
                 @loadMore="(conversationId, lastRecordId) => emit('loadMore', conversationId, lastRecordId)"
