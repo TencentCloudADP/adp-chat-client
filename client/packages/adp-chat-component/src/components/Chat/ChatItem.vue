@@ -464,7 +464,8 @@ const referenceDialogTitle = computed(() => {
         v-model:visible="referenceDialogVisible"
         :header="referenceDialogTitle"
         :footer="false"
-        :width="isMobile ? '92%' : '720px'"
+        :width="isMobile ? '92%' : '80%'"
+        top="5vh"
         destroy-on-close
     >
         <div v-if="activeReference" class="reference-dialog">
@@ -477,7 +478,12 @@ const referenceDialogTitle = computed(() => {
                 </TLink>
             </div>
             <div class="reference-dialog__content">
-                {{ getReferenceContent(activeReference) }}
+                <MdContent
+                    :content="getReferenceContent(activeReference)"
+                    role="assistant"
+                    :theme="theme"
+                    :language="language"
+                />
             </div>
         </div>
     </TDialog>
@@ -651,7 +657,6 @@ const referenceDialogTitle = computed(() => {
 
 .reference-dialog__content {
     color: var(--td-text-color-primary);
-    white-space: pre-wrap;
     word-break: break-word;
     line-height: 1.7;
 }
