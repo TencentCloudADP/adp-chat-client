@@ -1,3 +1,42 @@
+## v0.4.0 (2026-04-16)
+
+### Feat
+
+- **client**: add widget support
+- **client**: add detailed reference preview
+- **client**: add interactive operation capabilities to widgets
+- **client**: add custom path parameter for widget configuration​
+- **client**: implement lazy loading for conversation flow widgets
+- **client**: keep SSE streams alive across conversation switches
+- **server**: add SERVER_RESPONSE_TIMEOUT config item to set server timeout
+- **server**: add iframe origin policy and cross-site cookie auth linkage
+- **vendor**: use customer account id as visitor_biz_id for Tencent Cloud ADP
+- **example**: add vue-component-example
+- **dev**: add local PostgreSQL dev_withdb workflow
+
+### Fix
+
+- **client**: bump vite version
+- **client**: use a better way to import widget package, fix loading failed in sub-path deployment
+- **client**: open markdown links in new tab
+- **client**: allow video tag in markdown content
+- **client**: fix chat history reload edge cases
+- **server**: add heartbeat and sock_read settings to prevent timeout
+- **server**: load env file in create_app
+- **component**: fix currentConversationId props
+- **component**: fix build issues
+- **vendor**: remove extra json mixed in the thought text
+- **pack**: relax python version constraints to resolve packaging failures
+- **pack**: fix the out-of-memory issue during make pack
+
+### Refactor
+
+- **protocol**: migrate to ADP chat protocol v2
+
+### Perf
+
+- **server**: make the conversational response experience smoother
+
 ## v0.3.1 (2026-02-26)
 
 ### Feat
