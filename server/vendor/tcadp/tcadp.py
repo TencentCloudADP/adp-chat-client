@@ -545,6 +545,8 @@ class TCADP(BaseVendor):
     ):
         if not contents:
             contents = [{"Type": "text", "Text": ""}]
+        if custom_variables:
+            contents.append({"Type": "custom_variables", "CustomVariables": custom_variables})
 
         if is_new_conversation:
             conversation = await conversation_cb.create()
@@ -559,6 +561,7 @@ class TCADP(BaseVendor):
                 "Contents": contents,
                 "Incremental": True,
                 "EnableMultiIntent": True,
+                "VisitorId": account_id,
                 "Stream": "enable",
             }
             headers = {
