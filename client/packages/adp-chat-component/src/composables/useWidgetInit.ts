@@ -1,10 +1,12 @@
 /**
- * Widget 初始化 Composable
+ * @module useWidgetInit
+ * @description Widget 初始化 Composable，管理 widget 的初始化生命周期
  *
- * 从 MdContent.vue 中提取 widget 的初始化生命周期管理：
+ * 核心职责：
+ * - 事件委托模式：在容器上监听冒泡事件，不受 v-html DOM 替换影响
  * - 防抖 initWidgets（避免 SSE 流中频繁触发）
  * - 版本追踪（防止旧的异步操作覆盖新的）
- * - Custom Element 升级与事件绑定
+ * - Custom Element 升级
  * - disable 属性同步
  */
 
@@ -57,27 +59,39 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
   const isMounted = ref(false);
   let initWidgetsVersion = 0;
   let initWidgetsTimer: ReturnType<typeof setTimeout> | null = null;
+  let delegationAttached = false;
 
   /**
-   * 为 widget 元素设置事件监听器
+   * 从事件源 widget 元素向上查找 wrapper，提取 widgetId 和 widgetRunId
+   * @param {Element} widgetEl - 触发事件的 widget DOM 元素
+   * @returns {{ widgetId: string; widgetRunId: string }} widget 标识信息
    */
-  function setupWidgetListeners(widgetEl: Element): void {
-    if (widgetEl.hasAttribute('data-events-attached')) {
-      return;
-    }
-    widgetEl.setAttribute('data-events-attached', 'true');
-
+  function resolveWidgetIds(widgetEl: Element): { widgetId: string; widgetRunId: string } {
     const wrapper = widgetEl.closest('.adp-widget-wrapper');
     const widgetId = wrapper?.getAttribute('data-widget-id') || getWidgetId() || '';
     const widgetRunId = wrapper?.getAttribute('data-widget-run-id') || getWidgetRunId() || '';
+    return { widgetId, widgetRunId };
+  }
 
-    // widget-action 事件监听器（简单交互）
-    widgetEl.addEventListener('widget-action', ((event: CustomEvent) => {
+  /**
+   * 在容器上设置事件委托监听器（仅绑定一次）
+   * @description 利用事件冒泡机制，无论 v-html 如何替换 DOM，事件都能被正确捕获。
+   *              监听 widget-action、widget-rendered、cardsubmit 三类事件。
+   * @param {HTMLElement} container - 事件委托的容器元素
+   */
+  function setupEventDelegation(container: HTMLElement): void {
+    if (delegationAttached) return;
+    delegationAttached = true;
+
+    // widget-action 事件委托（简单交互）
+    container.addEventListener('widget-action', ((event: CustomEvent) => {
+      const widgetEl = (event.target as Element)?.closest?.('adp-widget') || event.target as Element;
+      if (!widgetEl) return;
       const { action } = event.detail || {};
       if (action) {
+        const { widgetId, widgetRunId } = resolveWidgetIds(widgetEl);
         onWidgetAction?.(action as WidgetActionPayload);
 
-        // 同时触发 widgetEvent，以便上层组件可以统一处理
         const syntheticEvent = new CustomEvent('widget-event', {
           detail: { action },
           bubbles: true,
@@ -87,16 +101,22 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
       }
     }) as EventListener);
 
-    // widget-rendered 事件监听器
-    widgetEl.addEventListener('widget-rendered', ((event: CustomEvent) => {
+    // widget-rendered 事件委托
+    container.addEventListener('widget-rendered', ((event: CustomEvent) => {
+      const widgetEl = (event.target as Element)?.closest?.('adp-widget') || event.target as Element;
+      if (!widgetEl) return;
       const { success, error } = event.detail || {};
+      const { widgetId, widgetRunId } = resolveWidgetIds(widgetEl);
       onWidgetRendered?.({ success, error }, widgetRunId, widgetId);
     }) as EventListener);
 
-    // cardsubmit 事件监听器（表单提交）
-    widgetEl.addEventListener('cardsubmit', ((event: CustomEvent) => {
+    // cardsubmit 事件委托（表单提交）
+    container.addEventListener('cardsubmit', ((event: CustomEvent) => {
+      const widgetEl = (event.target as Element)?.closest?.('adp-widget') || event.target as Element;
+      if (!widgetEl) return;
       const { action } = event.detail || {};
       if (action) {
+        const { widgetId, widgetRunId } = resolveWidgetIds(widgetEl);
         const syntheticEvent = new CustomEvent('widget-event', {
           detail: { action },
           bubbles: true,
@@ -104,16 +124,13 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
         });
         onWidgetEvent?.(syntheticEvent, widgetRunId, widgetId);
       }
-    }) as EventListener);
-
-    // formsubmit 事件监听器
-    widgetEl.addEventListener('formsubmit', (() => {
-      // formsubmit 通常不需要向外传递，只在内部处理
     }) as EventListener);
   }
 
   /**
    * 更新 widget 元素的 disable 属性
+   * @param {Element} widgetEl - 目标 widget DOM 元素
+   * @param {boolean} isDisabled - 是否禁用交互
    */
   function updateWidgetDisable(widgetEl: Element, isDisabled: boolean): void {
     if (isDisabled) {
@@ -125,6 +142,10 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
 
   /**
    * 初始化页面中的所有 widget
+   * @description 负责 SDK 懒加载、Custom Element 升级（通过 replaceChild 触发
+   *              connectedCallback）以及 disable 属性同步。
+   *              事件绑定由 {@link setupEventDelegation} 通过事件委托统一处理。
+   * @returns {Promise<void>}
    */
   async function initWidgets(): Promise<void> {
     const currentVersion = ++initWidgetsVersion;
@@ -133,6 +154,9 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
 
     const widgetWrappers = containerRef.value.querySelectorAll('.adp-widget-wrapper');
     if (widgetWrappers.length === 0) return;
+
+    // 确保事件委托已设置
+    setupEventDelegation(containerRef.value);
 
     // 懒加载 widget SDK
     const wasLoaded = isWidgetSdkLoaded();
@@ -167,19 +191,18 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
       const widgetEl = wrapper.querySelector('adp-widget');
       if (!widgetEl) return;
 
-      // 如果已经有事件监听器，只需更新 disable 属性
-      if (widgetEl.hasAttribute('data-events-attached')) {
+      // 如果已经完成 Custom Element 升级（有 data-upgraded 标记），只需更新 disable 属性
+      if (widgetEl.hasAttribute('data-upgraded')) {
         updateWidgetDisable(widgetEl, isDisabled);
         return;
       }
 
-      // 对所有未绑定事件的 widget 执行替换操作
-      // 通过替换元素触发 Custom Element 的 connectedCallback
+      // 对未升级的 widget 执行替换操作，触发 Custom Element 的 connectedCallback
       const parent = widgetEl.parentNode;
       if (parent) {
         const newWidget = document.createElement('adp-widget');
         Array.from(widgetEl.attributes).forEach(attr => {
-          if (attr.name === 'data-events-attached') return;
+          if (attr.name === 'data-upgraded') return;
           newWidget.setAttribute(attr.name, attr.value);
         });
 
@@ -191,26 +214,26 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
         customElements.whenDefined('adp-widget').then(() => {
           requestAnimationFrame(() => {
             setTimeout(() => {
-              if (savedVersion !== initWidgetsVersion && !newWidget.isConnected) {
+              // 版本不匹配或元素已断连时跳过升级标记
+              if (savedVersion !== initWidgetsVersion || !newWidget.isConnected) {
                 return;
               }
-              if (newWidget.isConnected) {
-                setupWidgetListeners(newWidget);
-              }
+              newWidget.setAttribute('data-upgraded', 'true');
             }, 0);
           });
         });
         return;
       }
 
-      // fallback: 直接尝试添加事件
+      // fallback: 直接标记并更新 disable
       updateWidgetDisable(widgetEl, isDisabled);
-      setupWidgetListeners(widgetEl);
+      widgetEl.setAttribute('data-upgraded', 'true');
     });
   }
 
   /**
-   * 防抖版的 initWidgets
+   * 防抖版的 initWidgets，延迟 50ms 执行
+   * @description 避免 SSE 流式传输中内容频繁变化导致重复初始化
    */
   function debouncedInitWidgets(): void {
     if (initWidgetsTimer) {
@@ -250,6 +273,10 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
   // 生命周期
   onMounted(() => {
     isMounted.value = true;
+    // 挂载时立即设置事件委托
+    if (containerRef.value) {
+      setupEventDelegation(containerRef.value);
+    }
     if (hasWidgetContent(content())) {
       initWidgets();
     }
@@ -261,6 +288,7 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
       initWidgetsTimer = null;
     }
     initWidgetsVersion++;
+    delegationAttached = false;
   });
 
   return {

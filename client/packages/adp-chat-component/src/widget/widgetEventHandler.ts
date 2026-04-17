@@ -143,8 +143,9 @@ export function handleWidgetEvent(
 }
 
 /**
- * 禁用指定 recordId 消息下的所有 widgets
- * 通过 DOM 操作设置 adp-widget 元素的 disable 属性
+ * 禁用指定 recordId 消息下的所有 widget 交互
+ * @description 通过 DOM 操作查找匹配 recordId 的 wrapper，设置其中 adp-widget 的 disable 属性
+ * @param {string} recordId - 消息记录 ID
  */
 export function disableWidgetsByRecordId(recordId: string): void {
   if (!recordId) {

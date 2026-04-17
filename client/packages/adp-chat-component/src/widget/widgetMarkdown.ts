@@ -1,6 +1,6 @@
 /**
- * Widget Markdown 处理模块
- * 包含 markdown-it 的 adp-widget 插件和 HTML 编解码工具函数
+ * @module widgetMarkdown
+ * @description Widget Markdown 处理模块，提供 markdown-it 的 adp-widget 插件和 HTML 编解码工具函数
  */
 
 import type MarkdownIt from 'markdown-it';
@@ -63,6 +63,19 @@ export function formatJsonWithHighlight(jsonStr: string): string {
 }
 
 /**
+ * 简单字符串哈希函数，用于生成稳定的 elementId
+ */
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0; // Convert to 32bit integer
+  }
+  return Math.abs(hash).toString(36);
+}
+
+/**
  * 自定义 markdown-it 插件：处理 adp-widget 代码块
  * 将 ```adp-widget 代码块渲染为 <adp-widget> 组件
  */
@@ -97,8 +110,9 @@ export function createMarkdownItWidgetPlugin(options: WidgetRenderOptions) {
         const actualWidgetId = parsedWidgetId || options.widgetId || '';
         const actualWidgetRunId = parsedWidgetRunId || options.widgetRunId || '';
 
-        // 生成唯一的 DOM ID（用于 DOM 元素标识，不是业务 widgetId）
-        const elementId = `widget-${Date.now()}-${idx}`;
+        // 生成稳定的 DOM ID（基于内容哈希 + 索引，不使用 Date.now()）
+        // 这样 computed 重新计算时生成相同的 HTML，减少不必要的 DOM 重建
+        const elementId = `widget-${simpleHash(widgetJson)}-${idx}`;
 
         return `<div class="adp-widget-wrapper" data-widget-id="${actualWidgetId}" data-widget-run-id="${actualWidgetRunId}" data-record-id="${options.recordId || ''}" data-element-id="${elementId}">
         <adp-widget 
@@ -116,7 +130,8 @@ export function createMarkdownItWidgetPlugin(options: WidgetRenderOptions) {
 }
 
 /**
- * 显示 widget 加载失败时的回退 JSON 展示
+ * 在 widget 加载失败时显示 JSON 回退视图
+ * @param {NodeListOf<Element>} wrappers - widget wrapper DOM 节点列表
  */
 export function showFallbackJson(wrappers: NodeListOf<Element>): void {
   wrappers.forEach((wrapper) => {
