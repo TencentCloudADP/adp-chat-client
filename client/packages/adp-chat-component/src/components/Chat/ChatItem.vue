@@ -190,9 +190,11 @@ async function copyContent(event: any, content: string | undefined, type: string
 
 /**
  * 判断是否已评分
+ * 注意：服务端可能返回 null/undefined/0，这些都视为"未评分"
  */
 const isRated = () => {
-    return recordScore.value != ScoreValue.Unknown && recordScore.value !== undefined;
+    const score = recordScore.value;
+    return score !== undefined && score !== null && score !== ScoreValue.Unknown;
 };
 
 /**

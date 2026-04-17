@@ -1,6 +1,6 @@
 /**
- * Widget SDK 加载管理模块
- * 负责懒加载 adp-widget SDK 并跟踪加载状态
+ * @module widgetSdk
+ * @description Widget SDK 加载管理模块，负责懒加载 adp-widget SDK 并跟踪加载状态
  */
 
 /** Widget SDK 加载 Promise 缓存 */
@@ -8,7 +8,8 @@ let widgetSdkLoadPromise: Promise<void> | null = null;
 
 /**
  * 检查 widget SDK 是否已加载
- * 通过检测 customElements 中是否注册了 adp-widget 来判断
+ * @description 通过检测 customElements 中是否注册了 adp-widget 来判断
+ * @returns {boolean} SDK 是否已加载
  */
 export function isWidgetSdkLoaded(): boolean {
   return typeof customElements !== 'undefined' && customElements.get('adp-widget') !== undefined;
@@ -16,8 +17,8 @@ export function isWidgetSdkLoaded(): boolean {
 
 /**
  * 懒加载 widget SDK
- * 只在需要时加载，避免不必要的网络请求。
- * 多次调用会复用同一个 Promise，确保只加载一次。
+ * @description 仅在需要时加载，多次调用复用同一个 Promise，确保只加载一次
+ * @returns {Promise<void>} SDK 加载完成的 Promise
  */
 export function loadWidgetSdk(): Promise<void> {
   if (isWidgetSdkLoaded()) {
@@ -51,8 +52,10 @@ export function loadWidgetSdk(): Promise<void> {
 
 /**
  * 检查内容中是否包含完整的 widget 代码块
- * 只有当代码块以结束标记 ``` 结束时才返回 true，
- * 避免在流式传输中处理不完整的 widget JSON
+ * @description 仅当代码块以结束标记 ``` 闭合时返回 true，
+ *              避免在流式传输中处理不完整的 widget JSON
+ * @param {string | undefined} content - 待检查的 Markdown 内容
+ * @returns {boolean} 是否包含完整的 widget 代码块
  */
 export function hasWidgetContent(content: string | undefined): boolean {
   if (!content) return false;

@@ -1,7 +1,8 @@
 /**
- * Widget 模块统一导出
+ * @module widget
+ * @description Widget 模块统一导出
  *
- * 将 widget 相关功能划分为三个子模块：
+ * 子模块划分：
  * - widgetSdk: SDK 加载管理
  * - widgetMarkdown: Markdown 渲染插件与工具
  * - widgetEventHandler: 事件路由与处理
