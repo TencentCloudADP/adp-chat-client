@@ -19,17 +19,42 @@ let axiosInstance: AxiosInstance = axios.create(defaultConfig);
 // 标记是否设置了自定义响应拦截器
 let hasCustomResponseInterceptor = false;
 
+interface RequestInterceptorHandler {
+    onFulfilled?: (config: any) => any;
+    onRejected?: (error: any) => any;
+}
+
+interface ResponseInterceptorHandler {
+    onFulfilled?: (response: AxiosResponse) => any;
+    onRejected?: (error: any) => any;
+}
+
+const requestInterceptors: RequestInterceptorHandler[] = [];
+const responseInterceptors: ResponseInterceptorHandler[] = [];
+
+const applyStoredInterceptors = (instance: AxiosInstance) => {
+    requestInterceptors.forEach(({ onFulfilled, onRejected }) => {
+        instance.interceptors.request.use(onFulfilled, onRejected);
+    });
+    responseInterceptors.forEach(({ onFulfilled, onRejected }) => {
+        instance.interceptors.response.use(onFulfilled, onRejected);
+    });
+    hasCustomResponseInterceptor = responseInterceptors.length > 0;
+};
+
 /**
  * 配置 axios 实例
  * @param config axios 配置
  */
 export const configureAxios = (config: AxiosRequestConfig) => {
+    const { apiDetailConfig: _apiDetailConfig, ...axiosConfig } = config as AxiosRequestConfig & {
+        apiDetailConfig?: unknown;
+    };
     axiosInstance = axios.create({
         ...defaultConfig,
-        ...config,
+        ...axiosConfig,
     });
-    // 重置拦截器标记
-    hasCustomResponseInterceptor = false;
+    applyStoredInterceptors(axiosInstance);
 };
 
 /**
@@ -41,6 +66,7 @@ export const setRequestInterceptor = (
     onFulfilled?: (config: any) => any,
     onRejected?: (error: any) => any
 ) => {
+    requestInterceptors.push({ onFulfilled, onRejected });
     axiosInstance.interceptors.request.use(onFulfilled, onRejected);
 };
 
@@ -53,6 +79,7 @@ export const setResponseInterceptor = (
     onFulfilled?: (response: AxiosResponse) => any,
     onRejected?: (error: any) => any
 ) => {
+    responseInterceptors.push({ onFulfilled, onRejected });
     hasCustomResponseInterceptor = true;
     axiosInstance.interceptors.response.use(onFulfilled, onRejected);
 };

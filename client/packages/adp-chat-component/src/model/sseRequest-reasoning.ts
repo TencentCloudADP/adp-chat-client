@@ -24,6 +24,16 @@ interface FetchSSEOptions {
  */
 type FetchFn = () => Promise<any>
 
+const getErrorMessage = (error: unknown): string | undefined => {
+  if (typeof error === 'string') {
+    return error
+  }
+  if (error && typeof error === 'object' && 'message' in error && typeof error.message === 'string') {
+    return error.message
+  }
+  return undefined
+}
+
 /**
  * 处理SSE流式请求
  * @async
@@ -54,8 +64,8 @@ export const fetchSSE = async (fetchFn: FetchFn, options: FetchSSEOptions): Prom
       }
       if (event.Type === 'error') {
         const errorMsg = event.Error?.Message
-        complete?.(true, errorMsg)
         fail?.(errorMsg)
+        complete?.(false, errorMsg)
         return
       }
       success(event)
@@ -64,6 +74,8 @@ export const fetchSSE = async (fetchFn: FetchFn, options: FetchSSEOptions): Prom
     // abort 停止会走到catch
     console.log(err)
     fail?.(err)
+    complete?.(false, getErrorMessage(err))
+    return
   }
   complete?.(true)
 
