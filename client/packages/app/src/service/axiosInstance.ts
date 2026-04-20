@@ -56,8 +56,8 @@ instance.interceptors.response.use(
     } else {
       console.error('Network Error:', error.message)
     }
-    console.log('error',error)
-    if (error.response && error.response.data && error.response.data.Error && error.response.data.Error.Exception == 'AccountUnauthorized') {
+    console.log('[error] axio',error)
+    if (error.response && error.response.status === 401) {
       logout(() => router.replace({ name: 'login' }));
     }
     return Promise.reject(error)

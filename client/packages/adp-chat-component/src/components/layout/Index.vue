@@ -337,6 +337,37 @@ const { mergedApiDetailConfig } = useApiConfig({
     apiConfig: computed((): ApiConfig | undefined => props.apiConfig),
 });
 
+const isStreamAbortError = (msg: unknown) => {
+    return !!(
+        msg &&
+        typeof msg === 'object' &&
+        (
+            ('name' in msg && msg.name === 'AbortError') ||
+            ('code' in msg && msg.code === 'ERR_CANCELED')
+        )
+    );
+};
+
+const handleStreamFailure = (msg: unknown) => {
+    if (isStreamAbortError(msg)) {
+        return;
+    }
+    if (msg && typeof msg === 'object' && 'code' in msg && msg.code === 'ERR_NETWORK') {
+        const networkErrorText = mergedChatI18n.value.networkError;
+        MessagePlugin.error(networkErrorText);
+        emit('message', MessageCode.NETWORK_ERROR, networkErrorText);
+        return;
+    }
+    if (typeof msg === 'string') {
+        MessagePlugin.error(msg);
+        emit('message', MessageCode.SEND_MESSAGE_FAILED, msg);
+        return;
+    }
+    const sendErrorText = mergedChatI18n.value.sendError;
+    MessagePlugin.error(sendErrorText);
+    emit('message', MessageCode.SEND_MESSAGE_FAILED, sendErrorText);
+};
+
 const hydrateReferences = async (
     records: Record[],
     options: { applicationId?: string; shareId?: string } = {}
@@ -638,51 +669,27 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
                     });
                 }
             },
-            complete(isOk, msg) {
-                if (isOk) {
-                    const targetState = getConversationRuntimeState(streamConversationKey);
-                    if (targetState) {
-                        targetState.isChatting = false;
-                        targetState.abortController = null;
-                    }
-                    // 完成后滚动到底部并延迟重置用户滚动状态
-                    if (currentConversationStateKey.value === streamConversationKey) {
-                        nextTick(() => {
-                            mainLayoutRef.value?.getChatRef()?.backToBottom();
-                            setTimeout(() => {
-                                mainLayoutRef.value?.getChatRef()?.setHasUserScrolled(false);
-                            }, 500);
-                        });
-                    }
+            complete(isOk) {
+                const targetState = getConversationRuntimeState(streamConversationKey);
+                if (targetState) {
+                    targetState.isChatting = false;
+                    targetState.abortController = null;
                 }
-                if (msg) {
-                    MessagePlugin.error(msg);
-                    emit('message', MessageCode.SEND_MESSAGE_FAILED, msg);
+                if (!isOk) {
+                    return;
+                }
+                // 完成后滚动到底部并延迟重置用户滚动状态
+                if (currentConversationStateKey.value === streamConversationKey) {
+                    nextTick(() => {
+                        mainLayoutRef.value?.getChatRef()?.backToBottom();
+                        setTimeout(() => {
+                            mainLayoutRef.value?.getChatRef()?.setHasUserScrolled(false);
+                        }, 500);
+                    });
                 }
             },
             fail(msg) {
-                // 判断是否为 AbortError（用户取消请求）
-                if (msg && typeof msg === 'object' &&
-                    (
-                        ('name' in msg && msg.name === 'AbortError') ||
-                        ('code' in msg && msg.code === 'ERR_CANCELED')
-                    )
-                ) {
-                    return;
-                }
-                // 判断是否为 AxiosError（网络错误）
-                if (msg && typeof msg === 'object' && ('code' in msg && msg.code === 'ERR_NETWORK')) {
-                    const networkErrorText = mergedChatI18n.value.networkError;
-                    MessagePlugin.error(networkErrorText);
-                    emit('message', MessageCode.NETWORK_ERROR, networkErrorText);
-                } else if (msg && typeof msg === 'string') {
-                    MessagePlugin.error(msg);
-                    emit('message', MessageCode.SEND_MESSAGE_FAILED, msg);
-                } else {
-                    const sendErrorText = mergedChatI18n.value.sendError;
-                    MessagePlugin.error(sendErrorText);
-                    emit('message', MessageCode.SEND_MESSAGE_FAILED, sendErrorText);
-                }
+                handleStreamFailure(msg);
             }
         }
     );
@@ -1001,32 +1008,23 @@ const sendWidgetActionSSE = async (conversationId: string, applicationId: string
                     }
                 }
             },
-            complete(isOk, msg) {
+            complete(isOk) {
                 const targetState = conversationRuntimeStates.value[streamConversationKey];
                 if (targetState) {
                     targetState.isChatting = false;
                     targetState.abortController = null;
+                }
+                if (!isOk) {
+                    return;
                 }
                 if (currentConversationStateKey.value === streamConversationKey) {
                     nextTick(() => {
                         mainLayoutRef.value?.getChatRef()?.backToBottom();
                     });
                 }
-                if (msg) {
-                    MessagePlugin.error(msg);
-                    emit('message', MessageCode.SEND_MESSAGE_FAILED, msg);
-                }
             },
             fail(msg) {
-                if (msg && typeof msg === 'object' &&
-                    (('name' in msg && msg.name === 'AbortError') || ('code' in msg && msg.code === 'ERR_CANCELED'))
-                ) {
-                    return;
-                }
-                const targetState = conversationRuntimeStates.value[streamConversationKey];
-                if (targetState) {
-                    targetState.isChatting = false;
-                }
+                handleStreamFailure(msg);
             }
         }
     );

@@ -15,8 +15,8 @@ import { logout } from '@/service/login'
 setResponseInterceptor(
   (response) => response.data,
   async (error) => {
-    const responseData = error.response?.data as { Error?: { Exception?: string } } | undefined
-    if (responseData?.Error?.Exception === 'AccountUnauthorized') {
+    console.log('[error] app', error)
+    if (error.response && error.response.status === 401) {
       logout(() => router.replace({ name: 'login' }))
     }
     return Promise.reject(error)
