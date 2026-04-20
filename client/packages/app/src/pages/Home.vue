@@ -67,6 +67,7 @@ const chatI18n = computed(() => ({
     cancelShare: t('operation.cancelShare'),
     sendError: t('conversation.sendError'),
     networkError: t('conversation.networkError'),
+    loginExpired: t('conversation.loginExpired'),
     createConversation: t('conversation.createConversation'),
     copySuccess: t('common.copySuccess'),
     copyFailed: t('common.copyFailed'),

@@ -352,6 +352,15 @@ const handleStreamFailure = (msg: unknown) => {
     if (isStreamAbortError(msg)) {
         return;
     }
+    if (msg && typeof msg === 'object' && 'response' in msg && msg.response && typeof msg.response === 'object') {
+        const response = msg.response as { status?: number };
+        if (response.status === 401) {
+            const loginExpiredText = mergedChatI18n.value.loginExpired;
+            MessagePlugin.error(loginExpiredText);
+            emit('message', MessageCode.SEND_MESSAGE_FAILED, loginExpiredText);
+            return;
+        }
+    }
     if (msg && typeof msg === 'object' && 'code' in msg && msg.code === 'ERR_NETWORK') {
         const networkErrorText = mergedChatI18n.value.networkError;
         MessagePlugin.error(networkErrorText);
