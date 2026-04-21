@@ -123,9 +123,9 @@ export const computeIsMobile = (options: {
 }): boolean => {
   const { isOverlay = false, width = 0, height = 0, container } = options
 
-  // 1. 非浮层模式（撑满容器）：根据容器尺寸判断
+  // 1. 非浮层模式（撑满容器）：综合 UA + 屏幕尺寸 + 容器尺寸判断
   if (!isOverlay) {
-    return isSmallContainer(container)
+    return detectMobileByScreen() || isSmallContainer(container)
   }
 
   // 2. 浮层模式：根据宽高判断

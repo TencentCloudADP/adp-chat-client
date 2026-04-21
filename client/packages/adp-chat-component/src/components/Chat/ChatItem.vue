@@ -362,6 +362,7 @@ const referenceDialogTitle = computed(() => {
                         :quoteInfos="quoteInfos"
                         :language="language"
                         :recordId="item.RecordId"
+                        :enableScale="isMobile"
                         @widgetEvent="handleWidgetEvent"
                     />
                     <CustomizedIcon :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon copy-icon" name="copy" :theme="theme"
@@ -378,6 +379,7 @@ const referenceDialogTitle = computed(() => {
                     :language="language"
                     :recordId="item.RecordId"
                     :disable="!isLastMsg"
+                    :enableScale="isMobile"
                     @widgetEvent="handleWidgetEvent"
                 />
                 <OptionCard v-if="optionCards && optionCards.length" :cards="optionCards" :sendMessage="handleSendMessage" />
@@ -444,7 +446,7 @@ const referenceDialogTitle = computed(() => {
                 <Tooltip :content="i18n.good" destroyOnClose showArrow theme="default">
                     <CustomizedIcon
                         :size="isMobile ? 'm' : 's'"
-                        :class="{ disabled: isRated() && recordScore !== ScoreValue.Like, 'not-allowed': isRated() || !canRate }"
+                        :class="{ disabled: !canRate || (isRated() && recordScore !== ScoreValue.Like), 'not-allowed': isRated() || !canRate }"
                         class="control-icon icon"
                         :name="recordScore === ScoreValue.Like ? 'thumbs_up_active' : 'thumbs_up'"
                         :nativeIcon="record.Score === ScoreValue.Like"
@@ -453,7 +455,7 @@ const referenceDialogTitle = computed(() => {
                 <Tooltip :content="i18n.bad" destroyOnClose showArrow theme="default">
                     <CustomizedIcon
                         :size="isMobile ? 'm' : 's'"
-                        :class="{ disabled: isRated() && recordScore !== ScoreValue.Dislike, 'not-allowed': isRated() || !canRate }"
+                        :class="{ disabled: !canRate || (isRated() && recordScore !== ScoreValue.Dislike), 'not-allowed': isRated() || !canRate }"
                         class="control-icon icon"
                         :name="recordScore === ScoreValue.Dislike ? 'thumbs_down_active' : 'thumbs_down'"
                         :nativeIcon="record.Score === ScoreValue.Dislike"

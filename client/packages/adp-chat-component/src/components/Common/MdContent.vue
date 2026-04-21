@@ -42,6 +42,13 @@ interface Props extends ThemeProps {
   recordId?: string;
   /** 是否禁用所有 widget 交互 */
   disable?: boolean;
+  /**
+   * 是否启用 Widget 缩放自适应
+   * - true: 自适应父容器宽度（推荐移动端使用）
+   * - false/undefined: 不缩放（默认）
+   * - number: 按指定比例缩放（如 0.5 表示缩放到 50%）
+   */
+  enableScale?: boolean | number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -52,6 +59,7 @@ const props = withDefaults(defineProps<Props>(), {
   widgetRunId: '',
   recordId: '',
   disable: false,
+  enableScale: false,
   ...themePropsDefaults,
 });
 
@@ -157,11 +165,12 @@ const renderedMarkdown = computed(() => {
 });
 
 // 使用 composable 管理 widget 初始化生命周期
-// 包含：防抖 initWidgets、版本追踪、Custom Element 升级、事件绑定、disable 同步
+// 包含：防抖 initWidgets、版本追踪、Custom Element 升级、事件绑定、disable 同步、缩放自适应
 useWidgetInit({
   containerRef: mdContentRef,
   content: () => props.content,
   disable: () => props.disable,
+  enableScale: () => props.enableScale,
   widgetId: () => props.widgetId,
   widgetRunId: () => props.widgetRunId,
   recordId: () => props.recordId,
@@ -217,11 +226,13 @@ useWidgetInit({
   padding: 0;
   border-radius: var(--td-radius-medium, 8px);
   overflow: hidden;
+  /* 缩放时 overflow 会被 JS 动态设置为 visible */
 }
 
 :deep(.adp-widget-wrapper adp-widget) {
   display: block;
   width: fit-content;
+  /* transform / transformOrigin 由 JS 动态设置 */
 }
 
 /* Widget 加载失败回退样式 */
