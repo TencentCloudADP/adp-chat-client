@@ -3,11 +3,13 @@
  * @description Widget 初始化 Composable，管理 widget 的初始化生命周期
  *
  * 核心职责：
- * - 事件委托模式：在容器上监听冒泡事件，不受 v-html DOM 替换影响
- * - 防抖 initWidgets（避免 SSE 流中频繁触发）
- * - 版本追踪（防止旧的异步操作覆盖新的）
+ * - 事件委托：在容器上监听 widget-action、cardsubmit 冒泡事件
+ * - 直接绑定：在每个 widget 元素上监听 widget-rendered 事件
+ * - 防抖 initWidgets，避免 SSE 流中频繁触发
+ * - 版本追踪，防止旧的异步操作覆盖新的
  * - Custom Element 升级
  * - disable 属性同步
+ * - Widget 缩放自适应
  */
 
 import { ref, watch, onMounted, onBeforeUnmount, type Ref } from 'vue';
@@ -36,6 +38,13 @@ export interface UseWidgetInitOptions {
   widgetRunId: () => string;
   /** 消息 Record ID */
   recordId: () => string;
+  /**
+   * 是否启用 Widget 缩放自适应
+   * - true: 自适应父容器宽度（推荐移动端使用）
+   * - false/undefined: 不缩放（默认）
+   * - number: 按指定比例缩放（如 0.5 表示缩放到 50%）
+   */
+  enableScale?: () => boolean | number;
   /** 触发事件回调 */
   onWidgetAction?: (action: WidgetActionPayload) => void;
   onWidgetEvent?: (event: CustomEvent, widgetRunId: string, widgetId: string) => void;
@@ -48,6 +57,7 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
     containerRef,
     content,
     disable,
+    enableScale,
     widgetId: getWidgetId,
     widgetRunId: getWidgetRunId,
     onWidgetAction,
@@ -75,15 +85,15 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
 
   /**
    * 在容器上设置事件委托监听器（仅绑定一次）
-   * @description 利用事件冒泡机制，无论 v-html 如何替换 DOM，事件都能被正确捕获。
-   *              监听 widget-action、widget-rendered、cardsubmit 三类事件。
+   * @description 利用事件冒泡机制，监听 widget-action、cardsubmit 事件，
+   *              不受 v-html DOM 替换影响。
    * @param {HTMLElement} container - 事件委托的容器元素
    */
   function setupEventDelegation(container: HTMLElement): void {
     if (delegationAttached) return;
     delegationAttached = true;
 
-    // widget-action 事件委托（简单交互）
+    // widget-action 事件委托
     container.addEventListener('widget-action', ((event: CustomEvent) => {
       const widgetEl = (event.target as Element)?.closest?.('adp-widget') || event.target as Element;
       if (!widgetEl) return;
@@ -101,16 +111,7 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
       }
     }) as EventListener);
 
-    // widget-rendered 事件委托
-    container.addEventListener('widget-rendered', ((event: CustomEvent) => {
-      const widgetEl = (event.target as Element)?.closest?.('adp-widget') || event.target as Element;
-      if (!widgetEl) return;
-      const { success, error } = event.detail || {};
-      const { widgetId, widgetRunId } = resolveWidgetIds(widgetEl);
-      onWidgetRendered?.({ success, error }, widgetRunId, widgetId);
-    }) as EventListener);
-
-    // cardsubmit 事件委托（表单提交）
+    // cardsubmit 事件委托
     container.addEventListener('cardsubmit', ((event: CustomEvent) => {
       const widgetEl = (event.target as Element)?.closest?.('adp-widget') || event.target as Element;
       if (!widgetEl) return;
@@ -128,6 +129,34 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
   }
 
   /**
+   * 在 widget 元素上直接绑定 widget-rendered 事件监听器
+   * @description widget-rendered 事件以 bubbles:false 派发，需直接在元素上监听。
+   *              通过 data-rendered-bindable 标记防止重复绑定。
+   * @param {Element} widgetEl - 目标 adp-widget DOM 元素
+   */
+  function bindRenderedListener(widgetEl: Element): void {
+    // 防止重复绑定
+    if (widgetEl.hasAttribute('data-rendered-bindable')) return;
+    widgetEl.setAttribute('data-rendered-bindable', 'true');
+
+    widgetEl.addEventListener('widget-rendered', ((event: CustomEvent) => {
+      const { success, error } = event.detail || {};
+      const { widgetId, widgetRunId } = resolveWidgetIds(widgetEl);
+      onWidgetRendered?.({ success, error }, widgetRunId, widgetId);
+
+      // 渲染完成后执行缩放适配
+      if (enableScale?.()) {
+        const wrapper = widgetEl.closest('.adp-widget-wrapper');
+        if (wrapper) {
+          requestAnimationFrame(() => {
+            scaleWidgetIfNeeded(wrapper);
+          });
+        }
+      }
+    }) as EventListener);
+  }
+
+  /**
    * 更新 widget 元素的 disable 属性
    * @param {Element} widgetEl - 目标 widget DOM 元素
    * @param {boolean} isDisabled - 是否禁用交互
@@ -138,6 +167,84 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
     } else {
       widgetEl.removeAttribute('disable');
     }
+  }
+
+  /**
+   * 对单个 widget wrapper 执行缩放处理
+   * @description 根据 enableScale 配置计算缩放比例：
+   *   - true: 自适应父容器宽度（widget 超出时缩小）
+   *   - number: 按指定比例缩放
+   *   - false/undefined: 重置缩放
+   * 
+   * 技术方案：使用 CSS transform: scale() + 容器高度补偿
+   * @param {Element} wrapper - widget 的外层 wrapper 元素（.adp-widget-wrapper）
+   */
+  function scaleWidgetIfNeeded(wrapper: Element): void {
+    const scaleValue = enableScale?.();
+    const widgetEl = wrapper.querySelector('adp-widget') as HTMLElement | null;
+    if (!widgetEl) return;
+
+    const wrapperEl = wrapper as HTMLElement;
+
+    // scale 未启用时，重置所有缩放样式
+    if (!scaleValue) {
+      wrapperEl.style.width = '';
+      wrapperEl.style.height = '';
+      wrapperEl.style.overflow = '';
+      widgetEl.style.transform = '';
+      widgetEl.style.transformOrigin = '';
+      return;
+    }
+
+    let scale: number | undefined;
+
+    if (typeof scaleValue === 'number') {
+      // 固定比例缩放
+      scale = scaleValue;
+    } else if (scaleValue === true) {
+      // 自适应父容器宽度
+      const parentEl = containerRef.value;
+      if (!parentEl) return;
+      const containerWidth = parentEl.clientWidth;
+
+      // 临时移除 transform 以获取 widget 的真实宽度
+      const currentTransform = widgetEl.style.transform;
+      widgetEl.style.transform = '';
+      const widgetWidth = widgetEl.scrollWidth || widgetEl.offsetWidth;
+      widgetEl.style.transform = currentTransform;
+
+      // widget 未超出容器宽度时不需要缩放
+      if (containerWidth <= 0 || widgetWidth <= containerWidth) {
+        wrapperEl.style.width = '';
+        wrapperEl.style.height = '';
+        wrapperEl.style.overflow = '';
+        widgetEl.style.transform = '';
+        widgetEl.style.transformOrigin = '';
+        return;
+      }
+      scale = containerWidth / widgetWidth;
+    }
+
+    // 应用缩放：使用 transform: scale() 并补偿容器宽高
+    if (scale && scale > 0) {
+      widgetEl.style.transform = '';
+      const widgetWidth = widgetEl.scrollWidth || widgetEl.offsetWidth;
+      const widgetHeight = widgetEl.scrollHeight || widgetEl.offsetHeight;
+      wrapperEl.style.width = `${widgetWidth * scale}px`;
+      wrapperEl.style.height = `${widgetHeight * scale}px`;
+      wrapperEl.style.overflow = 'visible';
+      widgetEl.style.transform = `scale(${scale})`;
+      widgetEl.style.transformOrigin = 'top left';
+    }
+  }
+
+  /**
+   * 对容器中所有已渲染的 widget 执行缩放处理
+   */
+  function scaleAllWidgets(): void {
+    if (!containerRef.value) return;
+    const wrappers = containerRef.value.querySelectorAll('.adp-widget-wrapper');
+    wrappers.forEach((wrapper) => scaleWidgetIfNeeded(wrapper));
   }
 
   /**
@@ -194,6 +301,7 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
       // 如果已经完成 Custom Element 升级（有 data-upgraded 标记），只需更新 disable 属性
       if (widgetEl.hasAttribute('data-upgraded')) {
         updateWidgetDisable(widgetEl, isDisabled);
+        bindRenderedListener(widgetEl);
         return;
       }
 
@@ -208,6 +316,8 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
 
         updateWidgetDisable(newWidget, isDisabled);
         parent.replaceChild(newWidget, widgetEl);
+
+        bindRenderedListener(newWidget);
 
         const savedVersion = currentVersion;
 
@@ -227,6 +337,7 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
 
       // fallback: 直接标记并更新 disable
       updateWidgetDisable(widgetEl, isDisabled);
+      bindRenderedListener(widgetEl);
       widgetEl.setAttribute('data-upgraded', 'true');
     });
   }
@@ -270,6 +381,22 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
     { flush: 'post' }
   );
 
+  // 监听 enableScale 变化，重新执行缩放
+  let resizeHandler: (() => void) | null = null;
+  let resizeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  if (enableScale) {
+    watch(
+      enableScale,
+      () => {
+        if (!isMounted.value) return;
+        // 延迟执行以等待布局稳定
+        requestAnimationFrame(() => scaleAllWidgets());
+      },
+      { flush: 'post' }
+    );
+  }
+
   // 生命周期
   onMounted(() => {
     isMounted.value = true;
@@ -280,12 +407,34 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
     if (hasWidgetContent(content())) {
       initWidgets();
     }
+
+    // 窗口 resize 时重新计算缩放（防抖 200ms）
+    if (enableScale) {
+      resizeHandler = () => {
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          resizeTimer = null;
+          if (enableScale() && isMounted.value) {
+            scaleAllWidgets();
+          }
+        }, 200);
+      };
+      window.addEventListener('resize', resizeHandler);
+    }
   });
 
   onBeforeUnmount(() => {
     if (initWidgetsTimer) {
       clearTimeout(initWidgetsTimer);
       initWidgetsTimer = null;
+    }
+    if (resizeTimer) {
+      clearTimeout(resizeTimer);
+      resizeTimer = null;
+    }
+    if (resizeHandler) {
+      window.removeEventListener('resize', resizeHandler);
+      resizeHandler = null;
     }
     initWidgetsVersion++;
     delegationAttached = false;
@@ -294,5 +443,7 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
   return {
     initWidgets,
     debouncedInitWidgets,
+    /** 手动触发所有 widget 的缩放计算 */
+    scaleAllWidgets,
   };
 }

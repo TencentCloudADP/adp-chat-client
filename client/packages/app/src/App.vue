@@ -26,7 +26,7 @@ onMounted(() => {
 
 <style scoped>
 .page-container {
-  width: 100vw;
+  width: 100%;
   user-select: none;
 }
 </style>
