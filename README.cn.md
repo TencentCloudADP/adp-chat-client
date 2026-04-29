@@ -22,6 +22,7 @@
   - [后端](#后端)
   - [前端](#前端)
 - [专题](#专题)
+  - [智能体: VisitorId 配置](#智能体-visitorid-配置)
   - [智能体: 变量-API参数](#智能体-变量-API参数)
   - [部署: nginx](#部署-nginx)
   - [部署: 子路径](#部署-子路径)
@@ -285,6 +286,23 @@ make dev
 | util | 其他辅助类 |
 
 # 专题
+
+## 智能体: VisitorId 配置
+
+调用腾讯云 ADP 对话接口时，本服务会向 ADP 传递 `VisitorId`。可以在 `.env` 中通过 `ADP_VISITOR_ID_TYPE` 配置使用哪个账户字段：
+
+```bash
+ADP_VISITOR_ID_TYPE=NAME
+```
+
+支持的值：
+
+| 值 | 行为 |
+| --- | --- |
+| `NAME` | 默认值。使用用户展示名称作为 `VisitorId`。 |
+| `CUSTOMER_ID` | 使用账户体系对接时绑定的 `CustomerId` 作为 `VisitorId`。 |
+
+该配置只影响发送给 ADP 的 `VisitorId`。本系统内的登录态、会话归属和权限校验仍使用本系统内部账号 ID。
 
 ## 智能体: 变量-API参数
 
