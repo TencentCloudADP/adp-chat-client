@@ -1,6 +1,8 @@
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from config import tagentic_config
+from core.account import CoreAccount
 from core.conversation import CoreConversation
 from model.chat import ChatRecord, ChatConversation
 from vendor.interface import BaseVendor, ConversationCallback, extract_text_from_contents
@@ -11,13 +13,30 @@ logger = logging.getLogger(__name__)
 
 class CoreChat:
     @staticmethod
+    async def resolve_vendor_account_id(account_id: str) -> str:
+        async with db_connection() as db:
+            account = await CoreAccount.get(db, account_id)
+            account_third_party = await CoreAccount.get_third_party(db, account_id)
+
+        customer_id = (
+            account_third_party.OpenId
+            if account_third_party
+            else str(account.Id if account else account_id)
+        )
+        name = account.Name if account else ""
+
+        if tagentic_config.ADP_VISITOR_ID_TYPE == "NAME":
+            return name
+        return customer_id
+
+    @staticmethod
     async def message(
         vendor_app: BaseVendor,
         account_id: str,
         contents: list,
         conversation_id: str,
         search_network: bool,
-        custom_variables: dict
+        custom_variables: dict,
     ):
         title_source = extract_text_from_contents(contents).strip()
         if not title_source:
@@ -51,8 +70,9 @@ class CoreChat:
         if conversation_id is None or conversation_id == '':
             is_new_conversation = True
 
+        vendor_account_id = await CoreChat.resolve_vendor_account_id(account_id)
         async for message in vendor_app.chat(
-            account_id,
+            vendor_account_id,
             contents,
             conversation_id,
             is_new_conversation,

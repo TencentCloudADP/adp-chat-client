@@ -21,6 +21,7 @@
   - [Backend](#backend)
   - [Frontend](#frontend)
 - [Advanced Topics](#advanced-topics)
+  - [Agent: VisitorId Configuration](#agent-visitorid-configuration)
   - [Agent: Variables - API Parameters](#agent-variables---api-parameters)
   - [Deployment: nginx](#deployment-nginx)
   - [Deployment: Subpath](#deployment-subpath)
@@ -285,6 +286,23 @@ make dev
 | util | Other utility classes |
 
 # Advanced Topics
+
+## Agent: VisitorId Configuration
+
+When calling Tencent Cloud ADP chat, this service sends a `VisitorId` to ADP. You can configure which account field is used by setting `ADP_VISITOR_ID_TYPE` in `.env`:
+
+```bash
+ADP_VISITOR_ID_TYPE=NAME
+```
+
+Supported values:
+
+| Value | Behavior |
+| --- | --- |
+| `NAME` | Default. Use the user's display name as `VisitorId`. |
+| `CUSTOMER_ID` | Use the `CustomerId` bound during account-system integration as `VisitorId`. |
+
+This setting only changes the `VisitorId` sent to ADP. Local session, conversation ownership, and permission checks still use this system's internal account ID.
 
 ## Agent: Variables - API Parameters
 
