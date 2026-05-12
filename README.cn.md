@@ -25,6 +25,7 @@
   - [智能体: VisitorId 配置](#智能体-visitorid-配置)
   - [智能体: 变量-API参数](#智能体-变量-API参数)
   - [部署: nginx](#部署-nginx)
+  - [部署: 长时间回复被截断问题](#部署-长时间回复被截断问题)
   - [部署: 子路径](#部署-子路径)
   - [部署: 限流](#部署-限流)
   - [部署: CORS](#部署-cors)
@@ -377,6 +378,32 @@ http {
 ```
 
 如果需要部署到子路径（如 `/chat`），还需要结合下一节的 rewrite 和 `X-Forwarded-Prefix` 配置。
+
+## 部署: 长时间回复被截断问题
+
+如果智能体回复时间较长，前端可能出现响应中途断开或内容被截断。可以按以下两步调整超时时间：
+
+1. 调整服务端 `SERVER_RESPONSE_TIMEOUT` 参数
+
+在 `.env` 中增加或修改该参数，单位为秒。建议设置为大于智能体最长回复耗时的值：
+
+```bash
+SERVER_RESPONSE_TIMEOUT=600
+```
+
+2. 增加 nginx `proxy_read_timeout` 参数
+
+如果前面还有 nginx 反向代理，需要同步调大 nginx 等待上游响应的时间：
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:8000;
+    proxy_read_timeout 600s;
+    proxy_buffering off;
+}
+```
+
+修改后需要重启服务端容器和重新加载 nginx 配置。
 
 ## 部署: 子路径
 
