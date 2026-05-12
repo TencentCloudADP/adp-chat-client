@@ -24,6 +24,7 @@
   - [Agent: VisitorId Configuration](#agent-visitorid-configuration)
   - [Agent: Variables - API Parameters](#agent-variables---api-parameters)
   - [Deployment: nginx](#deployment-nginx)
+  - [Deployment: Long Responses Are Cut Off](#deployment-long-responses-are-cut-off)
   - [Deployment: Subpath](#deployment-subpath)
   - [Deployment: Rate Limiting](#deployment-rate-limiting)
   - [Deployment: CORS](#deployment-cors)
@@ -377,6 +378,32 @@ http {
 ```
 
 If you need to deploy under a subpath such as `/chat`, also apply the rewrite and `X-Forwarded-Prefix` settings in the next section.
+
+## Deployment: Long Responses Are Cut Off
+
+If an agent takes a long time to respond, the frontend may see the stream disconnect midway or the response may be cut off. Adjust the timeout in two places:
+
+1. Update the server `SERVER_RESPONSE_TIMEOUT` setting
+
+Add or change this setting in `.env`. The value is in seconds and should be longer than the longest expected agent response time:
+
+```bash
+SERVER_RESPONSE_TIMEOUT=600
+```
+
+2. Add the nginx `proxy_read_timeout` setting
+
+If nginx is used as a reverse proxy, also increase the time nginx waits for the upstream response:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:8000;
+    proxy_read_timeout 600s;
+    proxy_buffering off;
+}
+```
+
+Restart the server container and reload the nginx configuration after changing these settings.
 
 ## Deployment: Subpath
 
