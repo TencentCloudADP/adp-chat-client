@@ -735,11 +735,21 @@ class TCADP(BaseVendor):
         private = self.config.get('Private', False)
         private_url = self.config.get('PrivateUrl', '')
         international = self.config.get('International', False)
+        custom = self.config.get('Custom', False)
         if international:
             return service_configs['International']
         if private:
             config = json.loads(json.dumps(service_configs['Private']))
             config = self.tc_config_private_url(config, private_url)
+            return config
+        if custom:
+            config = json.loads(json.dumps(service_configs['China']))
+            if self.config.get('CustomLkeUrl'):
+                config['lke']['url'] = self.config['CustomLkeUrl']
+            if self.config.get('CustomLkeapUrl'):
+                config['lkeap']['url'] = self.config['CustomLkeapUrl']
+            if self.config.get('CustomSseUrl'):
+                config['sse'] = self.config['CustomSseUrl']
             return config
         return service_configs['China']
 
