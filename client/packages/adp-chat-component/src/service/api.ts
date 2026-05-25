@@ -263,3 +263,70 @@ export const fetchSystemConfig = async (apiPath?: string): Promise<SystemConfig>
         throw error;
     }
 };
+
+/** 会话类型 */
+export const ConversationType = {
+    /** 全部 */
+    CONVERSATION_TYPE_UNSPECIFIED: 0,
+    /** API 类型 */
+    CONVERSATION_TYPE_API: 1,
+    /** 分享类型 */
+    CONVERSATION_TYPE_SHARE: 2,
+} as const;
+
+export type ConversationType = (typeof ConversationType)[keyof typeof ConversationType];
+
+/** DescribeConversationList 请求参数 */
+export interface DescribeConversationListParams {
+    /** 会话类型，传 CONVERSATION_TYPE_UNSPECIFIED 表示全部 */
+    Type?: ConversationType;
+    /** 应用 ID */
+    AppId?: string;
+    /** Type=CONVERSATION_TYPE_API 时必填，访客ID */
+    UserId?: string;
+    /** Type=CONVERSATION_TYPE_API 时必填，应用密钥 */
+    AppKey?: string;
+    /** 关键词 */
+    Keyword?: string;
+    /** 偏移量，配合 Limit 使用，从 0 开始 */
+    Offset?: number;
+    /** 限制数目，配合 Offset 使用 */
+    Limit?: number;
+    /** Type=CONVERSATION_TYPE_SHARE 时必填，分享码 */
+    ShareCode?: string;
+}
+
+/** DescribeConversationList 响应 */
+export interface DescribeConversationListResponse {
+    Response: {
+        ConversationList?: any[];
+        TotalCount?: number;
+        RequestId?: string;
+    };
+}
+
+/**
+ * 测试代码，验证接口协议转发
+ * @param params 请求参数
+ * @param applicationId 应用 ID
+ */
+export const describeConversationList = async (
+    params: DescribeConversationListParams,
+    applicationId: string
+): Promise<DescribeConversationListResponse> => {
+    try {
+        const response: DescribeConversationListResponse = await httpService.post(
+            '/adp/GetAppSecret',
+            {
+                ApplicationId: applicationId,
+                Payload: {
+                    AppBizId: applicationId,
+                },
+            }
+        );
+        return response;
+    } catch (error) {
+        console.error('获取会话列表失败:', error);
+        throw error;
+    }
+};

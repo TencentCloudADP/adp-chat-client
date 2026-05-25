@@ -595,3 +595,32 @@ class BaseVendor(ChatInterface, MessageInterface, FileInterface, ReferenceInterf
         super().__init__()
         self.config = config
         self.application_id = application_id
+
+    async def forward_request(
+        self,
+        action: str,
+        payload: dict = None,
+        service: str = "lke",
+        *,
+        response_key: str = None,
+        raise_on_error: bool = True,
+    ) -> dict:
+        """通用 API 转发方法
+
+        当前端传入的 Action 名称没有对应的具体路由实现时，
+        可通过此方法将请求直接转发到厂商后端接口。
+
+        Args:
+            action: API Action 名称
+            payload: 请求参数字典
+            service: 服务名称
+            response_key: 从响应中提取指定 key
+            raise_on_error: 遇错是否抛异常
+
+        Returns:
+            dict: 响应数据
+
+        Raises:
+            NotImplementedError: 子类未实现时抛出
+        """
+        raise NotImplementedError("Subclasses must implement forward_request method")
