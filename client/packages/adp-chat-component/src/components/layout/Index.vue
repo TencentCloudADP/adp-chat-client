@@ -24,6 +24,7 @@ import {
     fetchUserInfo,
     uploadFile,
     fetchSystemConfig,
+    describeConversationList,
 } from '../../service/api';
 import type { SystemConfig } from '../../service/api';
 import { MessageCode } from '../../model/messages';
@@ -457,6 +458,19 @@ const loadConversations = async () => {
         MessagePlugin.error(text);
         emit('message', MessageCode.GET_CONVERSATION_LIST_FAILED, text);
     }
+
+    // 测试 接口协议转发 leoqyli
+    // if (currentApplicationId.value) {
+    //     try {
+    //         const result = await describeConversationList(
+    //             { Offset: 0, Limit: 20 },
+    //             currentApplicationId.value
+    //         );
+    //         console.log('[DescribeConversationList] result:', result);
+    //     } catch (error) {
+    //         console.error('[DescribeConversationList] failed:', error);
+    //     }
+    // }
 };
 
 const loadConversationDetail = async (conversationId: string) => {

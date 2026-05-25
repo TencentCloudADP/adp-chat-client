@@ -461,6 +461,59 @@ class TCADP(BaseVendor):
         }
         return Record.model_validate(record_payload)
 
+    # =========================================================================
+    # 通用转发方法
+    # =========================================================================
+
+    async def forward_request(
+        self,
+        action: str,
+        payload: dict = None,
+        service: str = "lke",
+        *,
+        response_key: str = None,
+        raise_on_error: bool = True,
+    ) -> dict:
+        """通用腾讯云 API 转发方法（公开接口）
+
+        将请求转发到腾讯云后端接口，统一处理签名、错误检查和响应解析。
+        当前端传入的 Action 名称没有对应的具体实现方法时，可直接通过此方法转发。
+
+        Args:
+            action: 腾讯云 API Action 名称，如 "GetMsgRecord"、"RateMsgRecord"
+            payload: 请求参数字典，为 None 时传空 dict
+            service: 服务名称，默认 "lke"，用于选择签名配置
+            response_key: 如果指定，从 Response 中提取该 key 的值返回；
+                         为 None 时返回整个 Response dict
+            raise_on_error: 为 True 时遇到 Error 抛异常；为 False 时返回包含 Error 的原始响应
+
+        Returns:
+            dict: 腾讯云 API 响应的 Response 部分（或 response_key 对应的子结构）
+
+        Raises:
+            Exception: 当 raise_on_error=True 且响应包含 Error 时抛出
+        """
+        if payload is None:
+            payload = {}
+
+        resp = await tc_request(self.tc_config(), action, payload, service)
+        response = resp.get('Response', resp)
+
+        if 'Error' in response:
+            logging.error(f'[TCADP.forward_request] action={action} error={response["Error"]}')
+            if raise_on_error:
+                error_msg = response['Error'].get('Message', str(response['Error']))
+                raise Exception(f'{action} failed: {error_msg}')
+            return response
+
+        if response_key is not None:
+            return response.get(response_key)
+
+        return response
+
+    # 保留内部别名，兼容已重构的方法
+    _forward_request = forward_request
+
     # ApplicationInterface
     @classmethod
     def get_vendor(self) -> str:
