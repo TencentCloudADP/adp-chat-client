@@ -54,6 +54,7 @@
                                 :isStreamLoad="isChatting" 
                                 :isMobile="isMobile"
                                 :theme="theme"
+                                :mode="props.mode"
                                 :language="props.language"
                                 :i18n="chatItemI18n"
                                 @resend="onResend"
@@ -96,26 +97,19 @@
                         </div>
                     </div>
                 </TCard>
-                <TLoading v-if="isUploading" class="upload-loading" size="small">
-                    <template #text>
-                        <span class="thinking-text">
-                            {{ `${i18n.uploading}...` }}
-                        </span>
-                    </template>
-                    <template #indicator>
-                        <CustomizedIcon class="thinking-icon" name="thinking" :theme="theme" nativeIcon :showHoverBg="false"/>
-                    </template>
-                </TLoading>
+
                 <Sender 
                     ref="senderRef" 
                     :isStreamLoad="isChatting" 
                     :isMobile="isMobile"
                     :theme="theme"
+                    :mode="props.mode"
                     :language="props.language"
                     :i18n="senderI18n"
                     :useInternalRecord="useInternalRecord"
                     :asrUrlApi="asrUrlApi"
                     :enableVoiceInput="props.enableVoiceInput"
+                    :isUploading="props.isUploading"
                     @stop="onStop"
                     @send="handleSend"
                     @uploadFile="handleUploadFile"

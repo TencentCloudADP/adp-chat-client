@@ -17,12 +17,29 @@ NumberLike = Union[int, str, float]
 # Common Models
 # =============================================================================
 
+class InputBoxButton(BaseModel):
+    """输入框按钮配置"""
+    Type: int
+    Name: Optional[str] = None
+
+
+class InputBoxConfig(BaseModel):
+    """输入框配置"""
+    InputBoxButtons: List[InputBoxButton] = []
+
+
 class ApplicationInfo(BaseModel):
     ApplicationId: str
     Name: str
     Avatar: Optional[str] = None
     Greeting: Optional[str] = None
     OpeningQuestions: List[str] = []
+    Pattern: Optional[str] = None
+    AppStatus: Optional[int] = None
+    AgentType: Optional[str] = None
+    InputBox: Optional[InputBoxConfig] = None
+    EnableWebSearch: Optional[bool] = None
+    EnableAudit: Optional[bool] = None
 
 
 # =============================================================================
@@ -528,7 +545,7 @@ class MessageInterface:
 
 
 class FileInterface:
-    async def upload(self, db: AsyncSession, request: Request, account_id: str, mime_type: str) -> str:
+    async def upload(self, db: AsyncSession, request: Request, account_id: str, mime_type: str, mode: str = 'standard') -> str:
         """异步上传文件
 
         Args:
@@ -536,6 +553,7 @@ class FileInterface:
             request (Request): 请求对象（流式读取：await request.stream.read()）
             account_id (str): 账户唯一标识符
             mime_type (str, optional): 文件类型
+            mode (str): 聊天模式，'standard' 或 'claw'
 
         Returns:
             url (str): 文件Url
@@ -624,3 +642,25 @@ class BaseVendor(ChatInterface, MessageInterface, FileInterface, ReferenceInterf
             NotImplementedError: 子类未实现时抛出
         """
         raise NotImplementedError("Subclasses must implement forward_request method")
+
+    async def parse_document(
+        self,
+        account_id: str,
+        file_name: str,
+        file_type: str,
+        file_url: str = '',
+        cos_bucket: str = '',
+        cos_url: str = '',
+        e_tag: str = '',
+        cos_hash: str = '',
+        size: str = '0',
+        conversation_id: str = '',
+    ):
+        """实时文档解析，返回 SSE 流
+
+        Standard 模式下，文件上传后调用此方法进行文档解析获取 doc_id。
+
+        Yields:
+            bytes: SSE 事件流数据
+        """
+        raise NotImplementedError("Subclasses must implement parse_document method")

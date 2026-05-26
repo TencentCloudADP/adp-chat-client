@@ -9,6 +9,9 @@ import type { ApiConfig } from '../service/api'
 /** 主题类型 */
 export type ThemeType = 'light' | 'dark'
 
+/** 聊天模式：claw-简化模式（无文件预览/无解析进度），standard-标准模式（有解析进度） */
+export type ChatMode = 'claw' | 'standard'
+
 /** 语言选项 */
 export interface LanguageOption {
   key: string
@@ -130,6 +133,8 @@ export interface CommonLayoutProps extends ThemeProps, MobileProps, SidePanelPro
 export interface ChatRelatedProps extends CommonLayoutProps {
   /** 当前语言标识，用于自动选择内部默认 i18n（如 'zh-CN'、'en-US'） */
   language?: string
+  /** 聊天模式：claw-简化模式，standard-标准模式 */
+  mode?: ChatMode
 }
 
 // ============================================================
@@ -167,6 +172,7 @@ export const commonLayoutPropsDefaults = {
 export const chatRelatedPropsDefaults = {
   ...commonLayoutPropsDefaults,
   language: 'zh-CN',
+  mode: 'standard' as ChatMode,
 }
 
 /** 默认语言选项 */
@@ -192,7 +198,7 @@ export const defaultSideI18n: Required<SideI18n> = {
 
 /** 聊天 i18n 默认值 */
 export const defaultChatI18n: Required<ChatI18n> = {
-  uploading: '图片上传中',
+  uploading: '文件上传中',
   loading: '加载中',
   thinking: '思考中',
   checkAll: '全选',
@@ -235,7 +241,7 @@ export const defaultChatItemI18n: Required<ChatItemI18n> = {
 export const defaultSenderI18n: Required<SenderI18n> = {
   placeholder: '请输入消息...',
   placeholderMobile: '请输入',
-  uploadImg: '上传图片',
+  uploadImg: '上传图片或文件',
   startRecord: '点击开始录音',
   stopRecord: '点击停止录音',
   answering: '回答中...',
@@ -311,7 +317,7 @@ export const defaultChatItemI18nEn: Required<ChatItemI18n> = {
 export const defaultSenderI18nEn: Required<SenderI18n> = {
   placeholder: 'Type a message...',
   placeholderMobile: 'Type here',
-  uploadImg: 'Upload Image',
+  uploadImg: 'Upload Image or File',
   startRecord: 'Start Recording',
   stopRecord: 'Stop Recording',
   answering: 'Answering...',

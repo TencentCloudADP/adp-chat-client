@@ -1,10 +1,18 @@
-<!-- 消息发送组件，支持文本、图片上传、语音输入 -->
+<!-- 消息发送组件，支持文本、图片上传、文件上传、语音输入 -->
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ChatSender as TChatSender } from '@tdesign-vue-next/chat'
-import { MessagePlugin, Upload as TUpload, Tooltip as TTooltip } from 'tdesign-vue-next'
-import type { UploadFile, RequestMethodResponse } from 'tdesign-vue-next'
+import { MessagePlugin, Tooltip as TTooltip } from 'tdesign-vue-next'
 import type { FileProps } from '../../model/file';
+import {
+    ALLOWED_IMAGE_TYPES,
+    ALLOWED_DOC_TYPES,
+    ALLOWED_FILE_TYPES,
+    FILE_SIZE_LIMITS,
+    FILE_COUNT_LIMIT,
+    getFileCategory,
+    formatFileSize,
+} from '../../model/file';
 import { MessageCode, getMessage } from '../../model/messages';
 import type { ChatRelatedProps, SenderI18n } from '../../model/type';
 import { chatRelatedPropsDefaults, defaultSenderI18n, defaultSenderI18nEn } from '../../model/type';
@@ -23,6 +31,8 @@ export interface Props extends ChatRelatedProps {
     asrUrlApi?: string;
     /** 是否启用语音输入 */
     enableVoiceInput?: boolean;
+    /** 是否正在上传/解析文件（禁止发送和继续上传） */
+    isUploading?: boolean;
     /** 国际化文本 */
     i18n?: SenderI18n;
 }
@@ -33,14 +43,19 @@ const props = withDefaults(defineProps<Props>(), {
     useInternalRecord: false,
     asrUrlApi: '',
     enableVoiceInput: true,
+    isUploading: false,
     i18n: () => ({})
 });
 
-// 合并默认值和传入值（根据 language 选择对应语言的默认值）
 const i18n = computed(() => {
     const defaults = props.language?.startsWith('en') ? defaultSenderI18nEn : defaultSenderI18n;
     return { ...defaults, ...props.i18n };
 });
+
+/**
+ * 是否禁止发送和上传（上传/解析中或流式加载中）
+ */
+const sendDisabled = computed(() => props.isUploading || props.isStreamLoad);
 
 const emit = defineEmits<{
     (e: 'stop'): void;
@@ -51,52 +66,37 @@ const emit = defineEmits<{
     (e: 'message', code: MessageCode, message: string): void;
 }>();
 
-/**
- * 输入框内容
- */
-const inputValue = ref('')
-
-/**
- * 开始语音时输入框内容
- */
-const inputValueBefore = ref('')
-
-/**
- * 是否正在录音
- */
-const recording = ref(false)
-
-/**
- * 文件列表
- */
-const fileList = ref([] as FileProps[])
-
-
-
-/**
- * WebRecorder 实例引用
- */
-const recorder = ref<WebRecorder | null>(null)
-
-/**
- * ASR WebSocket 连接引用
- */
-const asrWebSocket = ref<WebSocket | null>(null)
-
-/**
- * 录音超时时间，单位 s
- */
+const inputValue = ref('');
+const inputValueBefore = ref('');
+const recording = ref(false);
+const fileList = ref<FileProps[]>([]);
+const recorder = ref<WebRecorder | null>(null);
+const asrWebSocket = ref<WebSocket | null>(null);
 const recordMaxTime = 60;
 const recordRef = ref<ReturnType<typeof setTimeout> | null>(null);
-
-/**
- * ChatSender 组件 ref
- */
 const chatSenderRef = ref<InstanceType<typeof TChatSender> | null>(null);
 
 /**
- * 设置 textarea 的 enterkeyhint 属性
+ * 加号菜单状态
  */
+const showPlusMenu = ref(false);
+const plusMenuRef = ref<HTMLDivElement | null>(null);
+const imageInputRef = ref<HTMLInputElement | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
+
+/**
+ * 图片 accept 属性
+ */
+const imageAccept = ALLOWED_IMAGE_TYPES.map(t => {
+    const ext = t.split('/')[1];
+    return `.${ext === 'jpeg' ? 'jpg,.jpeg' : ext}`;
+}).join(',');
+
+/**
+ * 文件 accept 属性
+ */
+const fileAccept = '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.md,.csv,.json';
+
 onMounted(() => {
     nextTick(() => {
         const textarea = chatSenderRef.value?.$el?.querySelector('textarea');
@@ -104,75 +104,151 @@ onMounted(() => {
             textarea.setAttribute('enterkeyhint', 'send');
         }
     });
+    document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+    document.removeEventListener('click', handleClickOutside);
 });
 
 /**
- * 处理输入内容变化
+ * 点击外部关闭菜单
  */
-const handleInput = (value: string) => {
-    inputValue.value = value
-}
+const handleClickOutside = (e: MouseEvent) => {
+    if (plusMenuRef.value && !plusMenuRef.value.contains(e.target as Node)) {
+        showPlusMenu.value = false;
+    }
+};
 
 /**
- * 处理文件选择事件
+ * 切换加号菜单
  */
-const handleFileSelect = async function (files: UploadFile | UploadFile[]): Promise<RequestMethodResponse> {
-    const fileArray = Array.isArray(files) ? files : [files];
-    if (fileArray.length <= 0) return { status: 'success', response: {} };
-    const allowed = ['image/png', 'image/jpg', 'image/jpeg', 'image/bmp']
+const togglePlusMenu = () => {
+    if (props.isUploading) return;
+    showPlusMenu.value = !showPlusMenu.value;
+};
+
+/**
+ * 选择图片
+ */
+const handleSelectImage = () => {
+    if (props.isUploading) return;
+    showPlusMenu.value = false;
+    imageInputRef.value?.click();
+};
+
+/**
+ * 选择文件
+ */
+const handleSelectFile = () => {
+    if (props.isUploading) return;
+    showPlusMenu.value = false;
+    fileInputRef.value?.click();
+};
+
+const handleInput = (value: string) => {
+    inputValue.value = value;
+};
+
+/**
+ * 统一文件选择校验逻辑
+ */
+const handleFilesSelected = (event: Event, allowedTypes: string[]) => {
+    const input = event.target as HTMLInputElement;
+    const files = input.files;
+    if (!files || files.length === 0) return;
+
+    const currentCount = fileList.value.length;
+    if (currentCount + files.length > FILE_COUNT_LIMIT) {
+        MessagePlugin.warning(`最多上传 ${FILE_COUNT_LIMIT} 个文件`);
+        return;
+    }
+
     const validFiles: File[] = [];
-    
-    fileArray.forEach((item: UploadFile) => {
-        const file = item.raw || item;
-        if (file instanceof File && !allowed.includes(file.type)) {
+    Array.from(files).forEach((file) => {
+        if (!allowedTypes.includes(file.type) && !isExtensionAllowed(file.name, allowedTypes)) {
             const text = i18n.value.notSupport || getMessage(MessageCode.FILE_FORMAT_NOT_SUPPORT).message;
             MessagePlugin.error(text);
             emit('message', MessageCode.FILE_FORMAT_NOT_SUPPORT, text);
             return;
         }
-        if (file instanceof File) {
-            validFiles.push(file);
+
+        const category = getFileCategory(file.type);
+        const sizeLimit = FILE_SIZE_LIMITS[category];
+        if (file.size > sizeLimit) {
+            MessagePlugin.error(`文件大小不能超过 ${formatFileSize(sizeLimit)}`);
+            return;
         }
+
+        validFiles.push(file);
     });
-    
+
     if (validFiles.length > 0) {
         emit('uploadFile', validFiles);
     }
-    return { status: 'success', response: {} };
-}
+
+    input.value = '';
+};
 
 /**
- * 删除文件
+ * 通过扩展名检查文件类型（兜底）
  */
+const isExtensionAllowed = (fileName: string, allowedTypes: string[]): boolean => {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    if (!ext) return false;
+    const extToMime: Record<string, string> = {
+        jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', bmp: 'image/bmp', webp: 'image/webp',
+        pdf: 'application/pdf', doc: 'application/msword',
+        docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ppt: 'application/vnd.ms-powerpoint',
+        pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        xls: 'application/vnd.ms-excel',
+        xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        txt: 'text/plain', md: 'text/markdown', csv: 'text/csv', json: 'application/json',
+    };
+    const mime = extToMime[ext];
+    return mime ? allowedTypes.includes(mime) : false;
+};
+
+const handleImageInputChange = (event: Event) => {
+    handleFilesSelected(event, ALLOWED_IMAGE_TYPES);
+};
+
+const handleFileInputChange = (event: Event) => {
+    handleFilesSelected(event, ALLOWED_DOC_TYPES);
+};
+
 const handleDeleteFile = (index: number) => {
     fileList.value.splice(index, 1);
     fileList.value = [...fileList.value];
-}
+};
 
-/**
- * 处理发送消息
- */
 const handleSend = async function (value: string) {
+    if (props.isUploading) {
+        MessagePlugin.warning('文件上传/解析中，请稍候');
+        return;
+    }
     if (props.isStreamLoad) {
         const text = i18n.value.answering || getMessage(MessageCode.ANSWERING).message;
         MessagePlugin.warning(text);
         emit('message', MessageCode.ANSWERING, text);
-        return
+        return;
     }
-    // 用户点击发送动作时结束录音
     handleStopRecord();
-    
-    // 将图片处理成 markdown 格式拼接到消息内容前面
+
     let _query = '';
     for (const file of fileList.value) {
         if (file.status === 'done' && file.url) {
-            _query += `![](${file.url})`;
+            if (props.mode === 'claw') {
+                _query += `[${file.name || ''}](${file.url})`;
+            } else if (file.category === 'image') {
+                _query += `![](${file.url})`;
+            }
         }
     }
     _query += value;
-    
+
     emit('send', _query, fileList.value);
-    // 发送后清空输入框和文件列表
     inputValue.value = '';
     fileList.value = [];
 }
@@ -296,19 +372,23 @@ const handleStopRecord = () => {
 }
 
 const handlePaste = async (event: ClipboardEvent) => {
+    if (props.isUploading) return;
     try {
         const items = event.clipboardData?.items;
-        if (!items || items.length === 0) {
-            return;
-        }
+        if (!items || items.length === 0) return;
 
-        // 查找所有图片项
-        const imageItems = Array.from(items).filter((item: DataTransferItem) =>
-            item.type.includes('image')
-        ).map((i: DataTransferItem) => i.getAsFile()).filter((file): file is File => file !== null);
-        
+        const imageItems = Array.from(items)
+            .filter((item: DataTransferItem) => item.type.includes('image'))
+            .map((i: DataTransferItem) => i.getAsFile())
+            .filter((file): file is File => file !== null);
+
         if (imageItems.length > 0) {
-            handleFileSelect(imageItems);
+            const currentCount = fileList.value.length;
+            if (currentCount + imageItems.length > FILE_COUNT_LIMIT) {
+                MessagePlugin.warning(`最多上传 ${FILE_COUNT_LIMIT} 个文件`);
+                return;
+            }
+            emit('uploadFile', imageItems);
         }
     } catch (error) {
         console.error('粘贴图片出错:', error);
@@ -331,6 +411,28 @@ const addFile = (file: FileProps) => {
 }
 
 /**
+ * 根据 uid 更新文件属性（供外部调用，用于上传完成后更新 status/url）
+ */
+const updateFile = (uid: string, updates: Partial<FileProps>) => {
+    const index = fileList.value.findIndex(f => f.uid === uid);
+    if (index !== -1) {
+        fileList.value[index] = { ...fileList.value[index], ...updates } as FileProps;
+        fileList.value = [...fileList.value];
+    }
+}
+
+/**
+ * 根据 uid 删除文件（供外部调用）
+ */
+const removeFile = (uid: string) => {
+    const index = fileList.value.findIndex(f => f.uid === uid);
+    if (index !== -1) {
+        fileList.value.splice(index, 1);
+        fileList.value = [...fileList.value];
+    }
+}
+
+/**
  * 设置录音状态（供外部调用）
  */
 const setRecording = (value: boolean) => {
@@ -350,41 +452,55 @@ const updateInputValue = (value: string) => {
 defineExpose({
     changeSenderVal,
     addFile,
+    updateFile,
+    removeFile,
     setRecording,
     updateInputValue
 })
 </script>
 
 <template>
-    <TChatSender ref="chatSenderRef" class="sender-container" :value="inputValue" :textarea-props="{
+    <TChatSender ref="chatSenderRef" class="sender-container" :class="{ 'is-uploading': isUploading }" :value="inputValue" :textarea-props="{
         placeholder: isMobile ? i18n.placeholderMobile : i18n.placeholder,
         autosize: { minRows: 1, maxRows: 6 },
+        disabled: isUploading,
     }"
         @stop="emit('stop')"
         @send="handleSend"
         @change="handleInput"
         @paste="handlePaste">
         <template #inner-header>
-            <FileList :fileList="fileList" :theme="theme" @delete="handleDeleteFile"/>
+            <FileList :fileList="fileList" :theme="theme" :mode="mode" @delete="handleDeleteFile"/>
         </template>
         <template #suffix>
-            <!-- 等待中的发送按钮 -->
-            <CustomizedIcon class="send-icon waiting" v-if="!isStreamLoad && !inputValue" nativeIcon :showHoverBg="false" :name="theme === 'dark' ? 'send_dark' : 'send'" @click="handleSend(inputValue)" />
-            <!-- 可用的发送按钮 -->
-            <CustomizedIcon class="send-icon success" v-if="!isStreamLoad && inputValue" nativeIcon :showHoverBg="false" name="send_fill" @click="handleSend(inputValue)" />
-            <!-- 停止发送按钮 -->
+            <CustomizedIcon class="send-icon waiting" :class="{ disabled: sendDisabled }" v-if="!isStreamLoad && !inputValue" nativeIcon :showHoverBg="false" :name="theme === 'dark' ? 'send_dark' : 'send'" @click="handleSend(inputValue)" />
+            <CustomizedIcon class="send-icon success" :class="{ disabled: sendDisabled }" v-if="!isStreamLoad && inputValue" nativeIcon :showHoverBg="false" name="send_fill" @click="handleSend(inputValue)" />
             <CustomizedIcon class="send-icon stop" v-if="isStreamLoad" nativeIcon :showHoverBg="false" :name="theme === 'dark' ? 'pause_dark' : 'pause'" @click="emit('stop')" />
         </template>
         <template #prefix>
             <div class="sender-control-container">
-                <TUpload class="sender-upload"  ref="uploadRef1" :max="10" :multiple="true" :request-method="handleFileSelect"
-                    accept="image/*" theme="custom">
-                    <TTooltip :content="i18n.uploadImg">
-                        <span class="recording-icon" :class="{ isMobile: isMobile }">
-                            <CustomizedIcon name="picture" :theme="theme" :showHoverBg="!isMobile"/>
-                        </span>
-                    </TTooltip>
-                </TUpload>
+                <!-- 加号菜单按钮 -->
+                <div  ref="plusMenuRef" class="plus-menu-wrapper">
+                    <span class="plus-btn" :class="{ active: showPlusMenu, disabled: isUploading }" @click="togglePlusMenu">
+                        <CustomizedIcon name="plus" :theme="theme" :showHoverBg="false" />
+                    </span>
+                    <Transition name="fade-up">
+                        <div v-if="showPlusMenu" class="plus-menu-popover">
+                            <div class="plus-menu-item" @click="handleSelectImage">
+                                <CustomizedIcon name="picture" :theme="theme" size="s" :showHoverBg="false" />
+                                <span>图片</span>
+                            </div>
+                            <div class="plus-menu-item" @click="handleSelectFile">
+                                <CustomizedIcon name="file" :theme="theme" size="s" :showHoverBg="false" />
+                                <span>文件</span>
+                            </div>
+                        </div>
+                    </Transition>
+                    <!-- 隐藏的文件选择 input -->
+                    <input ref="imageInputRef" type="file" :accept="imageAccept" multiple hidden @change="handleImageInputChange" />
+                    <input ref="fileInputRef" type="file" :accept="fileAccept" multiple hidden @change="handleFileInputChange" />
+                </div>
+
                 <TTooltip v-if="enableVoiceInput && !recording" :content="i18n.startRecord">
                     <span class="recording-icon" :class="{ isMobile: isMobile }" @click="handleStartRecord">
                         <CustomizedIcon name="voice_input" :theme="theme" :showHoverBg="!isMobile"/>
@@ -402,24 +518,6 @@ defineExpose({
 </template>
 
 <style scoped>
-.select-area {
-    display: flex;
-    align-items: center;
-    gap: var(--td-comp-paddingLR-s);
-}
-.recording-icon:hover {
-    cursor: pointer;
-    color: var(--td-brand-color);
-}
-
-.sender-icon {
-    padding: var(--td-pop-padding-m);
-}
-
-.sender-icon.stop-icon {
-    padding: 0;
-}
-
 .sender-control-container {
     display: flex;
     align-items: center;
@@ -430,9 +528,98 @@ defineExpose({
     max-width: 800px;
 }
 
-.customeized-icon {
-    cursor: pointer;
+/* 上传/解析中整体置灰 */
+.sender-container.is-uploading {
+    opacity: 0.7;
+    pointer-events: auto;
 }
+
+/* 加号菜单 */
+.plus-menu-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.plus-btn {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: var(--td-radius-default, 4px);
+    transition: background 0.2s, transform 0.2s;
+}
+
+.plus-btn:hover {
+    background-color: var(--td-bg-color-container-active, rgba(0, 0, 0, 0.05));
+}
+
+.plus-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.plus-menu-popover {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    width: 140px;
+    padding: 6px;
+    border-radius: 8px;
+    background: var(--td-bg-color-container, #fff);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    z-index: 100;
+}
+
+.plus-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 20px;
+    color: rgba(0, 0, 0, 0.8);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.plus-menu-item:hover {
+   background-color: var(--td-bg-color-container-active, rgba(0, 0, 0, 0.05));
+}
+
+/* 菜单出入动画 */
+.fade-up-enter-active,
+.fade-up-leave-active {
+    transition: opacity 0.15s, transform 0.15s;
+}
+
+.fade-up-enter-from,
+.fade-up-leave-to {
+    opacity: 0;
+    transform: translateY(4px);
+}
+
+/* 录音按钮 */
+.recording-icon:hover {
+    cursor: pointer;
+    color: var(--td-brand-color);
+}
+
+.recording-icon {
+    height: var(--td-comp-size-m);
+    display: inline-block;
+    margin-right: var(--td-comp-paddingLR-xs);
+}
+
+.recording-icon.isMobile {
+    margin-right: var(--td-comp-paddingLR-m);
+}
+
+/* 发送按钮 */
 .send-icon {
     padding: 0 !important;
     cursor: pointer;
@@ -440,6 +627,13 @@ defineExpose({
     align-items: center;
     justify-content: center;
 }
+
+.send-icon.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 :deep(.t-chat-sender__textarea) {
     background-color: var(--td-sender-bg);
     border-radius: var(--td-radius-medium);
@@ -447,16 +641,5 @@ defineExpose({
 
 :deep(.t-chat-sender__footer) {
     padding: 0px var(--td-comp-paddingLR-s);
-}
-:deep(.sender-upload){
-    height: var(--td-comp-size-m);
-}
-.recording-icon{
-    height: var(--td-comp-size-m);
-    display: inline-block;
-    margin-right: var(--td-comp-paddingLR-xs);
-}
-.recording-icon.isMobile{
-    margin-right: var(--td-comp-paddingLR-m);
 }
 </style>

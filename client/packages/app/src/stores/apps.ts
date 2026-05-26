@@ -17,6 +17,9 @@ export const useAppsStore = defineStore('apps', () => {
   const currentApplicationName = computed(() => currentApplication.value?.Name)
   const currentApplicationGreeting = computed(() => currentApplication.value?.Greeting)
   const currentApplicationOpeningQuestions = computed(() => currentApplication.value?.OpeningQuestions)
+  const currentApplicationPattern = computed(() => currentApplication.value?.Pattern)
+  const currentApplicationInputBoxConfig = computed(() => currentApplication.value?.InputBox)
+  const currentApplicationEnableWebSearch = computed(() => currentApplication.value?.EnableWebSearch)
 
   /**
    * 设置当前应用
@@ -57,6 +60,9 @@ export const useAppsStore = defineStore('apps', () => {
     currentApplicationAvatar,
     currentApplicationName,
     currentApplicationGreeting,
-    currentApplicationOpeningQuestions
+    currentApplicationOpeningQuestions,
+    currentApplicationPattern,
+    currentApplicationInputBoxConfig,
+    currentApplicationEnableWebSearch
   }
 })

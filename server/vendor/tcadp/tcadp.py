@@ -514,6 +514,66 @@ class TCADP(BaseVendor):
     # 保留内部别名，兼容已重构的方法
     _forward_request = forward_request
 
+    # =========================================================================
+    # 实时文档解析
+    # =========================================================================
+
+    async def parse_document(
+        self,
+        account_id: str,
+        file_name: str,
+        file_type: str,
+        file_url: str = '',
+        cos_bucket: str = '',
+        cos_url: str = '',
+        e_tag: str = '',
+        cos_hash: str = '',
+        size: str = '0',
+        conversation_id: str = '',
+    ):
+        """代理 LKE 的实时文档解析 SSE 接口
+
+        上传文件到 COS 后，调用此方法进行文档解析获取 doc_id。
+        Standard 模式下发送消息时需要传入 doc_id 让大模型正确解析文件。
+        """
+        tc_cfg = self.tc_config()
+        # docParse SSE 端点与 chat SSE 同域，路径为 /v1/qbot/chat/docParse
+        sse_base = tc_cfg['sse'].rsplit('/adp/', 1)[0] if '/adp/' in tc_cfg['sse'] else tc_cfg['sse'].rsplit('/v1/', 1)[0] if '/v1/' in tc_cfg['sse'] else tc_cfg['sse']
+        doc_parse_url = f"{sse_base}/v1/qbot/chat/docParse"
+
+        data = {
+            "cos_bucket": cos_bucket,
+            "file_type": file_type,
+            "file_name": file_name,
+            "cos_url": cos_url,
+            "e_tag": e_tag,
+            "cos_hash": cos_hash,
+            "size": size,
+            "bot_app_key": self.config['AppKey'],
+        }
+        if conversation_id:
+            data["session_id"] = conversation_id
+
+        logging.info(f"[parse_document] url={doc_parse_url}, file_name={file_name}")
+
+        timeout = aiohttp.ClientTimeout(total=120)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(
+                doc_parse_url,
+                headers={"Content-Type": "application/json", "Accept": "text/event-stream"},
+                data=json.dumps(data)
+            ) as resp:
+                if resp.status != 200:
+                    error_text = await resp.text()
+                    logging.error(f"[parse_document] failed: status={resp.status}, body={error_text}")
+                    yield f'data: {json.dumps({"type": "error", "payload": {"doc_id": "0", "process": 0, "status": "FAILED", "error_message": f"Parse request failed: {resp.status}"}})}\n\n'.encode('utf-8')
+                    return
+
+                async for line in resp.content:
+                    decoded = line.decode('utf-8')
+                    if decoded.strip():
+                        yield f'{decoded}\n'.encode('utf-8') if not decoded.endswith('\n') else decoded.encode('utf-8')
+
     # ApplicationInterface
     @classmethod
     def get_vendor(self) -> str:
@@ -528,15 +588,21 @@ class TCADP(BaseVendor):
         resp = await tc_request(self.tc_config(), action, payload)
         if 'Error' in resp['Response']:
             logging.error(resp)
-        else:
-            BotBizId = resp['Response']['BotBizId']
-            self.config['BotBizId'] = BotBizId
+            return ApplicationInfo(
+                ApplicationId=self.application_id,
+                Name='Unknown',
+                Greeting='Please check your AppKey/SseURL/TC_SECRET_ID/TC_SECRET_KEY',
+            )
 
-            action = "DescribeApp"
-            payload = {
-                "AppBizId": BotBizId,
-            }
-            resp = await tc_request(self.tc_config(), action, payload)
+        BotBizId = resp['Response']['BotBizId']
+        self.config['BotBizId'] = BotBizId
+
+        action = "DescribeAppConf"
+        payload = {
+            "AppBizId": BotBizId,
+            "AppType": "knowledge_qa",
+        }
+        resp = await tc_request(self.tc_config(), action, payload)
 
         if 'Error' in resp['Response']:
             logging.error(resp)
@@ -545,14 +611,44 @@ class TCADP(BaseVendor):
                 Name='Unknown',
                 Greeting='Please check your AppKey/SseURL/TC_SECRET_ID/TC_SECRET_KEY',
             )
-        else:
-            return ApplicationInfo(
-                ApplicationId=self.application_id,
-                Name=resp['Response']['BaseConfig']['Name'],
-                Avatar=resp['Response']['BaseConfig']['Avatar'],
-                Greeting=resp['Response']['AppConfig']['KnowledgeQa']['Greeting'],
-                OpeningQuestions=resp['Response']['AppConfig']['KnowledgeQa']['OpeningQuestions'],
-            )
+
+        response = resp['Response']
+        app_config = response.get('AppConfig', {})
+        base_config = response.get('BaseConfig', {})
+
+        # V2 格式：从 app_config 中提取配置
+        base = app_config.get('Base', {})
+        greeting_config = app_config.get('Greeting', {})
+        conversation_experience = app_config.get('ConversationExperience', {})
+        search_engine = app_config.get('SearchEngine', {})
+
+        # 输入框配置
+        input_box_config = conversation_experience.get('InputBoxConfig', {})
+        input_box_buttons = input_box_config.get('InputBoxButtons', [])
+
+        from vendor.interface import InputBoxButton, InputBoxConfig
+        buttons = []
+        for btn in input_box_buttons:
+            if isinstance(btn, dict):
+                buttons.append(InputBoxButton(Type=btn.get('Type', 0), Name=btn.get('Name')))
+            elif isinstance(btn, int):
+                buttons.append(InputBoxButton(Type=btn))
+            else:
+                buttons.append(InputBoxButton(Type=int(btn)))
+
+        return ApplicationInfo(
+            ApplicationId=self.application_id,
+            Name=base_config.get('Name') or base.get('Name', ''),
+            Avatar=base_config.get('Avatar') or base.get('Avatar', ''),
+            Greeting=greeting_config.get('Greeting'),
+            OpeningQuestions=greeting_config.get('OpeningQuestions', []),
+            Pattern=base.get('Pattern'),
+            AppStatus=response.get('AppStatus'),
+            AgentType=response.get('AgentType'),
+            InputBox=InputBoxConfig(InputBoxButtons=buttons) if buttons else None,
+            EnableWebSearch=search_engine.get('UseSearchEngine', False),
+            EnableAudit=base.get('EnableAudit', False),
+        )
 
     # MessageInterface - V2 Protocol
     async def get_messages(
@@ -680,40 +776,134 @@ class TCADP(BaseVendor):
         except Exception as e:
             logging.error(f'failed to summarize conversation title. error: {e}')
 
-    # FileInterface:
-    async def upload(self, db: AsyncSession, request: Request, account_id: str, mime_type: str) -> str:
-        action = "DescribeStorageCredential"
-        payload = {
-            "BotBizId": self.config['BotBizId'],
-            "FileType": mime_type.split("/")[-1],
-            "IsPublic": True,
-            "TypeKey": 'realtime',
+    @staticmethod
+    def _resolve_file_type(mime_type: str) -> str:
+        """将 MIME 类型转换为腾讯云 DescribeStorageCredential 接受的文件扩展名"""
+        mime_to_ext = {
+            'image/png': 'png',
+            'image/jpg': 'jpg',
+            'image/jpeg': 'jpeg',
+            'image/bmp': 'bmp',
+            'image/webp': 'webp',
+            'image/gif': 'gif',
+            'image/tiff': 'tiff',
+            'application/pdf': 'pdf',
+            'application/msword': 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+            'application/vnd.ms-powerpoint': 'ppt',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+            'application/vnd.ms-excel': 'xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+            'text/plain': 'txt',
+            'text/markdown': 'md',
+            'text/csv': 'csv',
+            'application/json': 'json',
         }
+        ext = mime_to_ext.get(mime_type)
+        if ext:
+            return ext
+        if mime_type.startswith('image/'):
+            return mime_type.split('/')[-1]
+        return mime_type.split('/')[-1]
+
+    # FileInterface:
+    async def upload(self, db: AsyncSession, request: Request, account_id: str, mime_type: str, mode: str = 'standard') -> str:
+        action = "DescribeStorageCredential"
+        file_type = self._resolve_file_type(mime_type)
+
+        # claw/agent 模式使用 BotBizId='0' + IsPublic=True，确保文件在公有桶中可被 Claw Agent 下载
+        if mode == 'claw':
+            payload = {
+                "BotBizId": '0',
+                "FileType": file_type,
+                "IsPublic": True,
+                "TypeKey": 'realtime',
+            }
+        else:
+            payload = {
+                "BotBizId": self.config['BotBizId'],
+                "FileType": file_type,
+                "IsPublic": True,
+                "TypeKey": 'realtime',
+            }
         resp = await tc_request(self.tc_config(), action, payload)
         resp = resp['Response']
         if 'Error' in resp:
             logging.error(resp)
             raise Exception(resp['Error']['Message'])
 
-        cos = AsyncWareHouseS3(
-            secretId=resp['Credentials']['TmpSecretId'],
-            secretKey=resp['Credentials']['TmpSecretKey'],
-            tmpToken=resp['Credentials']['Token'],
-            region=resp['Region'],
-            bucket=resp['Bucket'],
-            config=self.tc_config()['cos'],
+        logging.info(f"DescribeStorageCredential mode={mode}, response keys: {[k for k in resp.keys() if k != 'Credentials']}")
+        logging.info(f"DescribeStorageCredential UploadPath: {resp.get('UploadPath')}, FileUrl: {resp.get('FileUrl')}, UploadUrl: {resp.get('UploadUrl')}, DownloadUrl: {resp.get('DownloadUrl')}")
+
+        # 读取完整请求体
+        file_data = bytearray()
+        while True:
+            body = await request.stream.read()
+            if body is None:
+                break
+            file_data += body
+
+        logging.info(f"upload: file size {len(file_data)} bytes")
+
+        # 使用 DescribeStorageCredential 返回的 UploadUrl（已签名）直接 PUT 上传
+        upload_url = resp.get('UploadUrl')
+        if upload_url:
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                async with session.put(
+                    upload_url,
+                    data=bytes(file_data),
+                    headers={'Content-Length': str(len(file_data))}
+                ) as put_resp:
+                    if put_resp.status not in (200, 201, 204):
+                        text = await put_resp.text()
+                        logging.error(f"upload PUT failed: status={put_resp.status}, body={text}")
+                        raise Exception(f"File upload failed: {put_resp.status}")
+        else:
+            # 回退到 S3 SDK 简单上传
+            cos = AsyncWareHouseS3(
+                secretId=resp['Credentials']['TmpSecretId'],
+                secretKey=resp['Credentials']['TmpSecretKey'],
+                tmpToken=resp['Credentials']['Token'],
+                region=resp['Region'],
+                bucket=resp['Bucket'],
+                config=self.tc_config()['cos'],
+            )
+            await cos.put(resp['UploadPath'], bytes(file_data))
+
+        # 优先使用 DescribeStorageCredential 返回的 FileUrl（LKE 平台可识别的地址）
+        url = resp.get('FileUrl') or resp.get('file_url') or (
+            f"https://{resp['Bucket']}.cos.{resp['Region']}.myqcloud.com{resp['UploadPath']}"
         )
+        cos_url = resp.get('UploadPath', '')
 
-        async with cos.put_multipart(resp['UploadPath']) as uploader:
-            while True:
-                body = await request.stream.read()
-                if body is None:
-                    break
-                print(f'upload: {len(body)}')
-                await uploader.write(body)
+        # claw 模式：上传完成后需再次调用 DescribeStorageCredential 获取 DownloadUrl
+        # 对齐 webim openclaw 的 handleAgentDoc → cos.getDownloadUrl 逻辑
+        if mode == 'claw' and cos_url:
+            download_payload = {
+                "BotBizId": '0',
+                "FileType": file_type,
+                "IsPublic": True,
+                "TypeKey": 'realtime',
+                "CosUrl": cos_url,
+            }
+            try:
+                dl_resp = await tc_request(self.tc_config(), action, download_payload)
+                dl_resp = dl_resp['Response']
+                download_url = dl_resp.get('DownloadUrl') or dl_resp.get('FileUrl') or dl_resp.get('file_url')
+                if download_url:
+                    logging.info(f"claw mode DownloadUrl obtained: {download_url[:80]}...")
+                    url = download_url
+                else:
+                    logging.warning(f"claw mode: DownloadUrl not found in response, keys: {list(dl_resp.keys())}")
+            except Exception as e:
+                logging.warning(f"claw mode: failed to get DownloadUrl, using FileUrl. Error: {e}")
 
-        url = cos.get_full_url(resp['UploadPath'])
-        return url
+        return {
+            'Url': url,
+            'CosUrl': cos_url,
+            'CosBucket': resp.get('Bucket', ''),
+        }
 
     # FeedbackInterface
     async def rate(
@@ -838,8 +1028,8 @@ service_configs = {
             "version": "2024-05-22"
         },
         'cos': {
-            'ep': 'http://cos.{region}.myqcloud.com',
-            'access': 'http://{bucket}.cos.{region}.myqcloud.com'
+            'ep': 'https://cos.{region}.myqcloud.com',
+            'access': 'https://{bucket}.cos.{region}.myqcloud.com'
         },
         'sse': 'https://wss.lke.tencentcloud.com/adp/v2/chat'
     },
@@ -855,8 +1045,8 @@ service_configs = {
             "version": "2024-05-22"
         },
         'cos': {
-            'ep': 'http://cos.{region}.myqcloud.com',
-            'access': 'http://{bucket}.cos.{region}.myqcloud.com'
+            'ep': 'https://cos.{region}.myqcloud.com',
+            'access': 'https://{bucket}.cos.{region}.myqcloud.com'
         },
         'sse': 'https://wss.lke.cloud.tencent.com/adp/v2/chat'
     }

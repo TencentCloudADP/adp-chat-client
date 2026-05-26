@@ -1,14 +1,15 @@
 <!-- 聊天消息项组件，支持 Markdown、深度思考、操作按钮等 -->
 <script setup lang="tsx">
 import { ref, computed, watch } from 'vue';
-import type { Content, Message, QuoteInfo, Record as RecordV2, Reference as ReferenceV2 } from '../../model/chat-v2';
+import type { Content, Message, QuoteInfo, Record as RecordV2, Reference as ReferenceV2, FileInfo } from '../../model/chat-v2';
 import { ScoreValue } from '../../model/chat-v2';
-import type { CommonLayoutProps, ChatItemI18n } from '../../model/type';
+import type { CommonLayoutProps, ChatItemI18n, ChatMode } from '../../model/type';
 import { commonLayoutPropsDefaults, defaultChatItemI18n } from '../../model/type';
 import {  ChatItem as TChatItem } from '@tdesign-vue-next/chat';
 import { Tooltip, Loading as TLoading, Link as TLink, Dialog as TDialog } from 'tdesign-vue-next';
 import OptionCard from '../Common/OptionCard.vue';
 import MdContent from '../Common/MdContent.vue';
+import MessageFileCard from '../Common/MessageFileCard.vue';
 import WidgetActionTag from '../Common/WidgetActionTag.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import { widgetContentToMarkdown } from '../../utils/mergeRecord-v2';
@@ -30,12 +31,15 @@ interface Props extends CommonLayoutProps {
     i18n?: ChatItemI18n;
     /** 当前语言标识（如 'zh-CN'、'en-US'），用于 widget 国际化 */
     language?: string;
+    /** 聊天模式：claw-简化模式, standard-标准模式 */
+    mode?: ChatMode;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     isLastMsg: false,
     showActions: true,
     language: 'zh-CN',
+    mode: 'standard',
     ...commonLayoutPropsDefaults,
     i18n: () => ({}),
 });
@@ -145,6 +149,38 @@ const optionCards = computed(() => {
     return collectFromMessageContents(primaryMessage.value, (content) => content.OptionCards ?? []);
 });
 
+const fileAttachments = computed<FileInfo[]>(() => {
+    return collectFromMessageContents(primaryMessage.value, (content) => {
+        if (content.Type === 'file' && content.File) {
+            return [content.File];
+        }
+        return undefined;
+    });
+});
+
+/** 图片 MIME 类型前缀 */
+const IMAGE_TYPE_RE = /^image\//i
+/** 通过文件名判断图片 */
+const IMAGE_EXT_RE = /\.(jpg|jpeg|png|bmp|webp|gif)$/i
+
+const imageAttachments = computed<FileInfo[]>(() => {
+    return fileAttachments.value.filter(f =>
+        IMAGE_TYPE_RE.test(f.FileType || '') || IMAGE_EXT_RE.test(f.FileName || '')
+    );
+});
+
+const docAttachments = computed<FileInfo[]>(() => {
+    return fileAttachments.value.filter(f =>
+        !IMAGE_TYPE_RE.test(f.FileType || '') && !IMAGE_EXT_RE.test(f.FileName || '')
+    );
+});
+
+/** 点击图片附件，新窗口打开预览 */
+const openImagePreview = (file: FileInfo) => {
+    const url = file.FileUrl || file.Url;
+    if (url) window.open(url, '_blank');
+};
+
 const quoteInfos = computed<QuoteInfoLike[]>(() => {
     return collectFromMessageContents(primaryMessage.value, (content) => content.QuoteInfos ?? []);
 });
@@ -240,6 +276,7 @@ const renderReasoningContent = (contents: string[]) => {
                 content={content} 
                 role="system" 
                 theme={props.theme} 
+                mode={props.mode}
                 language={props.language}
                 key={index} 
             />
@@ -355,26 +392,50 @@ const referenceDialogTitle = computed(() => {
             <div v-else>
                 <!-- 普通用户消息 -->
                 <div v-if="isFromSelf" class="user-message">
+                    <!-- 图片附件：独立于文字气泡展示（claw 模式下已在文本中渲染） -->
+                    <div v-if="imageAttachments.length > 0 && mode !== 'claw'" class="image-attachments">
+                        <img
+                            v-for="(file, idx) in imageAttachments"
+                            :key="'img-' + idx"
+                            :src="file.FileUrl || file.Url"
+                            :alt="file.FileName"
+                            class="msg-inline-image"
+                            @click="openImagePreview(file)"
+                        />
+                    </div>
+                    <!-- 文件附件：card 形式展示（claw 模式下已在文本中渲染） -->
+                    <div v-if="docAttachments.length > 0 && mode !== 'claw'" class="file-attachments">
+                        <MessageFileCard
+                            v-for="(file, idx) in docAttachments"
+                            :key="'doc-' + idx"
+                            :file="file"
+                            :theme="theme"
+                        />
+                    </div>
                     <MdContent 
                         :content="displayText" 
                         role="user" 
                         :theme="theme" 
+                        :mode="mode"
                         :quoteInfos="quoteInfos"
                         :language="language"
                         :recordId="item.RecordId"
                         :enableScale="isMobile"
                         @widgetEvent="handleWidgetEvent"
                     />
+                    <span>
                     <CustomizedIcon :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon copy-icon" name="copy" :theme="theme"
                         @click="(e: any) => copyContent(e, displayText, 'user')" />
                     <CustomizedIcon :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon share-icon" name="share" :theme="theme"
                         @click="share(item)" />
+                    </span>
                 </div>
                 <MdContent 
                     v-else 
                     :content="displayText" 
                     role="assistant" 
                     :theme="theme" 
+                    :mode="mode"
                     :quoteInfos="quoteInfos"
                     :language="language"
                     :recordId="item.RecordId"
@@ -486,6 +547,7 @@ const referenceDialogTitle = computed(() => {
                     :content="getReferenceContent(activeReference)"
                     role="assistant"
                     :theme="theme"
+                    :mode="mode"
                     :language="language"
                 />
             </div>
@@ -509,6 +571,12 @@ const referenceDialogTitle = computed(() => {
 }
 
 /* 用户消息的复制和分享图标样式 */
+.user-message {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
 .user-message .copy-icon,
 .user-message .share-icon {
     opacity: 0;
@@ -685,5 +753,32 @@ const referenceDialogTitle = computed(() => {
 }
 .chat-item__container.loading{
     padding-bottom: 32px;
+}
+
+.file-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.image-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0 ;
+}
+
+.msg-inline-image {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 8px;
+    object-fit: contain;
+    cursor: pointer;
+    display: block;
+}
+
+.msg-inline-image:hover {
+    opacity: 0.9;
 }
 </style>
