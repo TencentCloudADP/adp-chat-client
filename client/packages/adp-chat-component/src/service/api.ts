@@ -27,6 +27,8 @@ export interface ApiDetailConfig {
     userInfoApi?: string;
     /** 文件上传接口路径 */
     uploadApi?: string;
+    /** 文件解析接口路径（standard 模式下用于获取 doc_id） */
+    fileParseApi?: string;
     /** 引用详情接口路径 */
     referenceDetailApi?: string;
     /** ASR 语音识别 URL 接口路径 */
@@ -55,6 +57,7 @@ export const defaultApiDetailConfig: ApiDetailConfig = {
     shareApi: '/share/create',
     userInfoApi: '/account/info',
     uploadApi: '/file/upload',
+    fileParseApi: '/file/parse',
     referenceDetailApi: '/reference/detail',
     asrUrlApi: '/helper/asr/url',
     systemConfigApi: '/system/config',
@@ -190,7 +193,7 @@ export const fetchUserInfo = async (apiPath?: string): Promise<{ Name: string; A
  * @param applicationId 应用ID
  * @param apiPath API 路径
  */
-export const uploadFile = async (file: File, applicationId?: string, apiPath?: string): Promise<any> => {
+export const uploadFile = async (file: File, applicationId?: string, apiPath?: string, mode?: string): Promise<any> => {
     if (!apiPath) throw new Error('apiPath is required');
     // 构建带参数的 URL
     const params = new URLSearchParams();
@@ -200,6 +203,9 @@ export const uploadFile = async (file: File, applicationId?: string, apiPath?: s
     if (file.type) {
         params.append('Type', file.type);
     }
+    if (mode) {
+        params.append('Mode', mode);
+    }
     const url = params.toString() ? `${apiPath}?${params.toString()}` : apiPath;
     try {
         const response = await httpService.post(url, file);
@@ -208,6 +214,102 @@ export const uploadFile = async (file: File, applicationId?: string, apiPath?: s
         console.error('文件上传失败:', error);
         throw error;
     }
+};
+
+/**
+ * 文档解析请求参数
+ */
+export interface FileParseParams {
+    ApplicationId: string;
+    FileName: string;
+    FileType: string;
+    FileUrl?: string;
+    CosBucket?: string;
+    CosUrl?: string;
+    ETag?: string;
+    CosHash?: string;
+    Size?: string;
+    ConversationId?: string;
+}
+
+/**
+ * 文档解析结果
+ */
+export interface FileParseResult {
+    doc_id: string;
+    process: number;
+    status: string;
+    error_message?: string;
+}
+
+/**
+ * 实时文档解析（standard 模式）
+ * 上传文件后调用此接口进行文档解析，获取 doc_id 供聊天使用。
+ * @param params 解析参数
+ * @param apiPath API 路径
+ * @returns Promise<FileParseResult> 解析完成时返回包含 doc_id 的结果
+ */
+export const parseFile = async (params: FileParseParams, apiPath?: string): Promise<FileParseResult> => {
+    if (!apiPath) throw new Error('apiPath is required');
+
+    const response: any = await httpService.post(apiPath, params, {
+        responseType: 'stream',
+        adapter: 'fetch',
+        timeout: 120000,
+    } as AxiosRequestConfig);
+
+    return new Promise((resolve, reject) => {
+        const reader = response?.body?.getReader?.() || response?.getReader?.();
+        if (!reader) {
+            // 非流式响应，尝试直接解析
+            if (response && typeof response === 'object' && response.doc_id) {
+                resolve(response as FileParseResult);
+            } else {
+                reject(new Error('No readable stream in response'));
+            }
+            return;
+        }
+
+        const decoder = new TextDecoder();
+        let lastResult: FileParseResult = { doc_id: '0', process: 0, status: 'RUNNING' };
+
+        const read = (): void => {
+            reader.read().then(({ done, value }: { done: boolean; value?: Uint8Array }) => {
+                if (done) {
+                    resolve(lastResult);
+                    return;
+                }
+                const text = decoder.decode(value, { stream: true });
+                const lines = text.split('\n');
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('data:')) {
+                        try {
+                            const data = JSON.parse(trimmed.slice(5).trim());
+                            const payload = data.payload || data;
+                            if (payload.doc_id) {
+                                lastResult = {
+                                    doc_id: payload.doc_id,
+                                    process: payload.process || 0,
+                                    status: payload.status || 'RUNNING',
+                                    error_message: payload.error_message,
+                                };
+                            }
+                            if (payload.status === 'FAILED') {
+                                reject(new Error(payload.error_message || 'Document parse failed'));
+                                reader.cancel();
+                                return;
+                            }
+                        } catch (e) {
+                            // 忽略解析失败的行
+                        }
+                    }
+                }
+                read();
+            }).catch(reject);
+        };
+        read();
+    });
 };
 
 /**

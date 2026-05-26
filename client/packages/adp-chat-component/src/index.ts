@@ -45,6 +45,7 @@ export { default as ShareChat } from './components/ShareChat.vue'
 // 类型导出
 export type {
     ChatConfig,
+    ChatMode,
     ThemeType,
     ThemeProps,
     MobileProps,
@@ -77,7 +78,7 @@ export {
     defaultSenderI18nEn,
     getI18nByLanguage,
 } from './model/type'
-export type { Application } from './model/application'
+export type { Application, AppPattern, InputBoxButton, InputBoxConfig } from './model/application'
 export type {
     ChatConversation,
     ChatConversationProps,

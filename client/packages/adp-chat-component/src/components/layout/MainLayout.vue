@@ -213,6 +213,7 @@ defineExpose({
                 :isMobile="isMobile"
                 :theme="theme"
                 :language="props.language"
+                :mode="props.mode"
                 :i18n="i18n"
                 :chatItemI18n="chatItemI18n"
                 :senderI18n="senderI18n"

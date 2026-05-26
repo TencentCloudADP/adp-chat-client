@@ -276,6 +276,7 @@ export interface ADPChatConfig extends MountConfig {
   isChatting?: boolean
   user?: any
   theme?: 'light' | 'dark'
+  mode?: 'claw' | 'standard'
   languageOptions?: any[]
   isMobile?: boolean
   logoUrl?: string

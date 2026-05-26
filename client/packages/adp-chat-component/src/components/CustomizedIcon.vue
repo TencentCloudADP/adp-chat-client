@@ -63,6 +63,14 @@ import thumbs_up from '../assets/icons/thumbs_up.svg?raw';
 import thumbs_up_active from '../assets/icons/thumbs_up_active.svg?raw';
 import url from '../assets/icons/url.svg?raw';
 import voice_input from '../assets/icons/voice_input.svg?raw';
+import file_pdf from '../assets/icons/file_pdf.svg?raw';
+import file_word from '../assets/icons/file_word.svg?raw';
+import file_ppt from '../assets/icons/file_ppt.svg?raw';
+import file_excel from '../assets/icons/file_excel.svg?raw';
+import file_text from '../assets/icons/file_text.svg?raw';
+import attachment from '../assets/icons/attachment.svg?raw';
+import plus from '../assets/icons/plus.svg?raw';
+import close_circle from '../assets/icons/close_circle.svg?raw';
 
 // SVG 映射表
 const svgMap: Record<string, string> = {
@@ -104,6 +112,14 @@ const svgMap: Record<string, string> = {
     thumbs_up_active,
     url,
     voice_input,
+    file_pdf,
+    file_word,
+    file_ppt,
+    file_excel,
+    file_text,
+    attachment,
+    plus,
+    close_circle,
 };
 
 // 用于生成唯一 id 的计数器

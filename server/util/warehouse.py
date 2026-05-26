@@ -9,11 +9,11 @@ class AsyncWareHouseS3():
             's3secret': secretKey,
             's3ep': config.get(
                 'ep',
-                'http://cos.{region}.myqcloud.com'
+                'https://cos.{region}.myqcloud.com'
             ).format(bucket=bucket, region=region),
             's3ep_full': config.get(
                 'access',
-                'http://{bucket}.cos.{region}.myqcloud.com'
+                'https://{bucket}.cos.{region}.myqcloud.com'
             ).format(bucket=bucket, region=region),
             's3bucket': bucket,
             'addressing_style': config.get('addressing_style', 'virtual')
@@ -70,57 +70,77 @@ class AsyncWareHouseS3():
 
 
 class MultipartUploader:
+    """使用 client-level API 进行分片上传，兼容腾讯云 COS HTTPS 接口"""
+
     def __init__(self, session, s3_config, path):
         self.session = session
         self.dict = s3_config
         self.path = path
-        self.mp = None
+        self.upload_id = None
+        self.client = None
         self.parts = []
         self.buf = bytearray()
         self.part_number = 1
 
     async def __aenter__(self):
         cos_config = Config(s3={'addressing_style': self.dict['addressing_style']})
-        s3_resource = self.session.resource('s3', endpoint_url=self.dict['s3ep'], config=cos_config)
-        self.s3 = await s3_resource.__aenter__()
-        obj = await self.s3.Object(self.dict['s3bucket'], self.path)
-        self.mp = await obj.initiate_multipart_upload(Bucket=self.dict['s3bucket'], Key=self.path)
+        client_ctx = self.session.client('s3', endpoint_url=self.dict['s3ep'], config=cos_config)
+        self.client = await client_ctx.__aenter__()
+        self._client_ctx = client_ctx
+
+        resp = await self.client.create_multipart_upload(
+            Bucket=self.dict['s3bucket'],
+            Key=self.path
+        )
+        self.upload_id = resp['UploadId']
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         try:
             if exc_type is not None:
-                # On error, abort the multipart upload
-                if self.mp:
-                    await self.mp.abort()
+                if self.upload_id:
+                    await self.client.abort_multipart_upload(
+                        Bucket=self.dict['s3bucket'],
+                        Key=self.path,
+                        UploadId=self.upload_id
+                    )
                 return
 
-            # Upload any remaining data
             if len(self.buf) > 0:
                 await self._upload_part()
 
-            # Complete the multipart upload
-            if self.mp and self.parts:
-                await self.mp.complete(MultipartUpload={'Parts': self.parts})
+            if self.upload_id and self.parts:
+                await self.client.complete_multipart_upload(
+                    Bucket=self.dict['s3bucket'],
+                    Key=self.path,
+                    UploadId=self.upload_id,
+                    MultipartUpload={'Parts': self.parts}
+                )
         finally:
-            # Close the S3 resource
-            if self.s3:
-                await self.s3.__aexit__(exc_type, exc_val, exc_tb)
+            if self.client:
+                await self._client_ctx.__aexit__(exc_type, exc_val, exc_tb)
 
     async def write(self, data):
         self.buf += data
-        if len(self.buf) >= 1024 * 1024:  # 1MB threshold
+        if len(self.buf) >= 1024 * 1024:
             await self._upload_part()
 
     async def _upload_part(self):
         if len(self.buf) == 0:
             return
 
-        part = await self.mp.Part(self.part_number)
-        upload_result = await part.upload(Body=self.buf)
+        body = bytes(self.buf)
+        resp = await self.client.upload_part(
+            Bucket=self.dict['s3bucket'],
+            Key=self.path,
+            UploadId=self.upload_id,
+            PartNumber=self.part_number,
+            Body=body,
+            ContentLength=len(body)
+        )
         self.parts.append({
             'PartNumber': self.part_number,
-            'ETag': upload_result['ETag']
+            'ETag': resp['ETag']
         })
         self.part_number += 1
         self.buf = bytearray()

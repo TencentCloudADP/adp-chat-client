@@ -8,7 +8,7 @@ import MainLayout from './MainLayout.vue';
 import SideLayout from './SideLayout.vue';
 import LogoArea from '../LogoArea.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
-import type { Application } from '../../model/application';
+import type { Application, AppPattern } from '../../model/application';
 import type { ChatConversation, Record, Reference, SseEvent } from '../../model/chat-v2';
 import type { FileProps } from '../../model/file';
 import { ScoreValue } from '../../model/chat-v2';
@@ -23,6 +23,7 @@ import {
     createShare,
     fetchUserInfo,
     uploadFile,
+    parseFile,
     fetchSystemConfig,
     describeConversationList,
 } from '../../service/api';
@@ -47,7 +48,8 @@ import type {
     ChatItemI18n, 
     SenderI18n,
     ThemeProps,
-    OverlayProps
+    OverlayProps,
+    ChatMode
 } from '../../model/type';
 import { 
     defaultLanguageOptions,
@@ -66,6 +68,8 @@ import {
 export interface Props extends ThemeProps, OverlayProps {
     /** 当前语言标识，用于自动选择内部默认 i18n（如 'zh-CN'、'en-US'） */
     language?: string;
+    /** 聊天模式：claw-简化模式（无文件预览/无解析进度），standard-标准模式 */
+    mode?: ChatMode;
     /** 是否为浮层模式 */
     isOverlay?: boolean;
     /** 宽度（仅在 isOverlay 为 true 时用于计算 isMobile） */
@@ -124,6 +128,7 @@ const props = withDefaults(defineProps<Props>(), {
     ...themePropsDefaults,
     ...overlayPropsDefaults,
     language: 'zh-CN',
+    mode: 'standard',
     isOverlay: false,
     width: 0,
     height: 0,
@@ -429,6 +434,21 @@ const currentApplicationGreeting = computed(() => actualCurrentApplication.value
 const currentApplicationOpeningQuestions = computed(() => actualCurrentApplication.value?.OpeningQuestions || []);
 const currentConversationId = computed(() => props.currentConversationId || actualCurrentConversation.value?.Id || '');
 
+/**
+ * 聊天模式：优先使用 props.mode 手动配置，否则从当前应用的 Pattern 自动推导
+ * Pattern='ClawAgent' → mode='claw'，其他值或 null → mode='standard'
+ */
+const chatMode = computed<ChatMode>(() => {
+    if (props.mode !== 'standard') {
+        return props.mode;
+    }
+    const pattern = actualCurrentApplication.value?.Pattern as AppPattern | null | undefined;
+    if (pattern === 'ClawAgent') {
+        return 'claw';
+    }
+    return 'standard';
+});
+
 // API 数据加载方法
 const loadApplications = async () => {
     if (!useApiMode.value) return;
@@ -523,6 +543,7 @@ const loadSystemConfig = async () => {
 
 // 内部发送消息处理（API 模式）
 const handleInternalSend = async (query: string, fileList: FileProps[], conversationId: string, applicationId: string) => {
+    if (isUploading.value) return;
     if (!useApiMode.value) {
         emit('send', query, fileList, conversationId, applicationId);
         return;
@@ -552,6 +573,18 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
         IsFromSelf: isFromSelf,
     });
 
+    // 构建用户消息展示内容（图片和文档都作为 file Content 展示）
+    const userContents: Array<Record<string, any>> = [{ Type: 'text', Text: query }];
+    for (const file of fileList) {
+        if (file.status === 'done' && file.url) {
+            const extName = file.name?.split('.').pop() || '';
+            userContents.push({
+                Type: 'file',
+                File: { DocId: file.docId || '0', FileName: file.name || '', FileUrl: file.url, FileSize: String(file.size || 0), FileType: extName },
+            });
+        }
+    }
+
     // 创建用户消息占位
     const userRecord: Record = {
         Role: 'user',
@@ -567,7 +600,7 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
                 Title: '',
                 Status: 'success',
                 StatusDesc: '',
-                Contents: [{ Type: 'text', Text: query }],
+                Contents: userContents,
             },
         ],
         ExtraInfo: baseExtraInfo(true),
@@ -592,8 +625,24 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
     });
 
     streamState.abortController = new AbortController();
-    const contents = [{ Type: 'text', Text: query }];
 
+    const contents: Array<Record<string, any>> = [{ Type: 'text', Text: query }];
+    // 将所有已上传成功的文件（图片和文档）以 file content 格式加入
+    for (const file of fileList) {
+        if (file.status === 'done' && file.url) {
+            const extName = file.name?.split('.').pop() || '';
+            contents.push({
+                Type: 'file',
+                File: {
+                    DocId: file.docId || '0',
+                    FileName: file.name || '',
+                    FileUrl: file.url,
+                    FileSize: String(file.size || 0),
+                    FileType: extName,
+                },
+            });
+        }
+    }
     await fetchSSE(
         () => {
             return sendMessage(
@@ -835,6 +884,11 @@ const handleSelectApplication = (app: Application) => {
         internalCurrentApplication.value = app;
         internalCurrentConversation.value = undefined;
         currentConversationStateKey.value = '';
+        // 清空 Sender 中的已选文件和输入内容
+        const senderRef = mainLayoutRef.value?.getChatRef()?.getSenderRef();
+        if (senderRef) {
+            senderRef.changeSenderVal('', []);
+        }
     }
     // 移动端选择应用后收起侧边栏
     if (isMobile.value || props.isSidePanelOverlay) {
@@ -1113,23 +1167,67 @@ const handleInternalUploadFile = async (files: File[]) => {
         return;
     }
 
+    if (isUploading.value) return;
+
     isUploading.value = true;
     emit('uploadStatus', 'uploading');
 
+    const senderRef = mainLayoutRef.value?.getChatRef()?.getSenderRef();
+
     for (const file of files) {
+        const uid = `${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`;
+        const category = file.type.startsWith('image/') ? 'image' : 'document';
+
+        // 立即添加文件到列表，状态为 uploading，显示 loading
+        if (senderRef) {
+            senderRef.addFile({
+                uid,
+                name: file.name,
+                url: '',
+                size: file.size,
+                type: file.type,
+                category,
+                status: 'uploading',
+            });
+        }
+
         try {
-            const response = await uploadFile(file, currentApplicationId.value, mergedApiDetailConfig.value.uploadApi);
-            // 上传成功后添加到文件列表
-            const senderRef = mainLayoutRef.value?.getChatRef()?.getSenderRef();
+            const response = await uploadFile(file, currentApplicationId.value, mergedApiDetailConfig.value.uploadApi, chatMode.value);
             if (senderRef && response) {
-                senderRef.addFile({
-                    uid: `${Date.now()}-${file.name}`,
-                    name: file.name,
-                    url: response.Url || response.url,
+                const fileUrl = response.Url || response.url;
+                senderRef.updateFile(uid, {
+                    url: fileUrl,
                     status: 'done',
                 });
+
+                // standard 模式下，非图片文件需要调用实时文档解析获取 doc_id
+                if (chatMode.value === 'standard' && category === 'document' && mergedApiDetailConfig.value.fileParseApi) {
+                    const extName = file.name.split('.').pop() || '';
+                    try {
+                        const parseResult = await parseFile({
+                            ApplicationId: currentApplicationId.value,
+                            FileName: file.name,
+                            FileType: extName,
+                            FileUrl: fileUrl,
+                            CosUrl: response.CosUrl || response.cos_url || '',
+                            CosBucket: response.CosBucket || response.cos_bucket || '',
+                            ETag: response.ETag || response.e_tag || '',
+                            CosHash: response.CosHash || response.cos_hash || '',
+                            Size: String(file.size || 0),
+                        }, mergedApiDetailConfig.value.fileParseApi);
+
+                        if (parseResult && parseResult.doc_id && parseResult.doc_id !== '0') {
+                            senderRef.updateFile(uid, { docId: parseResult.doc_id });
+                        }
+                    } catch (parseError) {
+                        console.warn('文档解析失败，将使用 FileUrl 模式:', parseError);
+                    }
+                }
             }
         } catch (error) {
+            if (senderRef) {
+                senderRef.removeFile(uid);
+            }
             const uploadErrorText = mergedSenderI18n.value.uploadError;
             MessagePlugin.error(uploadErrorText);
             emit('message', MessageCode.FILE_UPLOAD_FAILED, uploadErrorText);
@@ -1304,6 +1402,7 @@ defineExpose({
                 :isMobile="isMobile"
                 :theme="theme"
                 :language="props.language"
+                :mode="chatMode"
                 :showSidebarToggle="!sidebarVisible"
                 :aiWarningText="aiWarningText"
                 :i18n="props.chatI18n"
