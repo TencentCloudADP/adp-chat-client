@@ -119,6 +119,57 @@ export const fetchConversationDetail = async (
     }
 };
 
+/** DescribeConversationMessageList 请求参数 */
+export interface DescribeConversationMessageListParams {
+    /** 会话 ID */
+    ConversationId: string;
+    /** 查询锚点记录 ID（分页用） */
+    RecordId?: string;
+    /** 返回记录数量，默认 10，最大 50 */
+    Limit?: number;
+    /** 会话类型：1-访客 2-评测 5-API 10-工作流 20-分享 */
+    Type: number;
+    /** 查询方向：1-向前（更早） */
+    RecordQueryDirection?: number;
+}
+
+/** DescribeConversationMessageList 响应 */
+export interface DescribeConversationMessageListResponse {
+    Response: {
+        Messages?: Record[];
+        HasMoreBefore?: boolean;
+        HasMoreAfter?: boolean;
+        FirstRecordId?: string;
+        LastRecordId?: string;
+        RequestId?: string;
+    };
+}
+
+/**
+ * 通过 /adp 转发调用 DescribeConversationMessageList（claw 模式专用）
+ * @param params 请求参数
+ * @param applicationId 应用 ID
+ */
+export const fetchConversationDetailV2 = async (
+    params: DescribeConversationMessageListParams,
+    applicationId: string
+): Promise<DescribeConversationMessageListResponse> => {
+    try {
+        const response: DescribeConversationMessageListResponse = await httpService.post(
+            '/adp/DescribeConversationMessageList',
+            {
+                ApplicationId: applicationId,
+                Payload: params,
+                Version: '2025-11-12',
+            }
+        );
+        return response;
+    } catch (error) {
+        console.error('获取会话详情(V2)失败:', error);
+        throw error;
+    }
+};
+
 /**
  * 发送消息
  * @param params 消息参数

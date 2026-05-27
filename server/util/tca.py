@@ -61,14 +61,14 @@ def sign(key, msg):
     return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).digest()
 
 
-def tc_request_prepare(config: dict, action: str, payload: str, service = "lke") -> dict:
+def tc_request_prepare(config: dict, action: str, payload: str, service = "lke", version: str = None) -> dict:
     secret_id = tagentic_config.TC_SECRET_ID
     secret_key = tagentic_config.TC_SECRET_KEY
     token = ""
 
     url = config[service]['url']
     host = url.split('//')[1].split('/')[0]
-    version = config[service]['version']
+    version = version or config[service]['version']
     region = config[service]['region']
     algorithm = "TC3-HMAC-SHA256"
     timestamp = int(time.time())
@@ -125,21 +125,21 @@ def tc_request_prepare(config: dict, action: str, payload: str, service = "lke")
     return headers, url
 
 
-async def tc_request(config: dict, action: str, payload: dict = None, service = "lke") -> str:
+async def tc_request(config: dict, action: str, payload: dict = None, service = "lke", version: str = None) -> str:
     if payload is None:
         payload = {}
     payload = json.dumps(payload)
-    headers, url = tc_request_prepare(config, action, payload, service)
+    headers, url = tc_request_prepare(config, action, payload, service, version)
     async with aiohttp.ClientSession() as session:
         async with session.post(f'{url}/', headers=headers, data=payload) as resp:
             return await resp.json()
 
 
-async def tc_request_sse(config: dict, action: str, payload: dict = None, service = "lke"):
+async def tc_request_sse(config: dict, action: str, payload: dict = None, service = "lke", version: str = None):
     if payload is None:
         payload = {}
     payload = json.dumps(payload)
-    headers, url = tc_request_prepare(config, action, payload, service)
+    headers, url = tc_request_prepare(config, action, payload, service, version)
     async with aiohttp.ClientSession() as session:
         async with session.post(f'{url}/', headers=headers, data=payload) as resp:
             try:

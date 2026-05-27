@@ -9,7 +9,7 @@ import SideLayout from './SideLayout.vue';
 import LogoArea from '../LogoArea.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import type { Application, AppPattern } from '../../model/application';
-import type { ChatConversation, Record, Reference, SseEvent } from '../../model/chat-v2';
+import type { ChatConversation, Record, Reference, SseEvent, Content } from '../../model/chat-v2';
 import type { FileProps } from '../../model/file';
 import { ScoreValue } from '../../model/chat-v2';
 import type { ApiConfig } from '../../service/api';
@@ -209,6 +209,14 @@ const internalConversations = ref<ChatConversation[]>([]);
 const internalUser = ref<{ avatarUrl?: string; avatarName?: string; name?: string }>({});
 const internalCurrentApplication = ref<Application | undefined>(undefined);
 const internalCurrentConversation = ref<ChatConversation | undefined>(undefined);
+
+// 用于确保 applications 列表加载完成后再判断模式
+let resolveApplicationsReady: () => void;
+const applicationsReadyPromise = new Promise<void>((resolve) => {
+    resolveApplicationsReady = resolve;
+});
+
+
 const internalSystemConfig = ref<SystemConfig>({ EnableVoiceInput: true });
 const referenceDetailCache = new Map<string, Reference>();
 const referenceDetailPendingKeys = new Set<string>();
@@ -451,7 +459,10 @@ const chatMode = computed<ChatMode>(() => {
 
 // API 数据加载方法
 const loadApplications = async () => {
-    if (!useApiMode.value) return;
+    if (!useApiMode.value) {
+        resolveApplicationsReady();
+        return;
+    }
     try {
         const data = await fetchApplicationList(mergedApiDetailConfig.value.applicationListApi);
         internalApplications.value = data;
@@ -464,6 +475,8 @@ const loadApplications = async () => {
         const text = mergedChatI18n.value.getAppListFailed;
         MessagePlugin.error(text);
         emit('message', MessageCode.GET_APP_LIST_FAILED, text);
+    } finally {
+        resolveApplicationsReady();
     }
 };
 
@@ -495,16 +508,18 @@ const loadConversations = async () => {
 
 const loadConversationDetail = async (conversationId: string) => {
     if (!useApiMode.value || !conversationId) return;
+    // 确保 applications 列表已加载完成
+    await applicationsReadyPromise;
     try {
         const response = await fetchConversationDetail(
             { ConversationId: conversationId },
             mergedApiDetailConfig.value.conversationDetailApi
         );
-        const records = response?.Response?.Records || [];
-        setConversationRecords(conversationId, records, response?.Response?.ApplicationId);
-        await hydrateReferences(records, {
-            applicationId: response?.Response?.ApplicationId,
-        });
+        const records: Record[] = response?.Response?.Records || [];
+        const applicationId = response?.Response?.ApplicationId || '';
+
+        setConversationRecords(conversationId, records, applicationId);
+        await hydrateReferences(records, { applicationId });
         emit('dataLoaded', 'chatList', records);
     } catch (error) {
         const text = mergedChatI18n.value.getConversationDetailFailed;
@@ -574,7 +589,7 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
     });
 
     // 构建用户消息展示内容（图片和文档都作为 file Content 展示）
-    const userContents: Array<Record<string, any>> = [{ Type: 'text', Text: query }];
+    const userContents: Content[] = [{ Type: 'text', Text: query }];
     for (const file of fileList) {
         if (file.status === 'done' && file.url) {
             const extName = file.name?.split('.').pop() || '';
@@ -626,7 +641,7 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
 
     streamState.abortController = new AbortController();
 
-    const contents: Array<Record<string, any>> = [{ Type: 'text', Text: query }];
+    const contents: Content[] = [{ Type: 'text', Text: query }];
     // 将所有已上传成功的文件（图片和文档）以 file content 格式加入
     for (const file of fileList) {
         if (file.status === 'done' && file.url) {
@@ -780,21 +795,24 @@ const handleInternalLoadMore = async (conversationId: string, lastRecordId: stri
         return;
     }
 
+    // 确保 applications 列表已加载完成
+    await applicationsReadyPromise;
+
     try {
         const response = await fetchConversationDetail(
             { ConversationId: conversationId, LastRecordId: lastRecordId },
             mergedApiDetailConfig.value.conversationDetailApi
         );
-        const newRecords = response?.Response?.Records || [];
+        const newRecords: Record[] = response?.Response?.Records || [];
+        const applicationId = response?.Response?.ApplicationId || internalCurrentApplication.value?.ApplicationId || '';
+
         if (newRecords.length > 0) {
-            await hydrateReferences(newRecords, {
-                applicationId: response?.Response?.ApplicationId || internalCurrentApplication.value?.ApplicationId,
-            });
+            await hydrateReferences(newRecords, { applicationId });
             const targetState = ensureConversationRuntimeState(conversationId);
             if (targetState) {
                 targetState.records = [...newRecords, ...targetState.records];
-                if (response?.Response?.ApplicationId) {
-                    targetState.applicationId = response.Response.ApplicationId;
+                if (applicationId) {
+                    targetState.applicationId = applicationId;
                 }
             }
             mainLayoutRef.value?.notifyLoaded();
@@ -802,7 +820,6 @@ const handleInternalLoadMore = async (conversationId: string, lastRecordId: stri
             mainLayoutRef.value?.notifyComplete();
         }
         nextTick(() => {
-            // 仅首次加载滚动到最底部，并开启自动滚动窗口（处理图片等异步加载）
             if (!lastRecordId) {
                 mainLayoutRef.value?.getChatRef()?.backToBottom();
             }

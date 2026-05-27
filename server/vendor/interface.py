@@ -524,7 +524,7 @@ class MessageInterface:
         account_id: str,
         conversation_id: str,
         limit: int, last_record_id: str = None
-    ) -> list[Record]:
+    ) -> list[dict]:
         """异步获取指定对话的消息记录
 
         通过厂商接口，或本系统数据库查询特定会话的消息记录，支持通过last_record_id分页查询
@@ -539,7 +539,7 @@ class MessageInterface:
                 默认值: None (返回最新消息)
 
         Returns:
-            list[Record]: V2协议消息记录列表，按时间升序排列
+            list[dict]: 消息记录字典列表，透传上游接口的完整字段
         """
         raise NotImplementedError("Subclasses must implement this method")
 
@@ -620,6 +620,7 @@ class BaseVendor(ChatInterface, MessageInterface, FileInterface, ReferenceInterf
         payload: dict = None,
         service: str = "lke",
         *,
+        version: str = None,
         response_key: str = None,
         raise_on_error: bool = True,
     ) -> dict:
@@ -632,6 +633,7 @@ class BaseVendor(ChatInterface, MessageInterface, FileInterface, ReferenceInterf
             action: API Action 名称
             payload: 请求参数字典
             service: 服务名称
+            version: API 版本号，为 None 时使用 service 配置中的默认版本
             response_key: 从响应中提取指定 key
             raise_on_error: 遇错是否抛异常
 
