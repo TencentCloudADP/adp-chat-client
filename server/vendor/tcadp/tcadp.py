@@ -1,5 +1,6 @@
 import logging
 from typing import Any
+from urllib.parse import quote
 from sqlalchemy.ext.asyncio import AsyncSession
 from sanic.request.types import Request
 import asyncio
@@ -7,6 +8,7 @@ import aiohttp
 import json
 from util.tca import tc_request
 from util.warehouse import AsyncWareHouseS3
+from util.cos import upload_to_cos
 
 from core.completion import CoreCompletion
 from config import tagentic_config
@@ -875,6 +877,165 @@ class TCADP(BaseVendor):
             yield to_event(EventType.CONVERSATION, conversation=conversation, is_new_conversation=False)
         except Exception as e:
             logging.error(f'failed to summarize conversation title. error: {e}')
+
+    # FilesystemInterface:
+    async def list_dir(self, app_id: str, path: str, depth: int = 1, workspace_id = "") -> dict:
+        """调用 CreateWorkspaceCredential 获取凭证后，再请求 ListDir 接口获取目录列表
+
+        Args:
+            app_id: 前端传入的 ApplicationId
+            path: 目录路径，如 /workdir 或更深的子路径
+            depth: 遍历深度，默认 1
+
+        Returns:
+            dict: ListDir 接口返回的 JSON 数据，包含 entries 列表
+
+        Raises:
+            Exception: 当凭证获取或 ListDir 请求失败时抛出
+        """
+        # Step 1: 通过通用转发协议调用 CreateWorkspaceCredential 获取凭证
+        credential_payload = {
+            "AppId": app_id,
+            "Type": 2,
+            "WorkspaceId": workspace_id
+        }
+        credential_resp = await self.forward_request(
+            action="CreateWorkspaceCredential",
+            payload=credential_payload,
+        )        
+        logging.info(f'credential_resp: {credential_resp}')
+        # 解析凭证信息
+        credential = credential_resp.get('Credential', {})
+        sandbox_storage = credential_resp.get('SandboxStorage', {})
+
+        access_token = credential.get('AccessToken', '')
+        domain = sandbox_storage.get('Domain', '')
+        token_tag = sandbox_storage.get('TokenTag', '')
+
+        if not access_token or not domain or not token_tag:
+            raise Exception(
+                f'CreateWorkspaceCredential 返回数据不完整: '
+                f'AccessToken={bool(access_token)}, Domain={domain}, TokenTag={token_tag}'
+            )
+
+        # Step 2: 使用 Domain + TokenTag + AccessToken 拼接调用 ListDir
+        url = f"{domain}/filesystem.Filesystem/ListDir"
+        headers = {
+            "Content-Type": "application/json",
+            token_tag: access_token,  # 如 "X-File-Ticket": "<token>"
+        }
+        payload = {"path": path, "depth": depth}
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url,
+                json=payload,
+                headers=headers,
+                ssl=False,
+            ) as resp:
+                data = await resp.json()
+                if resp.status != 200:
+                    logging.error(
+                        f'[TCADP.list_dir] path={path} status={resp.status} resp={data}'
+                    )
+                    raise Exception(
+                        f'ListDir failed: status={resp.status}, '
+                        f'code={data.get("code")}, message={data.get("message")}'
+                    )
+                return data
+
+    async def fetch_file(self, app_id: str, workspace_id: str, path: str) -> dict:
+        """通过 /files 接口获取文件内容
+
+        流程：
+            1. 先调用 CreateWorkspaceCredential 获取凭证
+            2. 使用凭证拼接 GET {domain}{path} 获取文件
+
+        Args:
+            app_id: 应用 ID
+            workspace_id: 工作空间 ID
+            path: 文件路径，如 /workdir/main.py
+
+        Returns:
+            dict: 包含 status_code、content_type 和 content 的字典
+
+        Raises:
+            Exception: 当请求失败时抛出
+        """
+        # Step 1: 获取凭证
+        credential_payload = {
+            "AppId": app_id,
+            "Type": 2,
+            "WorkspaceId": workspace_id
+        }
+        credential_resp = await self.forward_request(
+            action="CreateWorkspaceCredential",
+            payload=credential_payload,
+        )
+        logging.info(f'[fetch_file] credential_resp: {credential_resp}')
+
+        # 解析凭证信息
+        credential = credential_resp.get('Credential', {})
+        sandbox_storage = credential_resp.get('SandboxStorage', {})
+
+        access_token = credential.get('AccessToken', '')
+        domain = sandbox_storage.get('Domain', '')
+        token_tag = sandbox_storage.get('TokenTag', '')
+
+        if not access_token or not domain or not token_tag:
+            raise Exception(
+                f'CreateWorkspaceCredential 返回数据不完整: '
+                f'AccessToken={bool(access_token)}, Domain={domain}, TokenTag={token_tag}'
+            )
+
+        # Step 2: 使用 Domain + TokenTag + AccessToken 调用 GET {domain}/files?path=<path>
+        url = f"{domain}/files"
+        params = {
+            "path": path,
+        }
+        headers = {
+            token_tag: access_token,
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url,
+                params=params,
+                headers=headers,
+                ssl=False,
+            ) as resp:
+                content_type = resp.headers.get('Content-Type', '')
+                content = await resp.read()  # 使用 read() 获取原始字节
+                if resp.status != 200:
+                    text = content.decode('utf-8', errors='replace')[:200]
+                    logging.error(
+                        f'[TCADP.fetch_file] path={path} status={resp.status} resp={text}'
+                    )
+                    raise Exception(
+                        f'fetch_file failed: status={resp.status}, content={text}'
+                    )
+
+                # Step 3: 上传到 COS，路径为 app_id/path
+                cos_key = f"{app_id}{path}"  # 如 2059173834404121408/workdir/main.py
+                # 去掉开头的 /
+                cos_key = cos_key.lstrip('/')
+                try:
+                    cos_url = upload_to_cos(
+                        key=cos_key,
+                        body=content,
+                        content_type=content_type,
+                    )
+                    logging.info(f'[TCADP.fetch_file] uploaded to COS: {cos_url}')
+                except Exception as e:
+                    logging.error(f'[TCADP.fetch_file] upload to COS failed: {e}')
+                    cos_url = ''
+
+                return {
+                    "status_code": resp.status,
+                    "content_type": content_type,
+                    "content": content.decode('utf-8', errors='replace'),
+                    "cos_url": cos_url,
+                }
 
     @staticmethod
     def _resolve_file_type(mime_type: str) -> str:

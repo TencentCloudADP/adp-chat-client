@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import base64
 import uuid
+import os
 from urllib.parse import quote
 from random import randint
 import json
@@ -13,6 +14,28 @@ from datetime import datetime
 import aiohttp
 
 from config import tagentic_config
+
+
+# 加载 action 级别的 version 覆盖配置
+_ACTION_VERSION_CONFIG_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    'config', 'action_version.json'
+)
+
+def _load_action_version_config() -> dict:
+    """加载 action_version.json 配置，返回 {Action: version} 映射"""
+    if not os.path.exists(_ACTION_VERSION_CONFIG_PATH):
+        return {}
+    try:
+        with open(_ACTION_VERSION_CONFIG_PATH, 'r', encoding='utf-8') as f:
+            config = json.load(f)
+        # 过滤掉注释字段
+        return {k: v for k, v in config.items() if not k.startswith('_')}
+    except Exception as e:
+        logging.warning(f'[tca] Failed to load action_version.json: {e}')
+        return {}
+
+ACTION_VERSION_OVERRIDES = _load_action_version_config()
 
 
 def asr_sign(msg):
@@ -68,7 +91,7 @@ def tc_request_prepare(config: dict, action: str, payload: str, service = "lke",
 
     url = config[service]['url']
     host = url.split('//')[1].split('/')[0]
-    version = version or config[service]['version']
+    version = version or config[service]['version'] or ACTION_VERSION_OVERRIDES.get(action, config[service]['version'])
     region = config[service]['region']
     algorithm = "TC3-HMAC-SHA256"
     timestamp = int(time.time())

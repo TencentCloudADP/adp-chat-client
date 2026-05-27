@@ -3,7 +3,7 @@
     <!-- 聊天内容容器 -->
     <div id="chat-content" class="chat-box">
         <!-- 聊天组件 -->
-        <TChat ref="chatRef" :class="{ isChatting: isChatting }" :reverse="false" style="height: 100%" :clear-history="false"
+        <TChat ref="chatRef" :class="{ isChatting: isChatting }" :reverse="false" style="height: 100%; flex: 1; min-width: 0;" :clear-history="false"
             @scroll="handleChatScroll" @clear="clearConfirm">
             <!-- 默认问题提示 -->
             <template v-if="chatList.length <= 0 && !messageLoading && !chatId">
@@ -119,6 +119,20 @@
                 />
             </template>
         </TChat>
+        <!-- 右侧文档预览面板 -->
+        <div v-if="previewDocBizId" class="file-preview-panel">
+            <div class="file-preview-panel__header">
+                <span class="file-preview-panel__title">文档预览</span>
+                <span class="file-preview-panel__close" @click="closePreview">✕</span>
+            </div>
+            <FilePreview
+                :application-id="currentApplicationId"
+                :doc-biz-id="previewDocBizId"
+                :bot-biz-id="currentApplicationId"
+                mode="simple"
+                @error="handlePreviewError"
+            />
+        </div>
     </div>
 </template>
 
@@ -139,6 +153,7 @@ import Sender from './Sender.vue'
 import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
 import CustomizedIcon from '../CustomizedIcon.vue';
+import FilePreview from '../FilePreview/index.vue';
 
 export interface Props extends ChatRelatedProps {
     /** 当前会话ID */
@@ -617,6 +632,34 @@ watch(
     { immediate: true },
 )
 
+// ========== 文档预览面板 ==========
+
+/**
+ * 当前预览文档的 DocBizId，为空时隐藏预览面板
+ */
+const previewDocBizId = ref('2052011130686067520');
+
+/**
+ * 打开文档预览
+ */
+const openPreview = (docBizId: string) => {
+    previewDocBizId.value = docBizId;
+}
+
+/**
+ * 关闭文档预览
+ */
+const closePreview = () => {
+    previewDocBizId.value = '';
+}
+
+/**
+ * 处理预览错误
+ */
+const handlePreviewError = (err: Error) => {
+    console.error('[Chat] FilePreview error:', err);
+}
+
 /**
  * 暴露给父组件的方法
  */
@@ -626,7 +669,9 @@ defineExpose({
     notifyLoaded,
     notifyComplete,
     backToBottom,
-    setHasUserScrolled: (value: boolean) => { hasUserScrolled.value = value }
+    setHasUserScrolled: (value: boolean) => { hasUserScrolled.value = value },
+    openPreview,
+    closePreview
 })
 </script>
 
@@ -639,6 +684,45 @@ defineExpose({
 .chat-box {
     height: 100%;
     position: relative;
+    display: flex;
+}
+
+.file-preview-panel {
+    width: 480px;
+    height: 100%;
+    border-left: 1px solid var(--td-border-level-1-color, #e7e7e7);
+    display: flex;
+    flex-direction: column;
+    background: var(--td-bg-color-container, #fff);
+}
+
+.file-preview-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--td-comp-paddingTB-m, 8px) var(--td-comp-paddingLR-l, 16px);
+    border-bottom: 1px solid var(--td-border-level-1-color, #e7e7e7);
+    flex-shrink: 0;
+}
+
+.file-preview-panel__title {
+    font-size: var(--td-font-size-body-medium, 14px);
+    font-weight: 600;
+    color: var(--td-text-color-primary);
+}
+
+.file-preview-panel__close {
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--td-text-color-secondary);
+    padding: 4px;
+    line-height: 1;
+    border-radius: var(--td-radius-default, 3px);
+}
+
+.file-preview-panel__close:hover {
+    background: var(--td-bg-color-container-hover, #f3f3f3);
+    color: var(--td-text-color-primary);
 }
 
 .chat-item__content {
