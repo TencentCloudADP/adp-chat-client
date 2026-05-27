@@ -59,6 +59,7 @@ export interface FileInfo {
   FileUrl: string
   FileType: string
   Url?: string
+  DocId?: string
 }
 
 export interface WidgetAction {

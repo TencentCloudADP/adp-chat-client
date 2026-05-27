@@ -10,8 +10,11 @@ import { Tooltip, Loading as TLoading, Link as TLink, Dialog as TDialog } from '
 import OptionCard from '../Common/OptionCard.vue';
 import MdContent from '../Common/MdContent.vue';
 import MessageFileCard from '../Common/MessageFileCard.vue';
+import AssistantFileCard from '../Common/AssistantFileCard.vue';
 import WidgetActionTag from '../Common/WidgetActionTag.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
+import CollapsibleMessageGroup from './CollapsibleMessageGroup.vue';
+import type { CollapseKind } from './CollapsibleMessageGroup.vue';
 import { widgetContentToMarkdown } from '../../utils/mergeRecord-v2';
 
 interface Props extends CommonLayoutProps {
@@ -128,7 +131,121 @@ const reasoningMessages = computed(() => {
     return messages.value.filter((msg) => msg.Type === 'thought');
 });
 
-const reasoningContents = computed(() => {    
+/**
+ * 根据消息类型和工具名称返回折叠分类
+ * 支持 tool_call、task_execution、thought 类型
+ */
+function getCollapseKindForMsg(msg: Message): CollapseKind | '' {
+    if (msg.Type === 'thought') return 'thought';
+    if (msg.Type !== 'tool_call' && msg.Type !== 'task_execution') return '';
+    const toolName = msg.ExtraInfo?.ToolName || '';
+    if (['websearch', 'web_search'].includes(toolName)) return 'search';
+    if (['read', 'grep', 'glob'].includes(toolName)) return 'read';
+    if (['write', 'edit'].includes(toolName)) return 'write';
+    return 'tools';
+}
+
+/**
+ * 渲染项类型
+ */
+interface RenderItem {
+    kind: 'collapse' | 'reply';
+    collapseKind?: CollapseKind;
+    messages?: Message[];
+    message?: Message;
+}
+
+/**
+ * 将 Record.Messages 拆分为渲染项列表：
+ * - 连续的 tool_call/thought 归入同一个折叠组
+ * - reply 独立渲染
+ * 无论 mode 是 claw 还是 standard，只要有 tool_call 就启用分组渲染
+ */
+const renderItems = computed<RenderItem[]>(() => {
+    if (isFromSelf.value) return [];
+
+    const list = messages.value;
+    if (list.length === 0) return [];
+
+    const hasToolCall = list.some(m => m.Type === 'tool_call' || m.Type === 'task_execution');
+    if (!hasToolCall) return [];
+
+    const items: RenderItem[] = [];
+    let collapseBuffer: Message[] = [];
+
+    const flushCollapse = () => {
+        if (collapseBuffer.length > 0) {
+            items.push({
+                kind: 'collapse',
+                collapseKind: 'mixed',
+                messages: [...collapseBuffer],
+            });
+            collapseBuffer = [];
+        }
+    };
+
+    for (const msg of list) {
+        const collapseKind = getCollapseKindForMsg(msg);
+
+        if (collapseKind === '') {
+            // reply / question / recommendation / notice — 不可折叠
+            if (msg.Type === 'reply') {
+                flushCollapse();
+                items.push({ kind: 'reply', message: msg });
+            }
+            // 其他类型暂不处理
+        } else if (collapseKind === 'thought' && !hasToolCall) {
+            // 没有 tool_call 时，thought 不进入折叠组（由原有 reasoning 逻辑处理）
+            continue;
+        } else {
+            // 可折叠消息：tool_call 或 thought（有 tool_call 时）
+            collapseBuffer.push(msg);
+        }
+    }
+
+    // 最后一组折叠消息
+    flushCollapse();
+
+    return items;
+});
+
+/**
+ * 是否使用分组渲染模式（有 tool_call/task_execution 消息时启用，不限制 mode）
+ * 确保历史对话和 SSE 对话保持一致的渲染规则
+ */
+const useClawRender = computed(() => {
+    if (isFromSelf.value) return false;
+    return messages.value.some(m => m.Type === 'tool_call' || m.Type === 'task_execution');
+});
+
+/**
+ * 判断最后一个折叠组是否处于流式状态
+ */
+const isLastCollapseStreaming = computed(() => {
+    if (!useClawRender.value) return false;
+    if (!props.isLastMsg || !props.isStreamLoad) return false;
+    const items = renderItems.value;
+    if (items.length === 0) return false;
+    return items[items.length - 1]!.kind === 'collapse';
+});
+
+/**
+ * 判断是否任务终止（最后是折叠组，无后续 reply，且 Record 已完成）
+ */
+const isTerminated = computed(() => {
+    if (!useClawRender.value) return false;
+    if (record.value.Status === 'processing') return false;
+    const items = renderItems.value;
+    if (items.length === 0) return false;
+    const lastItem = items[items.length - 1]!;
+    if (lastItem.kind !== 'collapse') return false;
+    // 有错误状态时视为终止
+    return record.value.Status === 'error' || record.value.Status === 'failed';
+});
+
+const reasoningContents = computed(() => {
+    // claw 模式下，thought 已在折叠组中渲染，不再显示独立的 reasoning 面板
+    if (useClawRender.value) return [];
     return reasoningMessages.value
         .map((msg) => extractMessageText(msg))
         .filter((text) => text.length > 0);
@@ -150,12 +267,17 @@ const optionCards = computed(() => {
 });
 
 const fileAttachments = computed<FileInfo[]>(() => {
-    return collectFromMessageContents(primaryMessage.value, (content) => {
-        if (content.Type === 'file' && content.File) {
-            return [content.File];
+    const files: FileInfo[] = [];
+    const msgs = isFromSelf.value ? [primaryMessage.value] : messages.value;
+    for (const msg of msgs) {
+        if (!msg?.Contents?.length) continue;
+        for (const content of msg.Contents) {
+            if (content.Type === 'file' && content.File) {
+                files.push(content.File);
+            }
         }
-        return undefined;
-    });
+    }
+    return files;
 });
 
 /** 图片 MIME 类型前缀 */
@@ -182,11 +304,22 @@ const openImagePreview = (file: FileInfo) => {
 };
 
 const quoteInfos = computed<QuoteInfoLike[]>(() => {
-    return collectFromMessageContents(primaryMessage.value, (content) => content.QuoteInfos ?? []);
+    const source = useClawRender.value ? lastReplyMessage.value : primaryMessage.value;
+    return collectFromMessageContents(source, (content) => content.QuoteInfos ?? []);
 });
 
 const references = computed<ReferenceLike[]>(() => {
-    return collectFromMessageContents(primaryMessage.value, (content) => content.References ?? []);
+    const source = useClawRender.value ? lastReplyMessage.value : primaryMessage.value;
+    return collectFromMessageContents(source, (content) => content.References ?? []);
+});
+
+/**
+ * claw 模式下的最后一条 reply 消息（用于提取 references 等）
+ */
+const lastReplyMessage = computed(() => {
+    if (!useClawRender.value) return primaryMessage.value;
+    const replies = messages.value.filter(m => m.Type === 'reply');
+    return replies.length > 0 ? replies[replies.length - 1] : undefined;
 });
 
 const isFinal = computed(() => {
@@ -377,7 +510,7 @@ const referenceDialogTitle = computed(() => {
         :reasoning="renderReasoning()" >
         <!-- 内容插槽 -->
         <template #content>
-            <div v-if="isLastMsg && isStreamLoad && !displayText && reasoningContents.length === 0" class="loading-container">
+            <div v-if="isLastMsg && isStreamLoad && !displayText && reasoningContents.length === 0 && !useClawRender" class="loading-container">
                 <TLoading  size="small">
                     <template #text>
                         <span class="thinking-text">
@@ -430,6 +563,32 @@ const referenceDialogTitle = computed(() => {
                         @click="share(item)" />
                     </span>
                 </div>
+                <!-- claw 模式分组渲染：tool_call 折叠 + reply 独立展示 -->
+                <div v-else-if="useClawRender" class="claw-render">
+                    <template v-for="(renderItem, rIdx) in renderItems" :key="'ri-' + rIdx">
+                        <CollapsibleMessageGroup
+                            v-if="renderItem.kind === 'collapse'"
+                            :kind="renderItem.collapseKind || 'mixed'"
+                            :messages="renderItem.messages || []"
+                            :isStreaming="isLastCollapseStreaming && rIdx === renderItems.length - 1"
+                            :isTerminated="isTerminated && rIdx === renderItems.length - 1"
+                            :theme="theme"
+                            :language="language"
+                        />
+                        <MdContent
+                            v-else-if="renderItem.kind === 'reply'"
+                            :content="extractMessageText(renderItem.message)"
+                            role="assistant"
+                            :theme="theme"
+                            :mode="mode"
+                            :language="language"
+                            :recordId="item.RecordId"
+                            :disable="!isLastMsg"
+                            :enableScale="isMobile"
+                            @widgetEvent="handleWidgetEvent"
+                        />
+                    </template>
+                </div>
                 <MdContent 
                     v-else 
                     :content="displayText" 
@@ -442,6 +601,12 @@ const referenceDialogTitle = computed(() => {
                     :disable="!isLastMsg"
                     :enableScale="isMobile"
                     @widgetEvent="handleWidgetEvent"
+                />
+                <!-- assistant 文件附件卡片 -->
+                <AssistantFileCard
+                    v-if="!isFromSelf && docAttachments.length > 0"
+                    :files="docAttachments"
+                    :theme="theme"
                 />
                 <OptionCard v-if="optionCards && optionCards.length" :cards="optionCards" :sendMessage="handleSendMessage" />
                 <div class="references-container"
@@ -563,6 +728,14 @@ const referenceDialogTitle = computed(() => {
     align-items: center;
     justify-content: center;
     margin-bottom: var(--td-comp-margin-l);
+}
+
+/* claw 模式分组渲染容器 */
+.claw-render {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
 }
 
 .flex {

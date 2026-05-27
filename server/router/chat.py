@@ -64,19 +64,61 @@ class ChatMessageListApi(HTTPMethodView):
             )
             vendor_app = app.get_vendor_app(application_id)
 
-            records = await vendor_app.get_messages(
-                request.ctx.db,
-                request.ctx.account_id,
-                args['ConversationId'],
-                app.config.CHAT_MESSAGE_PAGE_SIZE,
-                args['LastRecordId']
-            )
-            resp = {
-                'Response': {
-                    'ApplicationId': application_id,
-                    'Records': [r.model_dump(exclude_none=True) for r in records],
+            # 判断是否为 claw 模式：优先从 apps_info 缓存查找，找不到时动态获取
+            is_claw = False
+            for info in getattr(request.ctx, 'apps_info', []):
+                app_id = info.ApplicationId if hasattr(info, 'ApplicationId') else info.get('ApplicationId', '')
+                pattern = info.Pattern if hasattr(info, 'Pattern') else info.get('Pattern', '')
+                if app_id == application_id and pattern == 'ClawAgent':
+                    is_claw = True
+                    break
+
+            # 缓存中未找到该应用信息时，通过 vendor_app 动态获取 Pattern
+            if not is_claw:
+                found_in_cache = any(
+                    (info.ApplicationId if hasattr(info, 'ApplicationId') else info.get('ApplicationId', '')) == application_id
+                    for info in getattr(request.ctx, 'apps_info', [])
+                )
+                if not found_in_cache and hasattr(vendor_app, 'get_info'):
+                    try:
+                        app_info = await vendor_app.get_info()
+                        if getattr(app_info, 'Pattern', None) == 'ClawAgent':
+                            is_claw = True
+                    except Exception:
+                        pass
+
+            if is_claw and hasattr(vendor_app, 'get_messages_v2'):
+                # claw 模式：通过 DescribeConversationMessageList 获取完整 V2 数据
+                result = await vendor_app.get_messages_v2(
+                    request.ctx.db,
+                    request.ctx.account_id,
+                    args['ConversationId'],
+                    app.config.CHAT_MESSAGE_PAGE_SIZE,
+                    args['LastRecordId']
+                )
+                resp = {
+                    'Response': {
+                        'ApplicationId': application_id,
+                        'Records': result['Records'],
+                        'HasMoreBefore': result['HasMoreBefore'],
+                        'LastRecordId': result['LastRecordId'],
+                    }
                 }
-            }
+            else:
+                # standard 模式：通过 GetMsgRecord 获取历史消息
+                records = await vendor_app.get_messages(
+                    request.ctx.db,
+                    request.ctx.account_id,
+                    args['ConversationId'],
+                    app.config.CHAT_MESSAGE_PAGE_SIZE,
+                    args['LastRecordId']
+                )
+                resp = {
+                    'Response': {
+                        'ApplicationId': application_id,
+                        'Records': records,
+                    }
+                }
             return sanic.json(resp)
 
         if args["ShareId"] is not None:

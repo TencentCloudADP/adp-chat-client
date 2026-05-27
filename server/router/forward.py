@@ -49,7 +49,8 @@ class ForwardApi(HTTPMethodView):
         {
             "ApplicationId": "xxx",    # 应用 ID（必填）
             "Payload": { ... },        # 转发给腾讯云的请求参数（选填，默认 {}）
-            "Service": "lke"           # 服务名（选填，默认 "lke"）
+            "Service": "lke",          # 服务名（选填，默认 "lke"）
+            "Version": "2025-11-12"    # API 版本号（选填，不传则使用 service 配置中的默认版本）
         }
 
     响应格式:
@@ -71,11 +72,13 @@ class ForwardApi(HTTPMethodView):
         parser.add_argument("ApplicationId", type=str, required=True, location="json")
         parser.add_argument("Payload", type=dict, default={}, location="json")
         parser.add_argument("Service", type=str, default="lke", location="json")
+        parser.add_argument("Version", type=str, default=None, location="json")
         args = parser.parse_args(request)
 
         application_id = args['ApplicationId']
         payload = args['Payload'] or {}
         service = args['Service'] or 'lke'
+        version = args['Version']
 
         # 获取 vendor 实例
         vendor_app = app.get_vendor_app(application_id)
@@ -118,6 +121,7 @@ class ForwardApi(HTTPMethodView):
                 action,
                 payload,
                 service,
+                version=version,
                 raise_on_error=False,
             )
         except NotImplementedError as error:

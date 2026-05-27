@@ -471,6 +471,7 @@ class TCADP(BaseVendor):
         payload: dict = None,
         service: str = "lke",
         *,
+        version: str = None,
         response_key: str = None,
         raise_on_error: bool = True,
     ) -> dict:
@@ -483,6 +484,7 @@ class TCADP(BaseVendor):
             action: 腾讯云 API Action 名称，如 "GetMsgRecord"、"RateMsgRecord"
             payload: 请求参数字典，为 None 时传空 dict
             service: 服务名称，默认 "lke"，用于选择签名配置
+            version: API 版本号，为 None 时使用 service 配置中的默认版本
             response_key: 如果指定，从 Response 中提取该 key 的值返回；
                          为 None 时返回整个 Response dict
             raise_on_error: 为 True 时遇到 Error 抛异常；为 False 时返回包含 Error 的原始响应
@@ -496,7 +498,7 @@ class TCADP(BaseVendor):
         if payload is None:
             payload = {}
 
-        resp = await tc_request(self.tc_config(), action, payload, service)
+        resp = await tc_request(self.tc_config(), action, payload, service, version)
         response = resp.get('Response', resp)
 
         if 'Error' in response:
@@ -657,7 +659,8 @@ class TCADP(BaseVendor):
         account_id: str,
         conversation_id: str,
         limit: int, last_record_id: str = None
-    ) -> list[Record]:
+    ) -> list[dict]:
+        """获取历史消息列表，透传 GetMsgRecord 上游返回的所有字段"""
         action = "GetMsgRecord"
         payload = {
             "Type": 5,
@@ -674,12 +677,109 @@ class TCADP(BaseVendor):
         records = []
         for record_data in resp['Response']['Records']:
             if self._is_v2_record(record_data):
-                record = Record.model_validate(record_data)
+                records.append(record_data)
             else:
-                logging.error(json.dumps(record_data))
-                record = self._convert_legacy_record(record_data, conversation_id)
-            records.append(record)
+                converted = self._convert_legacy_record(record_data, conversation_id)
+                result = converted.model_dump(exclude_none=True)
+                # 将上游原始字段补充到转换结果中（不覆盖已转换的字段）
+                for key, value in record_data.items():
+                    if key not in result and value is not None:
+                        result[key] = value
+                records.append(result)
         return records
+
+    async def get_messages_v2(
+        self,
+        db: AsyncSession,
+        account_id: str,
+        conversation_id: str,
+        limit: int,
+        last_record_id: str = None
+    ) -> dict:
+        """通过 DescribeConversationMessageList 获取完整 V2 格式历史消息（含 tool_call/Procedures 等）
+
+        返回数据会按 RecordId 分组，转换为前端 V2 Record 格式。
+        如果上游已经返回的是分组后的 Record 格式（含 Messages 数组），则直接透传。
+        """
+        action = "DescribeConversationMessageList"
+        payload = {
+            "ConversationId": conversation_id,
+            "Limit": limit,
+            "Type": 5,
+            "UserId": account_id,
+            "AppKey": self.config['AppKey'],
+            "RecordQueryDirection": 1,
+        }
+        if last_record_id:
+            payload['RecordId'] = last_record_id
+
+        resp = await tc_request(self.tc_config(), action, payload, version='2025-11-12')
+        response = resp.get('Response', resp)
+        if 'Error' in response:
+            raise Exception(response['Error'])
+
+        raw_messages = response.get('Messages', [])
+        records = self._convert_messages_to_records(raw_messages, conversation_id)
+
+        return {
+            'Records': records,
+            'HasMoreBefore': response.get('HasMoreBefore', False),
+            'HasMoreAfter': response.get('HasMoreAfter', False),
+            'FirstRecordId': response.get('FirstRecordId', ''),
+            'LastRecordId': response.get('LastRecordId', ''),
+        }
+
+    @staticmethod
+    def _convert_messages_to_records(messages: list, conversation_id: str) -> list:
+        """将 DescribeConversationMessageList 返回的消息列表转换为 V2 Record 格式
+
+        上游可能返回两种格式：
+        1. 已分组的 Record 格式（含 Role/RecordId/Messages 字段） → 直接透传
+        2. 扁平的 ConversationMessage 格式（每条含 RecordId 标识归属） → 按 RecordId 分组
+        """
+        if not messages:
+            return []
+
+        first = messages[0]
+        # 判断是否已经是分组的 Record 格式
+        if 'Messages' in first and isinstance(first.get('Messages'), list):
+            return messages
+
+        # 扁平格式：按 RecordId 分组
+        from collections import OrderedDict
+        groups: OrderedDict = OrderedDict()
+
+        for msg in messages:
+            record_id = msg.get('RecordId', '')
+            if not record_id:
+                continue
+
+            if record_id not in groups:
+                groups[record_id] = {
+                    'Role': msg.get('Role', 'assistant'),
+                    'RecordId': record_id,
+                    'ConversationId': msg.get('ConversationId', conversation_id),
+                    'Status': msg.get('Status', 'completed'),
+                    'StatusDesc': msg.get('StatusDesc', ''),
+                    'Messages': [],
+                    'ExtraInfo': msg.get('ExtraInfo'),
+                }
+
+            # 将当前 message 作为 Record.Messages 中的一条
+            groups[record_id]['Messages'].append({
+                'Type': msg.get('Type', 'reply'),
+                'MessageId': msg.get('MessageId', ''),
+                'Name': msg.get('Name', ''),
+                'Title': msg.get('Title', ''),
+                'Icon': msg.get('Icon', ''),
+                'Status': msg.get('Status', 'completed'),
+                'StatusDesc': msg.get('StatusDesc', ''),
+                'Contents': msg.get('Contents', []),
+                'ExtraInfo': msg.get('ExtraInfo'),
+                'RecordId': record_id,
+            })
+
+        return list(groups.values())
 
     # ChatInterface - V2 Protocol
     async def chat(
