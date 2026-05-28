@@ -73,12 +73,18 @@ class ForwardApi(HTTPMethodView):
         parser.add_argument("Payload", type=dict, default={}, location="json")
         parser.add_argument("Service", type=str, default="lke", location="json")
         parser.add_argument("Version", type=str, default=None, location="json")
+        parser.add_argument("AppKey", type=str, default=None, location="json")
+        parser.add_argument("UserId", type=str, default=None, location="json")
         args = parser.parse_args(request)
 
         application_id = args['ApplicationId']
         payload = args['Payload'] or {}
         service = args['Service'] or 'lke'
         version = args['Version']
+        app_key = args['AppKey']
+        # 如果前端指定了 UserId，以其值作为 payload 的 key，实际值从 account_id 获取
+        user_id_key = args['UserId']
+        user_id = (user_id_key, request.ctx.account_id) if user_id_key else None
 
         # 获取 vendor 实例
         vendor_app = app.get_vendor_app(application_id)
@@ -123,6 +129,8 @@ class ForwardApi(HTTPMethodView):
                 service,
                 version=version,
                 raise_on_error=False,
+                app_key=app_key,
+                user_id=user_id,
             )
         except NotImplementedError as error:
             raise SanicException(

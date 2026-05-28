@@ -32,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { Tree as TTree, Icon as TIcon } from 'tdesign-vue-next';
 import { listDir, describeConversation } from '../../service/api';
 import type { DirEntry } from '../../service/api';
@@ -177,39 +177,25 @@ async function handleRefresh() {
     if (refreshing.value) return;
     refreshing.value = true;
     try {
+        // 清除缓存，重新调用 describeConversation 获取最新 workspaceId
+        workspaceId.value = '';
         await initRootDir();
     } finally {
         refreshing.value = false;
     }
 }
 
-// 监听 applicationId 变化重新加载
+// 监听 conversationId / applicationId 变化重新加载
 watch(
-    () => props.applicationId,
-    (newId) => {
-        if (newId) {
+    [() => props.conversationId, () => props.applicationId],
+    ([_newConvId, newAppId]) => {
+        if (newAppId) {
             workspaceId.value = '';
             initRootDir();
         }
-    }
+    },
+    { immediate: true }
 );
-
-// 监听 conversationId 变化重新加载
-watch(
-    () => props.conversationId,
-    (newId) => {
-        if (newId) {
-            workspaceId.value = '';
-            initRootDir();
-        }
-    }
-);
-
-onMounted(() => {
-    if (props.applicationId) {
-        initRootDir();
-    }
-});
 </script>
 
 <style scoped>

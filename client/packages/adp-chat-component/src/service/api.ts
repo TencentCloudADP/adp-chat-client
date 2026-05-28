@@ -531,6 +531,8 @@ export const describeConversation = async (
             {
                 ApplicationId: applicationId,
                 Payload: params,
+                AppKey: "AppKey",
+                UserId: "UserId"
             }
         );
         return response.Response;

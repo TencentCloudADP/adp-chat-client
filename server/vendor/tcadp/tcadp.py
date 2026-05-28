@@ -476,6 +476,8 @@ class TCADP(BaseVendor):
         version: str = None,
         response_key: str = None,
         raise_on_error: bool = True,
+        app_key: str = None,
+        user_id: tuple = None,
     ) -> dict:
         """通用腾讯云 API 转发方法（公开接口）
 
@@ -490,6 +492,8 @@ class TCADP(BaseVendor):
             response_key: 如果指定，从 Response 中提取该 key 的值返回；
                          为 None 时返回整个 Response dict
             raise_on_error: 为 True 时遇到 Error 抛异常；为 False 时返回包含 Error 的原始响应
+            app_key: 如果指定，使用该值作为 key 从 self.config['AppKey'] 读取值并注入 payload
+            user_id: 如果指定，为 (key_name, account_id) 元组，将 account_id 以 key_name 为键注入 payload
 
         Returns:
             dict: 腾讯云 API 响应的 Response 部分（或 response_key 对应的子结构）
@@ -500,6 +504,16 @@ class TCADP(BaseVendor):
         if payload is None:
             payload = {}
 
+        # 如果指定了 app_key，将 config 中的 AppKey 值注入到 payload 中
+        if app_key:
+            payload[app_key] = self.config['AppKey']
+
+        # 如果指定了 user_id，将 account_id 注入到 payload 中
+        if user_id:
+            key_name, account_id = user_id
+            payload[key_name] = account_id
+
+        logging.info(f'[TCADP.forward_request] action={action}, service={service}, version={version}, payload={payload}')
         resp = await tc_request(self.tc_config(), action, payload, service, version)
         response = resp.get('Response', resp)
 
