@@ -483,3 +483,124 @@ export const describeConversationList = async (
         throw error;
     }
 };
+
+/** DescribeConversation 请求参数 */
+export interface DescribeConversationParams {
+    /** 会话 ID */
+    ConversationId: string;
+    /** 会话类型 */
+    Type: number;
+}
+
+/** DescribeConversation 响应中 Workspace 信息 */
+export interface WorkspaceInfo {
+    SandboxStorage: {
+        Domain: string;
+        Path: string;
+        TokenTag: string;
+    };
+    StorageType: string;
+    WorkspaceId: string;
+}
+
+/** DescribeConversation 响应 */
+export interface DescribeConversationResponse {
+    Response: {
+        AppId: string;
+        ConversationId: string;
+        CreateTime: string;
+        RequestId: string;
+        Type: number;
+        UpdateTime: string;
+        Workspace?: WorkspaceInfo;
+    };
+}
+
+/**
+ * 获取会话详情（含工作空间信息）
+ * @param params 请求参数
+ * @param applicationId 应用 ID
+ */
+export const describeConversation = async (
+    params: DescribeConversationParams,
+    applicationId: string
+): Promise<DescribeConversationResponse['Response']> => {
+    try {
+        const response: DescribeConversationResponse = await httpService.post(
+            '/adp/DescribeConversation',
+            {
+                ApplicationId: applicationId,
+                Payload: params,
+            }
+        );
+        return response.Response;
+    } catch (error) {
+        console.error('获取会话详情失败:', error);
+        throw error;
+    }
+};
+
+/** ListDir 请求参数 */
+export interface ListDirParams {
+    /** 应用 ID */
+    app_id: string;
+    /** 目录路径 */
+    path: string;
+    /** 遍历深度，默认 1 */
+    depth?: number;
+    /** 工作空间 ID */
+    workspace_id?: string;
+}
+
+/** 文件/目录条目 */
+export interface DirEntry {
+    /** 文件/目录名称 */
+    name: string;
+    /** 类型：FILE_TYPE_DIRECTORY 或 FILE_TYPE_FILE */
+    type: 'FILE_TYPE_DIRECTORY' | 'FILE_TYPE_FILE';
+    /** 完整路径 */
+    path: string;
+    /** 文件大小（字节，字符串形式） */
+    size?: string;
+    /** 文件权限模式 */
+    mode?: number;
+    /** 权限字符串，如 "drwxr-xr-x" */
+    permissions?: string;
+    /** 文件所有者 */
+    owner?: string;
+    /** 文件所属组 */
+    group?: string;
+    /** 修改时间（ISO 格式） */
+    modifiedTime?: string;
+}
+
+/** ListDir 响应 */
+export interface ListDirResponse {
+    Response: {
+        entries: DirEntry[];
+    };
+}
+
+/**
+ * 获取目录列表
+ * @param params 请求参数
+ * @param applicationId 应用 ID
+ */
+export const listDir = async (
+    params: ListDirParams,
+    applicationId: string
+): Promise<ListDirResponse['Response']> => {
+    try {
+        const response: ListDirResponse = await httpService.post(
+            '/adp/ListDir',
+            {
+                ApplicationId: applicationId,
+                Payload: params,
+            }
+        );
+        return response.Response;
+    } catch (error) {
+        console.error('获取目录列表失败:', error);
+        throw error;
+    }
+};

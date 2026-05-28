@@ -1,5 +1,8 @@
 <template>
     <div class="file-preview-wrapper">
+        <!-- 关闭按钮 -->
+        <span class="file-preview-close" @click="emit('close')">✕</span>
+
         <!-- 加载中状态 -->
         <div v-if="loading" class="file-preview-loading">
             <div class="loading-spinner"></div>
@@ -164,6 +167,8 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
     /** 预览加载出错 */
     (e: 'error', error: Error): void;
+    /** 关闭预览 */
+    (e: 'close'): void;
 }>();
 
 const previewContainer = ref<HTMLDivElement>();
@@ -368,6 +373,28 @@ onUnmounted(() => {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+}
+
+.file-preview-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--td-text-color-secondary, #666);
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.file-preview-close:hover {
+    background-color: var(--td-bg-color-container-hover, #f3f3f3);
+    color: var(--td-text-color-primary, #333);
 }
 
 .file-preview-container {

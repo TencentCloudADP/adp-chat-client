@@ -91,7 +91,7 @@ def tc_request_prepare(config: dict, action: str, payload: str, service = "lke",
 
     url = config[service]['url']
     host = url.split('//')[1].split('/')[0]
-    version = version or config[service]['version'] or ACTION_VERSION_OVERRIDES.get(action, config[service]['version'])
+    version = version or ACTION_VERSION_OVERRIDES.get(action, config[service]['version']) or config[service]['version']
     region = config[service]['region']
     algorithm = "TC3-HMAC-SHA256"
     timestamp = int(time.time())
