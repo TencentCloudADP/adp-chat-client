@@ -6,14 +6,14 @@
         <!-- 加载中状态 -->
         <div v-if="loading" class="file-preview-loading">
             <div class="loading-spinner"></div>
-            <p class="loading-text">{{ loadingText }}</p>
+            <p class="loading-text">{{ currentLoadingText }}</p>
         </div>
 
         <!-- 错误状态 -->
         <div v-else-if="errorMsg" class="file-preview-error">
             <div class="error-icon">⚠️</div>
             <p class="error-text">{{ errorMsg }}</p>
-            <button class="retry-btn" @click="retry">重试</button>
+            <button class="retry-btn" @click="retry">{{ props.retryText }}</button>
         </div>
 
         <!-- 预览容器 -->
@@ -157,11 +157,23 @@ interface Props {
     previewUrl?: string;
     /** SDK JS 文件的 URL 路径 */
     sdkUrl?: string;
+    /** 加载中文本 */
+    loadingText?: string;
+    /** 加载文档预览中文本 */
+    loadingPreviewText?: string;
+    /** 预览加载失败文本 */
+    previewFailedText?: string;
+    /** 重试按钮文本 */
+    retryText?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     previewUrl: 'https://ci-qta-cq-1251704708.cos.ap-chongqing.myqcloud.com/data/doc/abnormalinput/special_font.doc',
     sdkUrl: 'src/assets/sdk-v0.2.1.js',
+    loadingText: '正在加载...',
+    loadingPreviewText: '正在加载文档预览...',
+    previewFailedText: '预览加载失败',
+    retryText: '重试',
 });
 
 const emit = defineEmits<{
@@ -174,7 +186,7 @@ const emit = defineEmits<{
 const previewContainer = ref<HTMLDivElement>();
 const loading = ref(false);
 const errorMsg = ref('');
-const loadingText = ref('正在加载...');
+const currentLoadingText = ref(props.loadingText);
 
 let previewInstance: SDKInstance | null = null;
 
@@ -283,13 +295,13 @@ async function initPreview() {
     errorMsg.value = '';
 
     try {
-        loadingText.value = '正在加载文档预览...';
+        currentLoadingText.value = props.loadingPreviewText;
         await initSDKPreview(props.previewUrl);
         loading.value = false;
     } catch (error) {
         loading.value = false;
         const err = error as Error;
-        errorMsg.value = err.message || '预览加载失败';
+        errorMsg.value = err.message || props.previewFailedText;
         console.error('[FilePreview] Init failed:', err);
         emit('error', err);
     }

@@ -1,11 +1,12 @@
 <!-- ADP 聊天布局主组件，支持 API 模式和 Props 模式 -->
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRefs } from 'vue';
-import { Layout as TLayout, Content as TContent, MessagePlugin } from 'tdesign-vue-next';
+import { Layout as TLayout, Content as TContent, MessagePlugin,Tooltip, Icon as TIcon } from 'tdesign-vue-next';
 
 // TLayout, TContent 已导入，模板中使用对应组件
 import MainLayout from './MainLayout.vue';
 import SideLayout from './SideLayout.vue';
+import FilePreviewLayout from './FilePreviewLayout.vue';
 import LogoArea from '../LogoArea.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import type { Application, AppPattern } from '../../model/application';
@@ -46,6 +47,7 @@ import type {
     ChatI18n, 
     ChatItemI18n, 
     SenderI18n,
+    FilePreviewI18n,
     ThemeProps,
     OverlayProps,
     ChatMode
@@ -54,6 +56,7 @@ import {
     defaultLanguageOptions,
     themePropsDefaults,
     overlayPropsDefaults,
+    defaultFilePreviewI18n,
     defaultChatI18n,
     defaultChatI18nEn,
     defaultChatItemI18n,
@@ -114,6 +117,8 @@ export interface Props extends ThemeProps, OverlayProps {
     chatItemI18n?: ChatItemI18n;
     /** Sender 国际化文本 */
     senderI18n?: SenderI18n;
+    /** 文件预览面板国际化文本 */
+    filePreviewI18n?: FilePreviewI18n;
     /** API 配置 - 如果传入则使用 HTTP 请求获取数据 */
     apiConfig?: ApiConfig;
     /** 是否自动加载数据（仅在使用 apiConfig 时生效） */
@@ -179,6 +184,31 @@ const { theme } = toRefs(props);
 
 const sidebarVisible = ref(!props.isSidePanelOverlay);
 const mainLayoutRef = ref<InstanceType<typeof MainLayout> | null>(null);
+const filePreviewLayoutRef = ref<InstanceType<typeof FilePreviewLayout> | null>(null);
+
+// 文件预览面板显示状态
+const filePreviewVisible = ref(false);
+
+/**
+ * 切换文件预览面板显示
+ */
+const toggleFilePreview = () => {
+    filePreviewVisible.value = !filePreviewVisible.value;
+};
+
+/**
+ * 打开文件预览面板
+ */
+const openFilePreview = () => {
+    filePreviewVisible.value = true;
+};
+
+/**
+ * 关闭文件预览面板
+ */
+const closeFilePreview = () => {
+    filePreviewVisible.value = false;
+};
 
 // 上传状态
 const isUploading = ref(false);
@@ -187,6 +217,12 @@ const isUploading = ref(false);
 const mergedChatItemI18n = computed(() => ({
     ...defaultChatItemI18n,
     ...props.chatItemI18n
+}));
+
+// 合并文件预览 i18n 配置
+const mergedFilePreviewI18n = computed(() => ({
+    ...defaultFilePreviewI18n,
+    ...props.filePreviewI18n
 }));
 
 // 计算是否为移动端模式（内部计算，不再依赖外部传入）
@@ -1361,6 +1397,9 @@ defineExpose({
     loadSystemConfig,
     notifyLoaded: () => mainLayoutRef.value?.notifyLoaded(),
     notifyComplete: () => mainLayoutRef.value?.notifyComplete(),
+    openFilePreview,
+    closeFilePreview,
+    getFilePreviewRef: () => filePreviewLayoutRef.value,
 });
 </script>
 
@@ -1443,6 +1482,13 @@ defineExpose({
                 @conversationChange="(conversationId: string) => emit('conversationChange', conversationId)"
                 @widgetEvent="handleInternalWidgetEvent"
             >
+                <template #header-actions>
+                    <Tooltip :content="mergedFilePreviewI18n.openFileList" destroyOnClose showArrow theme="default">
+                        <span class="open-file-list-btn" @click="toggleFilePreview">
+                            <CustomizedIcon name="open_file_list" :theme="theme" />
+                        </span>
+                    </Tooltip>
+                </template>
                 <template #header-overlay-content v-if="showOverlayButton || $slots['header-overlay-content']">
                     <slot name="header-overlay-content">
                         <CustomizedIcon class="header-overlay-icon" v-if="showOverlayButton" name="overlay" :theme="theme" @click="handleOverlay"/>
@@ -1454,6 +1500,14 @@ defineExpose({
                     </slot>
                 </template>
             </MainLayout>
+            <FilePreviewLayout
+                ref="filePreviewLayoutRef"
+                :visible="filePreviewVisible"
+                :conversationId="currentConversationId"
+                :applicationId="currentApplicationId"
+                :i18n="mergedFilePreviewI18n"
+                @close="closeFilePreview"
+            />
         </TContent>
     </TLayout>
 </template>
@@ -1483,5 +1537,22 @@ defineExpose({
 }
 .header-overlay-icon{
     margin-left: var(--td-size-4);
+}
+
+.open-file-list-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--td-text-color-secondary, #666);
+    transition: all 0.2s;
+}
+
+.open-file-list-btn:hover {
+    color: var(--td-brand-color, #0052d9);
+    background: var(--td-bg-color-container-hover, #f3f3f3);
 }
 </style>

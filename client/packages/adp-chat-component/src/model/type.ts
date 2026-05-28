@@ -122,6 +122,24 @@ export interface SenderI18n {
   mediaStreamSourceNotSupport?: string
 }
 
+/** 文件预览面板国际化文本 */
+export interface FilePreviewI18n {
+  /** 文档列表标题 */
+  docList?: string
+  /** 刷新按钮 title */
+  refresh?: string
+  /** 加载中文本 */
+  loading?: string
+  /** 加载文档预览中 */
+  loadingPreview?: string
+  /** 预览加载失败 */
+  previewFailed?: string
+  /** 重试按钮 */
+  retry?: string
+  /** 打开文件列表按钮 tooltip */
+  openFileList?: string
+}
+
 /** 侧边栏布局 Props */
 export interface SidePanelProps {
   /** 侧边栏是否使用overlay模式（覆盖内容区域） */
@@ -260,6 +278,17 @@ export const defaultSenderI18n: Required<SenderI18n> = {
   mediaStreamSourceNotSupport: '不支持MediaStreamSource',
 }
 
+/** 文件预览面板 i18n 默认值 */
+export const defaultFilePreviewI18n: Required<FilePreviewI18n> = {
+  docList: '文档列表',
+  refresh: '刷新',
+  loading: '正在加载...',
+  loadingPreview: '正在加载文档预览...',
+  previewFailed: '预览加载失败',
+  retry: '重试',
+  openFileList: '展开工作区',
+}
+
 // ============================================================
 // I18n 英文默认值
 // ============================================================
@@ -337,6 +366,17 @@ export const defaultSenderI18nEn: Required<SenderI18n> = {
   mediaStreamSourceNotSupport: 'MediaStreamSource is not supported',
 }
 
+/** 文件预览面板 i18n 英文默认值 */
+export const defaultFilePreviewI18nEn: Required<FilePreviewI18n> = {
+  docList: 'Documents',
+  refresh: 'Refresh',
+  loading: 'Loading...',
+  loadingPreview: 'Loading document preview...',
+  previewFailed: 'Preview failed to load',
+  retry: 'Retry',
+  openFileList: 'Open file list',
+}
+
 /** 根据语言获取 i18n 默认值 */
 export const getI18nByLanguage = (language: string) => {
   const isEnglish = language.startsWith('en')
@@ -345,6 +385,7 @@ export const getI18nByLanguage = (language: string) => {
     chatI18n: isEnglish ? defaultChatI18nEn : defaultChatI18n,
     chatItemI18n: isEnglish ? defaultChatItemI18nEn : defaultChatItemI18n,
     senderI18n: isEnglish ? defaultSenderI18nEn : defaultSenderI18n,
+    filePreviewI18n: isEnglish ? defaultFilePreviewI18nEn : defaultFilePreviewI18n,
   }
 }
 
@@ -406,6 +447,8 @@ export interface ChatConfig extends ChatRelatedProps, OverlayProps {
   chatItemI18n?: ChatItemI18n
   /** Sender 国际化文本 */
   senderI18n?: SenderI18n
+  /** 文件预览面板国际化文本 */
+  filePreviewI18n?: FilePreviewI18n
   /** API 配置 - 如果传入则使用 HTTP 请求获取数据 */
   apiConfig?: ApiConfig
   /** 是否自动加载数据（仅在使用 apiConfig 时生效） */

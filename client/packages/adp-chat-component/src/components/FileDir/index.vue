@@ -1,9 +1,9 @@
 <template>
     <div class="file-dir-wrapper">
         <div class="file-dir-header">
-            <span class="file-dir-title">文档列表</span>
+            <span class="file-dir-title">{{ docListText }}</span>
             <div class="file-dir-actions">
-                <span class="file-dir-action" title="刷新" @click="handleRefresh">
+                <span class="file-dir-action" :title="refreshText" @click="handleRefresh">
                     <t-icon name="refresh" :class="{ 'icon-spinning': refreshing }" />
                 </span>
                 <span class="file-dir-action file-dir-close" @click="emit('close')">✕</span>
@@ -44,12 +44,18 @@ interface Props {
     conversationId?: string;
     /** 根路径 */
     rootPath?: string;
+    /** 文档列表标题文本 */
+    docListText?: string;
+    /** 刷新按钮 title 文本 */
+    refreshText?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     applicationId: '',
     conversationId: '',
     rootPath: '/workdir',
+    docListText: '文档列表',
+    refreshText: '刷新',
 });
 
 const emit = defineEmits<{

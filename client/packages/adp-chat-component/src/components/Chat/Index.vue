@@ -2,10 +2,6 @@
 <template>
     <!-- 聊天内容容器 -->
     <div id="chat-content" class="chat-box">
-        <!-- 右上角打开文件列表按钮 -->
-        <span v-if="!previewDocBizId" class="open-file-list-btn" @click="toggleFilePanel">
-            <t-icon name="folder-open" />
-        </span>
         <!-- 聊天组件 -->
         <TChat ref="chatRef" :class="{ isChatting: isChatting }" :reverse="false" style="height: 100%; flex: 1; min-width: 0;" :clear-history="false"
             @scroll="handleChatScroll" @clear="clearConfirm">
@@ -123,33 +119,6 @@
                 />
             </template>
         </TChat>
-        <!-- 可拖拽分割线 -->
-        <div
-            v-if="previewDocBizId"
-            class="resize-divider"
-            @mousedown="onResizeStart"
-        >
-            <div class="resize-divider__line"></div>
-        </div>
-        <!-- 右侧文档预览面板 -->
-        <div v-if="previewDocBizId" class="file-preview-panel" :style="{ width: previewPanelWidth + 'px' }">
-            <div class="file-preview-panel__body">
-                <FileDir
-                    :conversation-id="chatId"
-                    class="file-preview-panel__dir"
-                    :application-id="currentApplicationId"
-                    @select="handleFileDirSelect"
-                    @close="closePreview"
-                />
-                <FilePreview
-                    v-if="previewFileUrl"
-                    class="file-preview-panel__preview"
-                    :preview-url="previewFileUrl"
-                    @error="handlePreviewError"
-                    @close="closePreview"
-                />
-            </div>
-        </div>
     </div>
 </template>
 
@@ -157,7 +126,7 @@
 import { ref, watch, computed, onMounted, onUnmounted, nextTick, toRefs } from 'vue'
 import InfiniteLoading from 'vue-infinite-loading'
 import { Chat as TChat } from '@tdesign-vue-next/chat'
-import { Checkbox, Loading as TLoading, Card as TCard, Checkbox as TCheckbox, Divider as TDivider, Icon as TIcon } from 'tdesign-vue-next'
+import { Checkbox, Loading as TLoading, Card as TCard, Checkbox as TCheckbox, Divider as TDivider } from 'tdesign-vue-next'
 import type { Record } from '../../model/chat-v2'
 import { ScoreValue } from '../../model/chat-v2'
 import type { FileProps } from '../../model/file';
@@ -170,8 +139,6 @@ import Sender from './Sender.vue'
 import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
 import CustomizedIcon from '../CustomizedIcon.vue';
-import FilePreview from '../FilePreview/index.vue';
-import FileDir from '../FileDir/index.vue';
 
 export interface Props extends ChatRelatedProps {
     /** 当前会话ID */
@@ -235,7 +202,6 @@ const {
     currentApplicationName,
     currentApplicationGreeting,
     currentApplicationOpeningQuestions,
-    currentApplicationId,
     isChatting,
     isOverlay,
     isMobile,
@@ -650,96 +616,6 @@ watch(
     { immediate: true },
 )
 
-// ========== 文档预览面板 ==========
-
-/**
- * 当前预览文档的 DocBizId，为空时隐藏预览面板
- */
-const previewDocBizId = ref('');
-
-/**
- * 当前预览的文件 URL
- */
-const previewFileUrl = ref('');
-
-/**
- * 切换文件面板显示
- */
-const toggleFilePanel = () => {
-    previewDocBizId.value = previewDocBizId.value ? '' : 'file-panel';
-    if (!previewDocBizId.value) {
-        previewFileUrl.value = '';
-    }
-}
-
-/**
- * 打开文档预览
- */
-const openPreview = (docBizId: string) => {
-    previewDocBizId.value = docBizId;
-}
-
-/**
- * 关闭文档预览
- */
-const closePreview = () => {
-    previewDocBizId.value = '';
-    previewFileUrl.value = '';
-}
-
-// ========== 拖拽调整预览面板宽度 ==========
-const previewPanelWidth = ref(480);
-const MIN_PANEL_WIDTH = 280;
-const MAX_PANEL_WIDTH = 900;
-
-let isResizing = false;
-let startX = 0;
-let startWidth = 0;
-
-const onResizeStart = (e: MouseEvent) => {
-    isResizing = true;
-    startX = e.clientX;
-    startWidth = previewPanelWidth.value;
-    document.addEventListener('mousemove', onResizeMove);
-    document.addEventListener('mouseup', onResizeEnd);
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-};
-
-const onResizeMove = (e: MouseEvent) => {
-    if (!isResizing) return;
-    const diff = startX - e.clientX;
-    let newWidth = startWidth + diff;
-    newWidth = Math.max(MIN_PANEL_WIDTH, Math.min(MAX_PANEL_WIDTH, newWidth));
-    previewPanelWidth.value = newWidth;
-};
-
-const onResizeEnd = () => {
-    isResizing = false;
-    document.removeEventListener('mousemove', onResizeMove);
-    document.removeEventListener('mouseup', onResizeEnd);
-    document.body.style.cursor = '';
-    document.body.style.userSelect = '';
-};
-
-/**
- * 处理文件目录点击选中
- */
-const handleFileDirSelect = (entry: { name: string; type: string; path: string }) => {
-    // 这里可以根据文件路径生成预览 URL 或通过后端接口获取
-    // 目前先将文件路径设置到 previewFileUrl 供 FilePreview 使用
-    console.log('[Chat] FileDir select:', entry);
-    // previewFileUrl.value = entry.path;
-    previewFileUrl.value = 'https://ci-qta-cq-1251704708.cos.ap-chongqing.myqcloud.com/data/doc/abnormalinput/special_font.doc';
-}
-
-/**
- * 处理预览错误
- */
-const handlePreviewError = (err: Error) => {
-    console.error('[Chat] FilePreview error:', err);
-}
-
 /**
  * 暴露给父组件的方法
  */
@@ -750,8 +626,6 @@ defineExpose({
     notifyComplete,
     backToBottom,
     setHasUserScrolled: (value: boolean) => { hasUserScrolled.value = value },
-    openPreview,
-    closePreview
 })
 </script>
 
@@ -765,77 +639,6 @@ defineExpose({
     height: 100%;
     position: relative;
     display: flex;
-}
-
-.open-file-list-btn {
-    position: absolute;
-    top: 12px;
-    right: 30px;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    cursor: pointer;
-    color: var(--td-text-color-secondary, #666);
-    background: var(--td-bg-color-container, #fff);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-    transition: all 0.2s;
-
-    &:hover {
-        color: var(--td-brand-color, #0052d9);
-        background: var(--td-bg-color-container-hover, #f3f3f3);
-    }
-}
-
-.file-preview-panel {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    background: var(--td-bg-color-container, #fff);
-    flex-shrink: 0;
-}
-
-.resize-divider {
-    width: 6px;
-    height: 100%;
-    cursor: col-resize;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 10;
-}
-
-.resize-divider:hover .resize-divider__line,
-.resize-divider:active .resize-divider__line {
-    background-color: var(--td-brand-color, #0052d9);
-}
-
-.resize-divider__line {
-    width: 1px;
-    height: 100%;
-    background-color: var(--td-border-level-1-color, #e7e7e7);
-    transition: background-color 0.2s;
-}
-
-.file-preview-panel__body {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-}
-
-.file-preview-panel__dir {
-    flex: 1;
-    min-width: 200px;
-}
-
-.file-preview-panel__preview {
-    flex: 1;
-    min-width: 300px;
 }
 
 .chat-item__content {

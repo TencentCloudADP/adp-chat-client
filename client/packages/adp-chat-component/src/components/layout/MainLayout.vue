@@ -177,7 +177,7 @@ const notifyComplete = () => {
 defineExpose({
     notifyLoaded,
     notifyComplete,
-    getChatRef: () => chatRef.value
+    getChatRef: () => chatRef.value,
 });
 </script>
 
@@ -194,6 +194,7 @@ defineExpose({
                         <span class="header-app__title">{{ currentApplicationName }}</span>
             </div>
             <div class="header-app-settings">
+                <slot name="header-actions"></slot>
                 <slot name="header-overlay-content"></slot>
                 <slot name="header-close-content"></slot>
             </div>

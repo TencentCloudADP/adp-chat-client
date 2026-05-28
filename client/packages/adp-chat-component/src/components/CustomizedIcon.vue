@@ -72,6 +72,7 @@ import attachment from '../assets/icons/attachment.svg?raw';
 import plus from '../assets/icons/plus.svg?raw';
 import close_circle from '../assets/icons/close_circle.svg?raw';
 import info from '../assets/icons/info.svg?raw';
+import open_file_list from '../assets/icons/open_file_list.svg?raw';
 
 // SVG 映射表
 const svgMap: Record<string, string> = {
@@ -122,6 +123,7 @@ const svgMap: Record<string, string> = {
     plus,
     close_circle,
     info,
+    open_file_list,
 };
 
 // 用于生成唯一 id 的计数器
