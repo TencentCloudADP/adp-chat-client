@@ -268,11 +268,15 @@ const optionCards = computed(() => {
 
 const fileAttachments = computed<FileInfo[]>(() => {
     const files: FileInfo[] = [];
-    const msgs = isFromSelf.value ? [primaryMessage.value] : messages.value;
+    const seen = new Set<string>();
+    const msgs = isFromSelf.value ? [primaryMessage.value] : [primaryMessage.value];
     for (const msg of msgs) {
         if (!msg?.Contents?.length) continue;
         for (const content of msg.Contents) {
             if (content.Type === 'file' && content.File) {
+                const key = content.File.FileUrl || content.File.FileName || '';
+                if (key && seen.has(key)) continue;
+                if (key) seen.add(key);
                 files.push(content.File);
             }
         }
@@ -324,6 +328,36 @@ const lastReplyMessage = computed(() => {
 
 const isFinal = computed(() => {
     return record.value.Status !== 'processing';
+});
+
+/**
+ * 回复时间（从 ExtraInfo.StartTime 提取）
+ * - 今天：显示 hh:mm:ss
+ * - 今年过去日期：显示 M月D日
+ * - 过去年份：显示 YYYY年M月D日
+ */
+const replyTime = computed(() => {
+    const startTime = record.value.ExtraInfo?.StartTime;
+    if (!startTime) return '';
+    const ts = Number(startTime);
+    if (!ts) return '';
+    const date = new Date(ts);
+    const now = new Date();
+    const isToday = date.getFullYear() === now.getFullYear() &&
+        date.getMonth() === now.getMonth() &&
+        date.getDate() === now.getDate();
+    const isThisYear = date.getFullYear() === now.getFullYear();
+
+    if (isToday) {
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${hours}:${minutes}:${seconds}`;
+    } else if (isThisYear) {
+        return `${date.getMonth() + 1}月${date.getDate()}日`;
+    } else {
+        return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+    }
 });
 
 /**
@@ -602,9 +636,20 @@ const referenceDialogTitle = computed(() => {
                     :enableScale="isMobile"
                     @widgetEvent="handleWidgetEvent"
                 />
-                <!-- assistant 文件附件卡片 -->
+                <!-- assistant 图片附件 -->
+                <div v-if="!isFromSelf && imageAttachments.length > 0 && mode === 'claw'" class="image-attachments">
+                    <img
+                        v-for="(file, idx) in imageAttachments"
+                        :key="'assistant-img-' + idx"
+                        :src="file.FileUrl || file.Url"
+                        :alt="file.FileName"
+                        class="msg-inline-image"
+                        @click="openImagePreview(file)"
+                    />
+                </div>
+                <!-- assistant 文件附件卡片：仅 claw 模式展示，standard 模式下文件链接已在 markdown 中渲染 -->
                 <AssistantFileCard
-                    v-if="!isFromSelf && docAttachments.length > 0"
+                    v-if="!isFromSelf && docAttachments.length > 0 && mode === 'claw'"
                     :files="docAttachments"
                     :theme="theme"
                 />
@@ -687,6 +732,11 @@ const referenceDialogTitle = computed(() => {
                         :nativeIcon="record.Score === ScoreValue.Dislike"
                         :theme="theme" @click="rate(item, ScoreValue.Dislike)" />
                 </Tooltip>
+                <Tooltip :content="i18n.aiDisclaimer" destroyOnClose showArrow theme="default">
+                    <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon icon" name="info" :theme="theme" />
+                </Tooltip>
+                <span v-if="replyTime" class="actions-divider"></span>
+                <span v-if="replyTime" class="actions-time">{{ replyTime }}</span>
             </div>
         </template>
     </TChatItem>
@@ -798,6 +848,19 @@ const referenceDialogTitle = computed(() => {
     overflow: hidden;
     position: relative;
     padding-left: 0;
+}
+.actions-divider {
+    width: 1px;
+    height: 12px;
+    background: var(--td-border-level-2-color, rgba(0, 0, 0, 0.1));
+    margin-left: 4px;
+}
+.actions-time {
+    font-size: 12px;
+    color: var(--td-text-color-placeholder);
+    line-height: 24px;
+    margin-left: 12px;
+    white-space: nowrap;
 }
 .collapsed-thinking-text{
     color: var(--td-text-color-placeholder);

@@ -161,9 +161,11 @@ function getFileTypeClass(fileName: string): string {
   return 'type-file'
 }
 
+
 /**
  * 自定义链接渲染规则
  * - claw 模式：文件/图片链接渲染为 doccard 卡片
+ * - assistant 角色（非 claw 模式）：图片链接直接渲染为 img 标签
  * - 其他模式：文件/图片链接不渲染（通过 fileAttachments 展示，避免重复）
  */
 mdIt.renderer.rules.link_open = (tokens, idx, options, env, self) => {
@@ -176,10 +178,17 @@ mdIt.renderer.rules.link_open = (tokens, idx, options, env, self) => {
     const escapedHref = href.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
     const escapedName = linkText.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 
-    token.meta = token.meta || {}
-    token.meta._fileCard = true
+    // assistant 角色：所有文件链接保持默认超链接展示
+    if (props.role === 'assistant') {
+      token.attrSet('target', '_blank')
+      token.attrSet('rel', 'noopener noreferrer')
+      return defaultLinkOpenRenderer(tokens, idx, options, env, self)
+    }
 
+    // claw 模式（非 assistant 角色）：渲染为文件卡片
     if (props.mode === 'claw') {
+      token.meta = token.meta || {}
+      token.meta._fileCard = true
       const urlFileName = decodeURIComponent(href.split('/').pop()?.split('?')[0] || '')
       const typeClass = getFileTypeClass(urlFileName || linkText)
       return `<span class="md-file-card claw-mode ${typeClass}" data-href="${escapedHref}" title="${escapedName}">` +
@@ -188,7 +197,9 @@ mdIt.renderer.rules.link_open = (tokens, idx, options, env, self) => {
         `</span>`
     }
 
-    // 非 claw 模式：不渲染文件链接，通过 fileAttachments 展示
+    // 其他模式：不渲染文件链接，通过 fileAttachments 展示
+    token.meta = token.meta || {}
+    token.meta._fileCard = true
     return ''
   }
 
@@ -226,6 +237,7 @@ mdIt.renderer.rules.text = (tokens, idx, options, env, self) => {
 /**
  * 自定义图片渲染规则
  * - claw 模式：使用 doccard 样式渲染（icon + 文件名）
+ * - assistant 角色（非 claw 模式）：直接渲染为 img 标签
  * - 其他模式：不渲染（通过 fileAttachments 展示，避免重复）
  */
 mdIt.renderer.rules.image = (tokens, idx) => {
@@ -246,7 +258,14 @@ mdIt.renderer.rules.image = (tokens, idx) => {
       `</span>`
   }
 
-  // 非 claw 模式：不渲染，通过 fileAttachments 展示
+  // assistant 角色：直接渲染为图片
+  if (props.role === 'assistant') {
+    const escapedSrc = src.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    const escapedAlt = alt.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    return `<img class="md-inline-image" src="${escapedSrc}" alt="${escapedAlt}" />`
+  }
+
+  // 其他模式：不渲染，通过 fileAttachments 展示
   return ''
 }
 
@@ -300,9 +319,18 @@ useWidgetInit({
   onWidgetError: (error) => emit('widgetError', error),
 });
 
-/** 点击图片卡片或文件卡片时新窗口打开 */
+/** 点击图片卡片、文件卡片或内联图片时新窗口打开 */
 const handleContainerClick = (e: MouseEvent) => {
   const target = e.target as HTMLElement;
+
+  // 点击内联图片，打开大图
+  if (target.classList.contains('md-inline-image')) {
+    const src = (target as HTMLImageElement).src;
+    if (src) {
+      window.open(src, '_blank');
+    }
+    return;
+  }
 
   const imgCard = target.closest('.md-img-card') as HTMLElement | null;
   if (imgCard) {
@@ -421,6 +449,16 @@ onBeforeUnmount(() => {
   margin-left: 0;
 }
 
+/* ===== assistant 角色内联图片样式 ===== */
+:deep(.md-inline-image) {
+  display: block;
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 8px;
+  margin: 8px 0;
+  object-fit: contain;
+  cursor: pointer;
+}
 
 /* ===== 图片卡片通用样式 ===== */
 :deep(.md-img-card) {
