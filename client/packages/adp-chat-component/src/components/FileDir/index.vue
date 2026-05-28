@@ -93,7 +93,7 @@ async function fetchWorkspaceId(): Promise<string> {
 
     try {
         const res = await describeConversation(
-            { ConversationId: props.conversationId, Type: 2 },
+            { ConversationId: props.conversationId, Type: 5 },
             props.applicationId
         );
         workspaceId.value = res.Workspace?.WorkspaceId || '';
