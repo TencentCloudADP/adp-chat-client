@@ -24,8 +24,7 @@ import {
     fetchUserInfo,
     uploadFile,
     parseFile,
-    fetchSystemConfig,
-    describeConversationList,
+    fetchSystemConfig
 } from '../../service/api';
 import type { SystemConfig } from '../../service/api';
 import { MessageCode } from '../../model/messages';
@@ -58,11 +57,8 @@ import {
     defaultChatI18n,
     defaultChatI18nEn,
     defaultChatItemI18n,
-    defaultChatItemI18nEn,
     defaultSenderI18n,
-    defaultSenderI18nEn,
-    defaultSideI18n,
-    defaultSideI18nEn
+    defaultSenderI18nEn
 } from '../../model/type';
 
 export interface Props extends ThemeProps, OverlayProps {

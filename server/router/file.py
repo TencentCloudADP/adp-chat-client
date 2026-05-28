@@ -20,7 +20,13 @@ class FileUploadApi(HTTPMethodView):
         application_id = args['ApplicationId']
         vendor_app = app.get_vendor_app(application_id)
 
-        result = await vendor_app.upload(request.ctx.db, request, request.ctx.account_id, args['Type'], mode=args['Mode'])
+        result = await vendor_app.upload(
+            request.ctx.db, 
+            request, 
+            request.ctx.account_id, 
+            args['Type'], 
+            mode=args['Mode']
+        )
         # 兼容返回字典或字符串两种格式
         if isinstance(result, dict):
             return json(result)

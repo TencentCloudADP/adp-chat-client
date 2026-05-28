@@ -67,7 +67,10 @@ class ChatMessageListApi(HTTPMethodView):
             # 判断是否为 claw 模式：优先从 apps_info 缓存查找，找不到时动态获取
             is_claw = False
             for info in getattr(request.ctx, 'apps_info', []):
-                app_id = info.ApplicationId if hasattr(info, 'ApplicationId') else info.get('ApplicationId', '')
+                if hasattr(info, 'ApplicationId'):
+                    app_id = info.ApplicationId
+                else:
+                    app_id = info.get('ApplicationId', '')
                 pattern = info.Pattern if hasattr(info, 'Pattern') else info.get('Pattern', '')
                 if app_id == application_id and pattern == 'ClawAgent':
                     is_claw = True
@@ -75,8 +78,13 @@ class ChatMessageListApi(HTTPMethodView):
 
             # 缓存中未找到该应用信息时，通过 vendor_app 动态获取 Pattern
             if not is_claw:
+                def _get_app_id(info):
+                    if hasattr(info, 'ApplicationId'):
+                        return info.ApplicationId
+                    return info.get('ApplicationId', '')
+
                 found_in_cache = any(
-                    (info.ApplicationId if hasattr(info, 'ApplicationId') else info.get('ApplicationId', '')) == application_id
+                    _get_app_id(info) == application_id
                     for info in getattr(request.ctx, 'apps_info', [])
                 )
                 if not found_in_cache and hasattr(vendor_app, 'get_info'):
