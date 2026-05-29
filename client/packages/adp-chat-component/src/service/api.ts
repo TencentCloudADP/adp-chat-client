@@ -604,3 +604,54 @@ export const listDir = async (
         throw error;
     }
 };
+
+/** FetchFile 请求参数 */
+export interface FetchFileParams {
+    /** 应用 ID */
+    app_id: string;
+    /** 工作空间 ID */
+    workspace_id: string;
+    /** 文件路径，如 /workdir/main.py */
+    path: string;
+}
+
+/** FetchFile 响应 */
+export interface FetchFileResponse {
+    Response: {
+        /** HTTP 状态码 */
+        status_code: number;
+        /** 文件 MIME 类型 */
+        content_type: string;
+        /** 文件文本内容 */
+        content: string;
+        /** COS 预签名 URL（可直接用于文档预览） */
+        cos_url: string;
+    };
+}
+
+/**
+ * 获取文件并转存到 COS，返回预签名预览链接
+ * @param params 请求参数
+ * @param applicationId 应用 ID
+ * @param requestConfig 额外的请求配置（如 timeout）
+ */
+export const fetchFile = async (
+    params: FetchFileParams,
+    applicationId: string,
+    requestConfig?: { timeout?: number }
+): Promise<FetchFileResponse['Response']> => {
+    try {
+        const response: FetchFileResponse = await httpService.post(
+            '/adp/FetchFile',
+            {
+                ApplicationId: applicationId,
+                Payload: params,
+            },
+            requestConfig
+        );
+        return response.Response;
+    } catch (error) {
+        console.error('获取文件失败:', error);
+        throw error;
+    }
+};

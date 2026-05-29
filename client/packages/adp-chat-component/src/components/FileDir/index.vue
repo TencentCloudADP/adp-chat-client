@@ -34,7 +34,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { Tree as TTree, Icon as TIcon } from 'tdesign-vue-next';
-import { listDir, describeConversation } from '../../service/api';
+import { listDir } from '../../service/api';
 import type { DirEntry } from '../../service/api';
 
 interface Props {
@@ -42,6 +42,8 @@ interface Props {
     applicationId?: string;
     /** 会话 ID */
     conversationId?: string;
+    /** 由父组件统一获取并传入的 workspaceId */
+    workspaceId?: string;
     /** 根路径 */
     rootPath?: string;
     /** 文档列表标题文本 */
@@ -53,6 +55,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
     applicationId: '',
     conversationId: '',
+    workspaceId: '',
     rootPath: '/workdir',
     docListText: '文档列表',
     refreshText: '刷新',
@@ -87,29 +90,6 @@ const treeKeys = {
 /** 树形数据 */
 const treeData = ref<TreeNode[]>([]);
 
-/** 通过 DescribeConversation 获取的 workspaceId */
-const workspaceId = ref('');
-
-/**
- * 获取 workspaceId
- */
-async function fetchWorkspaceId(): Promise<string> {
-    if (workspaceId.value) return workspaceId.value;
-    if (!props.conversationId || !props.applicationId) return '';
-
-    try {
-        const res = await describeConversation(
-            { ConversationId: props.conversationId, Type: 5 },
-            props.applicationId
-        );
-        workspaceId.value = res.Workspace?.WorkspaceId || '';
-        return workspaceId.value;
-    } catch (error) {
-        console.error('[FileDir] 获取 workspaceId 失败:', error);
-        return '';
-    }
-}
-
 /**
  * 将 DirEntry 转换为 TreeNode
  */
@@ -130,13 +110,12 @@ async function fetchDirEntries(path: string): Promise<DirEntry[]> {
     if (!props.applicationId) return [];
 
     try {
-        const wsId = await fetchWorkspaceId();
         const response = await listDir(
             {
                 app_id: props.applicationId,
                 path,
                 depth: 1,
-                workspace_id: wsId,
+                workspace_id: props.workspaceId,
             },
             props.applicationId
         );
@@ -183,20 +162,17 @@ async function handleRefresh() {
     if (refreshing.value) return;
     refreshing.value = true;
     try {
-        // 清除缓存，重新调用 describeConversation 获取最新 workspaceId
-        workspaceId.value = '';
         await initRootDir();
     } finally {
         refreshing.value = false;
     }
 }
 
-// 监听 conversationId / applicationId 变化重新加载
+// 监听 workspaceId / applicationId 变化重新加载
 watch(
-    [() => props.conversationId, () => props.applicationId],
-    ([_newConvId, newAppId]) => {
-        if (newAppId) {
-            workspaceId.value = '';
+    [() => props.workspaceId, () => props.applicationId],
+    ([newWsId, newAppId]) => {
+        if (newAppId && newWsId) {
             initRootDir();
         }
     },

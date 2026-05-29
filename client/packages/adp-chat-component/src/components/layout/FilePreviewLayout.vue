@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import FilePreview from '../FilePreview/index.vue';
 import FileDir from '../FileDir/index.vue';
 import type { FilePreviewI18n } from '../../model/type';
 import { defaultFilePreviewI18n } from '../../model/type';
+import { describeConversation } from '../../service/api';
 
 interface Props {
     /** 是否显示预览面板 */
@@ -35,9 +36,43 @@ const emit = defineEmits<{
 }>();
 
 /**
- * 当前预览的文件 URL
+ * 当前预览的文件路径（原始路径，如 /workdir/main.py）
  */
-const previewFileUrl = ref('');
+const previewFilePath = ref('');
+
+/** 统一管理的 workspaceId，作为 prop 传给子组件，避免子组件重复请求 */
+const workspaceId = ref('');
+
+/**
+ * 获取 workspaceId（带缓存），结果保存到 workspaceId ref 中
+ */
+async function fetchWorkspaceId(): Promise<string> {
+    if (workspaceId.value) return workspaceId.value;
+    if (!props.conversationId || !props.applicationId) return '';
+
+    try {
+        const res = await describeConversation(
+            { ConversationId: props.conversationId, Type: 5 },
+            props.applicationId
+        );
+        workspaceId.value = res.Workspace?.WorkspaceId || '';
+    } catch (error) {
+        console.error('[FilePreviewLayout] 获取 workspaceId 失败:', error);
+    }
+    return workspaceId.value;
+}
+
+// 监听 conversationId / applicationId 变化，主动获取 workspaceId
+watch(
+    [() => props.conversationId, () => props.applicationId],
+    ([_newConvId, newAppId]) => {
+        workspaceId.value = '';
+        if (newAppId) {
+            fetchWorkspaceId();
+        }
+    },
+    { immediate: true }
+);
 
 // ========== 拖拽调整预览面板宽度 ==========
 const previewPanelWidth = ref(480);
@@ -81,9 +116,14 @@ onUnmounted(() => {
 
 /**
  * 处理文件目录点击选中
+ * 将文件路径传给 FilePreview，由 FilePreview 内部调用 FetchFile 获取预览 URL
  */
-const handleFileDirSelect = (entry: { name: string; type: string; path: string }) => {
-    previewFileUrl.value = 'https://ci-qta-cq-1251704708.cos.ap-chongqing.myqcloud.com/data/doc/abnormalinput/special_font.doc';
+const handleFileDirSelect = async (entry: { name: string; type: string; path: string }) => {
+    if (!props.applicationId) return;
+
+    // 设置文件路径，FilePreview 组件内部会自动发起 fetchFile 请求
+    previewFilePath.value = entry.path;
+
     emit('select', entry);
 };
 
@@ -98,7 +138,7 @@ const handlePreviewError = (err: Error) => {
  * 关闭整个文件面板（由 FileDir 触发）
  */
 const handleCloseAll = () => {
-    previewFileUrl.value = '';
+    previewFilePath.value = '';
     emit('close');
 };
 
@@ -106,12 +146,12 @@ const handleCloseAll = () => {
  * 仅关闭文件预览区域（由 FilePreview 触发）
  */
 const handleClosePreview = () => {
-    previewFileUrl.value = '';
+    previewFilePath.value = '';
 };
 
 defineExpose({
-    /** 设置预览文件 URL */
-    setPreviewUrl: (url: string) => { previewFileUrl.value = url; },
+    /** 设置预览文件路径 */
+    setPreviewPath: (path: string) => { previewFilePath.value = path; },
 });
 </script>
 
@@ -123,20 +163,24 @@ defineExpose({
         </div>
         <!-- 文档预览面板 -->
         <div class="file-preview-panel" :style="{ width: previewPanelWidth + 'px' }">
-            <div class="file-preview-panel__body" :class="{ 'has-preview': !!previewFileUrl }">
+            <div class="file-preview-panel__body" :class="{ 'has-preview': !!previewFilePath }">
                 <FileDir
                     :conversation-id="conversationId"
                     class="file-preview-panel__dir"
                     :application-id="applicationId"
+                    :workspace-id="workspaceId"
                     :doc-list-text="i18n.docList"
                     :refresh-text="i18n.refresh"
                     @select="handleFileDirSelect"
                     @close="handleCloseAll"
                 />
+                <!-- 文件预览 -->
                 <FilePreview
-                    v-if="previewFileUrl"
+                    v-if="previewFilePath"
                     class="file-preview-panel__preview"
-                    :preview-url="previewFileUrl"
+                    :file-path="previewFilePath"
+                    :application-id="applicationId"
+                    :workspace-id="workspaceId"
                     :loading-text="i18n.loading"
                     :loading-preview-text="i18n.loadingPreview"
                     :preview-failed-text="i18n.previewFailed"

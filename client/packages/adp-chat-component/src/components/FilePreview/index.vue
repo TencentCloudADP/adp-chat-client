@@ -28,6 +28,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { fetchFile } from '../../service/api';
 
 /** SDK 加载后在 window 上暴露的全局对象 */
 declare global {
@@ -151,10 +152,13 @@ interface GetPreviewUrlOptions {
 
 interface Props {
     /**
-     * 预签名的 COS 对象 URL（带签名参数），
-     * 如：https://bucket.cos.ap-guangzhou.myqcloud.com/file.docx?q-sign-algorithm=sha1&...
+     * 文件路径（如 /workdir/main.py），组件内部会调用 fetchFile 获取 COS 预览 URL
      */
-    previewUrl?: string;
+    filePath?: string;
+    /** 应用 ID */
+    applicationId?: string;
+    /** 工作空间 ID */
+    workspaceId?: string;
     /** SDK JS 文件的 URL 路径 */
     sdkUrl?: string;
     /** 加载中文本 */
@@ -168,7 +172,9 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    previewUrl: 'https://ci-qta-cq-1251704708.cos.ap-chongqing.myqcloud.com/data/doc/abnormalinput/special_font.doc',
+    filePath: '',
+    applicationId: '',
+    workspaceId: '',
     sdkUrl: 'src/assets/sdk-v0.2.1.js',
     loadingText: '正在加载...',
     loadingPreviewText: '正在加载文档预览...',
@@ -287,16 +293,35 @@ async function initSDKPreview(previewUrl: string) {
 
 /**
  * 初始化预览
+ * 1. 调用 fetchFile 获取 COS 预签名 URL
+ * 2. 使用 SDK 初始化文档预览
  */
 async function initPreview() {
-    if (!props.previewUrl) return;
+    if (!props.filePath || !props.applicationId || !props.workspaceId) return;
 
     loading.value = true;
     errorMsg.value = '';
 
     try {
+        // 第一步：调用 fetchFile 获取 COS URL（服务可能较慢，使用延长的超时）
+        currentLoadingText.value = props.loadingText;
+        const result = await fetchFile(
+            {
+                app_id: props.applicationId,
+                workspace_id: props.workspaceId,
+                path: props.filePath,
+            },
+            props.applicationId,
+            { timeout: 120000 } // 延长超时到 120s，文件转存服务较慢
+        );
+
+        if (!result.cos_url) {
+            throw new Error('文件转存失败：未返回预览链接');
+        }
+
+        // 第二步：使用 COS URL 初始化 SDK 预览
         currentLoadingText.value = props.loadingPreviewText;
-        await initSDKPreview(props.previewUrl);
+        await initSDKPreview(result.cos_url);
         loading.value = false;
     } catch (error) {
         loading.value = false;
@@ -355,11 +380,11 @@ defineExpose({
 // ========== 生命周期 ==========
 
 watch(
-    () => props.previewUrl,
-    (newUrl, oldUrl) => {
-        if (newUrl !== oldUrl) {
+    () => props.filePath,
+    (newPath, oldPath) => {
+        if (newPath !== oldPath) {
             destroyPreview();
-            if (newUrl) {
+            if (newPath) {
                 initPreview();
             }
         }
@@ -367,7 +392,7 @@ watch(
 );
 
 onMounted(() => {
-    if (props.previewUrl) {
+    if (props.filePath) {
         initPreview();
     }
 });

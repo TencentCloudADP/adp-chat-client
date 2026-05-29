@@ -8,7 +8,7 @@ import aiohttp
 import json
 from util.tca import tc_request
 from util.warehouse import AsyncWareHouseS3
-from util.cos import upload_to_cos
+from util.cos import upload, get_presigned_url
 
 from core.completion import CoreCompletion
 from config import tagentic_config
@@ -1023,22 +1023,28 @@ class TCADP(BaseVendor):
                 cos_key = f"{app_id}{path}"  # 如 2059173834404121408/workdir/main.py
                 # 去掉开头的 /
                 cos_key = cos_key.lstrip('/')
+                cos_url = ''
+                presigned_url = ''
                 try:
-                    cos_url = upload_to_cos(
-                        key=cos_key,
-                        body=content,
-                        content_type=content_type,
+                    import io
+                    stream = io.BytesIO(content)
+                    # 转存有时间消耗，暂时先不加 mq 了
+                    upload(
+                        stream=stream,
+                        path=cos_key,
+                        if_changed=True,
                     )
-                    logging.info(f'[TCADP.fetch_file] uploaded to COS: {cos_url}')
+                    logging.info(f'[TCADP.fetch_file] uploaded to COS: {cos_key}')
+                    # 生成预签名下载链接给前端
+                    presigned_url = get_presigned_url(key=cos_key)
+                    logging.info(f'[TCADP.fetch_file] presigned URL: {presigned_url}')
                 except Exception as e:
                     logging.error(f'[TCADP.fetch_file] upload to COS failed: {e}')
-                    cos_url = ''
 
                 return {
                     "status_code": resp.status,
-                    "content_type": content_type,
-                    "content": content.decode('utf-8', errors='replace'),
-                    "cos_url": cos_url,
+                    "content_type": content_type,                    
+                    "cos_url": presigned_url or cos_url,
                 }
 
     @staticmethod
