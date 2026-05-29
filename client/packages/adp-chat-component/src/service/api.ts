@@ -530,9 +530,7 @@ export const describeConversation = async (
             '/adp/DescribeConversation',
             {
                 ApplicationId: applicationId,
-                Payload: params,
-                AppKey: "AppKey",
-                UserId: "UserId"
+                Payload: params               
             }
         );
         return response.Response;

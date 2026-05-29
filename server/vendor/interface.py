@@ -623,6 +623,7 @@ class BaseVendor(ChatInterface, MessageInterface, FileInterface, ReferenceInterf
         version: str = None,
         response_key: str = None,
         raise_on_error: bool = True,
+        variables: dict = None,
     ) -> dict:
         """通用 API 转发方法
 
@@ -636,6 +637,7 @@ class BaseVendor(ChatInterface, MessageInterface, FileInterface, ReferenceInterf
             version: API 版本号，为 None 时使用 service 配置中的默认版本
             response_key: 从响应中提取指定 key
             raise_on_error: 遇错是否抛异常
+            variables: 模板变量字典，用于替换配置中的 {{VAR}} 占位符
 
         Returns:
             dict: 响应数据

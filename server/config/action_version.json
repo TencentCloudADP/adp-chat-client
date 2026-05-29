@@ -1,5 +1,0 @@
-{
-    "_comment": "接口级别的 version 覆盖配置。key 为 Action 名称，value 为对应的 version。未配置的 action 将使用 service_configs 中的默认 version。",
-    "CreateWorkspaceCredential": "2025-11-12",
-    "DescribeConversation": "2025-11-12"
-}

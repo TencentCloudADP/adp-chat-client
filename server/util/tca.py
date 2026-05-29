@@ -12,6 +12,7 @@ import time
 from datetime import datetime
 
 import aiohttp
+import pydash
 
 from config import tagentic_config
 
@@ -19,23 +20,87 @@ from config import tagentic_config
 # 加载 action 级别的 version 覆盖配置
 _ACTION_VERSION_CONFIG_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    'config', 'action_version.json'
+    'vendor', 'tcadp', 'action_version.json'
 )
 
 def _load_action_version_config() -> dict:
-    """加载 action_version.json 配置，返回 {Action: version} 映射"""
+    """加载 action_version.json 配置，返回 {Action: {headers: {}, payload: {}}} 映射
+
+    配置项格式:
+        - "headers.X-TC-Version": "2025-11-12"  -> 注入到请求 headers 中
+        - "payload.AppKey": "xxx"               -> 注入到 payload 顶层字段
+        - "payload.a.b": "xxx"                  -> 注入到 payload 嵌套字段 payload["a"]["b"]
+    """
     if not os.path.exists(_ACTION_VERSION_CONFIG_PATH):
         return {}
     try:
         with open(_ACTION_VERSION_CONFIG_PATH, 'r', encoding='utf-8') as f:
             config = json.load(f)
-        # 过滤掉注释字段
-        return {k: v for k, v in config.items() if not k.startswith('_')}
+        result = {}
+        for action, value in config.items():
+            if action.startswith('_'):
+                continue
+            if not isinstance(value, dict):
+                continue
+            headers = {}
+            payload_paths = {}  # {dotted_path: value}
+            for k, v in value.items():
+                if k.startswith('headers.'):
+                    header_name = k[len('headers.'):]
+                    headers[header_name] = v
+                elif k.startswith('payload.'):
+                    path_str = k[len('payload.'):]
+                    payload_paths[path_str] = v
+            result[action] = {'headers': headers, 'payload': payload_paths}
+        return result
     except Exception as e:
         logging.warning(f'[tca] Failed to load action_version.json: {e}')
         return {}
 
 ACTION_VERSION_OVERRIDES = _load_action_version_config()
+
+
+import re
+
+_TEMPLATE_PATTERN = re.compile(r'\{\{(\w+)\}\}')
+
+
+def _render_template(value, variables: dict):
+    """将值中的 {{VAR}} 模板变量替换为 variables 中对应的值
+
+    - 如果整个值就是一个 {{VAR}}，则直接返回变量原始值（保留类型）
+    - 如果值中包含多个模板或混合文本，则做字符串替换
+    - 如果模板变量在 variables 中不存在，保留原样
+    """
+    if not isinstance(value, str):
+        return value
+    # 整个值就是 {{VAR}}，直接返回原始类型
+    match = _TEMPLATE_PATTERN.fullmatch(value.strip())
+    if match:
+        key = match.group(1)
+        return variables.get(key, value)
+    # 部分替换，转为字符串
+    def replacer(m):
+        key = m.group(1)
+        return str(variables.get(key, m.group(0)))
+    return _TEMPLATE_PATTERN.sub(replacer, value)
+
+
+def inject_action_payload(action: str, payload: dict, variables: dict = None) -> dict:
+    """根据 action_version.json 配置，将配置中的 payload 字段注入到 payload 中（不覆盖已有值）
+
+    支持嵌套路径，如配置 "payload.Config.Mode": "advanced" 会设置 payload["Config"]["Mode"] = "advanced"
+    支持模板变量，如 "payload.AppKey": "{{APP_KEY}}" 会将 APP_KEY 替换为 variables 中的对应值
+    """
+    if variables is None:
+        variables = {}
+    action_config = ACTION_VERSION_OVERRIDES.get(action, {})
+    action_payload_paths = action_config.get('payload', {})
+    for path, p_value in action_payload_paths.items():
+        if not pydash.has(payload, path):
+            resolved = _render_template(p_value, variables)
+            pydash.set_(payload, path, resolved)
+    return payload
 
 
 def asr_sign(msg):
@@ -91,7 +156,11 @@ def tc_request_prepare(config: dict, action: str, payload: str, service = "lke",
 
     url = config[service]['url']
     host = url.split('//')[1].split('/')[0]
-    version = version or ACTION_VERSION_OVERRIDES.get(action, config[service]['version']) or config[service]['version']
+    # 加载 action 级别的 headers 配置
+    action_config = ACTION_VERSION_OVERRIDES.get(action, {})
+    action_headers_config = action_config.get('headers', {})
+    
+    default_version = config[service]['version']
     region = config[service]['region']
     algorithm = "TC3-HMAC-SHA256"
     timestamp = int(time.time())
@@ -139,18 +208,25 @@ def tc_request_prepare(config: dict, action: str, payload: str, service = "lke",
         "Host": host,
         "X-TC-Action": action,
         "X-TC-Timestamp": str(timestamp),
-        "X-TC-Version": version
+        "X-TC-Version": default_version,
     }
     if region:
         headers["X-TC-Region"] = region
     if token:
         headers["X-TC-Token"] = token
+    # 入参 version 优先级高于默认值
+    if version:
+        headers["X-TC-Version"] = version
+    # action_version.json 配置优先级最高，覆盖所有（包括 X-TC-Version）
+    for h_key, h_value in action_headers_config.items():
+        headers[h_key] = h_value
     return headers, url
 
 
-async def tc_request(config: dict, action: str, payload: dict = None, service = "lke", version: str = None) -> str:
+async def tc_request(config: dict, action: str, payload: dict = None, service = "lke", version: str = None, variables: dict = None) -> str:
     if payload is None:
         payload = {}
+    payload = inject_action_payload(action, payload, variables)
     payload = json.dumps(payload)
     headers, url = tc_request_prepare(config, action, payload, service, version)
     async with aiohttp.ClientSession() as session:

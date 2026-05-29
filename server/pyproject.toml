@@ -26,6 +26,7 @@ dependencies = [
     "limits>=5.6.0",
     "jwcrypto>=1.5.6",
     "cos-python-sdk-v5>=1.9.30",
+    "pydash>=8.0.0",
 ]
 [project.optional-dependencies]
 dev = [
