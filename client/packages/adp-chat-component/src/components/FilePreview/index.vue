@@ -3,163 +3,150 @@
         <!-- 关闭按钮 -->
         <span class="file-preview-close" @click="emit('close')">✕</span>
 
-        <!-- 加载中状态 -->
-        <div v-if="loading" class="file-preview-loading">
-            <div class="loading-spinner"></div>
-            <p class="loading-text">{{ currentLoadingText }}</p>
+        <!-- 不支持预览的格式 -->
+        <div v-if="!previewType" class="file-preview-unsupported">
+            <div class="unsupported-icon">📄</div>
+            <p class="unsupported-text">{{ props.unsupportedText }}</p>
         </div>
 
-        <!-- 错误状态 -->
-        <div v-else-if="errorMsg" class="file-preview-error">
-            <div class="error-icon">⚠️</div>
-            <p class="error-text">{{ errorMsg }}</p>
-            <button class="retry-btn" @click="retry">{{ props.retryText }}</button>
-        </div>
+        <!-- 文档预览（Word / PDF / PPT / Excel 等） -->
+        <DocPreview
+            v-else-if="previewType === 'doc'"
+            ref="docPreviewRef"
+            class="file-preview-inner"
+            :file-path="filePath"
+            :application-id="applicationId"
+            :workspace-id="workspaceId"
+            :sdk-url="sdkUrl"
+            :loading-text="loadingText"
+            :loading-preview-text="loadingPreviewText"
+            :preview-failed-text="previewFailedText"
+            :retry-text="retryText"
+            @error="(err) => emit('error', err)"
+        />
 
-        <!-- 预览容器 -->
-        <div
-            v-show="!loading && !errorMsg"
-            ref="previewContainer"
-            id="file-preview-container"
-            class="file-preview-container"
-        ></div>
+        <!-- 图片预览（PNG / JPG / GIF / BMP / WEBP / SVG） -->
+        <ImagePreview
+            v-else-if="previewType === 'image'"
+            class="file-preview-inner"
+            :url="fileUrl"
+            :file-name="fileName"
+            :error-text="previewFailedText"
+            @error="(err) => emit('error', err)"
+        />
+
+        <!-- HTML 沙箱预览 -->
+        <HtmlPreview
+            v-else-if="previewType === 'html'"
+            class="file-preview-inner"
+            :url="fileUrl"
+            :file-name="fileName"
+            :error-text="previewFailedText"
+            @error="(err) => emit('error', err)"
+        />
+
+        <!-- Markdown 预览 -->
+        <MarkdownPreview
+            v-else-if="previewType === 'markdown'"
+            class="file-preview-inner"
+            :url="fileUrl"
+            :file-name="fileName"
+            :error-text="previewFailedText"
+            @error="(err) => emit('error', err)"
+        />
+
+        <!-- 代码预览（Monaco Editor） -->
+        <CodePreview
+            v-else-if="previewType === 'code'"
+            class="file-preview-inner"
+            :url="fileUrl"
+            :file-name="fileName"
+            :error-text="previewFailedText"
+            @error="(err) => emit('error', err)"
+        />
     </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { fetchFile } from '../../service/api';
+import { computed, ref } from 'vue';
+import DocPreview from './DocPreview.vue';
+import ImagePreview from './ImagePreview.vue';
+import HtmlPreview from './HtmlPreview.vue';
+import MarkdownPreview from './MarkdownPreview.vue';
+import CodePreview from './CodePreview.vue';
 
-/** SDK 加载后在 window 上暴露的全局对象 */
-declare global {
-    interface Window {
-        COSDocPreviewSDK: {
-            config: (options: SDKConfigOptions) => SDKInstance;
-            getPreviewUrl: (options: GetPreviewUrlOptions) => Promise<string>;
-            getPreviewUrlAndToken: (options: GetPreviewUrlOptions) => Promise<any>;
-        };
-        WPS: {
-            config: (options: SDKConfigOptions) => SDKInstance;
-        };
-    }
+/** 文档类扩展名集合 */
+const DOC_EXTENSIONS = new Set([
+    'pdf',
+    'doc', 'docx',
+    'ppt', 'pptx',
+    'xls', 'xlsx',
+]);
+
+/** 图片类扩展名集合 */
+const IMAGE_EXTENSIONS = new Set([
+    'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp',
+]);
+
+/** 代码类扩展名集合 */
+const CODE_EXTENSIONS = new Set([
+    'js', 'ts', 'jsx', 'tsx',
+    'json', 'yaml', 'yml',
+    'py', 'sh', 'bash',
+    'css', 'less', 'scss',
+    'xml', 'vue', 'php', 'rb',
+    'sql', 'java', 'go',
+    'rs', 'c', 'cpp', 'h', 'hpp',
+    'swift', 'kt', 'dart', 'r',
+    'toml', 'ini', 'env',
+    'dockerfile', 'makefile', 'gitignore',
+    'txt', 'log', 'csv',
+]);
+
+/**
+ * 根据文件路径获取扩展名（小写）
+ */
+function getExtension(path: string): string {
+    return path.split('.').pop()?.toLowerCase() || '';
 }
 
-interface SDKConfigOptions {
-    /** 挂载的 DOM 元素 */
-    mount: HTMLElement | undefined;
-    /** 预览 URL（WebOffice 文档预览地址） */
-    url: string;
-    /** 预览模式 */
-    mode?: 'normal' | 'simple';
-    /** 通用选项 */
-    commonOptions?: {
-        /** 是否显示顶部区域 */
-        isShowTopArea?: boolean;
-        /** 是否显示头部 */
-        isShowHeader?: boolean;
-        /** 是否浏览器全屏 */
-        isBrowserViewFullscreen?: boolean;
-        /** 是否 iframe 全屏 */
-        isIframeViewFullscreen?: boolean;
-        /** 是否使用父容器全屏（传 CSS 选择器或 true） */
-        isParentFullscreen?: boolean | string;
-    };
-    /** Word 文档选项 */
-    wordOptions?: {
-        /** 是否显示目录 */
-        isShowDocMap?: boolean;
-        /** 是否最佳缩放 */
-        isBestScale?: boolean;
-        /** 是否显示底部状态栏 */
-        isShowBottomStatusBar?: boolean;
-    };
-    /** PDF 选项 */
-    pdfOptions?: {
-        /** 是否显示注释 */
-        isShowComment?: boolean;
-        /** 是否安全模式 */
-        isInSafeMode?: boolean;
-        /** 是否显示底部状态栏 */
-        isShowBottomStatusBar?: boolean;
-    };
-    /** PPT 选项 */
-    pptOptions?: {
-        /** 是否显示底部状态栏 */
-        isShowBottomStatusBar?: boolean;
-    };
-    /** 命令栏配置 */
-    commandBars?: CommandBarItem[];
-    /** 超链接打开回调 */
-    onHyperLinkOpen?: (data: any) => void;
-    /** Token 刷新回调 */
-    refreshToken?: () => Promise<{ token: string; timeout?: number }>;
-}
-
-interface CommandBarItem {
-    cmbId: string;
-    attributes: Record<string, any> | Array<{ name: string; value: any }>;
-}
-
-interface SDKInstance {
-    ready: () => Promise<any>;
-    on: (event: string, handler: (...args: any[]) => void) => void;
-    off: (event: string, handler: (...args: any[]) => void) => void;
-    destroy: () => void;
-    setCommandBars: (bars: CommandBarItem[]) => void;
-    setToken: (data: { token: string; timeout?: number; hasRefreshTokenConfig?: boolean }) => void;
-    save: () => Promise<void>;
-    tabs: {
-        getTabs: () => Promise<any>;
-        switchTab: (key: string) => Promise<void>;
-    };
-    ApiEvent: {
-        AddApiEventListener: (event: string, handler: (...args: any[]) => void) => Promise<void>;
-        RemoveApiEventListener: (event: string, handler: (...args: any[]) => void) => Promise<void>;
-    };
-    Application?: any;
-    WordApplication?: () => any;
-    ExcelApplication?: () => any;
-    PPTApplication?: () => any;
-    PDFApplication?: () => any;
-}
-
-interface GetPreviewUrlOptions {
-    /** COS 对象完整 URL */
-    objectUrl: string;
-    /** COS 鉴权凭证 */
-    credentials?: {
-        secretId?: string;
-        secretKey?: string;
-        authorization?: string;
-    };
-    /** 是否允许复制：1 允许，0 不允许 */
-    copyable?: number | boolean;
-    /** 目标转换类型，如 'html' */
-    dstType?: string;
-    /** 水印文字 */
-    htmlwaterword?: string;
-    /** 水印填充样式 */
-    htmlfillstyle?: string;
-    /** 水印字体 */
-    htmlfront?: string;
-    /** 水印旋转角度 */
-    htmlrotate?: string;
-    /** 水印水平间距 */
-    htmlhorizontal?: string;
-    /** 水印垂直间距 */
-    htmlvertical?: string;
+/**
+ * 根据扩展名判断预览类型
+ * - 'doc'   → 文档预览（COSDocPreviewSDK）
+ * - 'image' → 图片预览（img 标签 / SVG Blob）
+ * - 'html'  → HTML 沙箱预览（Blob iframe）
+ * - null    → 不支持预览
+ */
+function resolvePreviewType(path: string): 'doc' | 'image' | 'html' | 'markdown' | 'code' | null {
+    if (!path) return null;
+    const ext = getExtension(path);
+    if (DOC_EXTENSIONS.has(ext)) return 'doc';
+    if (IMAGE_EXTENSIONS.has(ext)) return 'image';
+    if (ext === 'svg') return 'image';
+    if (ext === 'html' || ext === 'htm') return 'html';
+    if (ext === 'md' || ext === 'markdown') return 'markdown';
+    if (CODE_EXTENSIONS.has(ext)) return 'code';
+    return null;
 }
 
 interface Props {
     /**
-     * 文件路径（如 /workdir/main.py），组件内部会调用 fetchFile 获取 COS 预览 URL
+     * 文件路径（如 /workdir/main.py），文档预览时组件内部调用 fetchFile 获取 COS URL；
+     * 图片/HTML 预览时请同时传入 fileUrl 作为直接访问地址。
      */
     filePath?: string;
+    /**
+     * 文件的直接访问 URL，供图片预览和 HTML 预览使用。
+     * 文档预览（doc 类型）不需要此字段，内部会自动调用 fetchFile。
+     */
+    fileUrl?: string;
+    /** 文件名（含扩展名），供图片/HTML 预览组件使用 */
+    fileName?: string;
     /** 应用 ID */
     applicationId?: string;
     /** 工作空间 ID */
     workspaceId?: string;
-    /** SDK JS 文件的 URL 路径 */
+    /** SDK JS 文件的 URL 路径（文档预览使用） */
     sdkUrl?: string;
     /** 加载中文本 */
     loadingText?: string;
@@ -169,10 +156,14 @@ interface Props {
     previewFailedText?: string;
     /** 重试按钮文本 */
     retryText?: string;
+    /** 不支持预览时的提示文本 */
+    unsupportedText?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     filePath: '',
+    fileUrl: '',
+    fileName: '',
     applicationId: '',
     workspaceId: '',
     sdkUrl: 'src/assets/sdk-v0.2.1.js',
@@ -180,6 +171,7 @@ const props = withDefaults(defineProps<Props>(), {
     loadingPreviewText: '正在加载文档预览...',
     previewFailedText: '预览加载失败',
     retryText: '重试',
+    unsupportedText: '暂不支持预览该文件格式',
 });
 
 const emit = defineEmits<{
@@ -189,206 +181,24 @@ const emit = defineEmits<{
     (e: 'close'): void;
 }>();
 
-const previewContainer = ref<HTMLDivElement>();
-const loading = ref(false);
-const errorMsg = ref('');
-const currentLoadingText = ref(props.loadingText);
+/** 当前文件对应的预览类型 */
+const previewType = computed(() => resolvePreviewType(props.filePath || props.fileName || props.fileUrl));
 
-let previewInstance: SDKInstance | null = null;
+/** DocPreview 子组件引用，用于透传 expose 方法 */
+const docPreviewRef = ref<InstanceType<typeof DocPreview> | null>(null);
 
-// ========== SDK 动态加载 ==========
-
-/**
- * 动态加载 JS SDK
- * 通过创建 <script> 标签注入到 document.head 中
- * 类似 main.css 通过 import 引入，这里 JS 通过动态 script 标签异步加载
- */
-function loadScript(src: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-        // SDK 已加载则直接返回
-        if (window.COSDocPreviewSDK) {
-            resolve();
-            return;
-        }
-
-        // 检查是否已有相同 src 的 script 标签正在加载
-        const existingScript = document.querySelector(
-            `script[src="${src}"]`
-        ) as HTMLScriptElement | null;
-        if (existingScript) {
-            if (window.COSDocPreviewSDK) {
-                resolve();
-            } else {
-                existingScript.addEventListener('load', () => resolve());
-                existingScript.addEventListener('error', () =>
-                    reject(new Error(`SDK 脚本加载失败: ${src}`))
-                );
-            }
-            return;
-        }
-
-        // 动态创建 script 标签
-        const script = document.createElement('script');
-        script.src = src;
-        script.async = true;
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error(`SDK 脚本加载失败: ${src}`));
-        document.head.appendChild(script);
-    });
-}
-
-// ========== 文档预览 ==========
-
-/**
- * 使用 COSDocPreviewSDK.config() 初始化在线文档预览
- *
- * config() 内部会创建一个 iframe 加载 WebOffice 预览页面，
- * 返回 SDK 实例，通过 instance.ready() 可获取 Application 对象。
- */
-async function initSDKPreview(previewUrl: string) {
-    await loadScript(props.sdkUrl);
-
-    if (!window.COSDocPreviewSDK) {
-        throw new Error('COSDocPreviewSDK 加载后未能找到全局对象');
-    }
-
-    // 销毁旧实例
-    destroyPreview();
-
-    // 直接 GET 预签名 URL，从响应中获取 PreviewUrl 作为最终预览地址
-    const preUrl = decodeURIComponent(previewUrl);
-    
-    // 创建 iframe 并设置预览地址
-    if (previewContainer.value) {
-        previewInstance = window.COSDocPreviewSDK.config({
-            mount: previewContainer.value,
-            url: preUrl,
-            mode: 'normal',
-            commonOptions: {
-                isShowHeader: false,
-                isShowTopArea: false
-            },
-            wordOptions: {
-                isShowDocMap: false,
-                isBestScale: true
-            }
-        });
-    }
-}
-
-// ========== 主入口逻辑 ==========
-
-/**
- * 初始化预览
- * 1. 调用 fetchFile 获取 COS 预签名 URL
- * 2. 使用 SDK 初始化文档预览
- */
-async function initPreview() {
-    if (!props.filePath || !props.applicationId || !props.workspaceId) return;
-
-    loading.value = true;
-    errorMsg.value = '';
-
-    try {
-        // 第一步：调用 fetchFile 获取 COS URL（服务可能较慢，使用延长的超时）
-        currentLoadingText.value = props.loadingText;
-        const result = await fetchFile(
-            {
-                app_id: props.applicationId,
-                workspace_id: props.workspaceId,
-                path: props.filePath,
-            },
-            props.applicationId,
-            { timeout: 120000 } // 延长超时到 120s，文件转存服务较慢
-        );
-
-        if (!result.preview_url) {
-            throw new Error('文件转存失败：未返回预览链接');
-        }
-
-        // 第二步：使用预览 URL 初始化 SDK 预览（优先使用 preview_url，降级使用 cos_url）
-        currentLoadingText.value = props.loadingPreviewText;
-        await initSDKPreview(result.preview_url);
-        loading.value = false;
-    } catch (error) {
-        loading.value = false;
-        const err = error as Error;
-        errorMsg.value = err.message || props.previewFailedText;
-        console.error('[FilePreview] Init failed:', err);
-        emit('error', err);
-    }
-}
-
-/**
- * 销毁预览实例
- */
-function destroyPreview() {
-    if (previewInstance) {
-        try {
-            previewInstance.destroy();
-        } catch (e) {
-            // ignore destroy errors
-        }
-        previewInstance = null;
-    }
-
-    // 清理容器内的 iframe
-    if (previewContainer.value) {
-        previewContainer.value.innerHTML = '';
-    }
-}
-
-/**
- * 重试预览
- */
-function retry() {
-    errorMsg.value = '';
-    initPreview();
-}
-
-// ========== 公开方法 ==========
-
-/**
- * 获取当前 SDK 实例
- * 外部可通过 ref 获取组件实例后调用，如：
- *   previewRef.value.getInstance()?.save()
- *   previewRef.value.getInstance()?.setCommandBars([...])
- */
-function getInstance(): SDKInstance | null {
-    return previewInstance;
-}
+// ========== 公开方法（透传给外部） ==========
 
 defineExpose({
-    retry,
-    destroy: destroyPreview,
-    getInstance,
-});
-
-// ========== 生命周期 ==========
-
-watch(
-    () => props.filePath,
-    (newPath, oldPath) => {
-        if (newPath !== oldPath) {
-            destroyPreview();
-            if (newPath) {
-                initPreview();
-            }
-        }
-    }
-);
-
-onMounted(() => {
-    if (props.filePath) {
-        initPreview();
-    }
-});
-
-onUnmounted(() => {
-    destroyPreview();
+    /** 重试预览（仅文档预览支持） */
+    retry: () => docPreviewRef.value?.retry(),
+    /** 销毁预览实例（仅文档预览支持） */
+    destroy: () => docPreviewRef.value?.destroy(),
+    /** 获取文档 SDK 实例（仅文档预览时有效） */
+    getInstance: () => docPreviewRef.value?.getInstance() ?? null,
 });
 </script>
- 
+
 <style scoped>
 .file-preview-wrapper {
     width: 100%;
@@ -421,22 +231,14 @@ onUnmounted(() => {
     color: var(--td-text-color-primary, #333);
 }
 
-.file-preview-container {
+.file-preview-inner {
     width: 100%;
-    height: 100%;
     flex: 1;
-    position: relative;
-    overflow: hidden;
+    min-height: 0;
 }
 
-.file-preview-container :deep(iframe) {
-    width: 100% !important;
-    height: 100% !important;
-    border: none !important;
-}
-
-/* 加载状态 */
-.file-preview-loading {
+/* 不支持预览 */
+.file-preview-unsupported {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -446,63 +248,13 @@ onUnmounted(() => {
     gap: 12px;
 }
 
-.loading-spinner {
-    width: 36px;
-    height: 36px;
-    border: 3px solid #e8e8e8;
-    border-top-color: #0052d9;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.loading-text {
-    font-size: 14px;
-    color: #666;
-    margin: 0;
-}
-
-/* 错误状态 */
-.file-preview-error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    gap: 12px;
-}
-
-.error-icon {
+.unsupported-icon {
     font-size: 40px;
 }
 
-.error-text {
+.unsupported-text {
     font-size: 14px;
-    color: #e34d59;
+    color: #999;
     margin: 0;
-    text-align: center;
-    max-width: 80%;
-    word-break: break-word;
-}
-
-.retry-btn {
-    padding: 6px 20px;
-    font-size: 14px;
-    color: #fff;
-    background-color: #0052d9;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.retry-btn:hover {
-    background-color: #003cab;
 }
 </style>
