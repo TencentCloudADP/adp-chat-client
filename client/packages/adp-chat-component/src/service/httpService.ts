@@ -87,6 +87,14 @@ export const setResponseInterceptor = (
 /**
  * HTTP 服务对象
  */
+/**
+ * 获取当前 axios 实例的 baseURL
+ * 用于拼接同域代理 URL（如文件下载）
+ */
+export const getAxiosBaseURL = (): string => {
+    return axiosInstance.defaults.baseURL || '';
+};
+
 export const httpService = {
     /**
      * GET 请求

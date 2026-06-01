@@ -2,7 +2,7 @@
  * API 服务模块
  * 提供与后端交互的所有请求方法
  */
-import { httpService } from './httpService';
+import { httpService, getAxiosBaseURL } from './httpService';
 import type { Application } from '../model/application';
 import type { ChatConversation, Record, ChatConversationProps, Reference } from '../model/chat-v2';
 import type { AxiosRequestConfig } from 'axios';
@@ -656,4 +656,28 @@ export const fetchFile = async (
         console.error('获取文件失败:', error);
         throw error;
     }
+};
+
+/**
+ * 生成同域的文件代理下载 URL
+ *
+ * 后端 GET /file/download 接口会从工作空间获取文件内容后直接返回，
+ * 前端使用此 URL 即可下载/预览文件，不存在跨域问题。
+ *
+ * @param params 文件参数
+ * @param applicationId 应用配置 ID（用于定位 vendor 实例）
+ * @returns 同域的文件下载 URL
+ */
+export const getFileDownloadUrl = (
+    params: FetchFileParams,
+    applicationId: string
+): string => {
+    const baseURL = getAxiosBaseURL();
+    const queryParams = new URLSearchParams({
+        ApplicationId: applicationId,
+        AppId: params.app_id,
+        WorkspaceId: params.workspace_id,
+        Path: params.path,
+    });
+    return `${baseURL}/file/download?${queryParams.toString()}`;
 };

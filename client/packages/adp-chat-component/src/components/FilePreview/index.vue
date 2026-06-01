@@ -27,40 +27,40 @@
 
         <!-- 图片预览（PNG / JPG / GIF / BMP / WEBP / SVG） -->
         <ImagePreview
-            v-else-if="previewType === 'image'"
+            v-else-if="previewType === 'image' && resolvedFileUrl"
             class="file-preview-inner"
-            :url="fileUrl"
-            :file-name="fileName"
+            :url="resolvedFileUrl"
+            :file-name="resolvedFileName"
             :error-text="previewFailedText"
             @error="(err) => emit('error', err)"
         />
 
         <!-- HTML 沙箱预览 -->
         <HtmlPreview
-            v-else-if="previewType === 'html'"
+            v-else-if="previewType === 'html' && resolvedFileUrl"
             class="file-preview-inner"
-            :url="fileUrl"
-            :file-name="fileName"
+            :url="resolvedFileUrl"
+            :file-name="resolvedFileName"
             :error-text="previewFailedText"
             @error="(err) => emit('error', err)"
         />
 
         <!-- Markdown 预览 -->
         <MarkdownPreview
-            v-else-if="previewType === 'markdown'"
+            v-else-if="previewType === 'markdown' && resolvedFileUrl"
             class="file-preview-inner"
-            :url="fileUrl"
-            :file-name="fileName"
+            :url="resolvedFileUrl"
+            :file-name="resolvedFileName"
             :error-text="previewFailedText"
             @error="(err) => emit('error', err)"
         />
 
         <!-- 代码预览（Monaco Editor） -->
         <CodePreview
-            v-else-if="previewType === 'code'"
+            v-else-if="previewType === 'code' && resolvedFileUrl"
             class="file-preview-inner"
-            :url="fileUrl"
-            :file-name="fileName"
+            :url="resolvedFileUrl"
+            :file-name="resolvedFileName"
             :error-text="previewFailedText"
             @error="(err) => emit('error', err)"
         />
@@ -68,12 +68,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import DocPreview from './DocPreview.vue';
 import ImagePreview from './ImagePreview.vue';
 import HtmlPreview from './HtmlPreview.vue';
 import MarkdownPreview from './MarkdownPreview.vue';
 import CodePreview from './CodePreview.vue';
+import { getFileDownloadUrl } from '../../service/api';
 
 /** 文档类扩展名集合 */
 const DOC_EXTENSIONS = new Set([
@@ -187,6 +188,52 @@ const previewType = computed(() => resolvePreviewType(props.filePath || props.fi
 /** DocPreview 子组件引用，用于透传 expose 方法 */
 const docPreviewRef = ref<InstanceType<typeof DocPreview> | null>(null);
 
+/**
+ * 非 doc 类型文件的实际访问 URL
+ * 优先使用外部传入的 fileUrl；否则通过 getFileDownloadUrl 生成同域代理链接
+ */
+const resolvedFileUrl = ref('');
+
+/** 文件名：从 filePath 或 fileName 中提取 */
+const resolvedFileName = computed(() => {
+    if (props.fileName) return props.fileName;
+    if (props.filePath) return props.filePath.split('/').pop() || '';
+    return '';
+});
+
+watch(
+    [() => props.filePath, () => props.fileUrl, previewType],
+    ([newPath, newFileUrl, newType]) => {
+        // doc 类型由 DocPreview 内部处理，不需要这里获取
+        if (newType === 'doc') {
+            resolvedFileUrl.value = '';
+            return;
+        }
+
+        // 如果外部直接传了 fileUrl，直接使用
+        if (newFileUrl) {
+            resolvedFileUrl.value = newFileUrl;
+            return;
+        }
+
+        // 通过后端代理生成同域下载 URL（无需异步请求，直接拼 URL）
+        if (!newPath || !props.applicationId || !props.workspaceId) {
+            resolvedFileUrl.value = '';
+            return;
+        }
+
+        resolvedFileUrl.value = getFileDownloadUrl(
+            {
+                app_id: props.applicationId,
+                workspace_id: props.workspaceId,
+                path: newPath,
+            },
+            props.applicationId
+        );
+    },
+    { immediate: true }
+);
+
 // ========== 公开方法（透传给外部） ==========
 
 defineExpose({
@@ -257,4 +304,6 @@ defineExpose({
     color: #999;
     margin: 0;
 }
+
+
 </style>

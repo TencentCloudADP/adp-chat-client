@@ -1062,6 +1062,82 @@ class TCADP(BaseVendor):
                     "preview_url": preview_url,
                 }
 
+    async def download_file_content(self, app_id: str, workspace_id: str, path: str) -> tuple:
+        """从工作空间下载文件原始内容（不经过 COS 转存）
+
+        用于后端代理下载场景：后端直接返回文件内容给前端，避免 COS 跨域问题。
+
+        Args:
+            app_id: 应用 ID
+            workspace_id: 工作空间 ID
+            path: 文件路径，如 /workdir/main.py
+
+        Returns:
+            tuple: (content_bytes, content_type, file_name)
+                - content_bytes: 文件原始字节
+                - content_type: MIME 类型
+                - file_name: 文件名
+
+        Raises:
+            Exception: 当请求失败时抛出
+        """
+        # Step 1: 获取凭证
+        credential_payload = {
+            "AppId": app_id,
+            "Type": 2,
+            "WorkspaceId": workspace_id
+        }
+        credential_resp = await self.forward_request(
+            action="CreateWorkspaceCredential",
+            payload=credential_payload,
+        )
+        logging.info(f'[download_file_content] credential_resp received')
+
+        # 解析凭证信息
+        credential = credential_resp.get('Credential', {})
+        sandbox_storage = credential_resp.get('SandboxStorage', {})
+
+        access_token = credential.get('AccessToken', '')
+        domain = sandbox_storage.get('Domain', '')
+        token_tag = sandbox_storage.get('TokenTag', '')
+
+        if not access_token or not domain or not token_tag:
+            raise Exception(
+                f'CreateWorkspaceCredential 返回数据不完整: '
+                f'AccessToken={bool(access_token)}, Domain={domain}, TokenTag={token_tag}'
+            )
+
+        # Step 2: 下载文件
+        url = f"{domain}/files"
+        params = {"path": path}
+        headers = {token_tag: access_token}
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url,
+                params=params,
+                headers=headers,
+                ssl=False,
+            ) as resp:
+                content_type = resp.headers.get('Content-Type', 'application/octet-stream')
+                content = await resp.read()
+                if resp.status != 200:
+                    text = content.decode('utf-8', errors='replace')[:200]
+                    logging.error(
+                        f'[TCADP.download_file_content] path={path} status={resp.status} resp={text}'
+                    )
+                    raise Exception(
+                        f'download_file_content failed: status={resp.status}, content={text}'
+                    )
+
+                # 从路径中提取文件名
+                file_name = path.rsplit('/', 1)[-1] if '/' in path else path
+                logging.info(
+                    f'[TCADP.download_file_content] path={path} size={len(content)} '
+                    f'content_type={content_type}'
+                )
+                return content, content_type, file_name
+
     @staticmethod
     def _resolve_file_type(mime_type: str) -> str:
         """将 MIME 类型转换为腾讯云 DescribeStorageCredential 接受的文件扩展名"""

@@ -30,16 +30,10 @@
                     <span
                         v-if="!node.getChildren()"
                         class="file-download-btn"
-                        :class="{ 'is-loading': downloadingNodes.has(node.data.value) }"
                         title="下载"
                         @click.stop="handleDownload(node)"
                     >
-                        <t-icon
-                            v-if="downloadingNodes.has(node.data.value)"
-                            name="loading"
-                            class="icon-spinning"
-                        />
-                        <t-icon v-else name="download" />
+                        <t-icon name="download" />
                     </span>
                 </template>
             </t-tree>
@@ -50,7 +44,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { Tree as TTree, Icon as TIcon, MessagePlugin } from 'tdesign-vue-next';
-import { listDir, fetchFile } from '../../service/api';
+import { listDir, getFileDownloadUrl } from '../../service/api';
 import type { DirEntry } from '../../service/api';
 
 interface Props {
@@ -184,54 +178,34 @@ async function handleRefresh() {
     }
 }
 
-/** 正在下载的节点集合 */
-const downloadingNodes = ref<Set<string>>(new Set());
-
 /**
  * 下载文件
- * 调用 fetchFile 获取 COS 预签名下载 URL，然后触发浏览器下载
+ * 使用同域代理 URL 直接触发浏览器下载，无跨域问题
  */
-async function handleDownload(node: any) {
+function handleDownload(node: any) {
     const entry = node.data?.entry as DirEntry | undefined;
     if (!entry || entry.type !== 'FILE_TYPE_FILE') return;
 
-    const nodeKey = node.data.value as string;
-    if (downloadingNodes.value.has(nodeKey)) return;
+    const downloadUrl = getFileDownloadUrl(
+        {
+            app_id: props.applicationId,
+            workspace_id: props.workspaceId,
+            path: entry.path,
+        },
+        props.applicationId
+    );
 
-    downloadingNodes.value.add(nodeKey);
-    try {
-        const result = await fetchFile(
-            {
-                app_id: props.applicationId,
-                workspace_id: props.workspaceId,
-                path: entry.path,
-            },
-            props.applicationId,
-            { timeout: 120000 }
-        );
+    // 通过创建隐藏的 <a> 标签触发浏览器下载
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = entry.name;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-        const downloadUrl = result.cos_url;
-        if (!downloadUrl) {
-            throw new Error('未获取到下载链接');
-        }
-
-        // 通过创建隐藏的 <a> 标签触发浏览器下载
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.download = entry.name;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        MessagePlugin.success(`开始下载: ${entry.name}`);
-    } catch (error) {
-        console.error('[FileDir] 下载文件失败:', error);
-        MessagePlugin.error(`下载失败: ${(error as Error).message || '未知错误'}`);
-    } finally {
-        downloadingNodes.value.delete(nodeKey);
-    }
+    MessagePlugin.success(`开始下载: ${entry.name}`);
 }
 
 // 监听 workspaceId / applicationId 变化重新加载
