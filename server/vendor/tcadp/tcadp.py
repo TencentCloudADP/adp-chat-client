@@ -808,6 +808,15 @@ class TCADP(BaseVendor):
             yield to_event(EventType.CONVERSATION, conversation=conversation, is_new_conversation=True)
             conversation_id = str(conversation.Id)
 
+        if not conversation_id:
+            logging.error(f"[TCADP.chat] ConversationId is empty after creation, aborting SSE request")
+            error_info = ErrorInfo(Code=400, Message="ConversationId is required")
+            yield to_event(EventType.ERROR, error=error_info)
+            return
+
+        if not account_id:
+            account_id = "anonymous"
+
         timeout = aiohttp.ClientTimeout(total=None, sock_read=tagentic_config.SERVER_RESPONSE_TIMEOUT)
         async with aiohttp.ClientSession(read_bufsize=1*1024*1024, timeout=timeout) as session:
             param = {
@@ -819,6 +828,7 @@ class TCADP(BaseVendor):
                 "VisitorId": account_id,
                 "Stream": "enable",
             }
+            logging.info(f"[TCADP.chat] SSE param: ConversationId={conversation_id!r}, VisitorId={account_id!r}, is_new={is_new_conversation}")
             headers = {
                 "Accept": "text/event-stream",
                 "Content-Type": "application/json",

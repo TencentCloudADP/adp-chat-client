@@ -26,8 +26,8 @@ class CoreChat:
         name = account.Name if account else ""
 
         if tagentic_config.ADP_VISITOR_ID_TYPE == "NAME":
-            return name
-        return customer_id
+            return name or customer_id or account_id
+        return customer_id or account_id
 
     @staticmethod
     async def message(

@@ -1,13 +1,11 @@
-<!-- 消息发送组件，支持文本、图片上传、文件上传、语音输入 -->
+<!-- 消息发送组件，支持富文本编辑、图片上传、文件上传、语音输入 -->
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { ChatSender as TChatSender } from '@tdesign-vue-next/chat'
 import { MessagePlugin, Tooltip as TTooltip } from 'tdesign-vue-next'
 import type { FileProps } from '../../model/file';
 import {
     ALLOWED_IMAGE_TYPES,
     ALLOWED_DOC_TYPES,
-    ALLOWED_FILE_TYPES,
     FILE_SIZE_LIMITS,
     FILE_COUNT_LIMIT,
     getFileCategory,
@@ -21,6 +19,7 @@ import FileList from '../Common/FileList.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import WebRecorder from '../../utils/webRecorder';
 import { getAsrUrl } from '../../service/api';
+import QaEditor from '../QaEditor/index.vue';
 
 export interface Props extends ChatRelatedProps {
     /** 是否正在流式加载 */
@@ -57,6 +56,15 @@ const i18n = computed(() => {
  */
 const sendDisabled = computed(() => props.isUploading || props.isStreamLoad);
 
+/**
+ * 是否有可发送内容
+ */
+const hasContent = computed(() => {
+    const textContent = editorHtml.value.replace(/<[^>]*>/g, '').replace(/[\u200b\s]/g, '').trim();
+    const hasImages = editorHtml.value.includes('<img');
+    return !!(textContent || hasImages || fileList.value.length > 0);
+});
+
 const emit = defineEmits<{
     (e: 'stop'): void;
     (e: 'send', value: string, fileList: FileProps[]): void;
@@ -66,15 +74,16 @@ const emit = defineEmits<{
     (e: 'message', code: MessageCode, message: string): void;
 }>();
 
-const inputValue = ref('');
-const inputValueBefore = ref('');
+const editorHtml = ref('');
+const inputFocus = ref(false);
 const recording = ref(false);
 const fileList = ref<FileProps[]>([]);
 const recorder = ref<WebRecorder | null>(null);
 const asrWebSocket = ref<WebSocket | null>(null);
 const recordMaxTime = 60;
 const recordRef = ref<ReturnType<typeof setTimeout> | null>(null);
-const chatSenderRef = ref<InstanceType<typeof TChatSender> | null>(null);
+const qaEditorRef = ref<InstanceType<typeof QaEditor> | null>(null);
+const inputValueBefore = ref('');
 
 /**
  * 加号菜单状态
@@ -97,13 +106,11 @@ const imageAccept = ALLOWED_IMAGE_TYPES.map(t => {
  */
 const fileAccept = '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.md,.csv,.json';
 
+const placeholder = computed(() => {
+    return props.isMobile ? (i18n.value.placeholderMobile || '') : (i18n.value.placeholder || '');
+});
+
 onMounted(() => {
-    nextTick(() => {
-        const textarea = chatSenderRef.value?.$el?.querySelector('textarea');
-        if (textarea) {
-            textarea.setAttribute('enterkeyhint', 'send');
-        }
-    });
     document.addEventListener('click', handleClickOutside);
 });
 
@@ -146,8 +153,38 @@ const handleSelectFile = () => {
     fileInputRef.value?.click();
 };
 
-const handleInput = (value: string) => {
-    inputValue.value = value;
+/**
+ * 编辑器内容变更
+ */
+const handleEditorInput = (html: string) => {
+    editorHtml.value = html;
+};
+
+/**
+ * 编辑器聚焦
+ */
+const handleEditorFocus = () => {
+    inputFocus.value = true;
+};
+
+/**
+ * 编辑器失焦
+ */
+const handleEditorBlur = () => {
+    inputFocus.value = false;
+};
+
+/**
+ * 键盘事件：Enter 发送，Ctrl/Meta+Enter 换行
+ */
+const handleKeydown = (event: KeyboardEvent) => {
+    if (event.key !== 'Enter') return;
+    if (event.metaKey || event.ctrlKey) {
+        qaEditorRef.value?.insertHtml('<br/>')
+    } else if (!event.shiftKey) {
+        event.preventDefault();
+        handleSend();
+    }
 };
 
 /**
@@ -223,7 +260,23 @@ const handleDeleteFile = (index: number) => {
     fileList.value = [...fileList.value];
 };
 
-const handleSend = async function (value: string) {
+/**
+ * 将编辑器中的内联图片转为 Markdown 格式
+ */
+function htmlImgToMarkdown(html: string): string {
+    return html.replace(/<img[^>]+src="([^"]*)"[^>]*>/g, (_, src) => {
+        return `![](${src})`;
+    });
+}
+
+/**
+ * 提取编辑器中纯文本内容（去除HTML标签）
+ */
+function getPlainText(html: string): string {
+    return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').trim();
+}
+
+const handleSend = async function () {
     if (props.isUploading) {
         MessagePlugin.warning('文件上传/解析中，请稍候');
         return;
@@ -236,6 +289,8 @@ const handleSend = async function (value: string) {
     }
     handleStopRecord();
 
+    if (!hasContent.value) return;
+
     let _query = '';
     for (const file of fileList.value) {
         if (file.status === 'done' && file.url) {
@@ -246,10 +301,16 @@ const handleSend = async function (value: string) {
             }
         }
     }
-    _query += value;
+
+    // 将编辑器中的内联图片转成 Markdown 格式后附加到消息中
+    const editorContent = editorHtml.value;
+    const processedContent = htmlImgToMarkdown(editorContent);
+    const plainContent = getPlainText(processedContent);
+    _query += plainContent || processedContent;
 
     emit('send', _query, fileList.value);
-    inputValue.value = '';
+    editorHtml.value = '';
+    qaEditorRef.value?.clear();
     fileList.value = [];
 }
 
@@ -259,11 +320,10 @@ const handleSend = async function (value: string) {
 const handleStartRecord = async () => {
     recording.value = true;
     
-    // 如果使用内部录音处理（API 模式）
     if (props.useInternalRecord) {
         try {
             const res = await getAsrUrl(props.asrUrlApi || undefined);
-            inputValueBefore.value = inputValue.value;
+            inputValueBefore.value = getPlainText(editorHtml.value);
             const url = res.url;
             asrWebSocket.value = new WebSocket(url);
             
@@ -283,7 +343,11 @@ const handleStartRecord = async () => {
                 if (!recording.value) return;
                 const msg = JSON.parse(event.data);
                 if ('result' in msg) {
-                    inputValue.value = inputValueBefore.value + msg['result']['voice_text_str'];
+                    const newText = inputValueBefore.value + msg['result']['voice_text_str'];
+                    qaEditorRef.value?.clear();
+                    nextTick(() => {
+                        qaEditorRef.value?.insertText(newText);
+                    });
                 }
                 if ('message' in msg && 'code' in msg && msg['code'] != 0) {
                     MessagePlugin.error(msg['message']);
@@ -315,12 +379,12 @@ const handleStartRecord = async () => {
 const startRecording = () => {
     const requestId = '0';
     recorder.value = new WebRecorder({ requestId });
-    recorder.value.OnReceivedData = (data) => {
+    recorder.value.OnReceivedData = (data: any) => {
         if (asrWebSocket.value?.readyState === WebSocket.OPEN) {
             asrWebSocket.value?.send(data);
         }
     };
-    recorder.value.OnError = (err) => {
+    recorder.value.OnError = (err: any) => {
         let errMsg: string;
         let errCode: MessageCode = MessageCode.RECORD_FAILED;
         if (err && typeof err === 'object' && 'code' in err) {
@@ -355,9 +419,7 @@ const handleStopRecord = () => {
     if (!recording.value) return;
     recording.value = false;
     
-    // 如果使用内部录音处理
     if (props.useInternalRecord) {
-        console.log('[asr] stop');
         recorder.value?.stop();
         recorder.value = null;
         asrWebSocket.value?.close();
@@ -371,35 +433,19 @@ const handleStopRecord = () => {
     emit('stopRecord');
 }
 
-const handlePaste = async (event: ClipboardEvent) => {
-    if (props.isUploading) return;
-    try {
-        const items = event.clipboardData?.items;
-        if (!items || items.length === 0) return;
-
-        const imageItems = Array.from(items)
-            .filter((item: DataTransferItem) => item.type.includes('image'))
-            .map((i: DataTransferItem) => i.getAsFile())
-            .filter((file): file is File => file !== null);
-
-        if (imageItems.length > 0) {
-            const currentCount = fileList.value.length;
-            if (currentCount + imageItems.length > FILE_COUNT_LIMIT) {
-                MessagePlugin.warning(`最多上传 ${FILE_COUNT_LIMIT} 个文件`);
-                return;
-            }
-            emit('uploadFile', imageItems);
-        }
-    } catch (error) {
-        console.error('粘贴图片出错:', error);
-    }
-};
-
 /**
  * 修改输入框内容（供外部调用）
  */
 const changeSenderVal = (value: string, files: FileProps[]) => {
-    inputValue.value = value;
+    editorHtml.value = value;
+    if (qaEditorRef.value) {
+        qaEditorRef.value.clear();
+        if (value) {
+            nextTick(() => {
+                qaEditorRef.value?.insertHtml(value);
+            });
+        }
+    }
     fileList.value = files;
 }
 
@@ -411,7 +457,7 @@ const addFile = (file: FileProps) => {
 }
 
 /**
- * 根据 uid 更新文件属性（供外部调用，用于上传完成后更新 status/url）
+ * 根据 uid 更新文件属性（供外部调用）
  */
 const updateFile = (uid: string, updates: Partial<FileProps>) => {
     const index = fileList.value.findIndex(f => f.uid === uid);
@@ -440,10 +486,18 @@ const setRecording = (value: boolean) => {
 }
 
 /**
- * 更新输入值（供外部调用，用于语音识别）
+ * 更新输入值（供外部调用）
  */
 const updateInputValue = (value: string) => {
-    inputValue.value = value;
+    editorHtml.value = value;
+    if (qaEditorRef.value) {
+        qaEditorRef.value.clear();
+        if (value) {
+            nextTick(() => {
+                qaEditorRef.value?.insertText(value);
+            });
+        }
+    }
 }
 
 /**
@@ -460,27 +514,33 @@ defineExpose({
 </script>
 
 <template>
-    <TChatSender ref="chatSenderRef" class="sender-container" :class="{ 'is-uploading': isUploading }" :value="inputValue" :textarea-props="{
-        placeholder: isMobile ? i18n.placeholderMobile : i18n.placeholder,
-        autosize: { minRows: 1, maxRows: 6 },
-        disabled: isUploading,
-    }"
-        @stop="emit('stop')"
-        @send="handleSend"
-        @change="handleInput"
-        @paste="handlePaste">
-        <template #inner-header>
+    <div class="sender-container" :class="{ 'is-uploading': isUploading, 'is-focused': inputFocus }">
+        <!-- 文件预览区域 -->
+        <div v-if="fileList.length > 0" class="sender-files">
             <FileList :fileList="fileList" :theme="theme" :mode="mode" @delete="handleDeleteFile"/>
-        </template>
-        <template #suffix>
-            <CustomizedIcon class="send-icon waiting" :class="{ disabled: sendDisabled }" v-if="!isStreamLoad && !inputValue" nativeIcon :showHoverBg="false" :name="theme === 'dark' ? 'send_dark' : 'send'" @click="handleSend(inputValue)" />
-            <CustomizedIcon class="send-icon success" :class="{ disabled: sendDisabled }" v-if="!isStreamLoad && inputValue" nativeIcon :showHoverBg="false" name="send_fill" @click="handleSend(inputValue)" />
-            <CustomizedIcon class="send-icon stop" v-if="isStreamLoad" nativeIcon :showHoverBg="false" :name="theme === 'dark' ? 'pause_dark' : 'pause'" @click="emit('stop')" />
-        </template>
-        <template #prefix>
-            <div class="sender-control-container">
+        </div>
+
+        <!-- 编辑器区域 -->
+        <div class="sender-editor-area" @keydown="handleKeydown">
+            <QaEditor
+                ref="qaEditorRef"
+                :value="editorHtml"
+                :placeholder="placeholder"
+                :readOnly="isUploading"
+                :disabled="false"
+                :hideToolBar="true"
+                :allowPasteImage="true"
+                @input="handleEditorInput"
+                @focus="handleEditorFocus"
+                @blur="handleEditorBlur"
+            />
+        </div>
+
+        <!-- 底部工具栏 -->
+        <div class="sender-toolbar">
+            <div class="sender-toolbar__left">
                 <!-- 加号菜单按钮 -->
-                <div  ref="plusMenuRef" class="plus-menu-wrapper">
+                <div ref="plusMenuRef" class="plus-menu-wrapper">
                     <span class="plus-btn" :class="{ active: showPlusMenu, disabled: isUploading }" @click="togglePlusMenu">
                         <CustomizedIcon name="plus" :theme="theme" :showHoverBg="false" />
                     </span>
@@ -513,25 +573,67 @@ defineExpose({
                     </span>
                 </TTooltip>
             </div>
-        </template>
-    </TChatSender>
+
+            <div class="sender-toolbar__right">
+                <CustomizedIcon class="send-icon waiting" :class="{ disabled: sendDisabled }" v-if="!isStreamLoad && !hasContent" nativeIcon :showHoverBg="false" :name="theme === 'dark' ? 'send_dark' : 'send'" @click="handleSend" />
+                <CustomizedIcon class="send-icon success" :class="{ disabled: sendDisabled }" v-if="!isStreamLoad && hasContent" nativeIcon :showHoverBg="false" name="send_fill" @click="handleSend" />
+                <CustomizedIcon class="send-icon stop" v-if="isStreamLoad" nativeIcon :showHoverBg="false" :name="theme === 'dark' ? 'pause_dark' : 'pause'" @click="emit('stop')" />
+            </div>
+        </div>
+    </div>
 </template>
 
 <style scoped>
-.sender-control-container {
+.sender-container {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--td-border-level-2-color, #dcdcdc);
+    border-radius: var(--td-radius-large, 12px);
+    background: var(--td-bg-color-container, #fff);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    overflow: visible;
+}
+
+.sender-container.is-focused {
+    border-color: var(--td-brand-color, #0052d9);
+    box-shadow: 0 0 0 2px rgba(0, 82, 217, 0.08);
+}
+
+.sender-container.is-uploading {
+    opacity: 0.7;
+    pointer-events: auto;
+}
+
+/* 文件区域 */
+.sender-files {
+    padding: 8px 12px 0;
+}
+
+/* 编辑器区域 */
+.sender-editor-area {
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* 底部工具栏 */
+.sender-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 8px 8px;
+}
+
+.sender-toolbar__left {
     display: flex;
     align-items: center;
 }
 
-.sender-container {
-    width: 100%;
-    max-width: 800px;
-}
-
-/* 上传/解析中整体置灰 */
-.sender-container.is-uploading {
-    opacity: 0.7;
-    pointer-events: auto;
+.sender-toolbar__right {
+    display: flex;
+    align-items: center;
 }
 
 /* 加号菜单 */
@@ -571,7 +673,7 @@ defineExpose({
     border-radius: 8px;
     background: var(--td-bg-color-container, #fff);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-    z-index: 100;
+    z-index: 2000;
 }
 
 .plus-menu-item {
@@ -611,7 +713,8 @@ defineExpose({
 
 .recording-icon {
     height: var(--td-comp-size-m);
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     margin-right: var(--td-comp-paddingLR-xs);
 }
 
@@ -632,14 +735,5 @@ defineExpose({
     opacity: 0.4;
     cursor: not-allowed;
     pointer-events: none;
-}
-
-:deep(.t-chat-sender__textarea) {
-    background-color: var(--td-sender-bg);
-    border-radius: var(--td-radius-medium);
-}
-
-:deep(.t-chat-sender__footer) {
-    padding: 0px var(--td-comp-paddingLR-s);
 }
 </style>

@@ -39,9 +39,17 @@ def login_required(view):
 
 
 async def auto_login(request: Request):
+    need_register = False
     try:
         check_login(request)
+        # token 可解析，但需验证 account 是否仍存在于数据库中
+        existing = await CoreAccount.get(request.ctx.db, request.ctx.account_id)
+        if existing is None:
+            need_register = True
     except:  # pylint: disable=bare-except
+        need_register = True
+
+    if need_register:
         account = await CoreAccount.register(
             request.ctx.db,
             name='User',
