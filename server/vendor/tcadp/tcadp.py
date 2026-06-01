@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import Any
 from urllib.parse import quote
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -1030,9 +1031,9 @@ class TCADP(BaseVendor):
                     )
 
                 # Step 3: 上传到 COS，路径为 app_id/path
-                cos_key = f"{app_id}{path}"  # 如 2059173834404121408/workdir/main.py
-                # 去掉开头的 /
-                cos_key = cos_key.lstrip('/')
+                cos_key = f"{app_id}/{path}"  # 如 2059173834404121408/workdir/main.py
+                # 去掉连续的 / 并去掉开头的 /
+                cos_key = re.sub(r'/+', '/', cos_key).lstrip('/')
                 cos_url = ''
                 presigned_url = ''
                 try:

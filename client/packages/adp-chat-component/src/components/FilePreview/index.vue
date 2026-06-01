@@ -255,35 +255,22 @@ async function initSDKPreview(previewUrl: string) {
     // 销毁旧实例
     destroyPreview();
 
-    // 解析预签名 URL，将签名参数提取为 authorization 字符串
-    const urlObj = new URL(previewUrl);
-    const bareUrl = `${urlObj.origin}${urlObj.pathname}`;
-    const authorization = urlObj.search ? urlObj.search.slice(1) : '';
-
-    const options: GetPreviewUrlOptions = {
-        objectUrl: previewUrl,
-        copyable: false,
-        dstType: 'html',
-    };
-
-    // if (authorization) {
-    //     options.credentials = {
-    //         authorization,
-    //     };
-    // }
-
-    // 通过 SDK 获取最终的预览地址
-    const finalUrl = await window.COSDocPreviewSDK.getPreviewUrl(options);
-
+    // 直接 GET 预签名 URL，从响应中获取 PreviewUrl 作为最终预览地址
+    const preUrl = decodeURIComponent(previewUrl);
+    
     // 创建 iframe 并设置预览地址
     if (previewContainer.value) {
         previewInstance = window.COSDocPreviewSDK.config({
             mount: previewContainer.value,
-            url: finalUrl,
+            url: preUrl,
             mode: 'normal',
             commonOptions: {
                 isShowHeader: false,
                 isShowTopArea: false
+            },
+            wordOptions: {
+                isShowDocMap: false,
+                isBestScale: true
             }
         });
     }

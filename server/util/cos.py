@@ -10,6 +10,8 @@ import io
 import logging
 from typing import Optional
 
+import requests
+
 from qcloud_cos import CosConfig, CosS3Client, CosServiceError
 
 from config import tagentic_config
@@ -278,7 +280,7 @@ def get_presigned_url(
     bucket: str = None,
     expired: int = 3600,
     params: Optional[dict] = None,
-    use_ci_endpoint: bool = True,
+    use_ci_endpoint: bool = False,
     sign_host: bool = True,
     verify_ssl: bool = True,
     proxies: Optional[dict] = None,
@@ -309,7 +311,7 @@ def get_presigned_url(
     # 默认文档预览参数
     default_params = {
         "ci-process": "doc-preview",
-        # "dstType": "html",
+        "dstType": "html",
         "weboffice_url": "1",
         "copyable": "0",
     }
@@ -323,10 +325,20 @@ def get_presigned_url(
         "SignHost": sign_host,
         "Params": default_params,
     }
-
     if use_ci_endpoint:
         kwargs["UseCiEndPoint"] = True
 
     url = client.get_presigned_download_url(**kwargs)
     logger.info(f"[COS] 生成预签名 URL: key={key}, expired={expired}s, ci={use_ci_endpoint}")
-    return url
+
+    # 请求预签名 URL，从 CI 服务获取 WebOffice 预览地址
+    resp = requests.get(url, timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+    preview_url = data.get("PreviewUrl")
+    if not preview_url:
+        logger.error(f"[COS] CI 响应中未包含 PreviewUrl: {data}")
+        raise ValueError("CI 服务未返回 PreviewUrl")
+
+    logger.info(f"[COS] 获取到预览地址: {preview_url[:100]}...")
+    return preview_url
