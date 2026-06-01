@@ -9,7 +9,7 @@ import aiohttp
 import json
 from util.tca import tc_request
 from util.warehouse import AsyncWareHouseS3
-from util.cos import upload, get_presigned_url
+from util.cos import upload, get_presigned_download_url, get_presigned_preview_url
 
 from core.completion import CoreCompletion
 from config import tagentic_config
@@ -1034,8 +1034,8 @@ class TCADP(BaseVendor):
                 cos_key = f"{app_id}/{path}"  # 如 2059173834404121408/workdir/main.py
                 # 去掉连续的 / 并去掉开头的 /
                 cos_key = re.sub(r'/+', '/', cos_key).lstrip('/')
-                cos_url = ''
-                presigned_url = ''
+                download_url = ''
+                preview_url = ''
                 try:
                     import io
                     stream = io.BytesIO(content)
@@ -1046,16 +1046,20 @@ class TCADP(BaseVendor):
                         if_changed=True,
                     )
                     logging.info(f'[TCADP.fetch_file] uploaded to COS: {cos_key}')
-                    # 生成预签名下载链接给前端
-                    presigned_url = get_presigned_url(key=cos_key)
-                    logging.info(f'[TCADP.fetch_file] presigned URL: {presigned_url}')
+                    # 生成预签名下载链接
+                    download_url = get_presigned_download_url(key=cos_key)
+                    logging.info(f'[TCADP.fetch_file] download URL: {download_url}')
+                    # 生成预览链接（通过 CI 服务获取 WebOffice 预览地址）
+                    preview_url = get_presigned_preview_url(key=cos_key)
+                    logging.info(f'[TCADP.fetch_file] preview URL: {preview_url}')
                 except Exception as e:
                     logging.error(f'[TCADP.fetch_file] upload to COS failed: {e}')
 
                 return {
                     "status_code": resp.status,
-                    "content_type": content_type,                    
-                    "cos_url": presigned_url or cos_url,
+                    "content_type": content_type,
+                    "cos_url": download_url,
+                    "preview_url": preview_url,
                 }
 
     @staticmethod

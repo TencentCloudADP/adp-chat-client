@@ -302,13 +302,13 @@ async function initPreview() {
             { timeout: 120000 } // 延长超时到 120s，文件转存服务较慢
         );
 
-        if (!result.cos_url) {
+        if (!result.preview_url) {
             throw new Error('文件转存失败：未返回预览链接');
         }
 
-        // 第二步：使用 COS URL 初始化 SDK 预览
+        // 第二步：使用预览 URL 初始化 SDK 预览（优先使用 preview_url，降级使用 cos_url）
         currentLoadingText.value = props.loadingPreviewText;
-        await initSDKPreview(result.cos_url);
+        await initSDKPreview(result.preview_url);
         loading.value = false;
     } catch (error) {
         loading.value = false;

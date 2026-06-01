@@ -275,7 +275,43 @@ def upload_to_cos(
     return cos_url
 
 
-def get_presigned_url(
+def get_presigned_download_url(
+    key: str,
+    bucket: str = None,
+    expired: int = 3600,
+    sign_host: bool = True,
+    verify_ssl: bool = True,
+    proxies: Optional[dict] = None,
+) -> str:
+    """生成 COS 文件的预签名下载 URL（纯下载，不含 CI 预览参数）。
+
+    Args:
+        key: COS 上的文件路径，例如 'folder/example.docx'
+        bucket: COS 桶名称，默认从 tagentic_config.COS_BUCKET 读取
+        expired: 签名有效期（秒），默认 3600（1 小时）
+        sign_host: 是否将 host 纳入签名（推荐 True，安全性更高）
+        verify_ssl: 是否验证 SSL 证书，默认 True
+        proxies: HTTP/HTTPS 代理配置
+
+    Returns:
+        str: 带签名的预签名下载 URL
+    """
+    if bucket is None:
+        bucket = tagentic_config.COS_BUCKET
+
+    client = get_cos_client(verify_ssl, proxies)
+
+    url = client.get_presigned_download_url(
+        Bucket=bucket,
+        Key=key,
+        Expired=expired,
+        SignHost=sign_host,
+    )
+    logger.info(f"[COS] 生成预签名下载 URL: key={key}, expired={expired}s")
+    return url
+
+
+def get_presigned_preview_url(
     key: str,
     bucket: str = None,
     expired: int = 3600,
@@ -285,9 +321,7 @@ def get_presigned_url(
     verify_ssl: bool = True,
     proxies: Optional[dict] = None,
 ) -> str:
-    """生成 COS 文件的预签名下载 URL。
-
-    可用于文件下载、文件预览（搭配 CI 参数）等场景。
+    """生成 COS 文件的预签名预览 URL（通过 CI 服务获取 WebOffice 预览地址）。
 
     Args:
         key: COS 上的文件路径，例如 'folder/example.docx'
@@ -301,7 +335,7 @@ def get_presigned_url(
         proxies: HTTP/HTTPS 代理配置
 
     Returns:
-        str: 带签名的预签名下载 URL
+        str: WebOffice 预览地址（PreviewUrl）
     """
     if bucket is None:
         bucket = tagentic_config.COS_BUCKET
@@ -329,7 +363,7 @@ def get_presigned_url(
         kwargs["UseCiEndPoint"] = True
 
     url = client.get_presigned_download_url(**kwargs)
-    logger.info(f"[COS] 生成预签名 URL: key={key}, expired={expired}s, ci={use_ci_endpoint}")
+    logger.info(f"[COS] 生成预签名预览 URL: key={key}, expired={expired}s, ci={use_ci_endpoint}")
 
     # 请求预签名 URL，从 CI 服务获取 WebOffice 预览地址
     resp = requests.get(url, timeout=30)

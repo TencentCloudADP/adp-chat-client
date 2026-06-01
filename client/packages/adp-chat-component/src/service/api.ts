@@ -624,8 +624,10 @@ export interface FetchFileResponse {
         content_type: string;
         /** 文件文本内容 */
         content: string;
-        /** COS 预签名 URL（可直接用于文档预览） */
+        /** COS 预签名下载 URL */
         cos_url: string;
+        /** 文档预览 URL（WebOffice 预览地址） */
+        preview_url: string;
     };
 }
 

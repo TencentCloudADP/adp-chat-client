@@ -26,6 +26,22 @@
                     <t-icon v-else-if="node.getChildren() && node.expanded" name="folder-open" />
                     <t-icon v-else name="file" />
                 </template>
+                <template #operations="{ node }">
+                    <span
+                        v-if="!node.getChildren()"
+                        class="file-download-btn"
+                        :class="{ 'is-loading': downloadingNodes.has(node.data.value) }"
+                        title="下载"
+                        @click.stop="handleDownload(node)"
+                    >
+                        <t-icon
+                            v-if="downloadingNodes.has(node.data.value)"
+                            name="loading"
+                            class="icon-spinning"
+                        />
+                        <t-icon v-else name="download" />
+                    </span>
+                </template>
             </t-tree>
         </div>
     </div>
@@ -33,8 +49,8 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { Tree as TTree, Icon as TIcon } from 'tdesign-vue-next';
-import { listDir } from '../../service/api';
+import { Tree as TTree, Icon as TIcon, MessagePlugin } from 'tdesign-vue-next';
+import { listDir, fetchFile } from '../../service/api';
 import type { DirEntry } from '../../service/api';
 
 interface Props {
@@ -168,6 +184,56 @@ async function handleRefresh() {
     }
 }
 
+/** 正在下载的节点集合 */
+const downloadingNodes = ref<Set<string>>(new Set());
+
+/**
+ * 下载文件
+ * 调用 fetchFile 获取 COS 预签名下载 URL，然后触发浏览器下载
+ */
+async function handleDownload(node: any) {
+    const entry = node.data?.entry as DirEntry | undefined;
+    if (!entry || entry.type !== 'FILE_TYPE_FILE') return;
+
+    const nodeKey = node.data.value as string;
+    if (downloadingNodes.value.has(nodeKey)) return;
+
+    downloadingNodes.value.add(nodeKey);
+    try {
+        const result = await fetchFile(
+            {
+                app_id: props.applicationId,
+                workspace_id: props.workspaceId,
+                path: entry.path,
+            },
+            props.applicationId,
+            { timeout: 120000 }
+        );
+
+        const downloadUrl = result.cos_url;
+        if (!downloadUrl) {
+            throw new Error('未获取到下载链接');
+        }
+
+        // 通过创建隐藏的 <a> 标签触发浏览器下载
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = entry.name;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        MessagePlugin.success(`开始下载: ${entry.name}`);
+    } catch (error) {
+        console.error('[FileDir] 下载文件失败:', error);
+        MessagePlugin.error(`下载失败: ${(error as Error).message || '未知错误'}`);
+    } finally {
+        downloadingNodes.value.delete(nodeKey);
+    }
+}
+
 // 监听 workspaceId / applicationId 变化重新加载
 watch(
     [() => props.workspaceId, () => props.applicationId],
@@ -260,5 +326,29 @@ watch(
 :deep(.t-tree__label) {
     font-size: 13px;
     color: var(--td-text-color-primary);
+}
+
+.file-download-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--td-text-color-secondary, #666);
+    font-size: 14px;
+    transition: background-color 0.2s, color 0.2s;
+    flex-shrink: 0;
+}
+
+.file-download-btn:hover {
+    background-color: var(--td-bg-color-container-hover, #f3f3f3);
+    color: var(--td-brand-color, #0052d9);
+}
+
+.file-download-btn.is-loading {
+    pointer-events: none;
+    color: var(--td-brand-color, #0052d9);
 }
 </style>
