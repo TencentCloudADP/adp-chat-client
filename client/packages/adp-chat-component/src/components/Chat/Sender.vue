@@ -176,9 +176,11 @@ const handleEditorBlur = () => {
 
 /**
  * 键盘事件：Enter 发送，Ctrl/Meta+Enter 换行
+ * 通过 isComposing 判断是否处于 IME 组合输入状态，避免输入法确认时误触发送
  */
 const handleKeydown = (event: KeyboardEvent) => {
     if (event.key !== 'Enter') return;
+    if (event.isComposing || event.keyCode === 229) return;
     if (event.metaKey || event.ctrlKey) {
         qaEditorRef.value?.insertHtml('<br/>')
     } else if (!event.shiftKey) {
@@ -197,7 +199,7 @@ const handleFilesSelected = (event: Event, allowedTypes: string[]) => {
 
     const currentCount = fileList.value.length;
     if (currentCount + files.length > FILE_COUNT_LIMIT) {
-        MessagePlugin.warning(`最多上传 ${FILE_COUNT_LIMIT} 个文件`);
+        MessagePlugin.warning(i18n.value.fileLimitExceeded.replace('{count}', String(FILE_COUNT_LIMIT)));
         return;
     }
 
@@ -213,7 +215,7 @@ const handleFilesSelected = (event: Event, allowedTypes: string[]) => {
         const category = getFileCategory(file.type);
         const sizeLimit = FILE_SIZE_LIMITS[category];
         if (file.size > sizeLimit) {
-            MessagePlugin.error(`文件大小不能超过 ${formatFileSize(sizeLimit)}`);
+            MessagePlugin.error(i18n.value.fileSizeExceeded.replace('{size}', formatFileSize(sizeLimit)));
             return;
         }
 
@@ -278,7 +280,7 @@ function getPlainText(html: string): string {
 
 const handleSend = async function () {
     if (props.isUploading) {
-        MessagePlugin.warning('文件上传/解析中，请稍候');
+        MessagePlugin.warning(i18n.value.uploadingWait);
         return;
     }
     if (props.isStreamLoad) {
@@ -548,11 +550,11 @@ defineExpose({
                         <div v-if="showPlusMenu" class="plus-menu-popover">
                             <div class="plus-menu-item" @click="handleSelectImage">
                                 <CustomizedIcon name="picture" :theme="theme" size="s" :showHoverBg="false" />
-                                <span>图片</span>
+                                <span>{{ i18n.uploadImage }}</span>
                             </div>
                             <div class="plus-menu-item" @click="handleSelectFile">
                                 <CustomizedIcon name="file" :theme="theme" size="s" :showHoverBg="false" />
-                                <span>文件</span>
+                                <span>{{ i18n.uploadFile }}</span>
                             </div>
                         </div>
                     </Transition>

@@ -35,7 +35,7 @@
                     <span
                         v-if="!node.getChildren()"
                         class="file-download-btn"
-                        title="下载"
+                        :title="props.downloadText"
                         @click.stop="handleDownload(node)"
                     >
                         <t-icon name="download" />
@@ -65,6 +65,10 @@ interface Props {
     docListText?: string;
     /** 刷新按钮 title 文本 */
     refreshText?: string;
+    /** 下载按钮 title 文本 */
+    downloadText?: string;
+    /** 开始下载提示文本（{name} 为文件名占位符） */
+    downloadStartedText?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -74,6 +78,8 @@ const props = withDefaults(defineProps<Props>(), {
     rootPath: '/workdir',
     docListText: '文档列表',
     refreshText: '刷新',
+    downloadText: '下载',
+    downloadStartedText: '开始下载: {name}',
 });
 
 const emit = defineEmits<{
@@ -218,7 +224,7 @@ function handleDownload(node: any) {
     link.click();
     document.body.removeChild(link);
 
-    MessagePlugin.success(`开始下载: ${entry.name}`);
+    MessagePlugin.success(props.downloadStartedText.replace('{name}', entry.name));
 }
 
 // 监听 workspaceId / applicationId 变化重新加载

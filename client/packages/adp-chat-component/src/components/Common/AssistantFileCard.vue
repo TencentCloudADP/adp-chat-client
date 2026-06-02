@@ -1,6 +1,6 @@
 <!-- assistant 系统对话中的文件附件卡片，支持点击下载 -->
 <script setup lang="ts">
-import { MessagePlugin } from 'tdesign-vue-next';
+import { MessagePlugin, Icon as TIcon } from 'tdesign-vue-next';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import { getFileIconName } from '../../model/file';
 import type { ThemeProps } from '../../model/type';
@@ -117,9 +117,9 @@ function handleDownload(file: FileInfo) {
                 </span>
                 <span v-if="showFileSize(file)" class="assistant-file-card__size">{{ file.FileSize }}</span>
             </div>
-            <div class="assistant-file-card__download">
-                <CustomizedIcon name="arrow_down_medium" :theme="theme" :showHoverBg="false" size="xs" />
-            </div>
+            <span class="assistant-file-card__download" @click.stop>
+                <t-icon name="download" />
+            </span>
         </div>
     </div>
 </template>
@@ -199,17 +199,21 @@ function handleDownload(file: FileInfo) {
 }
 
 .assistant-file-card__download {
-    flex-shrink: 0;
-    width: 34px;
-    height: 34px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--td-text-color-placeholder, rgba(1, 11, 50, 0.41));
-    transition: color 0.2s;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--td-text-color-secondary, #666);
+    font-size: 14px;
+    transition: background-color 0.2s, color 0.2s;
 }
 
-.assistant-file-card:hover .assistant-file-card__download {
+.assistant-file-card__download:hover {
+    background-color: var(--td-bg-color-container-hover, #f3f3f3);
     color: var(--td-brand-color, #0052d9);
 }
 

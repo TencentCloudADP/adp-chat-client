@@ -1,12 +1,7 @@
-<script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue';
-import FilePreview from '../FilePreview/index.vue';
-import FileDir from '../FileDir/index.vue';
+<script lang="ts">
 import type { FilePreviewI18n } from '../../model/type';
-import { defaultFilePreviewI18n } from '../../model/type';
-import { describeConversation } from '../../service/api';
 
-interface Props {
+export interface FilePreviewLayoutProps {
     /** 是否显示预览面板 */
     visible?: boolean;
     /** 当前会话ID */
@@ -16,8 +11,17 @@ interface Props {
     /** 国际化文本 */
     i18n?: FilePreviewI18n;
 }
+</script>
 
-const props = withDefaults(defineProps<Props>(), {
+<script setup lang="ts">
+import { ref, computed, watch, onUnmounted } from 'vue';
+import { Icon as TIcon } from 'tdesign-vue-next';
+import FilePreview from '../FilePreview/index.vue';
+import FileDir from '../FileDir/index.vue';
+import { defaultFilePreviewI18n } from '../../model/type';
+import { describeConversation } from '../../service/api';
+
+const props = withDefaults(defineProps<FilePreviewLayoutProps>(), {
     visible: false,
     conversationId: '',
     applicationId: '',
@@ -40,26 +44,46 @@ const emit = defineEmits<{
  */
 const previewFilePath = ref('');
 
+/** 从路径中提取文件名 */
+const previewFileName = computed(() => {
+    if (!previewFilePath.value) return '';
+    const parts = previewFilePath.value.split('/');
+    return parts[parts.length - 1] || '';
+});
+
+/** 是否显示文档列表列（从工具调用查看时隐藏） */
+const dirVisible = ref(true);
+
 /** 统一管理的 workspaceId，作为 prop 传给子组件，避免子组件重复请求 */
 const workspaceId = ref('');
 
+/** 正在进行中的 fetchWorkspaceId 请求 */
+let fetchWorkspaceIdPromise: Promise<string> | null = null;
+
 /**
- * 获取 workspaceId（带缓存），结果保存到 workspaceId ref 中
+ * 获取 workspaceId（带缓存和并发控制），结果保存到 workspaceId ref 中
  */
 async function fetchWorkspaceId(): Promise<string> {
     if (workspaceId.value) return workspaceId.value;
     if (!props.conversationId || !props.applicationId) return '';
 
-    try {
-        const res = await describeConversation(
-            { ConversationId: props.conversationId, Type: 5 },
-            props.applicationId
-        );
-        workspaceId.value = res.Workspace?.WorkspaceId || '';
-    } catch (error) {
-        console.error('[FilePreviewLayout] 获取 workspaceId 失败:', error);
-    }
-    return workspaceId.value;
+    if (fetchWorkspaceIdPromise) return fetchWorkspaceIdPromise;
+
+    fetchWorkspaceIdPromise = (async () => {
+        try {
+            const res = await describeConversation(
+                { ConversationId: props.conversationId, Type: 5 },
+                props.applicationId
+            );
+            workspaceId.value = res.Workspace?.WorkspaceId || '';
+        } catch (error) {
+            console.error('[FilePreviewLayout] 获取 workspaceId 失败:', error);
+        }
+        fetchWorkspaceIdPromise = null;
+        return workspaceId.value;
+    })();
+
+    return fetchWorkspaceIdPromise;
 }
 
 // 监听 conversationId / applicationId 变化，主动获取 workspaceId
@@ -67,6 +91,7 @@ watch(
     [() => props.conversationId, () => props.applicationId],
     ([_newConvId, newAppId]) => {
         workspaceId.value = '';
+        fetchWorkspaceIdPromise = null;
         if (newAppId) {
             fetchWorkspaceId();
         }
@@ -135,23 +160,75 @@ const handlePreviewError = (err: Error) => {
 };
 
 /**
- * 关闭整个文件面板（由 FileDir 触发）
+ * 关闭文档列表列（由 FileDir 的关闭按钮触发）
+ * 只隐藏文档列表列，不关闭整个面板
  */
-const handleCloseAll = () => {
-    previewFilePath.value = '';
-    emit('close');
+const handleCloseDir = () => {
+    dirVisible.value = false;
+    // 如果没有预览文件，则关闭整个面板
+    if (!previewFilePath.value) {
+        emit('close');
+    }
 };
 
 /**
- * 仅关闭文件预览区域（由 FilePreview 触发）
+ * 关闭文件预览区域（由 FilePreview 关闭按钮触发）
+ * 如果当前文档列表是隐藏的（通过"查看"打开的纯预览模式），则直接关闭整个面板
  */
 const handleClosePreview = () => {
     previewFilePath.value = '';
+    if (!dirVisible.value) {
+        emit('close');
+    }
 };
 
+/**
+ * 切换文档列表列的可见性（由预览区标题栏图标触发）
+ */
+const toggleDirVisible = () => {
+    dirVisible.value = !dirVisible.value;
+};
+
+/**
+ * 规范化文件路径：将 agent 宿主路径转换为 workspace 文件系统路径
+ * agent 工具操作的路径如 /root/file.html，需要转换为 /workdir/file.html
+ */
+function normalizeFilePath(path: string): string {
+    if (!path) return path;
+    if (path.startsWith('/workdir/') || path === '/workdir') return path;
+    if (!path.startsWith('/')) {
+        // 相对路径，如 "常用公式整理.md"，直接拼接 /workdir/
+        return '/workdir/' + path;
+    }
+    // 绝对路径，将第一级目录替换为 /workdir，如 /root/a/b.html -> /workdir/a/b.html
+    const parts = path.split('/');
+    // parts[0] 是空字符串（路径以 / 开头），parts[1] 是第一级目录
+    if (parts.length > 2) {
+        parts[1] = 'workdir';
+        return parts.join('/');
+    }
+    // 形如 /filename.html 的情况
+    return '/workdir/' + path.slice(1);
+}
+
 defineExpose({
-    /** 设置预览文件路径 */
-    setPreviewPath: (path: string) => { previewFilePath.value = path; },
+    /**
+     * 设置预览文件路径，等 workspaceId 就绪后再设置，确保预览能正常加载
+     * @param path 文件路径
+     * @param options.showDir 是否显示文档列表列，默认 true
+     */
+    setPreviewPath: async (path: string, options?: { showDir?: boolean }) => {
+        dirVisible.value = options?.showDir !== false;
+        await fetchWorkspaceId();
+        previewFilePath.value = normalizeFilePath(path);
+    },
+    /**
+     * 重置为文档列表初始状态（清空预览文件，显示文档列表）
+     */
+    resetToList: () => {
+        previewFilePath.value = '';
+        dirVisible.value = true;
+    },
 });
 </script>
 
@@ -165,29 +242,41 @@ defineExpose({
         <div class="file-preview-panel" :style="{ width: previewPanelWidth + 'px' }">
             <div class="file-preview-panel__body" :class="{ 'has-preview': !!previewFilePath }">
                 <FileDir
+                    v-if="dirVisible"
                     :conversation-id="conversationId"
                     class="file-preview-panel__dir"
                     :application-id="applicationId"
                     :workspace-id="workspaceId"
                     :doc-list-text="i18n.docList"
                     :refresh-text="i18n.refresh"
+                    :download-text="i18n.download"
+                    :download-started-text="i18n.downloadStarted"
                     @select="handleFileDirSelect"
-                    @close="handleCloseAll"
+                    @close="handleCloseDir"
                 />
                 <!-- 文件预览 -->
-                <FilePreview
-                    v-if="previewFilePath"
-                    class="file-preview-panel__preview"
-                    :file-path="previewFilePath"
-                    :application-id="applicationId"
-                    :workspace-id="workspaceId"
-                    :loading-text="i18n.loading"
-                    :loading-preview-text="i18n.loadingPreview"
-                    :preview-failed-text="i18n.previewFailed"
-                    :retry-text="i18n.retry"
-                    @error="handlePreviewError"
-                    @close="handleClosePreview"
-                />
+                <div v-if="previewFilePath" class="file-preview-panel__preview" :class="{ 'file-preview-panel__preview--full': !dirVisible }">
+                    <!-- 预览标题栏 -->
+                    <div class="file-preview-panel__preview-header">
+                        <span class="file-preview-panel__toggle-dir" @click="toggleDirVisible" :title="dirVisible ? i18n.hideDocList : i18n.showDocList">
+                            <t-icon :name="dirVisible ? 'chevron-left' : 'view-list'" />
+                        </span>
+                        <span class="file-preview-panel__preview-title">{{ previewFileName }}</span>
+                        <span class="file-preview-panel__close" @click="handleClosePreview">✕</span>
+                    </div>
+                    <FilePreview
+                        class="file-preview-panel__preview-content"
+                        :file-path="previewFilePath"
+                        :application-id="applicationId"
+                        :workspace-id="workspaceId"
+                        :loading-text="i18n.loading"
+                        :loading-preview-text="i18n.loadingPreview"
+                        :preview-failed-text="i18n.previewFailed"
+                        :retry-text="i18n.retry"
+                        :unsupported-text="i18n.unsupported"
+                        @error="handlePreviewError"
+                    />
+                </div>
             </div>
         </div>
     </div>
@@ -253,5 +342,73 @@ defineExpose({
 .file-preview-panel__preview {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 无目录列表时预览区占满宽度 */
+.file-preview-panel__preview--full {
+    width: 100%;
+}
+
+.file-preview-panel__preview-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--td-border-level-1-color, #e7e7e7);
+    flex-shrink: 0;
+    gap: 4px;
+}
+
+.file-preview-panel__toggle-dir {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--td-text-color-secondary, #666);
+    transition: background-color 0.2s, color 0.2s;
+    flex-shrink: 0;
+}
+
+.file-preview-panel__toggle-dir:hover {
+    background-color: var(--td-bg-color-container-hover, #f3f3f3);
+    color: var(--td-text-color-primary);
+}
+
+.file-preview-panel__preview-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--td-text-color-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-preview-panel__close {
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--td-text-color-secondary);
+    line-height: 1;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, color 0.2s;
+    flex-shrink: 0;
+}
+
+.file-preview-panel__close:hover {
+    background-color: var(--td-bg-color-container-hover, #f3f3f3);
+    color: var(--td-text-color-primary);
+}
+
+.file-preview-panel__preview-content {
+    flex: 1;
+    min-height: 0;
 }
 </style>

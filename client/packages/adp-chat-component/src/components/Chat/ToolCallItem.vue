@@ -1,10 +1,10 @@
-<!-- 工具调用消息项：展示工具操作的图标、名称、标题、代码内容和状态，支持复制和展开收起 -->
+<!-- 工具调用消息项：展示工具操作的图标、名称、标题、代码内容和状态，支持复制/查看和展开收起 -->
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, inject, type Ref } from 'vue';
 import { MessagePlugin } from 'tdesign-vue-next';
 import type { Message } from '../../model/chat-v2';
-import type { ThemeProps } from '../../model/type';
-import { themePropsDefaults } from '../../model/type';
+import type { ThemeProps, ChatI18n } from '../../model/type';
+import { themePropsDefaults, defaultChatI18n, defaultChatI18nEn } from '../../model/type';
 import { copyToClipboard } from '../../utils/clipboard';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import MdContent from '../Common/MdContent.vue';
@@ -14,17 +14,31 @@ interface Props extends ThemeProps {
     msg: Message;
     /** 当前语言标识 */
     language?: string;
+    /** 国际化文本 */
+    chatI18n?: ChatI18n;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     ...themePropsDefaults,
     language: 'zh-CN',
+    chatI18n: () => ({}),
+});
+
+const i18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultChatI18nEn : defaultChatI18n;
+    return { ...defaults, ...props.chatI18n };
 });
 
 const emit = defineEmits<{
     (e: 'copy-success'): void;
     (e: 'copy-error'): void;
 }>();
+
+/** 注入上层提供的文件预览方法 */
+const viewFile = inject<(filePath: string) => void>('viewFile');
+
+/** 注入移动端标识 */
+const isMobile = inject<Ref<boolean>>('isMobile', ref(false));
 
 /** 工具名称 */
 const toolName = computed(() => props.msg.ExtraInfo?.ToolName || '');
@@ -47,6 +61,11 @@ const toolCategory = computed(() => {
     if (executeTools.includes(name)) return 'execute';
     if (fetchTools.includes(name)) return 'fetch';
     return 'default';
+});
+
+/** 是否为可查看的文件操作（有文件路径且完成状态） */
+const isViewableFile = computed(() => {
+    return toolCategory.value === 'file' && !!operationTitle.value && isDone.value && !!viewFile;
 });
 
 /** 工具图标映射 */
@@ -158,11 +177,20 @@ async function handleCopy() {
         success = fallbackCopy(content);
     }
     if (success) {
-        MessagePlugin.success('复制成功');
+        MessagePlugin.success(i18n.value.copySuccess);
         emit('copy-success');
     } else {
-        MessagePlugin.error('复制失败');
+        MessagePlugin.error(i18n.value.copyFailed);
         emit('copy-error');
+    }
+}
+
+/**
+ * 打开文件预览
+ */
+function handleViewFile() {
+    if (viewFile && operationTitle.value) {
+        viewFile(operationTitle.value);
     }
 }
 
@@ -230,12 +258,18 @@ function detectLanguage(): string {
                 </span>
                 <!-- 加载中动画 -->
                 <span v-if="isProcessing" class="tool-call-item__spinner"></span>
-                <!-- 复制按钮 -->
+                <!-- 查看按钮（文件工具完成时显示，移动端隐藏） -->
+                <span
+                    v-if="isViewableFile && !isProcessing && !isMobile"
+                    class="tool-call-item__view-btn"
+                    @click.stop="handleViewFile"
+                >{{ i18n.view }}</span>
+                <!-- 复制按钮（非文件工具时显示） -->
                 <button
-                    v-if="showCopy && !isProcessing"
+                    v-if="showCopy && !isProcessing && !isViewableFile"
                     type="button"
                     class="tool-call-item__copy-btn"
-                    title="复制"
+                    :title="i18n.copy"
                     @click.stop.prevent="handleCopy"
                 >
                     <CustomizedIcon name="copy" :showHoverBg="false" size="xs" :theme="theme" />
@@ -397,6 +431,22 @@ function detectLanguage(): string {
 .tool-call-item__action-btn:hover {
     color: var(--td-text-color-primary);
     background: var(--td-bg-color-container-hover, rgba(0, 0, 0, 0.04));
+}
+
+/* 查看按钮 */
+.tool-call-item__view-btn {
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--td-text-color-placeholder);
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: color 0.2s;
+}
+
+.tool-call-item__view-btn:hover {
+    color: var(--td-brand-color, #0052d9);
 }
 
 /* 复制按钮：使用 button 元素确保点击事件可靠触发 */

@@ -828,12 +828,6 @@ const referenceDialogTitle = computed(() => {
 }
 
 /* 用户消息图标悬停效果 */
-.user-message .copy-icon:hover,
-.user-message .share-icon:hover,
-.icon:hover {
-    color: var(--td-brand-color);
-}
-
 .user-message:hover .copy-icon,
 .user-message:hover .share-icon {
     opacity: 1;

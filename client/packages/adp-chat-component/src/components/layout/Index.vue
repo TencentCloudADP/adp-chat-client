@@ -1,6 +1,6 @@
 <!-- ADP 聊天布局主组件，支持 API 模式和 Props 模式 -->
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRefs } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRefs, provide } from 'vue';
 import { Layout as TLayout, Content as TContent, MessagePlugin,Tooltip, Icon as TIcon } from 'tdesign-vue-next';
 
 // TLayout, TContent 已导入，模板中使用对应组件
@@ -57,9 +57,11 @@ import {
     themePropsDefaults,
     overlayPropsDefaults,
     defaultFilePreviewI18n,
+    defaultFilePreviewI18nEn,
     defaultChatI18n,
     defaultChatI18nEn,
     defaultChatItemI18n,
+    defaultChatItemI18nEn,
     defaultSenderI18n,
     defaultSenderI18nEn
 } from '../../model/type';
@@ -191,9 +193,17 @@ const filePreviewVisible = ref(false);
 
 /**
  * 切换文件预览面板显示
+ * 打开时重置为纯文档列表状态，不保留上次预览态
  */
 const toggleFilePreview = () => {
-    filePreviewVisible.value = !filePreviewVisible.value;
+    if (filePreviewVisible.value) {
+        filePreviewVisible.value = false;
+    } else {
+        filePreviewVisible.value = true;
+        nextTick(() => {
+            filePreviewLayoutRef.value?.resetToList();
+        });
+    }
 };
 
 /**
@@ -210,20 +220,33 @@ const closeFilePreview = () => {
     filePreviewVisible.value = false;
 };
 
+/**
+ * 打开文件预览并定位到指定路径（不展示文档列表列）
+ */
+const viewFile = (filePath: string) => {
+    if (!filePath) return;
+    openFilePreview();
+    nextTick(() => {
+        filePreviewLayoutRef.value?.setPreviewPath(filePath, { showDir: false });
+    });
+};
+
+provide('viewFile', viewFile);
+
 // 上传状态
 const isUploading = ref(false);
 
-// 合并 i18n 配置
-const mergedChatItemI18n = computed(() => ({
-    ...defaultChatItemI18n,
-    ...props.chatItemI18n
-}));
+// 合并 i18n 配置（根据 language 选择对应语言的默认值）
+const mergedChatItemI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultChatItemI18nEn : defaultChatItemI18n;
+    return { ...defaults, ...props.chatItemI18n };
+});
 
-// 合并文件预览 i18n 配置
-const mergedFilePreviewI18n = computed(() => ({
-    ...defaultFilePreviewI18n,
-    ...props.filePreviewI18n
-}));
+// 合并文件预览 i18n 配置（根据 language 选择对应语言的默认值）
+const mergedFilePreviewI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultFilePreviewI18nEn : defaultFilePreviewI18n;
+    return { ...defaults, ...props.filePreviewI18n };
+});
 
 // 计算是否为移动端模式（内部计算，不再依赖外部传入）
 const isMobile = computed(() => {
@@ -234,6 +257,8 @@ const isMobile = computed(() => {
         container: props.container,
     });
 });
+
+provide('isMobile', isMobile);
 
 // 内部数据状态（当使用 API 时）
 const internalApplications = ref<Application[]>([]);
@@ -1474,7 +1499,7 @@ defineExpose({
                 @widgetEvent="handleInternalWidgetEvent"
             >
                 <template #header-actions>
-                    <Tooltip :content="mergedFilePreviewI18n.openFileList" destroyOnClose showArrow theme="default">
+                    <Tooltip v-if="!isMobile" :content="mergedFilePreviewI18n.openFileList" destroyOnClose showArrow theme="default">
                         <span class="open-file-list-btn" @click="toggleFilePreview">
                             <CustomizedIcon name="open_file_list" :theme="theme" />
                         </span>

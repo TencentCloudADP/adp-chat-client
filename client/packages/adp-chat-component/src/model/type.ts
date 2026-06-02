@@ -73,6 +73,10 @@ export interface ChatI18n {
   createConversation?: string
   copySuccess?: string
   copyFailed?: string
+  /** 复制按钮 title */
+  copy?: string
+  /** 查看按钮文本 */
+  view?: string
   shareFailed?: string
   loadMoreFailed?: string
   rateFailed?: string
@@ -107,6 +111,16 @@ export interface SenderI18n {
   placeholder?: string
   placeholderMobile?: string
   uploadImg?: string
+  /** 上传菜单"图片"选项 */
+  uploadImage?: string
+  /** 上传菜单"文件"选项 */
+  uploadFile?: string
+  /** 文件数量超出限制提示（{count} 为数量占位符） */
+  fileLimitExceeded?: string
+  /** 文件大小超出限制提示（{size} 为大小占位符） */
+  fileSizeExceeded?: string
+  /** 文件上传/解析中提示 */
+  uploadingWait?: string
   startRecord?: string
   stopRecord?: string
   answering?: string
@@ -138,6 +152,16 @@ export interface FilePreviewI18n {
   retry?: string
   /** 打开文件列表按钮 tooltip */
   openFileList?: string
+  /** 显示文档列表按钮 title */
+  showDocList?: string
+  /** 隐藏文档列表按钮 title */
+  hideDocList?: string
+  /** 不支持预览的文件格式提示 */
+  unsupported?: string
+  /** 下载按钮 title */
+  download?: string
+  /** 开始下载提示（{name} 为文件名占位符） */
+  downloadStarted?: string
 }
 
 /** 侧边栏布局 Props */
@@ -231,6 +255,8 @@ export const defaultChatI18n: Required<ChatI18n> = {
   createConversation: '新建对话',
   copySuccess: '复制成功',
   copyFailed: '复制失败',
+  copy: '复制',
+  view: '查看',
   shareFailed: '分享失败',
   loadMoreFailed: '加载更多失败',
   rateFailed: '评分失败',
@@ -263,6 +289,11 @@ export const defaultSenderI18n: Required<SenderI18n> = {
   placeholder: '请输入消息...',
   placeholderMobile: '请输入',
   uploadImg: '上传图片或文件',
+  uploadImage: '图片',
+  uploadFile: '文件',
+  fileLimitExceeded: '最多上传 {count} 个文件',
+  fileSizeExceeded: '文件大小不能超过 {size}',
+  uploadingWait: '文件上传/解析中，请稍候',
   startRecord: '点击开始录音',
   stopRecord: '点击停止录音',
   answering: '回答中...',
@@ -287,6 +318,11 @@ export const defaultFilePreviewI18n: Required<FilePreviewI18n> = {
   previewFailed: '预览加载失败',
   retry: '重试',
   openFileList: '展开工作区',
+  showDocList: '显示文档列表',
+  hideDocList: '隐藏文档列表',
+  unsupported: '暂不支持预览该文件格式',
+  download: '下载',
+  downloadStarted: '开始下载: {name}',
 }
 
 // ============================================================
@@ -319,6 +355,8 @@ export const defaultChatI18nEn: Required<ChatI18n> = {
   createConversation: 'New Conversation',
   copySuccess: 'Copied',
   copyFailed: 'Copy Failed',
+  copy: 'Copy',
+  view: 'View',
   shareFailed: 'Share Failed',
   loadMoreFailed: 'Load More Failed',
   rateFailed: 'Rate Failed',
@@ -351,6 +389,11 @@ export const defaultSenderI18nEn: Required<SenderI18n> = {
   placeholder: 'Type a message...',
   placeholderMobile: 'Type here',
   uploadImg: 'Upload Image or File',
+  uploadImage: 'Image',
+  uploadFile: 'File',
+  fileLimitExceeded: 'Upload up to {count} files',
+  fileSizeExceeded: 'File size cannot exceed {size}',
+  uploadingWait: 'Uploading/parsing files, please wait',
   startRecord: 'Start Recording',
   stopRecord: 'Stop Recording',
   answering: 'Answering...',
@@ -375,6 +418,11 @@ export const defaultFilePreviewI18nEn: Required<FilePreviewI18n> = {
   previewFailed: 'Preview failed to load',
   retry: 'Retry',
   openFileList: 'Open file list',
+  showDocList: 'Show document list',
+  hideDocList: 'Hide document list',
+  unsupported: 'This file format is not supported for preview',
+  download: 'Download',
+  downloadStarted: 'Downloading: {name}',
 }
 
 /** 根据语言获取 i18n 默认值 */

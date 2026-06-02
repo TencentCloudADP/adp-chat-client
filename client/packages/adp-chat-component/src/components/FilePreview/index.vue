@@ -1,8 +1,5 @@
 <template>
     <div class="file-preview-wrapper">
-        <!-- 关闭按钮 -->
-        <span class="file-preview-close" @click="emit('close')">✕</span>
-
         <!-- 不支持预览的格式 -->
         <div v-if="!previewType" class="file-preview-unsupported">
             <div class="unsupported-icon">📄</div>
@@ -67,6 +64,11 @@
     </div>
 </template>
 
+<script lang="ts">
+export type { FilePreviewProps } from '../../model/file-preview';
+export type { SDKInstance } from '../../model/file-preview';
+</script>
+
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import DocPreview from './DocPreview.vue';
@@ -75,6 +77,7 @@ import HtmlPreview from './HtmlPreview.vue';
 import MarkdownPreview from './MarkdownPreview.vue';
 import CodePreview from './CodePreview.vue';
 import { getFileDownloadUrl } from '../../service/api';
+import type { FilePreviewProps } from '../../model/file-preview';
 
 /** 文档类扩展名集合 */
 const DOC_EXTENSIONS = new Set([
@@ -130,38 +133,7 @@ function resolvePreviewType(path: string): 'doc' | 'image' | 'html' | 'markdown'
     return null;
 }
 
-interface Props {
-    /**
-     * 文件路径（如 /workdir/main.py），文档预览时组件内部调用 fetchFile 获取 COS URL；
-     * 图片/HTML 预览时请同时传入 fileUrl 作为直接访问地址。
-     */
-    filePath?: string;
-    /**
-     * 文件的直接访问 URL，供图片预览和 HTML 预览使用。
-     * 文档预览（doc 类型）不需要此字段，内部会自动调用 fetchFile。
-     */
-    fileUrl?: string;
-    /** 文件名（含扩展名），供图片/HTML 预览组件使用 */
-    fileName?: string;
-    /** 应用 ID */
-    applicationId?: string;
-    /** 工作空间 ID */
-    workspaceId?: string;
-    /** SDK JS 文件的 URL 路径（文档预览使用） */
-    sdkUrl?: string;
-    /** 加载中文本 */
-    loadingText?: string;
-    /** 加载文档预览中文本 */
-    loadingPreviewText?: string;
-    /** 预览加载失败文本 */
-    previewFailedText?: string;
-    /** 重试按钮文本 */
-    retryText?: string;
-    /** 不支持预览时的提示文本 */
-    unsupportedText?: string;
-}
-
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<FilePreviewProps>(), {
     filePath: '',
     fileUrl: '',
     fileName: '',
@@ -202,8 +174,8 @@ const resolvedFileName = computed(() => {
 });
 
 watch(
-    [() => props.filePath, () => props.fileUrl, previewType],
-    ([newPath, newFileUrl, newType]) => {
+    [() => props.filePath, () => props.fileUrl, () => props.workspaceId, previewType],
+    ([newPath, newFileUrl, newWorkspaceId, newType]) => {
         // doc 类型由 DocPreview 内部处理，不需要这里获取
         if (newType === 'doc') {
             resolvedFileUrl.value = '';
@@ -217,7 +189,7 @@ watch(
         }
 
         // 通过后端代理生成同域下载 URL（无需异步请求，直接拼 URL）
-        if (!newPath || !props.applicationId || !props.workspaceId) {
+        if (!newPath || !props.applicationId || !newWorkspaceId) {
             resolvedFileUrl.value = '';
             return;
         }
@@ -225,7 +197,7 @@ watch(
         resolvedFileUrl.value = getFileDownloadUrl(
             {
                 app_id: props.applicationId,
-                workspace_id: props.workspaceId,
+                workspace_id: newWorkspaceId,
                 path: newPath,
             },
             props.applicationId
@@ -256,27 +228,6 @@ defineExpose({
     flex-direction: column;
 }
 
-.file-preview-close {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    z-index: 10;
-    cursor: pointer;
-    font-size: 14px;
-    color: var(--td-text-color-secondary, #666);
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    transition: background-color 0.2s, color 0.2s;
-}
-
-.file-preview-close:hover {
-    background-color: var(--td-bg-color-container-hover, #f3f3f3);
-    color: var(--td-text-color-primary, #333);
-}
 
 .file-preview-inner {
     width: 100%;

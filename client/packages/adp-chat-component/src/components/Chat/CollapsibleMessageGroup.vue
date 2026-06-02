@@ -67,6 +67,7 @@ const t = (key: string, params?: Record<string, string | number>) => {
         '网络搜索中': 'Searching...',
         '搜索了网页': 'Searched the web',
         '思考中': 'Thinking...',
+        '思考': 'Thinking',
         '调用工具中': 'Calling tools...',
         '调用了{0}次工具': `Called tools ${params?.['0'] || ''} time(s)`,
         '读写文件中': 'Reading files...',
@@ -78,6 +79,7 @@ const t = (key: string, params?: Record<string, string | number>) => {
         '网络搜索中': '网络搜索中',
         '搜索了网页': '搜索了网页',
         '思考中': '思考中',
+        '思考': '思考',
         '调用工具中': '调用工具中',
         '调用了{0}次工具': `调用了${params?.['0'] || ''}次工具`,
         '读写文件中': '读写文件中',
@@ -205,7 +207,7 @@ function extractText(msg: Message): string {
                 <!-- thought 类型：折叠组内的思考显示 -->
                 <div v-else-if="msg.Type === 'thought'" class="collapsible-group__item">
                     <div class="collapsible-group__item-header">
-                        <span class="collapsible-group__item-tag thought-tag">思考</span>
+                        <span class="collapsible-group__item-tag thought-tag">{{ t('思考') }}</span>
                     </div>
                     <div v-if="extractText(msg)" class="collapsible-group__item-content">
                         <MdContent

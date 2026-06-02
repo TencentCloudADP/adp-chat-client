@@ -282,9 +282,40 @@ adp-chat-component/
     copyUrl: '链接',
     cancelShare: '取消分享',
     sendError: '发送失败',
-    networkError: '网络错误'
+    networkError: '网络错误',
+    loginExpired: '登录过期，请重新登录',
+    createConversation: '新建对话',
+    copySuccess: '复制成功',
+    copyFailed: '复制失败',
+    copy: '复制',
+    view: '查看'
 }
 ```
+
+**i18n 英文默认值:**
+```typescript
+{
+    loading: 'Loading',
+    thinking: 'Thinking',
+    checkAll: 'Select All',
+    shareFor: 'Share to',
+    copyUrl: 'Link',
+    cancelShare: 'Cancel Share',
+    sendError: 'Send Failed',
+    networkError: 'Network Error',
+    loginExpired: 'Session expired, please log in again',
+    createConversation: 'New Conversation',
+    copySuccess: 'Copied',
+    copyFailed: 'Copy Failed',
+    copy: 'Copy',
+    view: 'View'
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `copy` | 复制按钮 title 文本（用于 ToolCallItem 等组件） |
+| `view` | 查看按钮文本（用于 ToolCallItem 等组件） |
 
 | Events | 参数 | 说明 |
 |--------|------|------|
@@ -372,6 +403,11 @@ adp-chat-component/
     placeholder: '请输入您的问题',
     placeholderMobile: '请输入',
     uploadImg: '上传图片',
+    uploadImage: '图片',
+    uploadFile: '文件',
+    fileLimitExceeded: '最多上传 {count} 个文件',
+    fileSizeExceeded: '文件大小不能超过 {size}',
+    uploadingWait: '文件上传/解析中，请稍候',
     startRecord: '开始录音',
     stopRecord: '停止录音',
     answering: '正在回答中...',
@@ -380,6 +416,34 @@ adp-chat-component/
     recordTooLong: '录音时间过长'
 }
 ```
+
+**i18n 英文默认值:**
+```typescript
+{
+    placeholder: 'Type a message...',
+    placeholderMobile: 'Type here',
+    uploadImg: 'Upload Image or File',
+    uploadImage: 'Image',
+    uploadFile: 'File',
+    fileLimitExceeded: 'Upload up to {count} files',
+    fileSizeExceeded: 'File size cannot exceed {size}',
+    uploadingWait: 'Uploading/parsing files, please wait',
+    startRecord: 'Start Recording',
+    stopRecord: 'Stop Recording',
+    answering: 'Answering...',
+    notSupport: 'Recording not supported',
+    uploadError: 'Upload Failed',
+    recordTooLong: 'Recording too long'
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `uploadImage` | 上传菜单"图片"选项文本 |
+| `uploadFile` | 上传菜单"文件"选项文本 |
+| `fileLimitExceeded` | 文件数量超出限制提示，`{count}` 为数量占位符 |
+| `fileSizeExceeded` | 文件大小超出限制提示，`{size}` 为大小占位符 |
+| `uploadingWait` | 文件上传/解析中提示 |
 
 | Events | 参数 | 说明 |
 |--------|------|------|
@@ -429,6 +493,33 @@ adp-chat-component/
 | Events | 参数 | 说明 |
 |--------|------|------|
 | `click` | - | 点击时触发 |
+
+---
+
+#### ToolCallItem - 工具调用消息项
+
+**描述**: 展示工具调用结果，支持展开/收起、复制和查看功能
+
+| Props | 类型 | 默认值 | 说明 |
+|-------|------|--------|------|
+| `msg` | `Message` | **必填** | 工具调用消息对象 |
+| `language` | `string` | `'zh-CN'` | 当前语言标识 |
+| `chatI18n` | `ChatI18n` | `{}` | 国际化文本（不传则根据 language 自动选择默认值） |
+| `theme` | `'light' \| 'dark'` | `'light'` | 主题模式 |
+
+**chatI18n 使用的字段:**
+
+| 字段 | 中文默认值 | 英文默认值 | 说明 |
+|------|-----------|-----------|------|
+| `copySuccess` | `复制成功` | `Copied` | 复制成功提示 |
+| `copyFailed` | `复制失败` | `Copy Failed` | 复制失败提示 |
+| `copy` | `复制` | `Copy` | 复制按钮 title |
+| `view` | `查看` | `View` | 查看按钮文本 |
+
+| Events | 参数 | 说明 |
+|--------|------|------|
+| `copy-success` | - | 复制成功时触发 |
+| `copy-error` | - | 复制失败时触发 |
 
 ---
 
@@ -495,6 +586,8 @@ adp-chat-component/
 | `chatI18n` | `object` | - | 聊天国际化文本 |
 | `chatItemI18n` | `object` | - | ChatItem 国际化文本 |
 | `senderI18n` | `object` | - | Sender 国际化文本 |
+| `filePreviewI18n` | `FilePreviewI18n` | - | 文件预览面板国际化文本 |
+| `language` | `string` | `'zh-CN'` | 当前语言标识，用于选择中/英文默认 i18n |
 | `apiConfig` | `ApiConfig` | - | API 配置（传入则启用 API 模式） |
 | `autoLoad` | `boolean` | `true` | 是否自动加载数据 |
 
@@ -674,6 +767,114 @@ interface ApiConfig {
     shareApi?: string;
     userInfoApi?: string;
     uploadApi?: string;
+}
+```
+
+### FilePreviewI18n
+```typescript
+interface FilePreviewI18n {
+    /** 文档列表标题 */
+    docList?: string
+    /** 刷新按钮 title */
+    refresh?: string
+    /** 加载中文本 */
+    loading?: string
+    /** 正在加载文档预览文本 */
+    loadingPreview?: string
+    /** 预览加载失败 */
+    previewFailed?: string
+    /** 重试按钮 */
+    retry?: string
+    /** 打开文件列表按钮 tooltip */
+    openFileList?: string
+    /** 显示文档列表按钮 title */
+    showDocList?: string
+    /** 隐藏文档列表按钮 title */
+    hideDocList?: string
+    /** 不支持预览的文件格式提示 */
+    unsupported?: string
+    /** 下载按钮 title */
+    download?: string
+    /** 下载开始提示（{name} 为文件名占位符） */
+    downloadStarted?: string
+}
+```
+
+**FilePreviewI18n 默认值:**
+
+| 字段 | 中文默认值 | 英文默认值 |
+|------|-----------|-----------|
+| `docList` | `文档列表` | `Documents` |
+| `refresh` | `刷新` | `Refresh` |
+| `loading` | `正在加载...` | `Loading...` |
+| `loadingPreview` | `正在加载文档预览...` | `Loading document preview...` |
+| `previewFailed` | `预览加载失败` | `Preview failed to load` |
+| `retry` | `重试` | `Retry` |
+| `openFileList` | `展开工作区` | `Open file list` |
+| `showDocList` | `显示文档列表` | `Show document list` |
+| `hideDocList` | `隐藏文档列表` | `Hide document list` |
+| `unsupported` | `暂不支持预览该文件格式` | `This file format is not supported for preview` |
+| `download` | `下载` | `Download` |
+| `downloadStarted` | `开始下载: {name}` | `Downloading: {name}` |
+
+### SenderI18n
+```typescript
+interface SenderI18n {
+    placeholder?: string
+    placeholderMobile?: string
+    uploadImg?: string
+    /** 上传菜单"图片"选项 */
+    uploadImage?: string
+    /** 上传菜单"文件"选项 */
+    uploadFile?: string
+    /** 文件数量超出限制提示（{count} 为数量占位符） */
+    fileLimitExceeded?: string
+    /** 文件大小超出限制提示（{size} 为大小占位符） */
+    fileSizeExceeded?: string
+    /** 文件上传/解析中提示 */
+    uploadingWait?: string
+    startRecord?: string
+    stopRecord?: string
+    answering?: string
+    notSupport?: string
+    uploadError?: string
+    recordTooLong?: string
+    asrServiceFailed?: string
+    recordFailed?: string
+    chromeSecurityError?: string
+    browserNotSupport?: string
+    audioContextNotSupport?: string
+    webAudioApiNotSupport?: string
+    mediaStreamSourceNotSupport?: string
+}
+```
+
+### ChatI18n
+```typescript
+interface ChatI18n {
+    uploading?: string
+    loading?: string
+    thinking?: string
+    checkAll?: string
+    shareFor?: string
+    copyUrl?: string
+    cancelShare?: string
+    sendError?: string
+    networkError?: string
+    loginExpired?: string
+    createConversation?: string
+    copySuccess?: string
+    copyFailed?: string
+    /** 复制按钮 title */
+    copy?: string
+    /** 查看按钮文本 */
+    view?: string
+    shareFailed?: string
+    loadMoreFailed?: string
+    rateFailed?: string
+    getAppListFailed?: string
+    getConversationListFailed?: string
+    getConversationDetailFailed?: string
 }
 ```
 
