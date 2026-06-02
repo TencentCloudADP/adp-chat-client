@@ -158,8 +158,7 @@ def tc_request_prepare(config: dict, action: str, payload: str, service = "lke",
     host = url.split('//')[1].split('/')[0]
     # 加载 action 级别的 headers 配置
     action_config = ACTION_VERSION_OVERRIDES.get(action, {})
-    action_headers_config = action_config.get('headers', {})
-    
+    action_headers_config = action_config.get('headers', {})    
     default_version = config[service]['version']
     region = config[service]['region']
     algorithm = "TC3-HMAC-SHA256"

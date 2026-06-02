@@ -6,7 +6,6 @@ COS 对象存储桶管理工具
 调用方无需重复传入。
 """
 import hashlib
-import io
 import logging
 from typing import Optional
 

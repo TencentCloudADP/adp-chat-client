@@ -21,9 +21,9 @@ class FileUploadApi(HTTPMethodView):
         vendor_app = app.get_vendor_app(application_id)
 
         result = await vendor_app.upload(
-            request.ctx.db, 
-            request, 
-            request.ctx.account_id, 
+            request.ctx.db,
+            request,
+            request.ctx.account_id,
             args['Type'], 
             mode=args['Mode']
         )
