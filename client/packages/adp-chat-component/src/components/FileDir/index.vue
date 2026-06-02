@@ -111,7 +111,7 @@ const treeKeys = {
 /** 树形数据 */
 const treeData = ref<TreeNode[]>([]);
 
-/** 根目录加载中状态 */
+/** 根目录加载中状态（目录接口请求中 或 workspaceId 尚未就绪） */
 const loading = ref(false);
 
 /**
@@ -233,6 +233,10 @@ watch(
     ([newWsId, newAppId]) => {
         if (newAppId && newWsId) {
             initRootDir();
+        } else {
+            // workspaceId 尚未就绪，显示 loading 状态
+            treeData.value = [];
+            loading.value = true;
         }
     },
     { immediate: true }

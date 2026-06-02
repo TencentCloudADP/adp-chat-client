@@ -86,17 +86,23 @@ async function fetchWorkspaceId(): Promise<string> {
     return fetchWorkspaceIdPromise;
 }
 
-// 监听 conversationId / applicationId 变化，主动获取 workspaceId
+// 监听 conversationId / applicationId 变化，重置缓存（不立即请求，等 FileDir 展示时再请求）
 watch(
     [() => props.conversationId, () => props.applicationId],
-    ([_newConvId, newAppId]) => {
+    () => {
         workspaceId.value = '';
         fetchWorkspaceIdPromise = null;
-        if (newAppId) {
+    },
+);
+
+// 监听面板可见性和文件列表可见性，FileDir 真正展示时才去获取 workspaceId
+watch(
+    [() => props.visible, dirVisible],
+    ([panelVisible, dirShow]) => {
+        if (panelVisible && dirShow && !workspaceId.value && props.applicationId) {
             fetchWorkspaceId();
         }
     },
-    { immediate: true }
 );
 
 // ========== 拖拽调整预览面板宽度 ==========
@@ -252,7 +258,7 @@ defineExpose({
                     :download-text="i18n.download"
                     :download-started-text="i18n.downloadStarted"
                     @select="handleFileDirSelect"
-                    @close="handleCloseDir"
+                    @close="handleCloseDir"                    
                 />
                 <!-- 文件预览 -->
                 <div v-if="previewFilePath" class="file-preview-panel__preview" :class="{ 'file-preview-panel__preview--full': !dirVisible }">
