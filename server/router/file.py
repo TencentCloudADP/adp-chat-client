@@ -24,7 +24,7 @@ class FileUploadApi(HTTPMethodView):
             request.ctx.db,
             request,
             request.ctx.account_id,
-            args['Type'], 
+            args['Type'],
             mode=args['Mode']
         )
         # 兼容返回字典或字符串两种格式
