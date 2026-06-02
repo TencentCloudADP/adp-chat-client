@@ -92,8 +92,10 @@ class ChatMessageListApi(HTTPMethodView):
                         app_info = await vendor_app.get_info()
                         if getattr(app_info, 'Pattern', None) == 'ClawAgent':
                             is_claw = True
-                    except Exception:
-                        pass
+                    except (OSError, ValueError, KeyError, AttributeError) as e:
+                        logging.warning(
+                            f'[ChatApi] get_info failed for {application_id}: {e}'
+                        )
 
             if is_claw and hasattr(vendor_app, 'get_messages_v2'):
                 # claw 模式：通过 DescribeConversationMessageList 获取完整 V2 数据

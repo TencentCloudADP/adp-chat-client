@@ -8,6 +8,7 @@ import os
 from urllib.parse import quote
 from random import randint
 import json
+import re
 import time
 from datetime import datetime
 
@@ -22,6 +23,7 @@ _ACTION_VERSION_CONFIG_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     'vendor', 'tcadp', 'action_version.json'
 )
+
 
 def _load_action_version_config() -> dict:
     """加载 action_version.json 配置，返回 {Action: {headers: {}, payload: {}}} 映射
@@ -53,14 +55,12 @@ def _load_action_version_config() -> dict:
                     payload_paths[path_str] = v
             result[action] = {'headers': headers, 'payload': payload_paths}
         return result
-    except Exception as e:
+    except (OSError, ValueError, KeyError, TypeError) as e:
         logging.warning(f'[tca] Failed to load action_version.json: {e}')
         return {}
 
 ACTION_VERSION_OVERRIDES = _load_action_version_config()
 
-
-import re
 
 _TEMPLATE_PATTERN = re.compile(r'\{\{(\w+)\}\}')
 
@@ -223,7 +223,11 @@ def tc_request_prepare(config: dict, action: str, payload: str, service = "lke",
     return headers, url
 
 
-async def tc_request(config: dict, action: str, payload: dict = None, service = "lke", version: str = None, variables: dict = None) -> str:
+async def tc_request(
+    config: dict, action: str, payload: dict = None,
+    service="lke", version: str = None,
+    variables: dict = None,
+) -> str:
     if payload is None:
         payload = {}
     payload = inject_action_payload(action, payload, variables)

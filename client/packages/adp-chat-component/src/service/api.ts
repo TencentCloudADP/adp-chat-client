@@ -35,6 +35,14 @@ export interface ApiDetailConfig {
     asrUrlApi?: string;
     /** 系统配置接口路径 */
     systemConfigApi?: string;
+    /** 会话详情（含工作空间）接口路径 */
+    describeConversationApi?: string;
+    /** 目录列表接口路径 */
+    listDirApi?: string;
+    /** 文件获取接口路径 */
+    fetchFileApi?: string;
+    /** 会话消息列表接口路径（claw 模式） */
+    describeConversationMessageListApi?: string;
 }
 
 /**
@@ -61,6 +69,10 @@ export const defaultApiDetailConfig: ApiDetailConfig = {
     referenceDetailApi: '/reference/detail',
     asrUrlApi: '/helper/asr/url',
     systemConfigApi: '/system/config',
+    describeConversationApi: '/adp/DescribeConversation',
+    listDirApi: '/adp/ListDir',
+    fetchFileApi: '/adp/FetchFile',
+    describeConversationMessageListApi: '/adp/DescribeConversationMessageList',
 };
 
 export interface ReferenceDetailParams {
@@ -149,14 +161,17 @@ export interface DescribeConversationMessageListResponse {
  * 通过 /adp 转发调用 DescribeConversationMessageList（claw 模式专用）
  * @param params 请求参数
  * @param applicationId 应用 ID
+ * @param apiPath API 路径
  */
 export const fetchConversationDetailV2 = async (
     params: DescribeConversationMessageListParams,
-    applicationId: string
+    applicationId: string,
+    apiPath?: string
 ): Promise<DescribeConversationMessageListResponse> => {
+    const path = apiPath || defaultApiDetailConfig.describeConversationMessageListApi!;
     try {
         const response: DescribeConversationMessageListResponse = await httpService.post(
-            '/adp/DescribeConversationMessageList',
+            path,
             {
                 ApplicationId: applicationId,
                 Payload: params,
@@ -417,73 +432,6 @@ export const fetchSystemConfig = async (apiPath?: string): Promise<SystemConfig>
     }
 };
 
-/** 会话类型 */
-export const ConversationType = {
-    /** 全部 */
-    CONVERSATION_TYPE_UNSPECIFIED: 0,
-    /** API 类型 */
-    CONVERSATION_TYPE_API: 1,
-    /** 分享类型 */
-    CONVERSATION_TYPE_SHARE: 2,
-} as const;
-
-export type ConversationType = (typeof ConversationType)[keyof typeof ConversationType];
-
-/** DescribeConversationList 请求参数 */
-export interface DescribeConversationListParams {
-    /** 会话类型，传 CONVERSATION_TYPE_UNSPECIFIED 表示全部 */
-    Type?: ConversationType;
-    /** 应用 ID */
-    AppId?: string;
-    /** Type=CONVERSATION_TYPE_API 时必填，访客ID */
-    UserId?: string;
-    /** Type=CONVERSATION_TYPE_API 时必填，应用密钥 */
-    AppKey?: string;
-    /** 关键词 */
-    Keyword?: string;
-    /** 偏移量，配合 Limit 使用，从 0 开始 */
-    Offset?: number;
-    /** 限制数目，配合 Offset 使用 */
-    Limit?: number;
-    /** Type=CONVERSATION_TYPE_SHARE 时必填，分享码 */
-    ShareCode?: string;
-}
-
-/** DescribeConversationList 响应 */
-export interface DescribeConversationListResponse {
-    Response: {
-        ConversationList?: any[];
-        TotalCount?: number;
-        RequestId?: string;
-    };
-}
-
-/**
- * 测试代码，验证接口协议转发
- * @param params 请求参数
- * @param applicationId 应用 ID
- */
-export const describeConversationList = async (
-    params: DescribeConversationListParams,
-    applicationId: string
-): Promise<DescribeConversationListResponse> => {
-    try {
-        const response: DescribeConversationListResponse = await httpService.post(
-            '/adp/GetAppSecret',
-            {
-                ApplicationId: applicationId,
-                Payload: {
-                    AppBizId: applicationId,
-                },
-            }
-        );
-        return response;
-    } catch (error) {
-        console.error('获取会话列表失败:', error);
-        throw error;
-    }
-};
-
 /** DescribeConversation 请求参数 */
 export interface DescribeConversationParams {
     /** 会话 ID */
@@ -520,17 +468,20 @@ export interface DescribeConversationResponse {
  * 获取会话详情（含工作空间信息）
  * @param params 请求参数
  * @param applicationId 应用 ID
+ * @param apiPath API 路径
  */
 export const describeConversation = async (
     params: DescribeConversationParams,
-    applicationId: string
+    applicationId: string,
+    apiPath?: string
 ): Promise<DescribeConversationResponse['Response']> => {
+    const path = apiPath || defaultApiDetailConfig.describeConversationApi!;
     try {
         const response: DescribeConversationResponse = await httpService.post(
-            '/adp/DescribeConversation',
+            path,
             {
                 ApplicationId: applicationId,
-                Payload: params               
+                Payload: params,
             }
         );
         return response.Response;
@@ -585,14 +536,17 @@ export interface ListDirResponse {
  * 获取目录列表
  * @param params 请求参数
  * @param applicationId 应用 ID
+ * @param apiPath API 路径
  */
 export const listDir = async (
     params: ListDirParams,
-    applicationId: string
+    applicationId: string,
+    apiPath?: string
 ): Promise<ListDirResponse['Response']> => {
+    const path = apiPath || defaultApiDetailConfig.listDirApi!;
     try {
         const response: ListDirResponse = await httpService.post(
-            '/adp/ListDir',
+            path,
             {
                 ApplicationId: applicationId,
                 Payload: params,
@@ -640,11 +594,13 @@ export interface FetchFileResponse {
 export const fetchFile = async (
     params: FetchFileParams,
     applicationId: string,
-    requestConfig?: { timeout?: number }
+    requestConfig?: { timeout?: number },
+    apiPath?: string
 ): Promise<FetchFileResponse['Response']> => {
+    const path = apiPath || defaultApiDetailConfig.fetchFileApi!;
     try {
         const response: FetchFileResponse = await httpService.post(
-            '/adp/FetchFile',
+            path,
             {
                 ApplicationId: applicationId,
                 Payload: params,

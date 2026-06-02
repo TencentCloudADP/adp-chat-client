@@ -8,11 +8,6 @@
         "payload.AppKey": "{{APP_KEY}}",
         "payload.UserId": "{{ACCOUNT_ID}}"
     },
-    "DescribeConversationList": {
-        "headers.X-TC-Version": "2025-11-12",
-        "payload.AppKey": "{{APP_KEY}}",
-        "payload.UserId": "{{ACCOUNT_ID}}"
-    },
     "DescribeConversationMessageList": {
         "headers.X-TC-Version": "2025-11-12",
         "payload.AppKey": "{{APP_KEY}}",
