@@ -70,7 +70,7 @@ const props = withDefaults(defineProps<DocPreviewProps>(), {
     filePath: '',
     applicationId: '',
     workspaceId: '',
-    sdkUrl: 'src/assets/sdk-v0.2.1.js',
+    sdkUrl: 'sdk-v0.2.1.js',
     loadingText: '正在加载...',
     loadingPreviewText: '正在加载文档预览...',
     previewFailedText: '预览加载失败',

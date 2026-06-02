@@ -628,7 +628,7 @@ export const getFileDownloadUrl = (
     params: FetchFileParams,
     applicationId: string
 ): string => {
-    const baseURL = getAxiosBaseURL();
+    const baseURL = getAxiosBaseURL().replace(/\/+$/, '');
     const queryParams = new URLSearchParams({
         ApplicationId: applicationId,
         AppId: params.app_id,
