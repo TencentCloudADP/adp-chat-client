@@ -117,7 +117,7 @@ function handleDownload(file: FileInfo) {
                 </span>
                 <span v-if="showFileSize(file)" class="assistant-file-card__size">{{ file.FileSize }}</span>
             </div>
-            <span class="assistant-file-card__download" @click.stop>
+            <span class="assistant-file-card__download" @click.stop="handleDownload(file)">
                 <t-icon name="download" />
             </span>
         </div>
