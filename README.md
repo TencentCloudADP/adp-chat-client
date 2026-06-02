@@ -29,6 +29,7 @@
   - [Deployment: Rate Limiting](#deployment-rate-limiting)
   - [Deployment: CORS](#deployment-cors)
   - [Deployment: Iframe Embed Origins](#deployment-iframe-embed-origins)
+  - [Deployment: File Preview Service](#deployment-file-preview-service)
 
 # Deployment
 
@@ -468,3 +469,12 @@ When configured, the server will automatically enable iframe-login cookie policy
 When empty, only same-origin embedding is allowed (`frame-ancestors 'self'`).
 
 Please note: due to browser security restrictions, some OAuth login flows may be blocked or limited in iframe scenarios.
+
+## Deployment: File Preview Service
+
+To preview files such as Word, Excel, and PPT, you need to enable the preview service:
+
+1. Log in to https://console.cloud.tencent.com/cos/bucket with the root account.
+2. Search for the COS bucket name configured in `.env` as `COS_BUCKET` (default: `chat-client-bucket-1322044278`), then click to open the selected bucket.
+3. In the left menu, navigate to **Data Processing** → **Document Processing** → **Enable**.
+4. Navigate to **Data Processing** → **File Processing** → **Enable**.

@@ -950,6 +950,8 @@ const handleSelectConversation = async (conversation: ChatConversation) => {
         currentConversationStateKey.value = conversation.Id;
         setConversationApplicationId(conversation.Id, conversation.ApplicationId);
     }
+    // 切换会话时关闭文件预览面板
+    closeFilePreview();
     // 移动端选择对话后收起侧边栏
     if (isMobile.value) {
         sidebarVisible.value = false;
@@ -962,6 +964,8 @@ const handleCreateConversation = () => {
         internalCurrentConversation.value = undefined;
         currentConversationStateKey.value = '';
     }
+    // 创建新会话时关闭文件预览面板
+    closeFilePreview();
     emit('createConversation');
 };
 

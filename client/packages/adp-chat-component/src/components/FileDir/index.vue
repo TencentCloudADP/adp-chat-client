@@ -10,7 +10,12 @@
             </div>
         </div>
         <div class="file-dir-tree">
+            <div v-if="loading" class="file-dir-loading">
+                <t-icon name="loading" class="icon-spinning" />
+                <span>加载中...</span>
+            </div>
             <t-tree
+                v-else
                 :data="treeData"
                 hover
                 :lazy="true"
@@ -100,6 +105,9 @@ const treeKeys = {
 /** 树形数据 */
 const treeData = ref<TreeNode[]>([]);
 
+/** 根目录加载中状态 */
+const loading = ref(false);
+
 /**
  * 将 DirEntry 转换为 TreeNode
  */
@@ -160,8 +168,13 @@ function handleNodeClick({ node }: { node: any }) {
  * 初始化加载根目录
  */
 async function initRootDir() {
-    const entries = await fetchDirEntries(props.rootPath);
-    treeData.value = entries.map(entryToTreeNode);
+    loading.value = true;
+    try {
+        const entries = await fetchDirEntries(props.rootPath);
+        treeData.value = entries.map(entryToTreeNode);
+    } finally {
+        loading.value = false;
+    }
 }
 
 /** 刷新中状态 */
@@ -283,6 +296,16 @@ watch(
     flex: 1;
     overflow-y: auto;
     padding: 8px 16px;
+}
+
+.file-dir-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 32px 0;
+    color: var(--td-text-color-secondary, #666);
+    font-size: 13px;
 }
 
 :deep(.t-tree__item) {
