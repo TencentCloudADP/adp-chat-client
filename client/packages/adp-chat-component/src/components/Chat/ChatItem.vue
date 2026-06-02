@@ -54,7 +54,7 @@ const i18n = computed(() => ({
 }));
 
 const emit = defineEmits<{
-    (e: 'resend', relatedRecordId: string | undefined): void;
+    (e: 'resend', relatedRecordId: string | undefined, recordId: string | undefined): void;
     (e: 'share', recordIds: string[]): void;
     (e: 'rate', record: RecordV2, score: typeof ScoreValue[keyof typeof ScoreValue]): void;
     (e: 'copy', rowtext: string | undefined, content: string | undefined, type: string): void;
@@ -709,7 +709,7 @@ const referenceDialogTitle = computed(() => {
                 </Tooltip>
                 <Tooltip :content="i18n.replay" destroyOnClose showArrow theme="default">
                     <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon icon" name="refresh" :theme="theme"
-                        @click="emit('resend', item.RelatedRecordId)" />
+                        @click="emit('resend', item.RelatedRecordId, item.RecordId)" />
                 </Tooltip>
                 <Tooltip :content="i18n.share" destroyOnClose showArrow theme="default">
                     <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon share-icon icon" name="share" :theme="theme" @click="share(item)" />

@@ -371,14 +371,16 @@ const updatePreviewPosition = (card: HTMLElement) => {
 const handleMouseEnter = (e: MouseEvent) => {
   const target = e.target as HTMLElement;
   const card = target.closest('.md-img-card') as HTMLElement | null;
-  if (!card) return;
-  const src = card.dataset.src;
+  const imageFileCard = target.closest('.md-file-card.claw-mode.type-image') as HTMLElement | null;
+  const hoverTarget = card || imageFileCard;
+  if (!hoverTarget) return;
+  const src = card ? card.dataset.src : imageFileCard?.dataset.href;
   if (!src) return;
 
   if (previewTimer) clearTimeout(previewTimer);
   previewTimer = setTimeout(() => {
     previewSrc.value = src;
-    updatePreviewPosition(card);
+    updatePreviewPosition(hoverTarget);
     previewVisible.value = true;
   }, 300);
 };
@@ -386,9 +388,11 @@ const handleMouseEnter = (e: MouseEvent) => {
 const handleMouseLeave = (e: MouseEvent) => {
   const target = e.target as HTMLElement;
   const card = target.closest('.md-img-card') as HTMLElement | null;
+  const imageFileCard = target.closest('.md-file-card.claw-mode.type-image') as HTMLElement | null;
+  const hoverTarget = card || imageFileCard;
   const relatedTarget = e.relatedTarget as HTMLElement | null;
 
-  if (card && relatedTarget && card.contains(relatedTarget)) return;
+  if (hoverTarget && relatedTarget && hoverTarget.contains(relatedTarget)) return;
 
   if (previewTimer) {
     clearTimeout(previewTimer);

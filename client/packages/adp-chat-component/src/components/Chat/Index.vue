@@ -503,13 +503,30 @@ const extractRecordText = (record: Record): string => {
 /**
  * 重新发送消息
  */
-const onResend = (RelatedRecordId: string | undefined) => {
-    if (!RelatedRecordId) return;
-    const related = chatList.value.find((record: Record) => record.RecordId === RelatedRecordId)
-    if (!related) {
-        return
+const onResend = (RelatedRecordId: string | undefined, recordId?: string) => {
+    let related: Record | undefined;
+
+    if (RelatedRecordId) {
+        related = chatList.value.find((record: Record) => record.RecordId === RelatedRecordId);
     }
-    inputEnter(extractRecordText(related))
+
+    // 当 RelatedRecordId 为空或找不到对应记录时，通过 assistant 自身的 recordId 定位后向前查找 user 消息
+    if (!related) {
+        let searchStart = chatList.value.length - 1;
+        if (recordId) {
+            const idx = chatList.value.findIndex((record: Record) => record.RecordId === recordId);
+            if (idx >= 0) searchStart = idx;
+        }
+        for (let i = searchStart; i >= 0; i--) {
+            if (chatList.value[i]?.Role === 'user') {
+                related = chatList.value[i];
+                break;
+            }
+        }
+    }
+
+    if (!related) return;
+    inputEnter(extractRecordText(related));
 }
 
 /**
