@@ -1,0 +1,16 @@
+{
+    "_comment": "接口级别的转发配置。key 为 Action 名称，value 为配置对象。配置项格式: 'headers.xxx' 表示注入 header，'payload.xxx' 表示注入 payload 顶层字段，'payload.a.b' 表示注入 payload 嵌套字段。",
+    "CreateWorkspaceCredential": {
+        "headers.X-TC-Version": "2025-11-12"
+    },
+    "DescribeConversation": {
+        "headers.X-TC-Version": "2025-11-12",
+        "payload.AppKey": "{{APP_KEY}}",
+        "payload.UserId": "{{ACCOUNT_ID}}"
+    },
+    "DescribeConversationMessageList": {
+        "headers.X-TC-Version": "2025-11-12",
+        "payload.AppKey": "{{APP_KEY}}",
+        "payload.UserId": "{{ACCOUNT_ID}}"
+    }
+}

@@ -470,3 +470,11 @@ IFRAME_ORIGINS=https://example.com
 留空时，默认仅允许同源嵌入（`frame-ancestors 'self'`）。
 
 请注意：iframe 场景受浏览器安全策略影响，部分 OAuth 登录流程可能被拒绝或受限。
+
+## 部署：文件预览服务
+word、excel、ppt 等需要配置启动预览服务。
+1. 具体需要使用主账号登录 https://console.cloud.tencent.com/cos/bucket；
+2. 搜索.env中配置的 cos 桶名称COS_BUCKET（默认为chat-client-bucket-1322044278），点击打开选中的桶
+3. 左侧菜单中选中 “数据处理” -> “文档处理” -> “开启”；
+4. “数据处理” -> 文件处理 -> “开启”
+

@@ -31,6 +31,8 @@
   },
   "dependencies": {
     "@tdesign-vue-next/chat": "^0.4.5",
+    "monaco-editor": "^0.52.2",
+    "@wangeditor/editor": "^5.1.23",
     "adp-widget": "*",
     "axios": "^1.13.2",
     "dompurify": "^3.3.1",

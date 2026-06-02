@@ -9,7 +9,7 @@ import Chat from '../Chat/Index.vue';
 import AIWarning from '../AIWarning.vue';
 import SidebarToggle from '../SidebarToggle.vue';
 import CreateConversation from '../CreateConversation.vue';
-import { Divider as TDivider, Space as TSpace, Avatar as TAvatar, Layout as TLayout, Content as TContent, Header as THeader, Footer as TFooter } from 'tdesign-vue-next';
+import { Avatar as TAvatar, Layout as TLayout, Content as TContent, Header as THeader, Footer as TFooter } from 'tdesign-vue-next';
 
 // TAvatar, TLayout, TContent, THeader, TFooter 已导入，模板中使用对应组件
 import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type';
@@ -177,7 +177,7 @@ const notifyComplete = () => {
 defineExpose({
     notifyLoaded,
     notifyComplete,
-    getChatRef: () => chatRef.value
+    getChatRef: () => chatRef.value,
 });
 </script>
 
@@ -185,8 +185,8 @@ defineExpose({
     <TLayout class="main-layout" :class="{ isMobile: isMobile }">
         <THeader class="layout-header">
             <div class="header-app-container">
-                    <SidebarToggle :theme="theme" v-if="showSidebarToggle" @toggle="handleToggleSidebar" />
-                    <TDivider class="header-app-driver" v-if="showSidebarToggle" layout="vertical" />
+                    <SidebarToggle :theme="theme"  @toggle="handleToggleSidebar" />
+                    <CreateConversation :tooltipText="createConversationText" :theme="theme" @create="handleCreateConversation" />
                     <TAvatar :imageProps="{
                             lazy: true,
                             loading: ''
@@ -194,7 +194,7 @@ defineExpose({
                         <span class="header-app__title">{{ currentApplicationName }}</span>
             </div>
             <div class="header-app-settings">
-                <CreateConversation :tooltipText="createConversationText" :theme="theme" @create="handleCreateConversation" />
+                <slot name="header-actions"></slot>
                 <slot name="header-overlay-content"></slot>
                 <slot name="header-close-content"></slot>
             </div>
@@ -213,6 +213,7 @@ defineExpose({
                 :isMobile="isMobile"
                 :theme="theme"
                 :language="props.language"
+                :mode="props.mode"
                 :i18n="i18n"
                 :chatItemI18n="chatItemI18n"
                 :senderI18n="senderI18n"
@@ -279,7 +280,8 @@ defineExpose({
 }
 
 .layout-header .header-app__avatar{
-    border-radius: var(--td-radius-medium)
+    border-radius: var(--td-radius-medium);
+    margin-left: var(--td-comp-margin-s);
 }
 .layout-header .header-app__title {
     color: var(--td-text-color-primary);

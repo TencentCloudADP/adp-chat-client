@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
+from sanic.exceptions import SanicException
 from model.chat import ChatConversation
 
 
@@ -19,7 +20,7 @@ class CoreConversation:
             ChatConversation.Id == conversation_id
         ).limit(1))).scalar()
         if conversation is None:
-            raise Exception("conversation not found")
+            raise SanicException("conversation not found", status_code=404)
         await db.delete(conversation)
         await db.commit()
 
@@ -30,7 +31,7 @@ class CoreConversation:
             ChatConversation.Id == conversation_id,
         ).limit(1))).scalar()
         if conversation is None:
-            raise Exception("conversation not found")
+            raise SanicException("conversation not found", status_code=404)
         return conversation.ApplicationId
 
     @staticmethod

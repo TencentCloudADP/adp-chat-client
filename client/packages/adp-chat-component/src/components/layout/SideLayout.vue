@@ -6,7 +6,6 @@ import ApplicationList from '../ApplicationList.vue';
 import HistoryList from '../HistoryList.vue';
 import PersonalAccount from '../PersonalAccount.vue';
 import Settings from '../Settings.vue';
-import SidebarToggle from '../SidebarToggle.vue';
 import { Drawer as TDrawer, Divider as TDivider } from 'tdesign-vue-next';
 
 // TDrawer, TDivider 已导入，模板中使用 TDrawer, TDivider 组件
@@ -125,9 +124,6 @@ const handleUserClick = () => {
             show-in-attached-element
         >
             <div class="drawer-content">
-                <div class="drawer-control">
-                    <SidebarToggle :theme="theme" @toggle="handleToggleSidebar" />
-                </div>
                 <div class="drawer-scrollable">
                     <ApplicationList 
                         :applications="applications" 
@@ -259,6 +255,8 @@ const handleUserClick = () => {
 }
 :deep(.custome-drawer .t-drawer__content-wrapper){
     box-shadow: none;
+    background-color: var(--td-bg-color-container);
+    border-right: 1px solid var(--td-bg-color-container-active);
 }
 :deep(.t-drawer__header ){
     border-bottom: none !important;

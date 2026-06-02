@@ -1,15 +1,16 @@
 <!-- ADP 聊天布局主组件，支持 API 模式和 Props 模式 -->
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRefs } from 'vue';
-import { Layout as TLayout, Content as TContent, MessagePlugin } from 'tdesign-vue-next';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRefs, provide } from 'vue';
+import { Layout as TLayout, Content as TContent, MessagePlugin,Tooltip, Icon as TIcon } from 'tdesign-vue-next';
 
 // TLayout, TContent 已导入，模板中使用对应组件
 import MainLayout from './MainLayout.vue';
 import SideLayout from './SideLayout.vue';
+import FilePreviewLayout from './FilePreviewLayout.vue';
 import LogoArea from '../LogoArea.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
-import type { Application } from '../../model/application';
-import type { ChatConversation, Record, Reference, SseEvent } from '../../model/chat-v2';
+import type { Application, AppPattern } from '../../model/application';
+import type { ChatConversation, Record, Reference, SseEvent, Content } from '../../model/chat-v2';
 import type { FileProps } from '../../model/file';
 import { ScoreValue } from '../../model/chat-v2';
 import type { ApiConfig } from '../../service/api';
@@ -23,7 +24,8 @@ import {
     createShare,
     fetchUserInfo,
     uploadFile,
-    fetchSystemConfig,
+    parseFile,
+    fetchSystemConfig
 } from '../../service/api';
 import type { SystemConfig } from '../../service/api';
 import { MessageCode } from '../../model/messages';
@@ -45,26 +47,30 @@ import type {
     ChatI18n, 
     ChatItemI18n, 
     SenderI18n,
+    FilePreviewI18n,
     ThemeProps,
-    OverlayProps
+    OverlayProps,
+    ChatMode
 } from '../../model/type';
 import { 
     defaultLanguageOptions,
     themePropsDefaults,
     overlayPropsDefaults,
+    defaultFilePreviewI18n,
+    defaultFilePreviewI18nEn,
     defaultChatI18n,
     defaultChatI18nEn,
     defaultChatItemI18n,
     defaultChatItemI18nEn,
     defaultSenderI18n,
-    defaultSenderI18nEn,
-    defaultSideI18n,
-    defaultSideI18nEn
+    defaultSenderI18nEn
 } from '../../model/type';
 
 export interface Props extends ThemeProps, OverlayProps {
     /** 当前语言标识，用于自动选择内部默认 i18n（如 'zh-CN'、'en-US'） */
     language?: string;
+    /** 聊天模式：claw-简化模式（无文件预览/无解析进度），standard-标准模式 */
+    mode?: ChatMode;
     /** 是否为浮层模式 */
     isOverlay?: boolean;
     /** 宽度（仅在 isOverlay 为 true 时用于计算 isMobile） */
@@ -113,6 +119,8 @@ export interface Props extends ThemeProps, OverlayProps {
     chatItemI18n?: ChatItemI18n;
     /** Sender 国际化文本 */
     senderI18n?: SenderI18n;
+    /** 文件预览面板国际化文本 */
+    filePreviewI18n?: FilePreviewI18n;
     /** API 配置 - 如果传入则使用 HTTP 请求获取数据 */
     apiConfig?: ApiConfig;
     /** 是否自动加载数据（仅在使用 apiConfig 时生效） */
@@ -123,6 +131,7 @@ const props = withDefaults(defineProps<Props>(), {
     ...themePropsDefaults,
     ...overlayPropsDefaults,
     language: 'zh-CN',
+    mode: 'standard',
     isOverlay: false,
     width: 0,
     height: 0,
@@ -177,15 +186,67 @@ const { theme } = toRefs(props);
 
 const sidebarVisible = ref(!props.isSidePanelOverlay);
 const mainLayoutRef = ref<InstanceType<typeof MainLayout> | null>(null);
+const filePreviewLayoutRef = ref<InstanceType<typeof FilePreviewLayout> | null>(null);
+
+// 文件预览面板显示状态
+const filePreviewVisible = ref(false);
+
+/**
+ * 切换文件预览面板显示
+ * 打开时重置为纯文档列表状态，不保留上次预览态
+ */
+const toggleFilePreview = () => {
+    if (filePreviewVisible.value) {
+        filePreviewVisible.value = false;
+    } else {
+        filePreviewVisible.value = true;
+        nextTick(() => {
+            filePreviewLayoutRef.value?.resetToList();
+        });
+    }
+};
+
+/**
+ * 打开文件预览面板
+ */
+const openFilePreview = () => {
+    filePreviewVisible.value = true;
+};
+
+/**
+ * 关闭文件预览面板
+ */
+const closeFilePreview = () => {
+    filePreviewVisible.value = false;
+};
+
+/**
+ * 打开文件预览并定位到指定路径（不展示文档列表列）
+ */
+const viewFile = (filePath: string) => {
+    if (!filePath) return;
+    openFilePreview();
+    nextTick(() => {
+        filePreviewLayoutRef.value?.setPreviewPath(filePath, { showDir: false });
+    });
+};
+
+provide('viewFile', viewFile);
 
 // 上传状态
 const isUploading = ref(false);
 
-// 合并 i18n 配置
-const mergedChatItemI18n = computed(() => ({
-    ...defaultChatItemI18n,
-    ...props.chatItemI18n
-}));
+// 合并 i18n 配置（根据 language 选择对应语言的默认值）
+const mergedChatItemI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultChatItemI18nEn : defaultChatItemI18n;
+    return { ...defaults, ...props.chatItemI18n };
+});
+
+// 合并文件预览 i18n 配置（根据 language 选择对应语言的默认值）
+const mergedFilePreviewI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultFilePreviewI18nEn : defaultFilePreviewI18n;
+    return { ...defaults, ...props.filePreviewI18n };
+});
 
 // 计算是否为移动端模式（内部计算，不再依赖外部传入）
 const isMobile = computed(() => {
@@ -197,12 +258,22 @@ const isMobile = computed(() => {
     });
 });
 
+provide('isMobile', isMobile);
+
 // 内部数据状态（当使用 API 时）
 const internalApplications = ref<Application[]>([]);
 const internalConversations = ref<ChatConversation[]>([]);
 const internalUser = ref<{ avatarUrl?: string; avatarName?: string; name?: string }>({});
 const internalCurrentApplication = ref<Application | undefined>(undefined);
 const internalCurrentConversation = ref<ChatConversation | undefined>(undefined);
+
+// 用于确保 applications 列表加载完成后再判断模式
+let resolveApplicationsReady: () => void;
+const applicationsReadyPromise = new Promise<void>((resolve) => {
+    resolveApplicationsReady = resolve;
+});
+
+
 const internalSystemConfig = ref<SystemConfig>({ EnableVoiceInput: true });
 const referenceDetailCache = new Map<string, Reference>();
 const referenceDetailPendingKeys = new Set<string>();
@@ -428,9 +499,27 @@ const currentApplicationGreeting = computed(() => actualCurrentApplication.value
 const currentApplicationOpeningQuestions = computed(() => actualCurrentApplication.value?.OpeningQuestions || []);
 const currentConversationId = computed(() => props.currentConversationId || actualCurrentConversation.value?.Id || '');
 
+/**
+ * 聊天模式：优先使用 props.mode 手动配置，否则从当前应用的 Pattern 自动推导
+ * Pattern='ClawAgent' → mode='claw'，其他值或 null → mode='standard'
+ */
+const chatMode = computed<ChatMode>(() => {
+    if (props.mode !== 'standard') {
+        return props.mode;
+    }
+    const pattern = actualCurrentApplication.value?.Pattern as AppPattern | null | undefined;
+    if (pattern === 'ClawAgent') {
+        return 'claw';
+    }
+    return 'standard';
+});
+
 // API 数据加载方法
 const loadApplications = async () => {
-    if (!useApiMode.value) return;
+    if (!useApiMode.value) {
+        resolveApplicationsReady();
+        return;
+    }
     try {
         const data = await fetchApplicationList(mergedApiDetailConfig.value.applicationListApi);
         internalApplications.value = data;
@@ -443,6 +532,8 @@ const loadApplications = async () => {
         const text = mergedChatI18n.value.getAppListFailed;
         MessagePlugin.error(text);
         emit('message', MessageCode.GET_APP_LIST_FAILED, text);
+    } finally {
+        resolveApplicationsReady();
     }
 };
 
@@ -461,16 +552,18 @@ const loadConversations = async () => {
 
 const loadConversationDetail = async (conversationId: string) => {
     if (!useApiMode.value || !conversationId) return;
+    // 确保 applications 列表已加载完成
+    await applicationsReadyPromise;
     try {
         const response = await fetchConversationDetail(
             { ConversationId: conversationId },
             mergedApiDetailConfig.value.conversationDetailApi
         );
-        const records = response?.Response?.Records || [];
-        setConversationRecords(conversationId, records, response?.Response?.ApplicationId);
-        await hydrateReferences(records, {
-            applicationId: response?.Response?.ApplicationId,
-        });
+        const records: Record[] = response?.Response?.Records || [];
+        const applicationId = response?.Response?.ApplicationId || '';
+
+        setConversationRecords(conversationId, records, applicationId);
+        await hydrateReferences(records, { applicationId });
         emit('dataLoaded', 'chatList', records);
     } catch (error) {
         const text = mergedChatI18n.value.getConversationDetailFailed;
@@ -509,6 +602,7 @@ const loadSystemConfig = async () => {
 
 // 内部发送消息处理（API 模式）
 const handleInternalSend = async (query: string, fileList: FileProps[], conversationId: string, applicationId: string) => {
+    if (isUploading.value) return;
     if (!useApiMode.value) {
         emit('send', query, fileList, conversationId, applicationId);
         return;
@@ -538,6 +632,18 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
         IsFromSelf: isFromSelf,
     });
 
+    // 构建用户消息展示内容（图片和文档都作为 file Content 展示）
+    const userContents: Content[] = [{ Type: 'text', Text: query }];
+    for (const file of fileList) {
+        if (file.status === 'done' && file.url) {
+            const extName = file.name?.split('.').pop() || '';
+            userContents.push({
+                Type: 'file',
+                File: { DocId: file.docId || '0', FileName: file.name || '', FileUrl: file.url, FileSize: String(file.size || 0), FileType: extName },
+            });
+        }
+    }
+
     // 创建用户消息占位
     const userRecord: Record = {
         Role: 'user',
@@ -553,7 +659,7 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
                 Title: '',
                 Status: 'success',
                 StatusDesc: '',
-                Contents: [{ Type: 'text', Text: query }],
+                Contents: userContents,
             },
         ],
         ExtraInfo: baseExtraInfo(true),
@@ -578,8 +684,24 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
     });
 
     streamState.abortController = new AbortController();
-    const contents = [{ Type: 'text', Text: query }];
 
+    const contents: Content[] = [{ Type: 'text', Text: query }];
+    // 将所有已上传成功的文件（图片和文档）以 file content 格式加入
+    for (const file of fileList) {
+        if (file.status === 'done' && file.url) {
+            const extName = file.name?.split('.').pop() || '';
+            contents.push({
+                Type: 'file',
+                File: {
+                    DocId: file.docId || '0',
+                    FileName: file.name || '',
+                    FileUrl: file.url,
+                    FileSize: String(file.size || 0),
+                    FileType: extName,
+                },
+            });
+        }
+    }
     await fetchSSE(
         () => {
             return sendMessage(
@@ -717,21 +839,24 @@ const handleInternalLoadMore = async (conversationId: string, lastRecordId: stri
         return;
     }
 
+    // 确保 applications 列表已加载完成
+    await applicationsReadyPromise;
+
     try {
         const response = await fetchConversationDetail(
             { ConversationId: conversationId, LastRecordId: lastRecordId },
             mergedApiDetailConfig.value.conversationDetailApi
         );
-        const newRecords = response?.Response?.Records || [];
+        const newRecords: Record[] = response?.Response?.Records || [];
+        const applicationId = response?.Response?.ApplicationId || internalCurrentApplication.value?.ApplicationId || '';
+
         if (newRecords.length > 0) {
-            await hydrateReferences(newRecords, {
-                applicationId: response?.Response?.ApplicationId || internalCurrentApplication.value?.ApplicationId,
-            });
+            await hydrateReferences(newRecords, { applicationId });
             const targetState = ensureConversationRuntimeState(conversationId);
             if (targetState) {
                 targetState.records = [...newRecords, ...targetState.records];
-                if (response?.Response?.ApplicationId) {
-                    targetState.applicationId = response.Response.ApplicationId;
+                if (applicationId) {
+                    targetState.applicationId = applicationId;
                 }
             }
             mainLayoutRef.value?.notifyLoaded();
@@ -739,7 +864,6 @@ const handleInternalLoadMore = async (conversationId: string, lastRecordId: stri
             mainLayoutRef.value?.notifyComplete();
         }
         nextTick(() => {
-            // 仅首次加载滚动到最底部，并开启自动滚动窗口（处理图片等异步加载）
             if (!lastRecordId) {
                 mainLayoutRef.value?.getChatRef()?.backToBottom();
             }
@@ -821,6 +945,11 @@ const handleSelectApplication = (app: Application) => {
         internalCurrentApplication.value = app;
         internalCurrentConversation.value = undefined;
         currentConversationStateKey.value = '';
+        // 清空 Sender 中的已选文件和输入内容
+        const senderRef = mainLayoutRef.value?.getChatRef()?.getSenderRef();
+        if (senderRef) {
+            senderRef.changeSenderVal('', []);
+        }
     }
     // 移动端选择应用后收起侧边栏
     if (isMobile.value || props.isSidePanelOverlay) {
@@ -846,6 +975,8 @@ const handleSelectConversation = async (conversation: ChatConversation) => {
         currentConversationStateKey.value = conversation.Id;
         setConversationApplicationId(conversation.Id, conversation.ApplicationId);
     }
+    // 切换会话时关闭文件预览面板
+    closeFilePreview();
     // 移动端选择对话后收起侧边栏
     if (isMobile.value) {
         sidebarVisible.value = false;
@@ -858,6 +989,8 @@ const handleCreateConversation = () => {
         internalCurrentConversation.value = undefined;
         currentConversationStateKey.value = '';
     }
+    // 创建新会话时关闭文件预览面板
+    closeFilePreview();
     emit('createConversation');
 };
 
@@ -1099,23 +1232,67 @@ const handleInternalUploadFile = async (files: File[]) => {
         return;
     }
 
+    if (isUploading.value) return;
+
     isUploading.value = true;
     emit('uploadStatus', 'uploading');
 
+    const senderRef = mainLayoutRef.value?.getChatRef()?.getSenderRef();
+
     for (const file of files) {
+        const uid = `${Date.now()}-${Math.random().toString(36).slice(2)}-${file.name}`;
+        const category = file.type.startsWith('image/') ? 'image' : 'document';
+
+        // 立即添加文件到列表，状态为 uploading，显示 loading
+        if (senderRef) {
+            senderRef.addFile({
+                uid,
+                name: file.name,
+                url: '',
+                size: file.size,
+                type: file.type,
+                category,
+                status: 'uploading',
+            });
+        }
+
         try {
-            const response = await uploadFile(file, currentApplicationId.value, mergedApiDetailConfig.value.uploadApi);
-            // 上传成功后添加到文件列表
-            const senderRef = mainLayoutRef.value?.getChatRef()?.getSenderRef();
+            const response = await uploadFile(file, currentApplicationId.value, mergedApiDetailConfig.value.uploadApi, chatMode.value);
             if (senderRef && response) {
-                senderRef.addFile({
-                    uid: `${Date.now()}-${file.name}`,
-                    name: file.name,
-                    url: response.Url || response.url,
+                const fileUrl = response.Url || response.url;
+                senderRef.updateFile(uid, {
+                    url: fileUrl,
                     status: 'done',
                 });
+
+                // standard 模式下，非图片文件需要调用实时文档解析获取 doc_id
+                if (chatMode.value === 'standard' && category === 'document' && mergedApiDetailConfig.value.fileParseApi) {
+                    const extName = file.name.split('.').pop() || '';
+                    try {
+                        const parseResult = await parseFile({
+                            ApplicationId: currentApplicationId.value,
+                            FileName: file.name,
+                            FileType: extName,
+                            FileUrl: fileUrl,
+                            CosUrl: response.CosUrl || response.cos_url || '',
+                            CosBucket: response.CosBucket || response.cos_bucket || '',
+                            ETag: response.ETag || response.e_tag || '',
+                            CosHash: response.CosHash || response.cos_hash || '',
+                            Size: String(file.size || 0),
+                        }, mergedApiDetailConfig.value.fileParseApi);
+
+                        if (parseResult && parseResult.doc_id && parseResult.doc_id !== '0') {
+                            senderRef.updateFile(uid, { docId: parseResult.doc_id });
+                        }
+                    } catch (parseError) {
+                        console.warn('文档解析失败，将使用 FileUrl 模式:', parseError);
+                    }
+                }
             }
         } catch (error) {
+            if (senderRef) {
+                senderRef.removeFile(uid);
+            }
             const uploadErrorText = mergedSenderI18n.value.uploadError;
             MessagePlugin.error(uploadErrorText);
             emit('message', MessageCode.FILE_UPLOAD_FAILED, uploadErrorText);
@@ -1236,6 +1413,9 @@ defineExpose({
     loadSystemConfig,
     notifyLoaded: () => mainLayoutRef.value?.notifyLoaded(),
     notifyComplete: () => mainLayoutRef.value?.notifyComplete(),
+    openFilePreview,
+    closeFilePreview,
+    getFilePreviewRef: () => filePreviewLayoutRef.value,
 });
 </script>
 
@@ -1290,6 +1470,7 @@ defineExpose({
                 :isMobile="isMobile"
                 :theme="theme"
                 :language="props.language"
+                :mode="chatMode"
                 :showSidebarToggle="!sidebarVisible"
                 :aiWarningText="aiWarningText"
                 :i18n="props.chatI18n"
@@ -1317,6 +1498,13 @@ defineExpose({
                 @conversationChange="(conversationId: string) => emit('conversationChange', conversationId)"
                 @widgetEvent="handleInternalWidgetEvent"
             >
+                <template #header-actions>
+                    <Tooltip v-if="!isMobile" :content="mergedFilePreviewI18n.openFileList" destroyOnClose showArrow theme="default">
+                        <span class="open-file-list-btn" @click="toggleFilePreview">
+                            <CustomizedIcon name="open_file_list" :theme="theme" />
+                        </span>
+                    </Tooltip>
+                </template>
                 <template #header-overlay-content v-if="showOverlayButton || $slots['header-overlay-content']">
                     <slot name="header-overlay-content">
                         <CustomizedIcon class="header-overlay-icon" v-if="showOverlayButton" name="overlay" :theme="theme" @click="handleOverlay"/>
@@ -1328,6 +1516,14 @@ defineExpose({
                     </slot>
                 </template>
             </MainLayout>
+            <FilePreviewLayout
+                ref="filePreviewLayoutRef"
+                :visible="filePreviewVisible"
+                :conversationId="currentConversationId"
+                :applicationId="currentApplicationId"
+                :i18n="mergedFilePreviewI18n"
+                @close="closeFilePreview"
+            />
         </TContent>
     </TLayout>
 </template>
@@ -1357,5 +1553,22 @@ defineExpose({
 }
 .header-overlay-icon{
     margin-left: var(--td-size-4);
+}
+
+.open-file-list-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--td-text-color-secondary, #666);
+    transition: all 0.2s;
+}
+
+.open-file-list-btn:hover {
+    color: var(--td-brand-color, #0052d9);
+    background: var(--td-bg-color-container-hover, #f3f3f3);
 }
 </style>

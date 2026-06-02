@@ -17,12 +17,29 @@ NumberLike = Union[int, str, float]
 # Common Models
 # =============================================================================
 
+class InputBoxButton(BaseModel):
+    """输入框按钮配置"""
+    Type: int
+    Name: Optional[str] = None
+
+
+class InputBoxConfig(BaseModel):
+    """输入框配置"""
+    InputBoxButtons: List[InputBoxButton] = []
+
+
 class ApplicationInfo(BaseModel):
     ApplicationId: str
     Name: str
     Avatar: Optional[str] = None
     Greeting: Optional[str] = None
     OpeningQuestions: List[str] = []
+    Pattern: Optional[str] = None
+    AppStatus: Optional[int] = None
+    AgentType: Optional[str] = None
+    InputBox: Optional[InputBoxConfig] = None
+    EnableWebSearch: Optional[bool] = None
+    EnableAudit: Optional[bool] = None
 
 
 # =============================================================================
@@ -507,7 +524,7 @@ class MessageInterface:
         account_id: str,
         conversation_id: str,
         limit: int, last_record_id: str = None
-    ) -> list[Record]:
+    ) -> list[dict]:
         """异步获取指定对话的消息记录
 
         通过厂商接口，或本系统数据库查询特定会话的消息记录，支持通过last_record_id分页查询
@@ -522,13 +539,13 @@ class MessageInterface:
                 默认值: None (返回最新消息)
 
         Returns:
-            list[Record]: V2协议消息记录列表，按时间升序排列
+            list[dict]: 消息记录字典列表，透传上游接口的完整字段
         """
         raise NotImplementedError("Subclasses must implement this method")
 
 
 class FileInterface:
-    async def upload(self, db: AsyncSession, request: Request, account_id: str, mime_type: str) -> str:
+    async def upload(self, db: AsyncSession, request: Request, account_id: str, mime_type: str, mode: str = 'standard') -> str:
         """异步上传文件
 
         Args:
@@ -536,6 +553,7 @@ class FileInterface:
             request (Request): 请求对象（流式读取：await request.stream.read()）
             account_id (str): 账户唯一标识符
             mime_type (str, optional): 文件类型
+            mode (str): 聊天模式，'standard' 或 'claw'
 
         Returns:
             url (str): 文件Url
@@ -595,3 +613,58 @@ class BaseVendor(ChatInterface, MessageInterface, FileInterface, ReferenceInterf
         super().__init__()
         self.config = config
         self.application_id = application_id
+
+    async def forward_request(
+        self,
+        action: str,
+        payload: dict = None,
+        service: str = "lke",
+        *,
+        version: str = None,
+        response_key: str = None,
+        raise_on_error: bool = True,
+        variables: dict = None,
+    ) -> dict:
+        """通用 API 转发方法
+
+        当前端传入的 Action 名称没有对应的具体路由实现时，
+        可通过此方法将请求直接转发到厂商后端接口。
+
+        Args:
+            action: API Action 名称
+            payload: 请求参数字典
+            service: 服务名称
+            version: API 版本号，为 None 时使用 service 配置中的默认版本
+            response_key: 从响应中提取指定 key
+            raise_on_error: 遇错是否抛异常
+            variables: 模板变量字典，用于替换配置中的 {{VAR}} 占位符
+
+        Returns:
+            dict: 响应数据
+
+        Raises:
+            NotImplementedError: 子类未实现时抛出
+        """
+        raise NotImplementedError("Subclasses must implement forward_request method")
+
+    async def parse_document(
+        self,
+        account_id: str,
+        file_name: str,
+        file_type: str,
+        file_url: str = '',
+        cos_bucket: str = '',
+        cos_url: str = '',
+        e_tag: str = '',
+        cos_hash: str = '',
+        size: str = '0',
+        conversation_id: str = '',
+    ):
+        """实时文档解析，返回 SSE 流
+
+        Standard 模式下，文件上传后调用此方法进行文档解析获取 doc_id。
+
+        Yields:
+            bytes: SSE 事件流数据
+        """
+        raise NotImplementedError("Subclasses must implement parse_document method")

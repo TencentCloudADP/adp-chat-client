@@ -1,5 +1,7 @@
 import logging
+import re
 from typing import Any
+from urllib.parse import quote
 from sqlalchemy.ext.asyncio import AsyncSession
 from sanic.request.types import Request
 import asyncio
@@ -7,6 +9,7 @@ import aiohttp
 import json
 from util.tca import tc_request
 from util.warehouse import AsyncWareHouseS3
+from util.cos import upload, get_presigned_download_url, get_presigned_preview_url
 
 from core.completion import CoreCompletion
 from config import tagentic_config
@@ -461,6 +464,125 @@ class TCADP(BaseVendor):
         }
         return Record.model_validate(record_payload)
 
+    # =========================================================================
+    # 通用转发方法
+    # =========================================================================
+
+    async def forward_request(
+        self,
+        action: str,
+        payload: dict = None,
+        service: str = "lke",
+        *,
+        version: str = None,
+        response_key: str = None,
+        raise_on_error: bool = True,
+        variables: dict = None,
+    ) -> dict:
+        """通用腾讯云 API 转发方法（公开接口）
+
+        将请求转发到腾讯云后端接口，统一处理签名、错误检查和响应解析。
+        当前端传入的 Action 名称没有对应的具体实现方法时，可直接通过此方法转发。
+
+        Args:
+            action: 腾讯云 API Action 名称，如 "GetMsgRecord"、"RateMsgRecord"
+            payload: 请求参数字典，为 None 时传空 dict
+            service: 服务名称，默认 "lke"，用于选择签名配置
+            version: API 版本号，为 None 时使用 service 配置中的默认版本
+            response_key: 如果指定，从 Response 中提取该 key 的值返回；
+                         为 None 时返回整个 Response dict
+            raise_on_error: 为 True 时遇到 Error 抛异常；为 False 时返回包含 Error 的原始响应
+            variables: 模板变量字典，用于替换 action_version.json 配置中的 {{VAR}} 占位符，
+                      如 {"APP_KEY": "xxx", "ACCOUNT_ID": "yyy"}
+
+        Returns:
+            dict: 腾讯云 API 响应的 Response 部分（或 response_key 对应的子结构）
+
+        Raises:
+            Exception: 当 raise_on_error=True 且响应包含 Error 时抛出
+        """
+        if payload is None:
+            payload = {}
+
+        logging.info(f'[TCADP.forward_request] action={action}, service={service}, version={version}, payload={payload}')
+        resp = await tc_request(self.tc_config(), action, payload, service, version, variables=variables)
+        response = resp.get('Response', resp)
+
+        if 'Error' in response:
+            logging.error(f'[TCADP.forward_request] action={action} error={response["Error"]}')
+            if raise_on_error:
+                error_msg = response['Error'].get('Message', str(response['Error']))
+                raise Exception(f'{action} failed: {error_msg}')
+            return response
+
+        if response_key is not None:
+            return response.get(response_key)
+
+        return response
+
+    # 保留内部别名，兼容已重构的方法
+    _forward_request = forward_request
+
+    # =========================================================================
+    # 实时文档解析
+    # =========================================================================
+
+    async def parse_document(
+        self,
+        account_id: str,
+        file_name: str,
+        file_type: str,
+        file_url: str = '',
+        cos_bucket: str = '',
+        cos_url: str = '',
+        e_tag: str = '',
+        cos_hash: str = '',
+        size: str = '0',
+        conversation_id: str = '',
+    ):
+        """代理 LKE 的实时文档解析 SSE 接口
+
+        上传文件到 COS 后，调用此方法进行文档解析获取 doc_id。
+        Standard 模式下发送消息时需要传入 doc_id 让大模型正确解析文件。
+        """
+        tc_cfg = self.tc_config()
+        # docParse SSE 端点与 chat SSE 同域，路径为 /v1/qbot/chat/docParse
+        sse_base = tc_cfg['sse'].rsplit('/adp/', 1)[0] if '/adp/' in tc_cfg['sse'] else tc_cfg['sse'].rsplit('/v1/', 1)[0] if '/v1/' in tc_cfg['sse'] else tc_cfg['sse']
+        doc_parse_url = f"{sse_base}/v1/qbot/chat/docParse"
+
+        data = {
+            "cos_bucket": cos_bucket,
+            "file_type": file_type,
+            "file_name": file_name,
+            "cos_url": cos_url,
+            "e_tag": e_tag,
+            "cos_hash": cos_hash,
+            "size": size,
+            "bot_app_key": self.config['AppKey'],
+        }
+        if conversation_id:
+            data["session_id"] = conversation_id
+
+        logging.info(f"[parse_document] url={doc_parse_url}, file_name={file_name}")
+
+        timeout = aiohttp.ClientTimeout(total=120)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(
+                doc_parse_url,
+                headers={"Content-Type": "application/json", "Accept": "text/event-stream"},
+                data=json.dumps(data)
+            ) as resp:
+                if resp.status != 200:
+                    error_text = await resp.text()
+                    logging.error(f"[parse_document] failed: status={resp.status}, body={error_text}")
+                    yield f'data: {json.dumps({"type": "error", "payload": {"doc_id": "0", "process": 0, "status": "FAILED", "error_message": f"Parse request failed: {resp.status}"}})}\n\n'.encode('utf-8')
+                    return
+
+                async for line in resp.content:
+                    decoded = line.decode('utf-8')
+                    if decoded.strip():
+                        yield f'{decoded}\n'.encode('utf-8') if not decoded.endswith('\n') else decoded.encode('utf-8')
+
     # ApplicationInterface
     @classmethod
     def get_vendor(self) -> str:
@@ -475,15 +597,21 @@ class TCADP(BaseVendor):
         resp = await tc_request(self.tc_config(), action, payload)
         if 'Error' in resp['Response']:
             logging.error(resp)
-        else:
-            BotBizId = resp['Response']['BotBizId']
-            self.config['BotBizId'] = BotBizId
+            return ApplicationInfo(
+                ApplicationId=self.application_id,
+                Name='Unknown',
+                Greeting='Please check your AppKey/SseURL/TC_SECRET_ID/TC_SECRET_KEY',
+            )
 
-            action = "DescribeApp"
-            payload = {
-                "AppBizId": BotBizId,
-            }
-            resp = await tc_request(self.tc_config(), action, payload)
+        BotBizId = resp['Response']['BotBizId']
+        self.config['BotBizId'] = BotBizId
+
+        action = "DescribeAppConf"
+        payload = {
+            "AppBizId": BotBizId,
+            "AppType": "knowledge_qa",
+        }
+        resp = await tc_request(self.tc_config(), action, payload)
 
         if 'Error' in resp['Response']:
             logging.error(resp)
@@ -492,14 +620,44 @@ class TCADP(BaseVendor):
                 Name='Unknown',
                 Greeting='Please check your AppKey/SseURL/TC_SECRET_ID/TC_SECRET_KEY',
             )
-        else:
-            return ApplicationInfo(
-                ApplicationId=self.application_id,
-                Name=resp['Response']['BaseConfig']['Name'],
-                Avatar=resp['Response']['BaseConfig']['Avatar'],
-                Greeting=resp['Response']['AppConfig']['KnowledgeQa']['Greeting'],
-                OpeningQuestions=resp['Response']['AppConfig']['KnowledgeQa']['OpeningQuestions'],
-            )
+
+        response = resp['Response']
+        app_config = response.get('AppConfig', {})
+        base_config = response.get('BaseConfig', {})
+
+        # V2 格式：从 app_config 中提取配置
+        base = app_config.get('Base', {})
+        greeting_config = app_config.get('Greeting', {})
+        conversation_experience = app_config.get('ConversationExperience', {})
+        search_engine = app_config.get('SearchEngine', {})
+
+        # 输入框配置
+        input_box_config = conversation_experience.get('InputBoxConfig', {})
+        input_box_buttons = input_box_config.get('InputBoxButtons', [])
+
+        from vendor.interface import InputBoxButton, InputBoxConfig
+        buttons = []
+        for btn in input_box_buttons:
+            if isinstance(btn, dict):
+                buttons.append(InputBoxButton(Type=btn.get('Type', 0), Name=btn.get('Name')))
+            elif isinstance(btn, int):
+                buttons.append(InputBoxButton(Type=btn))
+            else:
+                buttons.append(InputBoxButton(Type=int(btn)))
+
+        return ApplicationInfo(
+            ApplicationId=self.application_id,
+            Name=base_config.get('Name') or base.get('Name', ''),
+            Avatar=base_config.get('Avatar') or base.get('Avatar', ''),
+            Greeting=greeting_config.get('Greeting'),
+            OpeningQuestions=greeting_config.get('OpeningQuestions', []),
+            Pattern=base.get('Pattern'),
+            AppStatus=response.get('AppStatus'),
+            AgentType=response.get('AgentType'),
+            InputBox=InputBoxConfig(InputBoxButtons=buttons) if buttons else None,
+            EnableWebSearch=search_engine.get('UseSearchEngine', False),
+            EnableAudit=base.get('EnableAudit', False),
+        )
 
     # MessageInterface - V2 Protocol
     async def get_messages(
@@ -508,7 +666,8 @@ class TCADP(BaseVendor):
         account_id: str,
         conversation_id: str,
         limit: int, last_record_id: str = None
-    ) -> list[Record]:
+    ) -> list[dict]:
+        """获取历史消息列表，透传 GetMsgRecord 上游返回的所有字段"""
         action = "GetMsgRecord"
         payload = {
             "Type": 5,
@@ -525,12 +684,109 @@ class TCADP(BaseVendor):
         records = []
         for record_data in resp['Response']['Records']:
             if self._is_v2_record(record_data):
-                record = Record.model_validate(record_data)
+                records.append(record_data)
             else:
-                logging.error(json.dumps(record_data))
-                record = self._convert_legacy_record(record_data, conversation_id)
-            records.append(record)
+                converted = self._convert_legacy_record(record_data, conversation_id)
+                result = converted.model_dump(exclude_none=True)
+                # 将上游原始字段补充到转换结果中（不覆盖已转换的字段）
+                for key, value in record_data.items():
+                    if key not in result and value is not None:
+                        result[key] = value
+                records.append(result)
         return records
+
+    async def get_messages_v2(
+        self,
+        db: AsyncSession,
+        account_id: str,
+        conversation_id: str,
+        limit: int,
+        last_record_id: str = None
+    ) -> dict:
+        """通过 DescribeConversationMessageList 获取完整 V2 格式历史消息（含 tool_call/Procedures 等）
+
+        返回数据会按 RecordId 分组，转换为前端 V2 Record 格式。
+        如果上游已经返回的是分组后的 Record 格式（含 Messages 数组），则直接透传。
+        """
+        action = "DescribeConversationMessageList"
+        payload = {
+            "ConversationId": conversation_id,
+            "Limit": limit,
+            "Type": 5,
+            "UserId": account_id,
+            "AppKey": self.config['AppKey'],
+            "RecordQueryDirection": 1,
+        }
+        if last_record_id:
+            payload['RecordId'] = last_record_id
+
+        resp = await tc_request(self.tc_config(), action, payload, version='2025-11-12')
+        response = resp.get('Response', resp)
+        if 'Error' in response:
+            raise Exception(response['Error'])
+
+        raw_messages = response.get('Messages', [])
+        records = self._convert_messages_to_records(raw_messages, conversation_id)
+
+        return {
+            'Records': records,
+            'HasMoreBefore': response.get('HasMoreBefore', False),
+            'HasMoreAfter': response.get('HasMoreAfter', False),
+            'FirstRecordId': response.get('FirstRecordId', ''),
+            'LastRecordId': response.get('LastRecordId', ''),
+        }
+
+    @staticmethod
+    def _convert_messages_to_records(messages: list, conversation_id: str) -> list:
+        """将 DescribeConversationMessageList 返回的消息列表转换为 V2 Record 格式
+
+        上游可能返回两种格式：
+        1. 已分组的 Record 格式（含 Role/RecordId/Messages 字段） → 直接透传
+        2. 扁平的 ConversationMessage 格式（每条含 RecordId 标识归属） → 按 RecordId 分组
+        """
+        if not messages:
+            return []
+
+        first = messages[0]
+        # 判断是否已经是分组的 Record 格式
+        if 'Messages' in first and isinstance(first.get('Messages'), list):
+            return messages
+
+        # 扁平格式：按 RecordId 分组
+        from collections import OrderedDict
+        groups: OrderedDict = OrderedDict()
+
+        for msg in messages:
+            record_id = msg.get('RecordId', '')
+            if not record_id:
+                continue
+
+            if record_id not in groups:
+                groups[record_id] = {
+                    'Role': msg.get('Role', 'assistant'),
+                    'RecordId': record_id,
+                    'ConversationId': msg.get('ConversationId', conversation_id),
+                    'Status': msg.get('Status', 'completed'),
+                    'StatusDesc': msg.get('StatusDesc', ''),
+                    'Messages': [],
+                    'ExtraInfo': msg.get('ExtraInfo'),
+                }
+
+            # 将当前 message 作为 Record.Messages 中的一条
+            groups[record_id]['Messages'].append({
+                'Type': msg.get('Type', 'reply'),
+                'MessageId': msg.get('MessageId', ''),
+                'Name': msg.get('Name', ''),
+                'Title': msg.get('Title', ''),
+                'Icon': msg.get('Icon', ''),
+                'Status': msg.get('Status', 'completed'),
+                'StatusDesc': msg.get('StatusDesc', ''),
+                'Contents': msg.get('Contents', []),
+                'ExtraInfo': msg.get('ExtraInfo'),
+                'RecordId': record_id,
+            })
+
+        return list(groups.values())
 
     # ChatInterface - V2 Protocol
     async def chat(
@@ -553,6 +809,15 @@ class TCADP(BaseVendor):
             yield to_event(EventType.CONVERSATION, conversation=conversation, is_new_conversation=True)
             conversation_id = str(conversation.Id)
 
+        if not conversation_id:
+            logging.error(f"[TCADP.chat] ConversationId is empty after creation, aborting SSE request")
+            error_info = ErrorInfo(Code=400, Message="ConversationId is required")
+            yield to_event(EventType.ERROR, error=error_info)
+            return
+
+        if not account_id:
+            account_id = "anonymous"
+
         timeout = aiohttp.ClientTimeout(total=None, sock_read=tagentic_config.SERVER_RESPONSE_TIMEOUT)
         async with aiohttp.ClientSession(read_bufsize=1*1024*1024, timeout=timeout) as session:
             param = {
@@ -564,6 +829,7 @@ class TCADP(BaseVendor):
                 "VisitorId": account_id,
                 "Stream": "enable",
             }
+            logging.info(f"[TCADP.chat] SSE param: ConversationId={conversation_id!r}, VisitorId={account_id!r}, is_new={is_new_conversation}")
             headers = {
                 "Accept": "text/event-stream",
                 "Content-Type": "application/json",
@@ -627,40 +893,379 @@ class TCADP(BaseVendor):
         except Exception as e:
             logging.error(f'failed to summarize conversation title. error: {e}')
 
-    # FileInterface:
-    async def upload(self, db: AsyncSession, request: Request, account_id: str, mime_type: str) -> str:
-        action = "DescribeStorageCredential"
-        payload = {
-            "BotBizId": self.config['BotBizId'],
-            "FileType": mime_type.split("/")[-1],
-            "IsPublic": True,
-            "TypeKey": 'realtime',
+    # FilesystemInterface:
+    async def list_dir(self, app_id: str, path: str, depth: int = 1, workspace_id = "") -> dict:
+        """调用 CreateWorkspaceCredential 获取凭证后，再请求 ListDir 接口获取目录列表
+
+        Args:
+            app_id: 前端传入的 ApplicationId
+            path: 目录路径，如 /workdir 或更深的子路径
+            depth: 遍历深度，默认 1
+
+        Returns:
+            dict: ListDir 接口返回的 JSON 数据，包含 entries 列表
+
+        Raises:
+            Exception: 当凭证获取或 ListDir 请求失败时抛出
+        """
+        # Step 1: 通过通用转发协议调用 CreateWorkspaceCredential 获取凭证
+        credential_payload = {
+            "AppId": app_id,
+            "Type": 2,
+            "WorkspaceId": workspace_id
         }
+        credential_resp = await self.forward_request(
+            action="CreateWorkspaceCredential",
+            payload=credential_payload,
+        )        
+        logging.info(f'credential_resp: {credential_resp}')
+        # 解析凭证信息
+        credential = credential_resp.get('Credential', {})
+        sandbox_storage = credential_resp.get('SandboxStorage', {})
+
+        access_token = credential.get('AccessToken', '')
+        domain = sandbox_storage.get('Domain', '')
+        token_tag = sandbox_storage.get('TokenTag', '')
+
+        if not access_token or not domain or not token_tag:
+            raise Exception(
+                f'CreateWorkspaceCredential 返回数据不完整: '
+                f'AccessToken={bool(access_token)}, Domain={domain}, TokenTag={token_tag}'
+            )
+
+        # Step 2: 使用 Domain + TokenTag + AccessToken 拼接调用 ListDir
+        url = f"{domain}/filesystem.Filesystem/ListDir"
+        headers = {
+            "Content-Type": "application/json",
+            token_tag: access_token,  # 如 "X-File-Ticket": "<token>"
+        }
+        payload = {"path": path, "depth": depth}
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url,
+                json=payload,
+                headers=headers,
+                ssl=False,
+            ) as resp:
+                data = await resp.json()
+                if resp.status != 200:
+                    logging.error(
+                        f'[TCADP.list_dir] path={path} status={resp.status} resp={data}'
+                    )
+                    raise Exception(
+                        f'ListDir failed: status={resp.status}, '
+                        f'code={data.get("code")}, message={data.get("message")}'
+                    )
+                return data
+
+    async def fetch_file(self, app_id: str, workspace_id: str, path: str) -> dict:
+        """通过 /files 接口获取文件内容
+
+        流程：
+            1. 先调用 CreateWorkspaceCredential 获取凭证
+            2. 使用凭证拼接 GET {domain}{path} 获取文件
+
+        Args:
+            app_id: 应用 ID
+            workspace_id: 工作空间 ID
+            path: 文件路径，如 /workdir/main.py
+
+        Returns:
+            dict: 包含 status_code、content_type 和 content 的字典
+
+        Raises:
+            Exception: 当请求失败时抛出
+        """
+        # Step 1: 获取凭证
+        credential_payload = {
+            "AppId": app_id,
+            "Type": 2,
+            "WorkspaceId": workspace_id
+        }
+        credential_resp = await self.forward_request(
+            action="CreateWorkspaceCredential",
+            payload=credential_payload,
+        )
+        logging.info(f'[fetch_file] credential_resp: {credential_resp}')
+
+        # 解析凭证信息
+        credential = credential_resp.get('Credential', {})
+        sandbox_storage = credential_resp.get('SandboxStorage', {})
+
+        access_token = credential.get('AccessToken', '')
+        domain = sandbox_storage.get('Domain', '')
+        token_tag = sandbox_storage.get('TokenTag', '')
+
+        if not access_token or not domain or not token_tag:
+            raise Exception(
+                f'CreateWorkspaceCredential 返回数据不完整: '
+                f'AccessToken={bool(access_token)}, Domain={domain}, TokenTag={token_tag}'
+            )
+
+        # Step 2: 使用 Domain + TokenTag + AccessToken 调用 GET {domain}/files?path=<path>
+        url = f"{domain}/files"
+        params = {
+            "path": path,
+        }
+        headers = {
+            token_tag: access_token,
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url,
+                params=params,
+                headers=headers,
+                ssl=False,
+            ) as resp:
+                content_type = resp.headers.get('Content-Type', '')
+                content = await resp.read()  # 使用 read() 获取原始字节
+                if resp.status != 200:
+                    text = content.decode('utf-8', errors='replace')[:200]
+                    logging.error(
+                        f'[TCADP.fetch_file] path={path} status={resp.status} resp={text}'
+                    )
+                    raise Exception(
+                        f'fetch_file failed: status={resp.status}, content={text}'
+                    )
+
+                # Step 3: 上传到 COS，路径为 app_id/path
+                cos_key = f"{app_id}/{path}"  # 如 2059173834404121408/workdir/main.py
+                # 去掉连续的 / 并去掉开头的 /
+                cos_key = re.sub(r'/+', '/', cos_key).lstrip('/')
+                download_url = ''
+                preview_url = ''
+                try:
+                    import io
+                    stream = io.BytesIO(content)
+                    # 转存有时间消耗，暂时先不加 mq 了
+                    upload(
+                        stream=stream,
+                        path=cos_key,
+                        if_changed=True,
+                    )
+                    logging.info(f'[TCADP.fetch_file] uploaded to COS: {cos_key}')
+                    # 生成预签名下载链接
+                    download_url = get_presigned_download_url(key=cos_key)
+                    logging.info(f'[TCADP.fetch_file] download URL: {download_url}')
+                    # 生成预览链接（通过 CI 服务获取 WebOffice 预览地址）
+                    preview_url = get_presigned_preview_url(key=cos_key)
+                    logging.info(f'[TCADP.fetch_file] preview URL: {preview_url}')
+                except Exception as e:
+                    logging.error(f'[TCADP.fetch_file] upload to COS failed: {e}')
+
+                return {
+                    "status_code": resp.status,
+                    "content_type": content_type,
+                    "cos_url": download_url,
+                    "preview_url": preview_url,
+                }
+
+    async def download_file_content(self, app_id: str, workspace_id: str, path: str) -> tuple:
+        """从工作空间下载文件原始内容（不经过 COS 转存）
+
+        用于后端代理下载场景：后端直接返回文件内容给前端，避免 COS 跨域问题。
+
+        Args:
+            app_id: 应用 ID
+            workspace_id: 工作空间 ID
+            path: 文件路径，如 /workdir/main.py
+
+        Returns:
+            tuple: (content_bytes, content_type, file_name)
+                - content_bytes: 文件原始字节
+                - content_type: MIME 类型
+                - file_name: 文件名
+
+        Raises:
+            Exception: 当请求失败时抛出
+        """
+        # Step 1: 获取凭证
+        credential_payload = {
+            "AppId": app_id,
+            "Type": 2,
+            "WorkspaceId": workspace_id
+        }
+        credential_resp = await self.forward_request(
+            action="CreateWorkspaceCredential",
+            payload=credential_payload,
+        )
+        logging.info(f'[download_file_content] credential_resp received')
+
+        # 解析凭证信息
+        credential = credential_resp.get('Credential', {})
+        sandbox_storage = credential_resp.get('SandboxStorage', {})
+
+        access_token = credential.get('AccessToken', '')
+        domain = sandbox_storage.get('Domain', '')
+        token_tag = sandbox_storage.get('TokenTag', '')
+
+        if not access_token or not domain or not token_tag:
+            raise Exception(
+                f'CreateWorkspaceCredential 返回数据不完整: '
+                f'AccessToken={bool(access_token)}, Domain={domain}, TokenTag={token_tag}'
+            )
+
+        # Step 2: 下载文件
+        url = f"{domain}/files"
+        params = {"path": path}
+        headers = {token_tag: access_token}
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url,
+                params=params,
+                headers=headers,
+                ssl=False,
+            ) as resp:
+                content_type = resp.headers.get('Content-Type', 'application/octet-stream')
+                content = await resp.read()
+                if resp.status != 200:
+                    text = content.decode('utf-8', errors='replace')[:200]
+                    logging.error(
+                        f'[TCADP.download_file_content] path={path} status={resp.status} resp={text}'
+                    )
+                    raise Exception(
+                        f'download_file_content failed: status={resp.status}, content={text}'
+                    )
+
+                # 从路径中提取文件名
+                file_name = path.rsplit('/', 1)[-1] if '/' in path else path
+                logging.info(
+                    f'[TCADP.download_file_content] path={path} size={len(content)} '
+                    f'content_type={content_type}'
+                )
+                return content, content_type, file_name
+
+    @staticmethod
+    def _resolve_file_type(mime_type: str) -> str:
+        """将 MIME 类型转换为腾讯云 DescribeStorageCredential 接受的文件扩展名"""
+        mime_to_ext = {
+            'image/png': 'png',
+            'image/jpg': 'jpg',
+            'image/jpeg': 'jpeg',
+            'image/bmp': 'bmp',
+            'image/webp': 'webp',
+            'image/gif': 'gif',
+            'image/tiff': 'tiff',
+            'application/pdf': 'pdf',
+            'application/msword': 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+            'application/vnd.ms-powerpoint': 'ppt',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+            'application/vnd.ms-excel': 'xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+            'text/plain': 'txt',
+            'text/markdown': 'md',
+            'text/csv': 'csv',
+            'application/json': 'json',
+        }
+        ext = mime_to_ext.get(mime_type)
+        if ext:
+            return ext
+        if mime_type.startswith('image/'):
+            return mime_type.split('/')[-1]
+        return mime_type.split('/')[-1]
+
+    # FileInterface:
+    async def upload(self, db: AsyncSession, request: Request, account_id: str, mime_type: str, mode: str = 'standard') -> str:
+        action = "DescribeStorageCredential"
+        file_type = self._resolve_file_type(mime_type)
+
+        # claw/agent 模式使用 BotBizId='0' + IsPublic=True，确保文件在公有桶中可被 Claw Agent 下载
+        if mode == 'claw':
+            payload = {
+                "BotBizId": '0',
+                "FileType": file_type,
+                "IsPublic": True,
+                "TypeKey": 'realtime',
+            }
+        else:
+            payload = {
+                "BotBizId": self.config['BotBizId'],
+                "FileType": file_type,
+                "IsPublic": True,
+                "TypeKey": 'realtime',
+            }
         resp = await tc_request(self.tc_config(), action, payload)
         resp = resp['Response']
         if 'Error' in resp:
             logging.error(resp)
             raise Exception(resp['Error']['Message'])
 
-        cos = AsyncWareHouseS3(
-            secretId=resp['Credentials']['TmpSecretId'],
-            secretKey=resp['Credentials']['TmpSecretKey'],
-            tmpToken=resp['Credentials']['Token'],
-            region=resp['Region'],
-            bucket=resp['Bucket'],
-            config=self.tc_config()['cos'],
+        logging.info(f"DescribeStorageCredential mode={mode}, response keys: {[k for k in resp.keys() if k != 'Credentials']}")
+        logging.info(f"DescribeStorageCredential UploadPath: {resp.get('UploadPath')}, FileUrl: {resp.get('FileUrl')}, UploadUrl: {resp.get('UploadUrl')}, DownloadUrl: {resp.get('DownloadUrl')}")
+
+        # 读取完整请求体
+        file_data = bytearray()
+        while True:
+            body = await request.stream.read()
+            if body is None:
+                break
+            file_data += body
+
+        logging.info(f"upload: file size {len(file_data)} bytes")
+
+        # 使用 DescribeStorageCredential 返回的 UploadUrl（已签名）直接 PUT 上传
+        upload_url = resp.get('UploadUrl')
+        if upload_url:
+            import aiohttp
+            async with aiohttp.ClientSession() as session:
+                async with session.put(
+                    upload_url,
+                    data=bytes(file_data),
+                    headers={'Content-Length': str(len(file_data))}
+                ) as put_resp:
+                    if put_resp.status not in (200, 201, 204):
+                        text = await put_resp.text()
+                        logging.error(f"upload PUT failed: status={put_resp.status}, body={text}")
+                        raise Exception(f"File upload failed: {put_resp.status}")
+        else:
+            # 回退到 S3 SDK 简单上传
+            cos = AsyncWareHouseS3(
+                secretId=resp['Credentials']['TmpSecretId'],
+                secretKey=resp['Credentials']['TmpSecretKey'],
+                tmpToken=resp['Credentials']['Token'],
+                region=resp['Region'],
+                bucket=resp['Bucket'],
+                config=self.tc_config()['cos'],
+            )
+            await cos.put(resp['UploadPath'], bytes(file_data))
+
+        # 优先使用 DescribeStorageCredential 返回的 FileUrl（LKE 平台可识别的地址）
+        url = resp.get('FileUrl') or resp.get('file_url') or (
+            f"https://{resp['Bucket']}.cos.{resp['Region']}.myqcloud.com{resp['UploadPath']}"
         )
+        cos_url = resp.get('UploadPath', '')
 
-        async with cos.put_multipart(resp['UploadPath']) as uploader:
-            while True:
-                body = await request.stream.read()
-                if body is None:
-                    break
-                print(f'upload: {len(body)}')
-                await uploader.write(body)
+        # claw 模式：上传完成后需再次调用 DescribeStorageCredential 获取 DownloadUrl
+        # 对齐 webim openclaw 的 handleAgentDoc → cos.getDownloadUrl 逻辑
+        if mode == 'claw' and cos_url:
+            download_payload = {
+                "BotBizId": '0',
+                "FileType": file_type,
+                "IsPublic": True,
+                "TypeKey": 'realtime',
+                "CosUrl": cos_url,
+            }
+            try:
+                dl_resp = await tc_request(self.tc_config(), action, download_payload)
+                dl_resp = dl_resp['Response']
+                download_url = dl_resp.get('DownloadUrl') or dl_resp.get('FileUrl') or dl_resp.get('file_url')
+                if download_url:
+                    logging.info(f"claw mode DownloadUrl obtained: {download_url[:80]}...")
+                    url = download_url
+                else:
+                    logging.warning(f"claw mode: DownloadUrl not found in response, keys: {list(dl_resp.keys())}")
+            except Exception as e:
+                logging.warning(f"claw mode: failed to get DownloadUrl, using FileUrl. Error: {e}")
 
-        url = cos.get_full_url(resp['UploadPath'])
-        return url
+        return {
+            'Url': url,
+            'CosUrl': cos_url,
+            'CosBucket': resp.get('Bucket', ''),
+        }
 
     # FeedbackInterface
     async def rate(
@@ -735,11 +1340,21 @@ class TCADP(BaseVendor):
         private = self.config.get('Private', False)
         private_url = self.config.get('PrivateUrl', '')
         international = self.config.get('International', False)
+        custom = self.config.get('Custom', False)
         if international:
             return service_configs['International']
         if private:
             config = json.loads(json.dumps(service_configs['Private']))
             config = self.tc_config_private_url(config, private_url)
+            return config
+        if custom:
+            config = json.loads(json.dumps(service_configs['China']))
+            if self.config.get('CustomLkeUrl'):
+                config['lke']['url'] = self.config['CustomLkeUrl']
+            if self.config.get('CustomLkeapUrl'):
+                config['lkeap']['url'] = self.config['CustomLkeapUrl']
+            if self.config.get('CustomSseUrl'):
+                config['sse'] = self.config['CustomSseUrl']
             return config
         return service_configs['China']
 
@@ -775,8 +1390,8 @@ service_configs = {
             "version": "2024-05-22"
         },
         'cos': {
-            'ep': 'http://cos.{region}.myqcloud.com',
-            'access': 'http://{bucket}.cos.{region}.myqcloud.com'
+            'ep': 'https://cos.{region}.myqcloud.com',
+            'access': 'https://{bucket}.cos.{region}.myqcloud.com'
         },
         'sse': 'https://wss.lke.tencentcloud.com/adp/v2/chat'
     },
@@ -792,8 +1407,8 @@ service_configs = {
             "version": "2024-05-22"
         },
         'cos': {
-            'ep': 'http://cos.{region}.myqcloud.com',
-            'access': 'http://{bucket}.cos.{region}.myqcloud.com'
+            'ep': 'https://cos.{region}.myqcloud.com',
+            'access': 'https://{bucket}.cos.{region}.myqcloud.com'
         },
         'sse': 'https://wss.lke.cloud.tencent.com/adp/v2/chat'
     }

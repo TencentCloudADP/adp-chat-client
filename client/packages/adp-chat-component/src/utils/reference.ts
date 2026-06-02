@@ -51,9 +51,11 @@ function collectType2References(records: Record[]): Reference[] {
   const references: Reference[] = []
   for (const record of records) {
     for (const message of record.Messages || []) {
+      if (!message) continue
       for (const content of message.Contents || []) {
+        if (!content) continue
         for (const reference of content.References || []) {
-          if (reference.Type === 2 && getReferenceId(reference)) {
+          if (reference && reference.Type === 2 && getReferenceId(reference)) {
             references.push(reference)
           }
         }

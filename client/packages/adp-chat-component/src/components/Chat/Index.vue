@@ -3,7 +3,7 @@
     <!-- 聊天内容容器 -->
     <div id="chat-content" class="chat-box">
         <!-- 聊天组件 -->
-        <TChat ref="chatRef" :class="{ isChatting: isChatting }" :reverse="false" style="height: 100%" :clear-history="false"
+        <TChat ref="chatRef" :class="{ isChatting: isChatting }" :reverse="false" style="height: 100%; flex: 1; min-width: 0;" :clear-history="false"
             @scroll="handleChatScroll" @clear="clearConfirm">
             <!-- 默认问题提示 -->
             <template v-if="chatList.length <= 0 && !messageLoading && !chatId">
@@ -54,6 +54,7 @@
                                 :isStreamLoad="isChatting" 
                                 :isMobile="isMobile"
                                 :theme="theme"
+                                :mode="props.mode"
                                 :language="props.language"
                                 :i18n="chatItemI18n"
                                 @resend="onResend"
@@ -96,26 +97,19 @@
                         </div>
                     </div>
                 </TCard>
-                <TLoading v-if="isUploading" class="upload-loading" size="small">
-                    <template #text>
-                        <span class="thinking-text">
-                            {{ `${i18n.uploading}...` }}
-                        </span>
-                    </template>
-                    <template #indicator>
-                        <CustomizedIcon class="thinking-icon" name="thinking" :theme="theme" nativeIcon :showHoverBg="false"/>
-                    </template>
-                </TLoading>
+
                 <Sender 
                     ref="senderRef" 
                     :isStreamLoad="isChatting" 
                     :isMobile="isMobile"
                     :theme="theme"
+                    :mode="props.mode"
                     :language="props.language"
                     :i18n="senderI18n"
                     :useInternalRecord="useInternalRecord"
                     :asrUrlApi="asrUrlApi"
                     :enableVoiceInput="props.enableVoiceInput"
+                    :isUploading="props.isUploading"
                     @stop="onStop"
                     @send="handleSend"
                     @uploadFile="handleUploadFile"
@@ -208,7 +202,6 @@ const {
     currentApplicationName,
     currentApplicationGreeting,
     currentApplicationOpeningQuestions,
-    currentApplicationId,
     isChatting,
     isOverlay,
     isMobile,
@@ -510,13 +503,30 @@ const extractRecordText = (record: Record): string => {
 /**
  * 重新发送消息
  */
-const onResend = (RelatedRecordId: string | undefined) => {
-    if (!RelatedRecordId) return;
-    const related = chatList.value.find((record: Record) => record.RecordId === RelatedRecordId)
-    if (!related) {
-        return
+const onResend = (RelatedRecordId: string | undefined, recordId?: string) => {
+    let related: Record | undefined;
+
+    if (RelatedRecordId) {
+        related = chatList.value.find((record: Record) => record.RecordId === RelatedRecordId);
     }
-    inputEnter(extractRecordText(related))
+
+    // 当 RelatedRecordId 为空或找不到对应记录时，通过 assistant 自身的 recordId 定位后向前查找 user 消息
+    if (!related) {
+        let searchStart = chatList.value.length - 1;
+        if (recordId) {
+            const idx = chatList.value.findIndex((record: Record) => record.RecordId === recordId);
+            if (idx >= 0) searchStart = idx;
+        }
+        for (let i = searchStart; i >= 0; i--) {
+            if (chatList.value[i]?.Role === 'user') {
+                related = chatList.value[i];
+                break;
+            }
+        }
+    }
+
+    if (!related) return;
+    inputEnter(extractRecordText(related));
 }
 
 /**
@@ -632,7 +642,7 @@ defineExpose({
     notifyLoaded,
     notifyComplete,
     backToBottom,
-    setHasUserScrolled: (value: boolean) => { hasUserScrolled.value = value }
+    setHasUserScrolled: (value: boolean) => { hasUserScrolled.value = value },
 })
 </script>
 
@@ -645,6 +655,7 @@ defineExpose({
 .chat-box {
     height: 100%;
     position: relative;
+    display: flex;
 }
 
 .chat-item__content {

@@ -5,6 +5,7 @@ from sanic.request.types import Request
 from util.helper import get_remote_ip, get_path_base
 from util.auth_cookie import add_auth_token_cookie
 from core.account import CoreAccount, CoreAccountProvider
+from core.error.account import AccountUnauthorized
 from config import tagentic_config
 from router import check_login, auto_login
 from app_factory import TAgenticApp
@@ -69,6 +70,9 @@ class AccountInfoApi(HTTPMethodView):
             check_login(request)
 
         account = await CoreAccount.get(request.ctx.db, request.ctx.account_id)
+
+        if account is None:
+            raise AccountUnauthorized()
 
         account.Password = None
         account.PasswordSalt = None

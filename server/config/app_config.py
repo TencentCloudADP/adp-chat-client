@@ -83,6 +83,17 @@ class TAgenticConfig(
         default="",
     )
 
+    # COS 对象存储配置（SecretId/SecretKey 复用 TC_SECRET_ID / TC_SECRET_KEY）
+    COS_REGION: str = Field(
+        description="COS 存储桶所在地域，如 ap-beijing、ap-guangzhou",
+        default="ap-guangzhou",
+    )
+
+    COS_BUCKET: str = Field(
+        description="COS 存储桶名称，格式为 BucketName-APPID，如 mybucket-1250000000",
+        default="",
+    )
+
     model_config = SettingsConfigDict(
         # read from dotenv format config file
         env_file=".env",

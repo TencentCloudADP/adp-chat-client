@@ -1,16 +1,20 @@
 <!-- 聊天消息项组件，支持 Markdown、深度思考、操作按钮等 -->
 <script setup lang="tsx">
 import { ref, computed, watch } from 'vue';
-import type { Content, Message, QuoteInfo, Record as RecordV2, Reference as ReferenceV2 } from '../../model/chat-v2';
+import type { Content, Message, QuoteInfo, Record as RecordV2, Reference as ReferenceV2, FileInfo } from '../../model/chat-v2';
 import { ScoreValue } from '../../model/chat-v2';
-import type { CommonLayoutProps, ChatItemI18n } from '../../model/type';
+import type { CommonLayoutProps, ChatItemI18n, ChatMode } from '../../model/type';
 import { commonLayoutPropsDefaults, defaultChatItemI18n } from '../../model/type';
 import {  ChatItem as TChatItem } from '@tdesign-vue-next/chat';
 import { Tooltip, Loading as TLoading, Link as TLink, Dialog as TDialog } from 'tdesign-vue-next';
 import OptionCard from '../Common/OptionCard.vue';
 import MdContent from '../Common/MdContent.vue';
+import MessageFileCard from '../Common/MessageFileCard.vue';
+import AssistantFileCard from '../Common/AssistantFileCard.vue';
 import WidgetActionTag from '../Common/WidgetActionTag.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
+import CollapsibleMessageGroup from './CollapsibleMessageGroup.vue';
+import type { CollapseKind } from './CollapsibleMessageGroup.vue';
 import { widgetContentToMarkdown } from '../../utils/mergeRecord-v2';
 
 interface Props extends CommonLayoutProps {
@@ -30,12 +34,15 @@ interface Props extends CommonLayoutProps {
     i18n?: ChatItemI18n;
     /** 当前语言标识（如 'zh-CN'、'en-US'），用于 widget 国际化 */
     language?: string;
+    /** 聊天模式：claw-简化模式, standard-标准模式 */
+    mode?: ChatMode;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     isLastMsg: false,
     showActions: true,
     language: 'zh-CN',
+    mode: 'standard',
     ...commonLayoutPropsDefaults,
     i18n: () => ({}),
 });
@@ -47,7 +54,7 @@ const i18n = computed(() => ({
 }));
 
 const emit = defineEmits<{
-    (e: 'resend', relatedRecordId: string | undefined): void;
+    (e: 'resend', relatedRecordId: string | undefined, recordId: string | undefined): void;
     (e: 'share', recordIds: string[]): void;
     (e: 'rate', record: RecordV2, score: typeof ScoreValue[keyof typeof ScoreValue]): void;
     (e: 'copy', rowtext: string | undefined, content: string | undefined, type: string): void;
@@ -124,7 +131,121 @@ const reasoningMessages = computed(() => {
     return messages.value.filter((msg) => msg.Type === 'thought');
 });
 
-const reasoningContents = computed(() => {    
+/**
+ * 根据消息类型和工具名称返回折叠分类
+ * 支持 tool_call、task_execution、thought 类型
+ */
+function getCollapseKindForMsg(msg: Message): CollapseKind | '' {
+    if (msg.Type === 'thought') return 'thought';
+    if (msg.Type !== 'tool_call' && msg.Type !== 'task_execution') return '';
+    const toolName = msg.ExtraInfo?.ToolName || '';
+    if (['websearch', 'web_search'].includes(toolName)) return 'search';
+    if (['read', 'grep', 'glob'].includes(toolName)) return 'read';
+    if (['write', 'edit'].includes(toolName)) return 'write';
+    return 'tools';
+}
+
+/**
+ * 渲染项类型
+ */
+interface RenderItem {
+    kind: 'collapse' | 'reply';
+    collapseKind?: CollapseKind;
+    messages?: Message[];
+    message?: Message;
+}
+
+/**
+ * 将 Record.Messages 拆分为渲染项列表：
+ * - 连续的 tool_call/thought 归入同一个折叠组
+ * - reply 独立渲染
+ * 无论 mode 是 claw 还是 standard，只要有 tool_call 就启用分组渲染
+ */
+const renderItems = computed<RenderItem[]>(() => {
+    if (isFromSelf.value) return [];
+
+    const list = messages.value;
+    if (list.length === 0) return [];
+
+    const hasToolCall = list.some(m => m.Type === 'tool_call' || m.Type === 'task_execution');
+    if (!hasToolCall) return [];
+
+    const items: RenderItem[] = [];
+    let collapseBuffer: Message[] = [];
+
+    const flushCollapse = () => {
+        if (collapseBuffer.length > 0) {
+            items.push({
+                kind: 'collapse',
+                collapseKind: 'mixed',
+                messages: [...collapseBuffer],
+            });
+            collapseBuffer = [];
+        }
+    };
+
+    for (const msg of list) {
+        const collapseKind = getCollapseKindForMsg(msg);
+
+        if (collapseKind === '') {
+            // reply / question / recommendation / notice — 不可折叠
+            if (msg.Type === 'reply') {
+                flushCollapse();
+                items.push({ kind: 'reply', message: msg });
+            }
+            // 其他类型暂不处理
+        } else if (collapseKind === 'thought' && !hasToolCall) {
+            // 没有 tool_call 时，thought 不进入折叠组（由原有 reasoning 逻辑处理）
+            continue;
+        } else {
+            // 可折叠消息：tool_call 或 thought（有 tool_call 时）
+            collapseBuffer.push(msg);
+        }
+    }
+
+    // 最后一组折叠消息
+    flushCollapse();
+
+    return items;
+});
+
+/**
+ * 是否使用分组渲染模式（有 tool_call/task_execution 消息时启用，不限制 mode）
+ * 确保历史对话和 SSE 对话保持一致的渲染规则
+ */
+const useClawRender = computed(() => {
+    if (isFromSelf.value) return false;
+    return messages.value.some(m => m.Type === 'tool_call' || m.Type === 'task_execution');
+});
+
+/**
+ * 判断最后一个折叠组是否处于流式状态
+ */
+const isLastCollapseStreaming = computed(() => {
+    if (!useClawRender.value) return false;
+    if (!props.isLastMsg || !props.isStreamLoad) return false;
+    const items = renderItems.value;
+    if (items.length === 0) return false;
+    return items[items.length - 1]!.kind === 'collapse';
+});
+
+/**
+ * 判断是否任务终止（最后是折叠组，无后续 reply，且 Record 已完成）
+ */
+const isTerminated = computed(() => {
+    if (!useClawRender.value) return false;
+    if (record.value.Status === 'processing') return false;
+    const items = renderItems.value;
+    if (items.length === 0) return false;
+    const lastItem = items[items.length - 1]!;
+    if (lastItem.kind !== 'collapse') return false;
+    // 有错误状态时视为终止
+    return record.value.Status === 'error' || record.value.Status === 'failed';
+});
+
+const reasoningContents = computed(() => {
+    // claw 模式下，thought 已在折叠组中渲染，不再显示独立的 reasoning 面板
+    if (useClawRender.value) return [];
     return reasoningMessages.value
         .map((msg) => extractMessageText(msg))
         .filter((text) => text.length > 0);
@@ -145,16 +266,98 @@ const optionCards = computed(() => {
     return collectFromMessageContents(primaryMessage.value, (content) => content.OptionCards ?? []);
 });
 
+const fileAttachments = computed<FileInfo[]>(() => {
+    const files: FileInfo[] = [];
+    const seen = new Set<string>();
+    const msgs = isFromSelf.value ? [primaryMessage.value] : [primaryMessage.value];
+    for (const msg of msgs) {
+        if (!msg?.Contents?.length) continue;
+        for (const content of msg.Contents) {
+            if (content.Type === 'file' && content.File) {
+                const key = content.File.FileUrl || content.File.FileName || '';
+                if (key && seen.has(key)) continue;
+                if (key) seen.add(key);
+                files.push(content.File);
+            }
+        }
+    }
+    return files;
+});
+
+/** 图片 MIME 类型前缀 */
+const IMAGE_TYPE_RE = /^image\//i
+/** 通过文件名判断图片 */
+const IMAGE_EXT_RE = /\.(jpg|jpeg|png|bmp|webp|gif)$/i
+
+const imageAttachments = computed<FileInfo[]>(() => {
+    return fileAttachments.value.filter(f =>
+        IMAGE_TYPE_RE.test(f.FileType || '') || IMAGE_EXT_RE.test(f.FileName || '')
+    );
+});
+
+const docAttachments = computed<FileInfo[]>(() => {
+    return fileAttachments.value.filter(f =>
+        !IMAGE_TYPE_RE.test(f.FileType || '') && !IMAGE_EXT_RE.test(f.FileName || '')
+    );
+});
+
+/** 点击图片附件，新窗口打开预览 */
+const openImagePreview = (file: FileInfo) => {
+    const url = file.FileUrl || file.Url;
+    if (url) window.open(url, '_blank');
+};
+
 const quoteInfos = computed<QuoteInfoLike[]>(() => {
-    return collectFromMessageContents(primaryMessage.value, (content) => content.QuoteInfos ?? []);
+    const source = useClawRender.value ? lastReplyMessage.value : primaryMessage.value;
+    return collectFromMessageContents(source, (content) => content.QuoteInfos ?? []);
 });
 
 const references = computed<ReferenceLike[]>(() => {
-    return collectFromMessageContents(primaryMessage.value, (content) => content.References ?? []);
+    const source = useClawRender.value ? lastReplyMessage.value : primaryMessage.value;
+    return collectFromMessageContents(source, (content) => content.References ?? []);
+});
+
+/**
+ * claw 模式下的最后一条 reply 消息（用于提取 references 等）
+ */
+const lastReplyMessage = computed(() => {
+    if (!useClawRender.value) return primaryMessage.value;
+    const replies = messages.value.filter(m => m.Type === 'reply');
+    return replies.length > 0 ? replies[replies.length - 1] : undefined;
 });
 
 const isFinal = computed(() => {
     return record.value.Status !== 'processing';
+});
+
+/**
+ * 回复时间（从 ExtraInfo.StartTime 提取）
+ * - 今天：显示 hh:mm:ss
+ * - 今年过去日期：显示 M月D日
+ * - 过去年份：显示 YYYY年M月D日
+ */
+const replyTime = computed(() => {
+    const startTime = record.value.ExtraInfo?.StartTime;
+    if (!startTime) return '';
+    const ts = Number(startTime);
+    if (!ts) return '';
+    const date = new Date(ts);
+    const now = new Date();
+    const isToday = date.getFullYear() === now.getFullYear() &&
+        date.getMonth() === now.getMonth() &&
+        date.getDate() === now.getDate();
+    const isThisYear = date.getFullYear() === now.getFullYear();
+
+    if (isToday) {
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${hours}:${minutes}:${seconds}`;
+    } else if (isThisYear) {
+        return `${date.getMonth() + 1}月${date.getDate()}日`;
+    } else {
+        return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+    }
 });
 
 /**
@@ -240,6 +443,7 @@ const renderReasoningContent = (contents: string[]) => {
                 content={content} 
                 role="system" 
                 theme={props.theme} 
+                mode={props.mode}
                 language={props.language}
                 key={index} 
             />
@@ -340,7 +544,7 @@ const referenceDialogTitle = computed(() => {
         :reasoning="renderReasoning()" >
         <!-- 内容插槽 -->
         <template #content>
-            <div v-if="isLastMsg && isStreamLoad && !displayText && reasoningContents.length === 0" class="loading-container">
+            <div v-if="isLastMsg && isStreamLoad && !displayText && reasoningContents.length === 0 && !useClawRender" class="loading-container">
                 <TLoading  size="small">
                     <template #text>
                         <span class="thinking-text">
@@ -355,32 +559,99 @@ const referenceDialogTitle = computed(() => {
             <div v-else>
                 <!-- 普通用户消息 -->
                 <div v-if="isFromSelf" class="user-message">
+                    <!-- 图片附件：独立于文字气泡展示（claw 模式下已在文本中渲染） -->
+                    <div v-if="imageAttachments.length > 0 && mode !== 'claw'" class="image-attachments">
+                        <img
+                            v-for="(file, idx) in imageAttachments"
+                            :key="'img-' + idx"
+                            :src="file.FileUrl || file.Url"
+                            :alt="file.FileName"
+                            class="msg-inline-image"
+                            @click="openImagePreview(file)"
+                        />
+                    </div>
+                    <!-- 文件附件：card 形式展示（claw 模式下已在文本中渲染） -->
+                    <div v-if="docAttachments.length > 0 && mode !== 'claw'" class="file-attachments">
+                        <MessageFileCard
+                            v-for="(file, idx) in docAttachments"
+                            :key="'doc-' + idx"
+                            :file="file"
+                            :theme="theme"
+                        />
+                    </div>
                     <MdContent 
                         :content="displayText" 
                         role="user" 
                         :theme="theme" 
+                        :mode="mode"
                         :quoteInfos="quoteInfos"
                         :language="language"
                         :recordId="item.RecordId"
                         :enableScale="isMobile"
                         @widgetEvent="handleWidgetEvent"
                     />
+                    <span>
                     <CustomizedIcon :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon copy-icon" name="copy" :theme="theme"
                         @click="(e: any) => copyContent(e, displayText, 'user')" />
                     <CustomizedIcon :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon share-icon" name="share" :theme="theme"
                         @click="share(item)" />
+                    </span>
+                </div>
+                <!-- claw 模式分组渲染：tool_call 折叠 + reply 独立展示 -->
+                <div v-else-if="useClawRender" class="claw-render">
+                    <template v-for="(renderItem, rIdx) in renderItems" :key="'ri-' + rIdx">
+                        <CollapsibleMessageGroup
+                            v-if="renderItem.kind === 'collapse'"
+                            :kind="renderItem.collapseKind || 'mixed'"
+                            :messages="renderItem.messages || []"
+                            :isStreaming="isLastCollapseStreaming && rIdx === renderItems.length - 1"
+                            :isTerminated="isTerminated && rIdx === renderItems.length - 1"
+                            :theme="theme"
+                            :language="language"
+                        />
+                        <MdContent
+                            v-else-if="renderItem.kind === 'reply'"
+                            :content="extractMessageText(renderItem.message)"
+                            role="assistant"
+                            :theme="theme"
+                            :mode="mode"
+                            :language="language"
+                            :recordId="item.RecordId"
+                            :disable="!isLastMsg"
+                            :enableScale="isMobile"
+                            @widgetEvent="handleWidgetEvent"
+                        />
+                    </template>
                 </div>
                 <MdContent 
                     v-else 
                     :content="displayText" 
                     role="assistant" 
                     :theme="theme" 
+                    :mode="mode"
                     :quoteInfos="quoteInfos"
                     :language="language"
                     :recordId="item.RecordId"
                     :disable="!isLastMsg"
                     :enableScale="isMobile"
                     @widgetEvent="handleWidgetEvent"
+                />
+                <!-- assistant 图片附件 -->
+                <div v-if="!isFromSelf && imageAttachments.length > 0 && mode === 'claw'" class="image-attachments">
+                    <img
+                        v-for="(file, idx) in imageAttachments"
+                        :key="'assistant-img-' + idx"
+                        :src="file.FileUrl || file.Url"
+                        :alt="file.FileName"
+                        class="msg-inline-image"
+                        @click="openImagePreview(file)"
+                    />
+                </div>
+                <!-- assistant 文件附件卡片：仅 claw 模式展示，standard 模式下文件链接已在 markdown 中渲染 -->
+                <AssistantFileCard
+                    v-if="!isFromSelf && docAttachments.length > 0 && mode === 'claw'"
+                    :files="docAttachments"
+                    :theme="theme"
                 />
                 <OptionCard v-if="optionCards && optionCards.length" :cards="optionCards" :sendMessage="handleSendMessage" />
                 <div class="references-container"
@@ -438,7 +709,7 @@ const referenceDialogTitle = computed(() => {
                 </Tooltip>
                 <Tooltip :content="i18n.replay" destroyOnClose showArrow theme="default">
                     <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon icon" name="refresh" :theme="theme"
-                        @click="emit('resend', item.RelatedRecordId)" />
+                        @click="emit('resend', item.RelatedRecordId, item.RecordId)" />
                 </Tooltip>
                 <Tooltip :content="i18n.share" destroyOnClose showArrow theme="default">
                     <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon share-icon icon" name="share" :theme="theme" @click="share(item)" />
@@ -461,6 +732,11 @@ const referenceDialogTitle = computed(() => {
                         :nativeIcon="record.Score === ScoreValue.Dislike"
                         :theme="theme" @click="rate(item, ScoreValue.Dislike)" />
                 </Tooltip>
+                <Tooltip :content="i18n.aiDisclaimer" destroyOnClose showArrow theme="default">
+                    <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon icon" name="info" :theme="theme" />
+                </Tooltip>
+                <span v-if="replyTime" class="actions-divider"></span>
+                <span v-if="replyTime" class="actions-time">{{ replyTime }}</span>
             </div>
         </template>
     </TChatItem>
@@ -486,6 +762,7 @@ const referenceDialogTitle = computed(() => {
                     :content="getReferenceContent(activeReference)"
                     role="assistant"
                     :theme="theme"
+                    :mode="mode"
                     :language="language"
                 />
             </div>
@@ -503,12 +780,26 @@ const referenceDialogTitle = computed(() => {
     margin-bottom: var(--td-comp-margin-l);
 }
 
+/* claw 模式分组渲染容器 */
+.claw-render {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
 .flex {
     display: flex;
     align-items: center;
 }
 
 /* 用户消息的复制和分享图标样式 */
+.user-message {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
 .user-message .copy-icon,
 .user-message .share-icon {
     opacity: 0;
@@ -537,12 +828,6 @@ const referenceDialogTitle = computed(() => {
 }
 
 /* 用户消息图标悬停效果 */
-.user-message .copy-icon:hover,
-.user-message .share-icon:hover,
-.icon:hover {
-    color: var(--td-brand-color);
-}
-
 .user-message:hover .copy-icon,
 .user-message:hover .share-icon {
     opacity: 1;
@@ -557,6 +842,19 @@ const referenceDialogTitle = computed(() => {
     overflow: hidden;
     position: relative;
     padding-left: 0;
+}
+.actions-divider {
+    width: 1px;
+    height: 12px;
+    background: var(--td-border-level-2-color, rgba(0, 0, 0, 0.1));
+    margin-left: 4px;
+}
+.actions-time {
+    font-size: 12px;
+    color: var(--td-text-color-placeholder);
+    line-height: 24px;
+    margin-left: 12px;
+    white-space: nowrap;
 }
 .collapsed-thinking-text{
     color: var(--td-text-color-placeholder);
@@ -685,5 +983,32 @@ const referenceDialogTitle = computed(() => {
 }
 .chat-item__container.loading{
     padding-bottom: 32px;
+}
+
+.file-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0;
+}
+
+.image-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 8px 0 ;
+}
+
+.msg-inline-image {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 8px;
+    object-fit: contain;
+    cursor: pointer;
+    display: block;
+}
+
+.msg-inline-image:hover {
+    opacity: 0.9;
 }
 </style>

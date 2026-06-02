@@ -469,7 +469,7 @@ class OpenAICompatible(BaseVendor):
             logger.error(f"[OpenAICompatible] Error loading messages: {str(e)}", exc_info=True)
             return []
 
-    async def upload(self, db, request, account_id, mime_type):
+    async def upload(self, db, request, account_id, mime_type, mode='standard'):
         """Upload file - not implemented"""
         raise NotImplementedError("OpenAI-compatible vendor does not support file upload")
 

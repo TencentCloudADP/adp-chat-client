@@ -2,7 +2,7 @@
  * API 服务模块
  * 提供与后端交互的所有请求方法
  */
-import { httpService } from './httpService';
+import { httpService, getAxiosBaseURL } from './httpService';
 import type { Application } from '../model/application';
 import type { ChatConversation, Record, ChatConversationProps, Reference } from '../model/chat-v2';
 import type { AxiosRequestConfig } from 'axios';
@@ -27,12 +27,22 @@ export interface ApiDetailConfig {
     userInfoApi?: string;
     /** 文件上传接口路径 */
     uploadApi?: string;
+    /** 文件解析接口路径（standard 模式下用于获取 doc_id） */
+    fileParseApi?: string;
     /** 引用详情接口路径 */
     referenceDetailApi?: string;
     /** ASR 语音识别 URL 接口路径 */
     asrUrlApi?: string;
     /** 系统配置接口路径 */
     systemConfigApi?: string;
+    /** 会话详情（含工作空间）接口路径 */
+    describeConversationApi?: string;
+    /** 目录列表接口路径 */
+    listDirApi?: string;
+    /** 文件获取接口路径 */
+    fetchFileApi?: string;
+    /** 会话消息列表接口路径（claw 模式） */
+    describeConversationMessageListApi?: string;
 }
 
 /**
@@ -55,9 +65,14 @@ export const defaultApiDetailConfig: ApiDetailConfig = {
     shareApi: '/share/create',
     userInfoApi: '/account/info',
     uploadApi: '/file/upload',
+    fileParseApi: '/file/parse',
     referenceDetailApi: '/reference/detail',
     asrUrlApi: '/helper/asr/url',
     systemConfigApi: '/system/config',
+    describeConversationApi: '/adp/DescribeConversation',
+    listDirApi: '/adp/ListDir',
+    fetchFileApi: '/adp/FetchFile',
+    describeConversationMessageListApi: '/adp/DescribeConversationMessageList',
 };
 
 export interface ReferenceDetailParams {
@@ -112,6 +127,60 @@ export const fetchConversationDetail = async (
         return response;
     } catch (error) {
         console.error('获取会话详情失败:', error);
+        throw error;
+    }
+};
+
+/** DescribeConversationMessageList 请求参数 */
+export interface DescribeConversationMessageListParams {
+    /** 会话 ID */
+    ConversationId: string;
+    /** 查询锚点记录 ID（分页用） */
+    RecordId?: string;
+    /** 返回记录数量，默认 10，最大 50 */
+    Limit?: number;
+    /** 会话类型：1-访客 2-评测 5-API 10-工作流 20-分享 */
+    Type: number;
+    /** 查询方向：1-向前（更早） */
+    RecordQueryDirection?: number;
+}
+
+/** DescribeConversationMessageList 响应 */
+export interface DescribeConversationMessageListResponse {
+    Response: {
+        Messages?: Record[];
+        HasMoreBefore?: boolean;
+        HasMoreAfter?: boolean;
+        FirstRecordId?: string;
+        LastRecordId?: string;
+        RequestId?: string;
+    };
+}
+
+/**
+ * 通过 /adp 转发调用 DescribeConversationMessageList（claw 模式专用）
+ * @param params 请求参数
+ * @param applicationId 应用 ID
+ * @param apiPath API 路径
+ */
+export const fetchConversationDetailV2 = async (
+    params: DescribeConversationMessageListParams,
+    applicationId: string,
+    apiPath?: string
+): Promise<DescribeConversationMessageListResponse> => {
+    const path = apiPath || defaultApiDetailConfig.describeConversationMessageListApi!;
+    try {
+        const response: DescribeConversationMessageListResponse = await httpService.post(
+            path,
+            {
+                ApplicationId: applicationId,
+                Payload: params,
+                Version: '2025-11-12',
+            }
+        );
+        return response;
+    } catch (error) {
+        console.error('获取会话详情(V2)失败:', error);
         throw error;
     }
 };
@@ -190,7 +259,7 @@ export const fetchUserInfo = async (apiPath?: string): Promise<{ Name: string; A
  * @param applicationId 应用ID
  * @param apiPath API 路径
  */
-export const uploadFile = async (file: File, applicationId?: string, apiPath?: string): Promise<any> => {
+export const uploadFile = async (file: File, applicationId?: string, apiPath?: string, mode?: string): Promise<any> => {
     if (!apiPath) throw new Error('apiPath is required');
     // 构建带参数的 URL
     const params = new URLSearchParams();
@@ -200,6 +269,9 @@ export const uploadFile = async (file: File, applicationId?: string, apiPath?: s
     if (file.type) {
         params.append('Type', file.type);
     }
+    if (mode) {
+        params.append('Mode', mode);
+    }
     const url = params.toString() ? `${apiPath}?${params.toString()}` : apiPath;
     try {
         const response = await httpService.post(url, file);
@@ -208,6 +280,102 @@ export const uploadFile = async (file: File, applicationId?: string, apiPath?: s
         console.error('文件上传失败:', error);
         throw error;
     }
+};
+
+/**
+ * 文档解析请求参数
+ */
+export interface FileParseParams {
+    ApplicationId: string;
+    FileName: string;
+    FileType: string;
+    FileUrl?: string;
+    CosBucket?: string;
+    CosUrl?: string;
+    ETag?: string;
+    CosHash?: string;
+    Size?: string;
+    ConversationId?: string;
+}
+
+/**
+ * 文档解析结果
+ */
+export interface FileParseResult {
+    doc_id: string;
+    process: number;
+    status: string;
+    error_message?: string;
+}
+
+/**
+ * 实时文档解析（standard 模式）
+ * 上传文件后调用此接口进行文档解析，获取 doc_id 供聊天使用。
+ * @param params 解析参数
+ * @param apiPath API 路径
+ * @returns Promise<FileParseResult> 解析完成时返回包含 doc_id 的结果
+ */
+export const parseFile = async (params: FileParseParams, apiPath?: string): Promise<FileParseResult> => {
+    if (!apiPath) throw new Error('apiPath is required');
+
+    const response: any = await httpService.post(apiPath, params, {
+        responseType: 'stream',
+        adapter: 'fetch',
+        timeout: 120000,
+    } as AxiosRequestConfig);
+
+    return new Promise((resolve, reject) => {
+        const reader = response?.body?.getReader?.() || response?.getReader?.();
+        if (!reader) {
+            // 非流式响应，尝试直接解析
+            if (response && typeof response === 'object' && response.doc_id) {
+                resolve(response as FileParseResult);
+            } else {
+                reject(new Error('No readable stream in response'));
+            }
+            return;
+        }
+
+        const decoder = new TextDecoder();
+        let lastResult: FileParseResult = { doc_id: '0', process: 0, status: 'RUNNING' };
+
+        const read = (): void => {
+            reader.read().then(({ done, value }: { done: boolean; value?: Uint8Array }) => {
+                if (done) {
+                    resolve(lastResult);
+                    return;
+                }
+                const text = decoder.decode(value, { stream: true });
+                const lines = text.split('\n');
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('data:')) {
+                        try {
+                            const data = JSON.parse(trimmed.slice(5).trim());
+                            const payload = data.payload || data;
+                            if (payload.doc_id) {
+                                lastResult = {
+                                    doc_id: payload.doc_id,
+                                    process: payload.process || 0,
+                                    status: payload.status || 'RUNNING',
+                                    error_message: payload.error_message,
+                                };
+                            }
+                            if (payload.status === 'FAILED') {
+                                reject(new Error(payload.error_message || 'Document parse failed'));
+                                reader.cancel();
+                                return;
+                            }
+                        } catch (e) {
+                            // 忽略解析失败的行
+                        }
+                    }
+                }
+                read();
+            }).catch(reject);
+        };
+        read();
+    });
 };
 
 /**
@@ -262,4 +430,210 @@ export const fetchSystemConfig = async (apiPath?: string): Promise<SystemConfig>
         console.error('获取系统配置失败:', error);
         throw error;
     }
+};
+
+/** DescribeConversation 请求参数 */
+export interface DescribeConversationParams {
+    /** 会话 ID */
+    ConversationId: string;
+    /** 会话类型 */
+    Type: number;
+}
+
+/** DescribeConversation 响应中 Workspace 信息 */
+export interface WorkspaceInfo {
+    SandboxStorage: {
+        Domain: string;
+        Path: string;
+        TokenTag: string;
+    };
+    StorageType: string;
+    WorkspaceId: string;
+}
+
+/** DescribeConversation 响应 */
+export interface DescribeConversationResponse {
+    Response: {
+        AppId: string;
+        ConversationId: string;
+        CreateTime: string;
+        RequestId: string;
+        Type: number;
+        UpdateTime: string;
+        Workspace?: WorkspaceInfo;
+    };
+}
+
+/**
+ * 获取会话详情（含工作空间信息）
+ * @param params 请求参数
+ * @param applicationId 应用 ID
+ * @param apiPath API 路径
+ */
+export const describeConversation = async (
+    params: DescribeConversationParams,
+    applicationId: string,
+    apiPath?: string
+): Promise<DescribeConversationResponse['Response']> => {
+    const path = apiPath || defaultApiDetailConfig.describeConversationApi!;
+    try {
+        const response: DescribeConversationResponse = await httpService.post(
+            path,
+            {
+                ApplicationId: applicationId,
+                Payload: params,
+            }
+        );
+        return response.Response;
+    } catch (error) {
+        console.error('获取会话详情失败:', error);
+        throw error;
+    }
+};
+
+/** ListDir 请求参数 */
+export interface ListDirParams {
+    /** 应用 ID */
+    app_id: string;
+    /** 目录路径 */
+    path: string;
+    /** 遍历深度，默认 1 */
+    depth?: number;
+    /** 工作空间 ID */
+    workspace_id?: string;
+}
+
+/** 文件/目录条目 */
+export interface DirEntry {
+    /** 文件/目录名称 */
+    name: string;
+    /** 类型：FILE_TYPE_DIRECTORY 或 FILE_TYPE_FILE */
+    type: 'FILE_TYPE_DIRECTORY' | 'FILE_TYPE_FILE';
+    /** 完整路径 */
+    path: string;
+    /** 文件大小（字节，字符串形式） */
+    size?: string;
+    /** 文件权限模式 */
+    mode?: number;
+    /** 权限字符串，如 "drwxr-xr-x" */
+    permissions?: string;
+    /** 文件所有者 */
+    owner?: string;
+    /** 文件所属组 */
+    group?: string;
+    /** 修改时间（ISO 格式） */
+    modifiedTime?: string;
+}
+
+/** ListDir 响应 */
+export interface ListDirResponse {
+    Response: {
+        entries: DirEntry[];
+    };
+}
+
+/**
+ * 获取目录列表
+ * @param params 请求参数
+ * @param applicationId 应用 ID
+ * @param apiPath API 路径
+ */
+export const listDir = async (
+    params: ListDirParams,
+    applicationId: string,
+    apiPath?: string
+): Promise<ListDirResponse['Response']> => {
+    const path = apiPath || defaultApiDetailConfig.listDirApi!;
+    try {
+        const response: ListDirResponse = await httpService.post(
+            path,
+            {
+                ApplicationId: applicationId,
+                Payload: params,
+            }
+        );
+        return response.Response;
+    } catch (error) {
+        console.error('获取目录列表失败:', error);
+        throw error;
+    }
+};
+
+/** FetchFile 请求参数 */
+export interface FetchFileParams {
+    /** 应用 ID */
+    app_id: string;
+    /** 工作空间 ID */
+    workspace_id: string;
+    /** 文件路径，如 /workdir/main.py */
+    path: string;
+}
+
+/** FetchFile 响应 */
+export interface FetchFileResponse {
+    Response: {
+        /** HTTP 状态码 */
+        status_code: number;
+        /** 文件 MIME 类型 */
+        content_type: string;
+        /** 文件文本内容 */
+        content: string;
+        /** COS 预签名下载 URL */
+        cos_url: string;
+        /** 文档预览 URL（WebOffice 预览地址） */
+        preview_url: string;
+    };
+}
+
+/**
+ * 获取文件并转存到 COS，返回预签名预览链接
+ * @param params 请求参数
+ * @param applicationId 应用 ID
+ * @param requestConfig 额外的请求配置（如 timeout）
+ */
+export const fetchFile = async (
+    params: FetchFileParams,
+    applicationId: string,
+    requestConfig?: { timeout?: number },
+    apiPath?: string
+): Promise<FetchFileResponse['Response']> => {
+    const path = apiPath || defaultApiDetailConfig.fetchFileApi!;
+    try {
+        const response: FetchFileResponse = await httpService.post(
+            path,
+            {
+                ApplicationId: applicationId,
+                Payload: params,
+            },
+            requestConfig
+        );
+        return response.Response;
+    } catch (error) {
+        console.error('获取文件失败:', error);
+        throw error;
+    }
+};
+
+/**
+ * 生成同域的文件代理下载 URL
+ *
+ * 后端 GET /file/download 接口会从工作空间获取文件内容后直接返回，
+ * 前端使用此 URL 即可下载/预览文件，不存在跨域问题。
+ *
+ * @param params 文件参数
+ * @param applicationId 应用配置 ID（用于定位 vendor 实例）
+ * @returns 同域的文件下载 URL
+ */
+export const getFileDownloadUrl = (
+    params: FetchFileParams,
+    applicationId: string
+): string => {
+    const baseURL = getAxiosBaseURL().replace(/\/+$/, '');
+    const queryParams = new URLSearchParams({
+        ApplicationId: applicationId,
+        AppId: params.app_id,
+        WorkspaceId: params.workspace_id,
+        Path: params.path,
+    });
+    return `${baseURL}/file/download?${queryParams.toString()}`;
 };

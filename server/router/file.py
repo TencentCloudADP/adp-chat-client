@@ -15,12 +15,22 @@ class FileUploadApi(HTTPMethodView):
         parser = reqparse.RequestParser()
         parser.add_argument("ApplicationId", type=str, required=True, location="args")
         parser.add_argument("Type", type=str, default='image/jpeg', location="args")
+        parser.add_argument("Mode", type=str, default='standard', location="args")
         args = parser.parse_args(request)
         application_id = args['ApplicationId']
         vendor_app = app.get_vendor_app(application_id)
 
-        url = await vendor_app.upload(request.ctx.db, request, request.ctx.account_id, args['Type'])
-        return json({"Url": url})
+        result = await vendor_app.upload(
+            request.ctx.db,
+            request,
+            request.ctx.account_id,
+            args['Type'],
+            mode=args['Mode']
+        )
+        # 兼容返回字典或字符串两种格式
+        if isinstance(result, dict):
+            return json(result)
+        return json({"Url": result})
 
 
 app.add_route(FileUploadApi.as_view(), "/file/upload")
