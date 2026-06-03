@@ -472,7 +472,7 @@ class TCADP(BaseVendor):
         self,
         action: str,
         payload: dict = None,
-        service: str = "lke",
+        service: str = None,
         *,
         version: str = None,
         response_key: str = None,
@@ -1382,6 +1382,11 @@ service_configs = {
             'region': 'ap-jakarta',
             "version": "2024-05-22"
         },
+        'adp': {
+            'url': '{PrivateUrl}',
+            'region': 'ap-guangzhou',
+            "version": "2026-05-20"
+        },
         'cos': {
             'ep': '{PrivateUrl}',
             'access': '{PrivateUrl}/{bucket}',
@@ -1400,6 +1405,11 @@ service_configs = {
             'region': 'ap-jakarta',
             "version": "2024-05-22"
         },
+        'adp': {
+            'url': 'https://adp.intl.tencentcloudapi.com',
+            'region': 'ap-jakarta',
+            "version": "2026-05-20"
+        },
         'cos': {
             'ep': 'https://cos.{region}.myqcloud.com',
             'access': 'https://{bucket}.cos.{region}.myqcloud.com'
@@ -1416,6 +1426,11 @@ service_configs = {
             'url': 'https://lkeap.tencentcloudapi.com',
             'region': 'ap-guangzhou',
             "version": "2024-05-22"
+        },
+        'adp': {
+            'url': 'https://adp.tencentcloudapi.com',
+            'region': 'ap-guangzhou',
+            "version": "2026-05-20"
         },
         'cos': {
             'ep': 'https://cos.{region}.myqcloud.com',

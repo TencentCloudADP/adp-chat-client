@@ -71,13 +71,13 @@ class ForwardApi(HTTPMethodView):
         parser = reqparse.RequestParser()
         parser.add_argument("ApplicationId", type=str, required=True, location="json")
         parser.add_argument("Payload", type=dict, default={}, location="json")
-        parser.add_argument("Service", type=str, default="lke", location="json")
+        parser.add_argument("Service", type=str, default=None, location="json")
         parser.add_argument("Version", type=str, default=None, location="json")
         args = parser.parse_args(request)
 
         application_id = args['ApplicationId']
         payload = args['Payload'] or {}
-        service = args['Service'] or 'lke'
+        service = args['Service'] or None
         version = args['Version']
 
         # 获取 vendor 实例

@@ -1,5 +1,7 @@
 import gzip
 
+from sanic.response.types import ResponseStream
+
 from app_factory import TAgenticApp
 
 app = TAgenticApp.get_app()
@@ -26,6 +28,10 @@ async def gzip_response(request, response):
 
     # 检查响应是否已压缩
     if response.headers.get("content-encoding"):
+        return response
+
+    # 流式响应无 body，跳过压缩
+    if isinstance(response, ResponseStream):
         return response
 
     # 检查 Content-Type 是否可压缩

@@ -618,7 +618,7 @@ class BaseVendor(ChatInterface, MessageInterface, FileInterface, ReferenceInterf
         self,
         action: str,
         payload: dict = None,
-        service: str = "lke",
+        service: str = None,
         *,
         version: str = None,
         response_key: str = None,
