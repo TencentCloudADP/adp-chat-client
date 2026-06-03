@@ -123,5 +123,5 @@ export function middleware(request: NextRequest) {
 // 配置匹配路径
 export const config = {
   // 匹配所有路径，但排除_next、static等
-  matcher: ['/((?!_next|static|favicon.ico|.*\\.(?:jpg|png|svg|gif)).*)']
+  matcher: ['/((?!_next|static|favicon.png|.*\\.(?:jpg|png|svg|gif)).*)']
 };

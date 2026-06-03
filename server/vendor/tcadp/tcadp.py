@@ -1070,7 +1070,9 @@ class TCADP(BaseVendor):
                     preview_url = get_presigned_preview_url(key=cos_key)
                     logging.info(f'[TCADP.fetch_file] preview URL: {preview_url}')
                 except Exception as e:
-                    logging.error(f'[TCADP.fetch_file] upload to COS failed: {e}')
+                    import traceback
+                    logging.error(f'[TCADP.fetch_file] upload to COS failed: type={type(e).__name__}, error={e}')
+                    logging.error(f'[TCADP.fetch_file] traceback: {traceback.format_exc()}')
 
                 return {
                     "status_code": resp.status,
@@ -1406,11 +1408,6 @@ service_configs = {
             'region': 'ap-jakarta',
             "version": "2024-05-22"
         },
-        'adp': {
-            'url': '{PrivateUrl}',
-            'region': 'ap-guangzhou',
-            "version": "2026-05-20"
-        },
         'cos': {
             'ep': '{PrivateUrl}',
             'access': '{PrivateUrl}/{bucket}',
@@ -1434,11 +1431,6 @@ service_configs = {
             'region': 'ap-jakarta',
             "version": "2024-05-22"
         },
-        'adp': {
-            'url': 'https://adp.intl.tencentcloudapi.com',
-            'region': 'ap-jakarta',
-            "version": "2026-05-20"
-        },
         'cos': {
             'ep': 'https://cos.{region}.myqcloud.com',
             'access': 'https://{bucket}.cos.{region}.myqcloud.com'
@@ -1460,11 +1452,6 @@ service_configs = {
             'url': 'https://lkeap.tencentcloudapi.com',
             'region': 'ap-guangzhou',
             "version": "2024-05-22"
-        },
-        'adp': {
-            'url': 'https://adp.tencentcloudapi.com',
-            'region': 'ap-guangzhou',
-            "version": "2026-05-20"
         },
         'cos': {
             'ep': 'https://cos.{region}.myqcloud.com',

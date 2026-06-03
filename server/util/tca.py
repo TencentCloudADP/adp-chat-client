@@ -156,7 +156,7 @@ def tc_request_prepare(config: dict, action: str, payload: str, service = "lke",
     secret_id = tagentic_config.TC_SECRET_ID
     secret_key = tagentic_config.TC_SECRET_KEY
     token = ""
-
+    
     url = config[service]['url']
     host = url.split('//')[1].split('/')[0]
     # 加载 action 级别的 headers 配置
@@ -237,15 +237,14 @@ async def tc_request(
     config: dict, action: str, payload: dict = None,
     service=None, version: str = None,
     variables: dict = None,
-) -> str:
-    logging.info(f'[tc_request] action={action}, incoming service={service}')
-    service = _resolve_service(action, service)
-    logging.info(f'[tc_request] action={action}, resolved service={service}')
+) -> str:    
+    service = _resolve_service(action, service)    
     if payload is None:
         payload = {}
     payload = inject_action_payload(action, payload, variables)
     payload = json.dumps(payload)
     headers, url = tc_request_prepare(config, action, payload, service, version)
+    logging.info(f'[tc_request] url={url}, headers={headers}, payload={payload}')
     async with aiohttp.ClientSession() as session:
         async with session.post(f'{url}/', headers=headers, data=payload) as resp:
             return await resp.json()
