@@ -18,7 +18,7 @@ export interface Application {
     Avatar?: string;
     Greeting?: string;
     OpeningQuestions?: string[];
-    /** 应用模式，来自 DescribeAppConf 接口 AppConfig.Base.Pattern */
+    /** 应用模式，来自 DescribeApp 接口 App.Metadata.AppMode */
     Pattern?: AppPattern | null;
     /** 应用状态，1：未上线 2：运行中 3：停用 */
     AppStatus?: number | null;
