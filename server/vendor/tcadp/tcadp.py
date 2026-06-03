@@ -1176,11 +1176,12 @@ class TCADP(BaseVendor):
         # claw/agent 模式使用 BotBizId='0' + IsPublic=True，确保文件在公有桶中可被 Claw Agent 下载
         if mode == 'claw':
             payload = {
-                "BotBizId": '0',
+                "AppId": '0',
                 "FileType": file_type,
                 "IsPublic": True,
                 "TypeKey": 'realtime',
             }
+            resp = await tc_request(self.tc_config(), action, payload, 'adp', '2026-05-20')
         else:
             payload = {
                 "BotBizId": self.config['BotBizId'],
@@ -1188,13 +1189,21 @@ class TCADP(BaseVendor):
                 "IsPublic": True,
                 "TypeKey": 'realtime',
             }
-        resp = await tc_request(self.tc_config(), action, payload)
+            resp = await tc_request(self.tc_config(), action, payload)
         resp = resp['Response']
         if 'Error' in resp:
             logging.error(resp)
             raise Exception(resp['Error']['Message'])
 
         logging.info(f"DescribeStorageCredential mode={mode}, response keys: {[k for k in resp.keys() if k != 'Credentials']}")
+
+        # claw 模式：新协议将路径信息放在 StoragePath 子对象中，需要展平到 resp 顶层以保持后续逻辑一致
+        if mode == 'claw' and 'StoragePath' in resp:
+            storage_path = resp['StoragePath']
+            for key in ('FilePath', 'FileUrl', 'ImagePath', 'UploadPath', 'UploadUrl'):
+                if key in storage_path and key not in resp:
+                    resp[key] = storage_path[key]
+
         logging.info(f"DescribeStorageCredential UploadPath: {resp.get('UploadPath')}, FileUrl: {resp.get('FileUrl')}, UploadUrl: {resp.get('UploadUrl')}, DownloadUrl: {resp.get('DownloadUrl')}")
 
         # 读取完整请求体
@@ -1243,16 +1252,18 @@ class TCADP(BaseVendor):
         # 对齐 webim openclaw 的 handleAgentDoc → cos.getDownloadUrl 逻辑
         if mode == 'claw' and cos_url:
             download_payload = {
-                "BotBizId": '0',
+                "AppId": '0',
                 "FileType": file_type,
                 "IsPublic": True,
                 "TypeKey": 'realtime',
                 "CosUrl": cos_url,
             }
             try:
-                dl_resp = await tc_request(self.tc_config(), action, download_payload)
+                dl_resp = await tc_request(self.tc_config(), action, download_payload, 'adp', '2026-05-20')
                 dl_resp = dl_resp['Response']
-                download_url = dl_resp.get('DownloadUrl') or dl_resp.get('FileUrl') or dl_resp.get('file_url')
+                # 新协议：路径信息在 StoragePath 子对象中
+                dl_storage = dl_resp.get('StoragePath', {})
+                download_url = dl_resp.get('DownloadUrl') or dl_storage.get('FileUrl') or dl_resp.get('FileUrl') or dl_resp.get('file_url')
                 if download_url:
                     logging.info(f"claw mode DownloadUrl obtained: {download_url[:80]}...")
                     url = download_url
