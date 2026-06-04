@@ -110,9 +110,9 @@ watch(
 );
 
 // ========== 拖拽调整预览面板宽度 ==========
-const previewPanelWidth = ref(480);
+const previewPanelWidth = ref(600);
 const MIN_PANEL_WIDTH = 280;
-const MAX_PANEL_WIDTH = 900;
+const MAX_PANEL_WIDTH = 1000;
 
 let isResizing = false;
 let startX = 0;
