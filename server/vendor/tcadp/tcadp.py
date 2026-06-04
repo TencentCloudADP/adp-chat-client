@@ -1216,12 +1216,18 @@ class TCADP(BaseVendor):
 
         logging.info(f"DescribeStorageCredential mode={mode}, response keys: {[k for k in resp.keys() if k != 'Credentials']}")
 
-        # claw 模式：新协议将路径信息放在 StoragePath 子对象中，需要展平到 resp 顶层以保持后续逻辑一致
-        if mode == 'claw' and 'StoragePath' in resp:
+        # 新协议将路径信息放在 StoragePath 子对象中，需要展平到 resp 顶层以保持后续逻辑一致
+        if 'StoragePath' in resp:
             storage_path = resp['StoragePath']
-            for key in ('FilePath', 'FileUrl', 'ImagePath', 'UploadPath', 'UploadUrl'):
-                if key in storage_path and key not in resp:
-                    resp[key] = storage_path[key]
+            logging.info(f"DescribeStorageCredential StoragePath type={type(storage_path).__name__}, value={storage_path}")
+            if isinstance(storage_path, dict):
+                for key in ('FilePath', 'FileUrl', 'ImagePath', 'UploadPath', 'UploadUrl', 'DownloadUrl'):
+                    if key in storage_path and key not in resp:
+                        resp[key] = storage_path[key]
+            elif isinstance(storage_path, str) and storage_path:
+                # adp 2026-05-20 协议：StoragePath 直接就是上传路径字符串
+                if 'UploadPath' not in resp:
+                    resp['UploadPath'] = storage_path
 
         logging.info(f"DescribeStorageCredential UploadPath: {resp.get('UploadPath')}, FileUrl: {resp.get('FileUrl')}, UploadUrl: {resp.get('UploadUrl')}, DownloadUrl: {resp.get('DownloadUrl')}")
 
