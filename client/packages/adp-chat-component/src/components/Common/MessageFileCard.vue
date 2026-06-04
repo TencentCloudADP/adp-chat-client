@@ -55,7 +55,7 @@ const handleClick = () => {
     >
         <div class="msg-file-icon">
             <img v-if="isImage && fileUrl" class="msg-img-thumbnail" :src="fileUrl" alt="" />
-            <CustomizedIcon remote v-else :name="iconName" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
+            <CustomizedIcon remote v-else :name="iconName" :theme="theme" nativeIcon :showHoverBg="false" size="xl" />
         </div>
         <div class="msg-file-info">
             <span class="msg-file-name" :title="file.FileName">{{ displayName }}</span>

@@ -139,7 +139,7 @@ const fileSizeDisplay = computed(() => {
             <div v-if="isUploading" class="loading-spinner">
                 <CustomizedIcon name="loading" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
             </div>
-            <CustomizedIcon remote v-else :name="iconName" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
+            <CustomizedIcon remote v-else :name="iconName" :theme="theme" nativeIcon :showHoverBg="false" size="xl" />
         </div>
         <div class="doc-file-info">
             <span class="doc-filename" :title="file.name">{{ displayName }}</span>
