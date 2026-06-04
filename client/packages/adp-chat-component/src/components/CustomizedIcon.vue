@@ -297,7 +297,6 @@ function processSvg(content: string, isNative: boolean): string {
 .customeized-icon.size-xl {
     width: var(--td-comp-size-xl, 48px);
     height: var(--td-comp-size-xl, 48px);
-    padding: var(--td-pop-padding-xl, 12px);
 }
 
 /* 基础样式 */

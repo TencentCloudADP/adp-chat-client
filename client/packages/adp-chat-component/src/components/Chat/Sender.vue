@@ -532,6 +532,7 @@ defineExpose({
                 :disabled="false"
                 :hideToolBar="true"
                 :allowPasteImage="true"
+                :theme="theme"
                 @input="handleEditorInput"
                 @focus="handleEditorFocus"
                 @blur="handleEditorBlur"
@@ -591,7 +592,7 @@ defineExpose({
     max-width: 800px;
     display: flex;
     flex-direction: column;
-    border: 1px solid rgba(13, 13, 13, 0.15);
+    border: 1px solid var(--td-component-border);
     border-radius: var(--td-radius-xl, 16px);
     background: var(--td-bg-color-container, #fff);
     transition: border-color 0.2s, box-shadow 0.2s;
@@ -626,6 +627,7 @@ defineExpose({
     justify-content: space-between;
     align-items: center;
     padding: 4px 8px 8px;
+    cursor: default;
 }
 
 .sender-toolbar__left {

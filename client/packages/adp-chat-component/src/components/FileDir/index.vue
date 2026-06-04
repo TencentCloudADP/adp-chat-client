@@ -28,10 +28,10 @@
                 @click="handleNodeClick"
             >
                 <template #icon="{ node }">
-                    <t-icon v-if="node.getChildren() && !node.expanded" name="folder" />
+                    <CustomizedIcon v-if="node.getChildren() && !node.expanded" remote name="arrow_up_small_line" :theme="theme" :showHoverBg="false" size="xs" class="tree-arrow tree-arrow--collapsed" />
                     <t-icon v-else-if="node.getChildren() && node.expanded && node.loading" name="loading" />
-                    <t-icon v-else-if="node.getChildren() && node.expanded" name="folder-open" />
-                    <t-icon v-else name="file" />
+                    <CustomizedIcon v-else-if="node.getChildren() && node.expanded" remote name="arrow_up_small_line" :theme="theme" :showHoverBg="false" size="xs" class="tree-arrow tree-arrow--expanded" />
+                    <CustomizedIcon v-else remote :name="getFileIconName(node.data?.entry?.name || '')" :theme="theme" nativeIcon :showHoverBg="false" size="xs" />
                 </template>
                 <template #operations="{ node }">
                     <span
@@ -40,7 +40,7 @@
                         :title="props.downloadText"
                         @click.stop="handleDownload(node)"
                     >
-                        <t-icon name="download" />
+                        <CustomizedIcon remote name="basic_download2_line" :theme="theme" nativeIcon :showHoverBg="false" size="xs" />
                     </span>
                 </template>
             </t-tree>
@@ -53,9 +53,12 @@ import { ref, watch, onBeforeUnmount } from 'vue';
 import { Tree as TTree, Icon as TIcon, MessagePlugin } from 'tdesign-vue-next';
 import { listDir, getFileDownloadUrl } from '../../service/api';
 import CustomizedIcon from '../CustomizedIcon.vue';
+import { getFileIconName } from '../../model/file';
+import type { ThemeProps } from '../../model/type';
+import { themePropsDefaults } from '../../model/type';
 import type { DirEntry } from '../../service/api';
 
-interface Props {
+interface Props extends ThemeProps {
     /** 应用 ID */
     applicationId?: string;
     /** 会话 ID */
@@ -75,6 +78,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    ...themePropsDefaults,
     applicationId: '',
     conversationId: '',
     workspaceId: '',
@@ -350,10 +354,12 @@ onBeforeUnmount(() => {
     background-color: var(--td-bg-color-container-hover, #f3f3f3);
 }
 
-:deep(.t-tree__item--active) {
+:deep(.t-tree__item.t-is-active) {
     background-color: var(--td-brand-color-light, #ecf2fe);
 }
-
+:deep(.t-tree--hoverable .t-tree__label:not(.t-is-active):not(.t-is-checked):hover) {
+    background-color: transparent;
+}
 :deep(.t-tree__label) {
     font-size: 13px;
     color: var(--td-text-color-primary);
@@ -376,6 +382,18 @@ onBeforeUnmount(() => {
 .file-download-btn:hover {
     background-color: var(--td-bg-color-container-hover, #f3f3f3);
     color: var(--td-brand-color, #0052d9);
+}
+
+.tree-arrow {
+    transition: transform 0.2s;
+}
+
+.tree-arrow--collapsed {
+    transform: rotate(90deg);
+}
+
+.tree-arrow--expanded {
+    transform: rotate(180deg);
 }
 
 .file-download-btn.is-loading {

@@ -1,6 +1,6 @@
 <!-- assistant 系统对话中的文件附件卡片，支持点击下载 -->
 <script setup lang="ts">
-import { MessagePlugin, Icon as TIcon } from 'tdesign-vue-next';
+import { MessagePlugin} from 'tdesign-vue-next';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import { getFileIconName } from '../../model/file';
 import type { ThemeProps } from '../../model/type';
@@ -22,10 +22,6 @@ const props = withDefaults(defineProps<Props>(), {
  */
 function getIconName(file: FileInfo): string {
     const name = file.FileName || '';
-    const type = file.FileType?.toLowerCase() || '';
-    if (type.startsWith('image/') || /\.(jpg|jpeg|png|bmp|webp|gif)$/i.test(name)) {
-        return 'basic_picture_line';
-    }
     return getFileIconName(name);
 }
 
@@ -109,7 +105,7 @@ function handleDownload(file: FileInfo) {
             @click="handleDownload(file)"
         >
             <div class="assistant-file-card__icon">
-                <CustomizedIcon remote :name="getIconName(file)" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
+                <CustomizedIcon remote :name="getIconName(file)" :theme="theme" nativeIcon :showHoverBg="false" size="xl" />
             </div>
             <div class="assistant-file-card__info">
                 <span class="assistant-file-card__name">
@@ -118,7 +114,7 @@ function handleDownload(file: FileInfo) {
                 <span v-if="showFileSize(file)" class="assistant-file-card__size">{{ file.FileSize }}</span>
             </div>
             <span class="assistant-file-card__download" @click.stop="handleDownload(file)">
-                <t-icon name="download" />
+                <CustomizedIcon remote name="basic_download2_line" :theme="theme" nativeIcon :showHoverBg="false" size="xs" />
             </span>
         </div>
     </div>

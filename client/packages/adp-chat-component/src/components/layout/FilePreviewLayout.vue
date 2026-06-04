@@ -1,7 +1,8 @@
 <script lang="ts">
-import type { FilePreviewI18n } from '../../model/type';
+import type { FilePreviewI18n, ThemeProps } from '../../model/type';
+import { themePropsDefaults } from '../../model/type';
 
-export interface FilePreviewLayoutProps {
+export interface FilePreviewLayoutProps extends ThemeProps {
     /** 是否显示预览面板 */
     visible?: boolean;
     /** 当前会话ID */
@@ -24,6 +25,7 @@ import CustomizedIcon from '../CustomizedIcon.vue';
 
 
 const props = withDefaults(defineProps<FilePreviewLayoutProps>(), {
+    ...themePropsDefaults,
     visible: false,
     conversationId: '',
     applicationId: '',

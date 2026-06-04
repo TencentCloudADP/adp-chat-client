@@ -96,8 +96,4 @@ const handleLogout = () => {
     cursor: pointer;
     gap: var(--td-comp-paddingLR-m);
 }
-
-.t-icon {
-    font-size: var(--td-font-size-title-large);
-}
 </style>

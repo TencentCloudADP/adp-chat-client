@@ -23,7 +23,7 @@ import { katex } from "@mdit/plugin-katex";
 import markdownItHighlightjs from 'markdown-it-highlightjs';
 import DOMPurify from 'dompurify';
 import 'katex/dist/katex.min.css';
-import './github-markdown.css';
+import '../../styles/markdown.css';
 import 'highlight.js/styles/default.css';
 
 // Widget 模块导入
