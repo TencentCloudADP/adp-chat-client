@@ -26,7 +26,7 @@ const createConversation = () => {
 <template>
     <t-tooltip :content="tooltipText">
         <t-button shape="square" variant="text" @click="createConversation">
-            <CustomizedIcon name="new_conversation" :theme="theme"/>
+            <CustomizedIcon remote name="basic_newchat_line" :theme="theme"/>
         </t-button>
     </t-tooltip>
 </template>

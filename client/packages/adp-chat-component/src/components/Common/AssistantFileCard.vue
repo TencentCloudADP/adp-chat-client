@@ -24,7 +24,7 @@ function getIconName(file: FileInfo): string {
     const name = file.FileName || '';
     const type = file.FileType?.toLowerCase() || '';
     if (type.startsWith('image/') || /\.(jpg|jpeg|png|bmp|webp|gif)$/i.test(name)) {
-        return 'picture';
+        return 'basic_picture_line';
     }
     return getFileIconName(name);
 }
@@ -109,7 +109,7 @@ function handleDownload(file: FileInfo) {
             @click="handleDownload(file)"
         >
             <div class="assistant-file-card__icon">
-                <CustomizedIcon :name="getIconName(file)" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
+                <CustomizedIcon remote :name="getIconName(file)" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
             </div>
             <div class="assistant-file-card__info">
                 <span class="assistant-file-card__name">
@@ -129,7 +129,7 @@ function handleDownload(file: FileInfo) {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 8px;
+    margin: 8px 0;
 }
 
 .assistant-file-card {

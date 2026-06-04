@@ -22,7 +22,7 @@ const isImage = computed(() => {
 });
 
 const iconName = computed(() => {
-    if (isImage.value) return 'picture';
+    if (isImage.value) return 'basic_picture_line';
     return getFileIconName(props.file.FileName || '');
 });
 
@@ -55,7 +55,7 @@ const handleClick = () => {
     >
         <div class="msg-file-icon">
             <img v-if="isImage && fileUrl" class="msg-img-thumbnail" :src="fileUrl" alt="" />
-            <CustomizedIcon v-else :name="iconName" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
+            <CustomizedIcon remote v-else :name="iconName" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
         </div>
         <div class="msg-file-info">
             <span class="msg-file-name" :title="file.FileName">{{ displayName }}</span>

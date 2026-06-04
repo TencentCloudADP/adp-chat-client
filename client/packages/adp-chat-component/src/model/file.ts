@@ -87,19 +87,19 @@ export const FILE_COUNT_LIMIT = 20;
 export function getFileIconName(fileName: string): string {
   const ext = fileName.split('.').pop()?.toLowerCase() || '';
   const iconMap: Record<string, string> = {
-    pdf: 'file_pdf',
-    doc: 'file_word',
-    docx: 'file_word',
-    ppt: 'file_ppt',
-    pptx: 'file_ppt',
-    xls: 'file_excel',
-    xlsx: 'file_excel',
-    txt: 'file_text',
-    md: 'file_text',
-    csv: 'file_excel',
-    json: 'file_text',
+    pdf: 'file_icon_pdf_light',
+    doc: 'file_icon_word_light',
+    docx: 'file_icon_word_light',
+    ppt: 'file_icon_ppt_light',
+    pptx: 'file_icon_ppt_light',
+    xls: 'file_icon_excel_light',
+    xlsx: 'file_icon_excel_light',
+    txt: 'file_icon_text_light',
+    md: 'file_icon_text_light',
+    csv: 'file_icon_excel_light',
+    json: 'file_icon_text_light',
   };
-  return iconMap[ext] || 'file';
+  return iconMap[ext] || 'basic_file_line';
 }
 
 /**

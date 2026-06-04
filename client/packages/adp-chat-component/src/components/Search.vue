@@ -53,7 +53,7 @@ const handleInput = (value: InputValue) => {
         borderless
     >
         <template #prefix-icon>
-            <CustomizedIcon name="search" :theme="theme"/> 
+            <CustomizedIcon remote name="search" :theme="theme"/> 
         </template>
     </TInput>
 </template>

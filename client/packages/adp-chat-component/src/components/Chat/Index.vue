@@ -87,7 +87,7 @@
                             {{ i18n.shareFor }}
                             <div class="icon__share-copy" :class="{ disabled: selectedIds.length <= 0 }"
                                 @click="handleCopyShare()">
-                                <CustomizedIcon size="xs" name="copy_link" :theme="theme" />
+                                <CustomizedIcon remote size="xs" name="basic_relation_line" :theme="theme" />
                                 <span>{{ i18n.copyUrl }}</span>
                             </div>
                         </div>

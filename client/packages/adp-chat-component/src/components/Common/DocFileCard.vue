@@ -27,10 +27,10 @@ const isUploading = computed(() => props.file.status === 'uploading');
 
 const iconName = computed(() => {
     if (props.mode === 'claw') {
-        if (props.file.category === 'image') return 'picture';
+        if (props.file.category === 'image') return 'basic_picture_line';
         return getFileIconName(props.file.name || '');
     }
-    if (props.file.category === 'image') return 'picture';
+    if (props.file.category === 'image') return 'basic_picture_line';
     return getFileIconName(props.file.name || '');
 });
 
@@ -98,7 +98,7 @@ const fileSizeDisplay = computed(() => {
         <span v-else class="claw-tag-icon" :class="isImage ? 'claw-tag-icon--image' : 'claw-tag-icon--file'" />
         <div class="doc-filename" :title="file.name">{{ displayName }}</div>
         <span class="delete-btn claw-delete" @click.stop="emit('delete')">
-            <CustomizedIcon name="close_circle" :theme="theme" size="xs" nativeIcon :showHoverBg="false" />
+            <CustomizedIcon remote name="basic_close_line" :theme="theme" size="xs" :showHoverBg="false" />
         </span>
         <!-- 图片 hover 预览弹窗 -->
         <Transition name="fade">
@@ -120,10 +120,10 @@ const fileSizeDisplay = computed(() => {
         <!-- 图片缩略图 -->
         <img v-else-if="file.url" class="image-thumb" :src="file.url" alt="" />
         <!-- 兜底 icon -->
-        <CustomizedIcon v-else name="picture" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
+        <CustomizedIcon remote v-else name="basic_picture_line" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
         <!-- 删除按钮 -->
         <span class="delete-btn" @click.stop="emit('delete')">
-            <CustomizedIcon name="close_circle" :theme="theme" size="xs" nativeIcon :showHoverBg="false" />
+            <CustomizedIcon remote name="basic_close_line" :theme="theme" size="xs" :showHoverBg="false" />
         </span>
         <!-- hover 预览弹窗 -->
         <Transition name="fade">
@@ -139,7 +139,7 @@ const fileSizeDisplay = computed(() => {
             <div v-if="isUploading" class="loading-spinner">
                 <CustomizedIcon name="loading" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
             </div>
-            <CustomizedIcon v-else :name="iconName" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
+            <CustomizedIcon remote v-else :name="iconName" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
         </div>
         <div class="doc-file-info">
             <span class="doc-filename" :title="file.name">{{ displayName }}</span>
@@ -147,7 +147,7 @@ const fileSizeDisplay = computed(() => {
         </div>
         <!-- 删除按钮 -->
         <span class="delete-btn" @click.stop="emit('delete')">
-            <CustomizedIcon name="close_circle" :theme="theme" size="xs" nativeIcon :showHoverBg="false" />
+            <CustomizedIcon remote name="basic_close_line" :theme="theme" size="xs" :showHoverBg="false" />
         </span>
     </div>
 </template>

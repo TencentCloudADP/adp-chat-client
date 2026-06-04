@@ -20,6 +20,8 @@ import FilePreview from '../FilePreview/index.vue';
 import FileDir from '../FileDir/index.vue';
 import { defaultFilePreviewI18n } from '../../model/type';
 import { describeConversation } from '../../service/api';
+import CustomizedIcon from '../CustomizedIcon.vue';
+
 
 const props = withDefaults(defineProps<FilePreviewLayoutProps>(), {
     visible: false,
@@ -265,10 +267,12 @@ defineExpose({
                     <!-- 预览标题栏 -->
                     <div class="file-preview-panel__preview-header">
                         <span class="file-preview-panel__toggle-dir" @click="toggleDirVisible" :title="dirVisible ? i18n.hideDocList : i18n.showDocList">
-                            <t-icon :name="dirVisible ? 'chevron-left' : 'view-list'" />
+                            <CustomizedIcon remote size="xs" :showHoverBg="false"  name="chart_structure_line" :theme="theme"/>
                         </span>
                         <span class="file-preview-panel__preview-title">{{ previewFileName }}</span>
-                        <span class="file-preview-panel__close" @click="handleClosePreview">✕</span>
+                        <span class="file-preview-panel__close" @click="handleClosePreview">
+                            <CustomizedIcon remote size="xs" :showHoverBg="false"  name="basic_close_line" :theme="theme"/>
+                        </span>
                     </div>
                     <FilePreview
                         class="file-preview-panel__preview-content"

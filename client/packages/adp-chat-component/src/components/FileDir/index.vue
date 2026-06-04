@@ -4,9 +4,11 @@
             <span class="file-dir-title">{{ docListText }}</span>
             <div class="file-dir-actions">
                 <span class="file-dir-action" :title="refreshText" @click="handleRefresh">
-                    <t-icon name="refresh" :class="{ 'icon-spinning': refreshing }" />
+                    <CustomizedIcon remote size="xs" :showHoverBg="false" :class="{ 'icon-spinning': refreshing }" name="basic_refresh_line" :theme="theme"/>
                 </span>
-                <span class="file-dir-action file-dir-close" @click="emit('close')">✕</span>
+                <span class="file-dir-action " @click="emit('close')">
+                    <CustomizedIcon remote size="xs" :showHoverBg="false"  name="basic_close_line" :theme="theme"/>
+                </span>
             </div>
         </div>
         <div class="file-dir-tree">
@@ -50,6 +52,7 @@
 import { ref, watch } from 'vue';
 import { Tree as TTree, Icon as TIcon, MessagePlugin } from 'tdesign-vue-next';
 import { listDir, getFileDownloadUrl } from '../../service/api';
+import CustomizedIcon from '../CustomizedIcon.vue';
 import type { DirEntry } from '../../service/api';
 
 interface Props {
@@ -277,11 +280,8 @@ watch(
 
 .file-dir-action {
     cursor: pointer;
-    font-size: 16px;
     color: var(--td-text-color-secondary);
     line-height: 1;
-    padding: 4px;
-    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;

@@ -425,7 +425,15 @@ const share = async (target: RecordV2) => {
 const renderHeader = () => {
     const endText = expandStatus.value ? i18n.value.deepThinkingFinished : i18n.value.deepThinkingExpand;
     return (
-        <div class="flex collapsed-thinking-text">
+        <div class="collapsed-thinking-text">
+            <CustomizedIcon 
+                remote 
+                name="arrow_up_small_line" 
+                showHoverBg={false} 
+                size="xs" 
+                theme={props.theme}
+                class={['thinking-arrow-icon', { 'thinking-arrow--expanded': expandStatus.value }]}
+            />
             <span>{endText}</span>
         </div>
     );
@@ -458,7 +466,7 @@ const renderReasoning = () => {
     }
     return {
         collapsed: props.isLastMsg && !props.isStreamLoad,
-        expandIcon: false,
+        expandIcon: () => null,
         expandIconPlacement: 'right' as const,
         onExpandChange: (e: boolean) => {
             expandStatus.value = e;
@@ -591,9 +599,9 @@ const referenceDialogTitle = computed(() => {
                         @widgetEvent="handleWidgetEvent"
                     />
                     <span>
-                    <CustomizedIcon :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon copy-icon" name="copy" :theme="theme"
+                    <CustomizedIcon remote :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon copy-icon" name="basic_copy_line" :theme="theme"
                         @click="(e: any) => copyContent(e, displayText, 'user')" />
-                    <CustomizedIcon :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon share-icon" name="share" :theme="theme"
+                    <CustomizedIcon remote :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon share-icon" name="basic_forward_line" :theme="theme"
                         @click="share(item)" />
                     </span>
                 </div>
@@ -704,36 +712,34 @@ const referenceDialogTitle = computed(() => {
         <template #actions v-if="showActions" >
             <div v-show="!isStreamLoad || !isLastMsg" class="actions-container" :class="{ isMobile: isMobile }">
                 <Tooltip :content="i18n.copy" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon copy-icon icon" name="copy" :theme="theme"
+                    <CustomizedIcon remote :size="isMobile ? 'm' : 's'" class="control-icon copy-icon icon" name="basic_copy_line" :theme="theme"
                         @click="(e: any) => copyContent(e, displayText, 'assistant')" />
                 </Tooltip>
                 <Tooltip :content="i18n.replay" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon icon" name="refresh" :theme="theme"
+                    <CustomizedIcon remote :size="isMobile ? 'm' : 's'" class="control-icon icon" name="basic_refresh_line" :theme="theme"
                         @click="emit('resend', item.RelatedRecordId, item.RecordId)" />
                 </Tooltip>
                 <Tooltip :content="i18n.share" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon share-icon icon" name="share" :theme="theme" @click="share(item)" />
+                    <CustomizedIcon remote :size="isMobile ? 'm' : 's'" class="control-icon share-icon icon" name="basic_forward_line" :theme="theme" @click="share(item)" />
                 </Tooltip>
                 <Tooltip :content="i18n.good" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon
+                    <CustomizedIcon remote
                         :size="isMobile ? 'm' : 's'"
                         :class="{ disabled: !canRate || (isRated() && recordScore !== ScoreValue.Like), 'not-allowed': isRated() || !canRate }"
                         class="control-icon icon"
-                        :name="recordScore === ScoreValue.Like ? 'thumbs_up_active' : 'thumbs_up'"
-                        :nativeIcon="record.Score === ScoreValue.Like"
+                        :name="recordScore === ScoreValue.Like ? 'basic_thumbsup_fill' : 'basic_thumbsup_line'"
                         :theme="theme" @click="rate(item, ScoreValue.Like)" />
                 </Tooltip>
                 <Tooltip :content="i18n.bad" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon
+                    <CustomizedIcon remote
                         :size="isMobile ? 'm' : 's'"
                         :class="{ disabled: !canRate || (isRated() && recordScore !== ScoreValue.Dislike), 'not-allowed': isRated() || !canRate }"
                         class="control-icon icon"
-                        :name="recordScore === ScoreValue.Dislike ? 'thumbs_down_active' : 'thumbs_down'"
-                        :nativeIcon="record.Score === ScoreValue.Dislike"
+                        :name="recordScore === ScoreValue.Dislike ? 'basic_thumbsdown_fill' : 'basic_thumbsdown_line'"
                         :theme="theme" @click="rate(item, ScoreValue.Dislike)" />
                 </Tooltip>
                 <Tooltip :content="i18n.aiDisclaimer" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon icon" name="info" :theme="theme" />
+                    <CustomizedIcon remote :size="isMobile ? 'm' : 's'" class="control-icon icon" name="basic_tips_line" :theme="theme" />
                 </Tooltip>
                 <span v-if="replyTime" class="actions-divider"></span>
                 <span v-if="replyTime" class="actions-time">{{ replyTime }}</span>
@@ -858,6 +864,36 @@ const referenceDialogTitle = computed(() => {
 }
 .collapsed-thinking-text{
     color: var(--td-text-color-placeholder);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+}
+.collapsed-thinking-text:hover {
+    background: var(--td-bg-color-container-hover, #f3f3f3);
+}
+/* 去掉 collapse panel header 的默认 padding，让深度思考 hover 撑满全宽 */
+:deep(.t-collapse-panel__header) {
+    padding: 0 !important;
+}
+/* 隐藏 TDesign collapse 自带的下拉图标 */
+:deep(.t-collapse-panel__icon) {
+    display: none;
+}
+.thinking-arrow-icon {
+    transform: rotate(180deg);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+.thinking-arrow--expanded {
+    transform: rotate(90deg);
 }
 .loading-container {
     padding: 0;

@@ -544,16 +544,16 @@ defineExpose({
                 <!-- 加号菜单按钮 -->
                 <div ref="plusMenuRef" class="plus-menu-wrapper">
                     <span class="plus-btn" :class="{ active: showPlusMenu, disabled: isUploading }" @click="togglePlusMenu">
-                        <CustomizedIcon name="plus" :theme="theme" :showHoverBg="false" />
+                        <CustomizedIcon remote name="basic_new_line" :theme="theme" :showHoverBg="false" />
                     </span>
                     <Transition name="fade-up">
                         <div v-if="showPlusMenu" class="plus-menu-popover">
                             <div class="plus-menu-item" @click="handleSelectImage">
-                                <CustomizedIcon name="picture" :theme="theme" size="s" :showHoverBg="false" />
+                                <CustomizedIcon remote name="basic_picture_line" :theme="theme" size="s" :showHoverBg="false" />
                                 <span>{{ i18n.uploadImage }}</span>
                             </div>
                             <div class="plus-menu-item" @click="handleSelectFile">
-                                <CustomizedIcon name="file" :theme="theme" size="s" :showHoverBg="false" />
+                                <CustomizedIcon remote name="basic_file_line" :theme="theme" size="s" :showHoverBg="false" />
                                 <span>{{ i18n.uploadFile }}</span>
                             </div>
                         </div>
@@ -591,8 +591,8 @@ defineExpose({
     max-width: 800px;
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--td-border-level-2-color, #dcdcdc);
-    border-radius: var(--td-radius-large, 12px);
+    border: 1px solid rgba(13, 13, 13, 0.15);
+    border-radius: var(--td-radius-xl, 16px);
     background: var(--td-bg-color-container, #fff);
     transition: border-color 0.2s, box-shadow 0.2s;
     overflow: visible;
