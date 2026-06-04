@@ -191,7 +191,7 @@ async function initPreview() {
         );
 
         if (!result.preview_url) {
-            throw new Error('文件转存失败：未返回预览链接');
+            throw new Error('预览失败，请确认预览服务是否启动');
         }
 
         // 第二步：使用预览 URL 初始化 SDK 预览

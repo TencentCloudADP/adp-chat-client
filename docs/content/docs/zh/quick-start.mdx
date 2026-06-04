@@ -167,7 +167,7 @@ OAUTH_MICROSOFT_ENTRA_SECRET=
 3. **应用权限**：确保 `.env` 中配置的 `TC_SECRET_ID` / `TC_SECRET_KEY` 对应账户具备智能体应用权限。详见 [平台侧用户权限](https://www.tencentcloud.com/document/product/1254/73347)。
 4. **文件预览服务**：Word、Excel、PPT 等文件预览需要开启文档处理服务。
    1. 使用主账号登录 [腾讯云对象存储控制台](https://console.cloud.tencent.com/cos/bucket)；
-   2. 搜索 `.env` 中配置的 COS 桶名称 `COS_BUCKET`（默认为 `chat-client-bucket-1322044278`），点击打开选中的桶；
+   2. 搜索 `.env` 中配置的 COS 桶名称 `COS_BUCKET`（默认为 `chat-client-bucket-${TC_SECRET_APPID}`，注意: `${TC_SECRET_APPID}` 为配置中填入的 `TC_SECRET_APPID`，实际 COS 桶的名称例如 `chat-client-bucket-1322044278`），点击打开选中的桶；
    3. 左侧菜单中选中 **数据处理** → **文档处理** → **开启**；
    4. **数据处理** → **文件处理** → **开启**。
 
