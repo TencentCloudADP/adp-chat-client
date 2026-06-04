@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onBeforeUnmount } from 'vue';
 import { Tree as TTree, Icon as TIcon, MessagePlugin } from 'tdesign-vue-next';
 import { listDir, getFileDownloadUrl } from '../../service/api';
 import CustomizedIcon from '../CustomizedIcon.vue';
@@ -230,20 +230,44 @@ function handleDownload(node: any) {
     MessagePlugin.success(props.downloadStartedText.replace('{name}', entry.name));
 }
 
+/** 等待 workspaceId 就绪的超时定时器 */
+let loadingTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
+/** loading 超时时间（毫秒） */
+const LOADING_TIMEOUT = 4000;
+
+function clearLoadingTimeout() {
+    if (loadingTimeoutTimer) {
+        clearTimeout(loadingTimeoutTimer);
+        loadingTimeoutTimer = null;
+    }
+}
+
 // 监听 workspaceId / applicationId 变化重新加载
 watch(
     [() => props.workspaceId, () => props.applicationId],
     ([newWsId, newAppId]) => {
+        clearLoadingTimeout();
         if (newAppId && newWsId) {
             initRootDir();
         } else {
-            // workspaceId 尚未就绪，显示 loading 状态
+            // workspaceId 尚未就绪，显示 loading 状态，但设置超时
             treeData.value = [];
             loading.value = true;
+            loadingTimeoutTimer = setTimeout(() => {
+                // 超时后仍未获取到 workspaceId，停止 loading 显示空列表
+                if (loading.value) {
+                    loading.value = false;
+                    treeData.value = [];
+                }
+            }, LOADING_TIMEOUT);
         }
     },
     { immediate: true }
 );
+
+onBeforeUnmount(() => {
+    clearLoadingTimeout();
+});
 </script>
 
 <style scoped>

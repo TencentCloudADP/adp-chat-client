@@ -951,6 +951,8 @@ const handleSelectApplication = (app: Application) => {
             senderRef.changeSenderVal('', []);
         }
     }
+    // 切换应用时关闭文件预览面板
+    closeFilePreview();
     // 移动端选择应用后收起侧边栏
     if (isMobile.value || props.isSidePanelOverlay) {
         sidebarVisible.value = false;
@@ -1499,7 +1501,7 @@ defineExpose({
                 @widgetEvent="handleInternalWidgetEvent"
             >
                 <template #header-actions>
-                    <Tooltip v-if="!isMobile" :content="mergedFilePreviewI18n.openFileList" destroyOnClose showArrow theme="default">
+                    <Tooltip v-if="!isMobile && chatMode !== 'standard'" :content="mergedFilePreviewI18n.openFileList" destroyOnClose showArrow theme="default">
                         <span class="open-file-list-btn" @click="toggleFilePreview">
                             <CustomizedIcon name="open_file_list" :theme="theme" />
                         </span>
