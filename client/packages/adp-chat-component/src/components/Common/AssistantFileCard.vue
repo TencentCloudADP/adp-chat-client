@@ -1,5 +1,6 @@
 <!-- assistant 系统对话中的文件附件卡片，支持点击下载 -->
 <script setup lang="ts">
+import { inject } from 'vue';
 import { MessagePlugin} from 'tdesign-vue-next';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import { getFileIconName } from '../../model/file';
@@ -16,6 +17,9 @@ const props = withDefaults(defineProps<Props>(), {
     ...themePropsDefaults,
     files: () => [],
 });
+
+/** 注入父组件提供的文件预览方法 */
+const viewFile = inject<(filePath: string) => void>('viewFile', () => {});
 
 /**
  * 根据文件名获取图标名称
@@ -75,6 +79,39 @@ function getFileUrl(file: FileInfo): string {
 }
 
 /**
+ * 预览文件（打开预览工作台）
+ */
+function handlePreview(file: FileInfo) {
+    // 优先使用文件 URL 中的路径，否则用文件名构建默认路径
+    const url = getFileUrl(file);
+    const filePath = extractFilePath(url) || ('/workdir/' + (file.FileName || ''));
+    if (viewFile) {
+        viewFile(filePath);
+    } else {
+        // 降级：无预览工作台时新窗口打开
+        if (url) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        } else {
+            MessagePlugin.error('文件链接不可用');
+        }
+    }
+}
+
+/**
+ * 从 URL 中提取文件路径
+ */
+function extractFilePath(url: string): string {
+    try {
+        const pathname = new URL(url).pathname;
+        // 匹配 /workdir/ 或类似路径
+        const match = pathname.match(/\/workdir\/.+$/);
+        return match ? decodeURIComponent(match[0]) : '';
+    } catch {
+        return '';
+    }
+}
+
+/**
  * 下载文件
  */
 function handleDownload(file: FileInfo) {
@@ -102,7 +139,7 @@ function handleDownload(file: FileInfo) {
             class="assistant-file-card"
             :class="{ 'assistant-file-card--no-size': !showFileSize(file) }"
             :title="getDisplayName(file)"
-            @click="handleDownload(file)"
+            @click="handlePreview(file)"
         >
             <div class="assistant-file-card__icon">
                 <CustomizedIcon remote :name="getIconName(file)" :theme="theme" nativeIcon :showHoverBg="false" size="xl" />

@@ -599,8 +599,7 @@ defineExpose({
     overflow: visible;
 }
 
-.sender-container.is-focused {
-    border-color: var(--td-brand-color, #0052d9);
+.sender-container:hover {
     box-shadow: 0 0 0 2px rgba(0, 82, 217, 0.08);
 }
 
