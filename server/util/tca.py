@@ -155,7 +155,7 @@ def sign(key, msg):
 def tc_request_prepare(config: dict, action: str, payload: str, service = "lke", version: str = None) -> dict:
     secret_id = tagentic_config.TC_SECRET_ID
     secret_key = tagentic_config.TC_SECRET_KEY
-    token = ""    
+    token = ""
     url = config[service]['url']
     host = url.split('//')[1].split('/')[0]
     # 加载 action 级别的 headers 配置
