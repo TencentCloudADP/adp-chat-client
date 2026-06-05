@@ -1,15 +1,15 @@
 <template>
     <div class="doc-preview-wrapper">
         <!-- 加载中状态 -->
-        <div v-if="loading" class="doc-preview-loading">
-            <div class="loading-spinner"></div>
+        <div v-if="loading" class="preview-loading">
+            <div class="loading-spinner loading-spinner--lg"></div>
             <p class="loading-text">{{ currentLoadingText }}</p>
         </div>
 
         <!-- 错误状态 -->
-        <div v-else-if="errorMsg" class="doc-preview-error">
-            <div class="error-icon">⚠️</div>
-            <p class="error-text">{{ errorMsg }}</p>
+        <div v-else-if="errorMsg" class="preview-error preview-error--lg">
+            <div class="preview-error__icon preview-error__icon--lg">⚠️</div>
+            <p class="preview-error__text preview-error__text--lg">{{ errorMsg }}</p>
             <button class="retry-btn" @click="retry">{{ props.retryText }}</button>
         </div>
 
@@ -284,6 +284,8 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@import './preview-common.css';
+
 .doc-preview-wrapper {
     width: 100%;
     height: 100%;
@@ -307,59 +309,10 @@ onUnmounted(() => {
 }
 
 /* 加载状态 */
-.doc-preview-loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    gap: 12px;
-}
-
-.loading-spinner {
-    width: 36px;
-    height: 36px;
-    border: 3px solid #e8e8e8;
-    border-top-color: var(--td-brand-color);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
 .loading-text {
     font-size: var(--td-font-size-body-medium);
     color: var(--td-text-color-secondary);
     margin: 0;
-}
-
-/* 错误状态 */
-.doc-preview-error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    gap: 12px;
-}
-
-.error-icon {
-    font-size: 40px;
-}
-
-.error-text {
-    font-size: var(--td-font-size-body-medium);
-    color: var(--td-error-color);
-    margin: 0;
-    text-align: center;
-    max-width: 80%;
-    word-break: break-word;
 }
 
 .retry-btn {

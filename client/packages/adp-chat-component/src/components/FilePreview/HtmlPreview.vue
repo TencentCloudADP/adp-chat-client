@@ -1,12 +1,12 @@
 <template>
     <div class="html-preview">
-        <div v-if="loading" class="html-preview-loading">
+        <div v-if="loading" class="preview-loading">
             <div class="loading-spinner"></div>
         </div>
 
-        <div v-if="errorMsg" class="html-preview-error">
-            <div class="error-icon">⚠️</div>
-            <p class="error-text">{{ errorMsg }}</p>
+        <div v-if="errorMsg" class="preview-error">
+            <div class="preview-error__icon">⚠️</div>
+            <p class="preview-error__text">{{ errorMsg }}</p>
         </div>
 
         <!--
@@ -104,6 +104,8 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@import './preview-common.css';
+
 .html-preview {
     width: 100%;
     height: 100%;
@@ -120,48 +122,11 @@ onUnmounted(() => {
     flex: 1;
 }
 
-/* 加载状态 */
-.html-preview-loading {
+/* HtmlPreview 的 loading 使用绝对定位覆盖 iframe */
+.preview-loading {
     position: absolute;
     inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #fff;
+    background: var(--td-bg-color-container);
     z-index: 1;
-}
-
-.loading-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid #e8e8e8;
-    border-top-color: var(--td-brand-color);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* 错误状态 */
-.html-preview-error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    gap: 8px;
-}
-
-.error-icon {
-    font-size: 36px;
-}
-
-.error-text {
-    font-size: var(--td-font-size-body-small);
-    color: var(--td-error-color);
-    margin: 0;
 }
 </style>
