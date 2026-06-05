@@ -71,7 +71,7 @@ const handleClick = () => {
     gap: 8px;
     padding: 8px 12px;
     border: 1px solid rgba(16, 32, 69, 0.08);
-    border-radius: 8px;
+    border-radius: var(--td-radius-large);
     background: rgba(16, 32, 69, 0.02);
     max-width: 280px;
     cursor: default;
@@ -114,7 +114,7 @@ const handleClick = () => {
 
 .msg-file-name {
     color: rgba(0, 1, 10, 0.9);
-    font-size: 13px;
+    font-size: var(--td-font-size-body-small);
     font-weight: 400;
     line-height: 20px;
     white-space: nowrap;
@@ -124,7 +124,7 @@ const handleClick = () => {
 
 .msg-file-size {
     color: rgba(0, 1, 10, 0.4);
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     line-height: 16px;
 }
 </style>

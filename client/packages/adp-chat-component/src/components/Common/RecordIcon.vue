@@ -34,7 +34,7 @@
     align-items: end;
     padding: var(--td-pop-padding-m);
     font-size: 0;
-    background-color: #F1F6FF;
+    background-color: var(--td-brand-color-light);
 }
 .line-box>span:last-child {
     margin-right: 0

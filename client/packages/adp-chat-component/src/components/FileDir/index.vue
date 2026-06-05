@@ -281,21 +281,21 @@ onBeforeUnmount(() => {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-right: 1px solid var(--td-border-level-1-color, #e7e7e7);
-    background: var(--td-bg-color-container, #fff);
+    border-right: 1px solid var(--td-border-level-1-color);
+    background: var(--td-bg-color-container);
 }
 
 .file-dir-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--td-border-level-1-color, #e7e7e7);
+    padding: var(--td-comp-paddingTB-m) var(--td-comp-paddingLR-l);
+    border-bottom: 1px solid var(--td-border-level-1-color);
     flex-shrink: 0;
 }
 
 .file-dir-title {
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     font-weight: 600;
     color: var(--td-text-color-primary);
 }
@@ -303,7 +303,7 @@ onBeforeUnmount(() => {
 .file-dir-actions {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--td-comp-margin-xs);
 }
 
 .file-dir-action {
@@ -311,13 +311,14 @@ onBeforeUnmount(() => {
     color: var(--td-text-color-secondary);
     line-height: 1;
     display: flex;
+    padding: var(--td-comp-paddingLR-xs);
     align-items: center;
     justify-content: center;
     transition: background-color 0.2s, color 0.2s;
 }
 
 .file-dir-action:hover {
-    background-color: var(--td-bg-color-container-hover, #f3f3f3);
+    background-color: var(--td-bg-color-container-hover);
     color: var(--td-text-color-primary);
 }
 
@@ -333,17 +334,17 @@ onBeforeUnmount(() => {
 .file-dir-tree {
     flex: 1;
     overflow-y: auto;
-    padding: 8px 16px;
+    padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-l);
 }
 
 .file-dir-loading {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 32px 0;
-    color: var(--td-text-color-secondary, #666);
-    font-size: 13px;
+    gap: var(--td-comp-margin-s);
+    padding: var(--td-comp-paddingTB-xxl) 0;
+    color: var(--td-text-color-secondary);
+    font-size: var(--td-font-size-body-small);
 }
 
 :deep(.t-tree__item) {
@@ -351,17 +352,17 @@ onBeforeUnmount(() => {
 }
 
 :deep(.t-tree__item:hover) {
-    background-color: var(--td-bg-color-container-hover, #f3f3f3);
+    background-color: var(--td-bg-color-container-hover);
 }
 
 :deep(.t-tree__item.t-is-active) {
-    background-color: var(--td-brand-color-light, #ecf2fe);
+    background-color: var(--td-brand-color-light);
 }
 :deep(.t-tree--hoverable .t-tree__label:not(.t-is-active):not(.t-is-checked):hover) {
     background-color: transparent;
 }
 :deep(.t-tree__label) {
-    font-size: 13px;
+    font-size: var(--td-font-size-body-small);
     color: var(--td-text-color-primary);
 }
 
@@ -369,19 +370,19 @@ onBeforeUnmount(() => {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
+    width: var(--td-comp-size-xs);
+    height: var(--td-comp-size-xs);
+    border-radius: var(--td-radius-default);
     cursor: pointer;
-    color: var(--td-text-color-secondary, #666);
-    font-size: 14px;
+    color: var(--td-text-color-secondary);
+    font-size: var(--td-font-size-body-medium);
     transition: background-color 0.2s, color 0.2s;
     flex-shrink: 0;
 }
 
 .file-download-btn:hover {
-    background-color: var(--td-bg-color-container-hover, #f3f3f3);
-    color: var(--td-brand-color, #0052d9);
+    background-color: var(--td-bg-color-container-hover);
+    color: var(--td-brand-color);
 }
 
 .tree-arrow {
@@ -398,6 +399,6 @@ onBeforeUnmount(() => {
 
 .file-download-btn.is-loading {
     pointer-events: none;
-    color: var(--td-brand-color, #0052d9);
+    color: var(--td-brand-color);
 }
 </style>

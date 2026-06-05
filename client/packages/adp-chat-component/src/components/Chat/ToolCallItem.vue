@@ -332,7 +332,7 @@ function detectLanguage(): string {
 <style scoped>
 .tool-call-item {
     width: 100%;
-    border-radius: 6px;
+    border-radius: var(--td-radius-medium);
     overflow: hidden;
 }
 
@@ -355,7 +355,7 @@ function detectLanguage(): string {
 
 .tool-call-item--expandable .tool-call-item__header {
     cursor: pointer;
-    background: var(--td-bg-color-page);
+    background: var(--td-gray-color-0);
 }
 
 .tool-call-item--expandable .tool-call-item__header:hover {
@@ -397,7 +397,7 @@ function detectLanguage(): string {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     line-height: 18px;
     min-width: 0;
     color: var(--td-text-color-placeholder);
@@ -456,7 +456,7 @@ function detectLanguage(): string {
 /* 查看按钮 */
 .tool-call-item__view-btn {
     font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     line-height: 16px;
     color: var(--td-text-color-placeholder);
     cursor: pointer;
@@ -521,7 +521,7 @@ function detectLanguage(): string {
 .tool-call-item__code-area {
     max-height: 200px;
     overflow-y: auto;
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     scrollbar-color: var(--td-scrollbar-color) transparent;
     scrollbar-width: thin;
 }
@@ -559,14 +559,14 @@ function detectLanguage(): string {
 }
 
 .tool-call-item__code-area :deep(code) {
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     line-height: 18px;
 }
 
 /* 搜索/文本结果区域 */
 .tool-call-item__text-area {
     padding: 8px 12px;
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     line-height: 1.6;
     color: var(--td-text-color-secondary);
     word-break: break-word;

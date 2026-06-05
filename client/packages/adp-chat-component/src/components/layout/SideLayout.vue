@@ -208,7 +208,7 @@ const handleUserClick = () => {
     border: 2px solid transparent;
     background-clip: content-box;
     background-color: var(--td-scrollbar-color);
-    border-radius: 15px;
+    border-radius: var(--td-radius-round);
 }
 
 .drawer-scrollable::-webkit-scrollbar-thumb:hover {

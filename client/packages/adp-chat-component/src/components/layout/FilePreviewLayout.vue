@@ -392,7 +392,7 @@ defineExpose({
 
 .file-preview-panel__preview-title {
     flex: 1;
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     font-weight: 600;
     color: var(--td-text-color-primary);
     overflow: hidden;

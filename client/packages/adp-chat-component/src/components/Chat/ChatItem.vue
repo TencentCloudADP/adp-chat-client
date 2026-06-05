@@ -790,7 +790,7 @@ const referenceDialogTitle = computed(() => {
 .claw-render {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--td-comp-margin-s);
     width: 100%;
 }
 
@@ -851,33 +851,33 @@ const referenceDialogTitle = computed(() => {
 }
 .actions-divider {
     width: 1px;
-    height: 12px;
-    background: var(--td-border-level-2-color, rgba(0, 0, 0, 0.1));
-    margin-left: 4px;
+    height: var(--td-comp-paddingTB-m);
+    background: var(--td-border-level-2-color);
+    margin-left: var(--td-comp-margin-xs);
 }
 .actions-time {
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     color: var(--td-text-color-placeholder);
-    line-height: 24px;
-    margin-left: 12px;
+    line-height: var(--td-line-height-body-small);
+    margin-left: var(--td-comp-margin-m);
     white-space: nowrap;
 }
 .collapsed-thinking-text{
     color: var(--td-text-color-placeholder);
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--td-comp-margin-xs);
     width: 100%;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: var(--td-comp-paddingTB-xxs) var(--td-comp-paddingLR-s);
+    border-radius: var(--td-radius-default);
     cursor: pointer;
     font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     font-weight: 400;
-    line-height: 16px;
+    line-height: var(--td-line-height-link-small);
 }
 .collapsed-thinking-text:hover {
-    background: var(--td-bg-color-container-hover, #f3f3f3);
+    background: var(--td-bg-color-container-hover);
 }
 /* 去掉 collapse panel header 的默认 padding，让深度思考 hover 撑满全宽 */
 :deep(.t-collapse-panel__header) {
@@ -1018,27 +1018,27 @@ const referenceDialogTitle = computed(() => {
     padding: calc(var(--td-pop-padding-m) - 1px);
 }
 .chat-item__container.loading{
-    padding-bottom: 32px;
+    padding-bottom: var(--td-comp-paddingTB-xxl);
 }
 
 .file-attachments {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin: 8px 0;
+    gap: var(--td-comp-margin-s);
+    margin: var(--td-comp-margin-s) 0;
 }
 
 .image-attachments {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin: 8px 0 ;
+    gap: var(--td-comp-margin-s);
+    margin: var(--td-comp-margin-s) 0 ;
 }
 
 .msg-inline-image {
     max-width: 200px;
     max-height: 200px;
-    border-radius: 8px;
+    border-radius: var(--td-radius-large);
     object-fit: contain;
     cursor: pointer;
     display: block;

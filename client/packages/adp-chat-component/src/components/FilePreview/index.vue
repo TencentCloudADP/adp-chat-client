@@ -251,8 +251,8 @@ defineExpose({
 }
 
 .unsupported-text {
-    font-size: 14px;
-    color: #999;
+    font-size: var(--td-font-size-body-medium);
+    color: var(--td-text-color-placeholder);
     margin: 0;
 }
 

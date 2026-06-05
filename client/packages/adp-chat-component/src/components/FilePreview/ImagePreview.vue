@@ -161,7 +161,7 @@ onUnmounted(() => {
     width: 32px;
     height: 32px;
     border: 3px solid #e8e8e8;
-    border-top-color: #0052d9;
+    border-top-color: var(--td-brand-color);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
@@ -184,8 +184,8 @@ onUnmounted(() => {
 }
 
 .error-text {
-    font-size: 13px;
-    color: #e34d59;
+    font-size: var(--td-font-size-body-small);
+    color: var(--td-error-color);
     margin: 0;
 }
 </style>

@@ -251,28 +251,28 @@ function extractText(msg: Message): string {
 <style scoped>
 .collapsible-group {
     width: 100%;
-    border-radius: 6px;
+    border-radius: var(--td-radius-medium);
 }
 
 .collapsible-group__header {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--td-comp-margin-xs);
     user-select: none;
-    padding: 4px;
-    border-radius: 3px;
+    padding: var(--td-comp-paddingTB-xxs);
+    border-radius: var(--td-radius-default);
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
 
 .collapsible-group__header:hover {
-    background: var(--td-bg-color-container-hover, #f3f3f3);
+    background: var(--td-bg-color-container-hover);
 }
 
 .collapsible-group__title {
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     font-weight: 400;
-    line-height: 16px;
+    line-height: var(--td-line-height-link-small);
     color: var(--td-text-color-placeholder);
 }
 
@@ -280,8 +280,8 @@ function extractText(msg: Message): string {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: var(--td-size-6);
+    height: var(--td-size-6);
     transition: transform 0.2s ease;
      transform: rotate(90deg);
 }
@@ -291,11 +291,11 @@ function extractText(msg: Message): string {
 }
 
 .collapsible-group__content {
-    margin-top: 4px;
-    padding-left: 20px;
+    margin-top: var(--td-comp-margin-xs);
+    padding-left: var(--td-comp-paddingLR-l);
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--td-comp-margin-xxs);
 }
 
 .collapsible-group__tool-item {
@@ -309,18 +309,18 @@ function extractText(msg: Message): string {
     color: var(--td-text-color-placeholder);
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border-radius: 4px;
+    gap: var(--td-comp-margin-xs);
+    padding: var(--td-comp-paddingTB-xxs) var(--td-comp-paddingLR-s);
+    border-radius: var(--td-radius-default);
     cursor: pointer;
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     line-height: 18px;
     font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
     transition: background 0.2s ease;
 }
 
 .collapsible-group__thought-header:hover {
-    background: var(--td-bg-color-container-hover, #f3f3f3);
+    background: var(--td-bg-color-container-hover);
 }
 
 .collapsible-group__thought-arrow {
@@ -334,22 +334,22 @@ function extractText(msg: Message): string {
 }
 
 .collapsible-group__thought-content {
-    font-size: 13px;
+    font-size: var(--td-font-size-body-small);
     color: var(--td-text-color-secondary);
-    padding: 0 8px;
+    padding: 0 var(--td-comp-paddingLR-s);
 }
 
 .collapsible-group__thought-content :deep(.markdown-body) {
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
 }
 
 .collapsible-group__loading-dot {
     display: inline-block;
-    width: 6px;
-    height: 6px;
+    width: var(--td-size-3);
+    height: var(--td-size-3);
     border-radius: 50%;
-    background: var(--td-brand-color, #0052d9);
-    margin-left: 4px;
+    background: var(--td-brand-color);
+    margin-left: var(--td-comp-margin-xs);
     animation: pulse-dot 1.2s ease-in-out infinite;
 }
 

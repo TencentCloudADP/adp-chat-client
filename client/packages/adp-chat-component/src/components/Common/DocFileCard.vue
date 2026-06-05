@@ -163,7 +163,7 @@ const fileSizeDisplay = computed(() => {
     justify-content: center;
     align-items: center;
     flex-shrink: 0;
-    border-radius: 8px;
+    border-radius: var(--td-radius-large);
     border: 1px solid rgba(16, 32, 69, 0.10);
     background: #FFFFFF;
     cursor: pointer;
@@ -216,7 +216,7 @@ const fileSizeDisplay = computed(() => {
 .doc-file-card.standard-file-card {
     gap: 8px;
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: var(--td-radius-large);
     border-color: rgba(16, 32, 69, 0.08);
     background: rgba(16, 32, 69, 0.02);
     max-width: 280px;
@@ -246,7 +246,7 @@ const fileSizeDisplay = computed(() => {
 
 .doc-file-size {
     color: rgba(0, 1, 10, 0.4);
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     line-height: 16px;
     white-space: nowrap;
 }
@@ -291,7 +291,7 @@ const fileSizeDisplay = computed(() => {
     white-space: nowrap;
     overflow: hidden;
     color: rgba(0, 1, 10, 0.93);
-    font-size: 13px;
+    font-size: var(--td-font-size-body-small);
     font-weight: 400;
     line-height: 20px;
     max-width: 160px;
@@ -375,7 +375,7 @@ const fileSizeDisplay = computed(() => {
     z-index: 1000;
     padding: 4px;
     background: #fff;
-    border-radius: 8px;
+    border-radius: var(--td-radius-large);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     pointer-events: none;
 }
@@ -384,7 +384,7 @@ const fileSizeDisplay = computed(() => {
     display: block;
     max-width: 200px;
     max-height: 200px;
-    border-radius: 6px;
+    border-radius: var(--td-radius-medium);
     object-fit: contain;
 }
 

@@ -69,6 +69,7 @@
   --td-success-color-disabled: var(--td-success-color-3);
   --td-success-color-light: var(--td-success-color-1);
   --td-success-color-light-hover: var(--td-success-color-2);
+  --td-gray-color-0: #f7f8fa;
   --td-gray-color-1: #f3f3f4;
   --td-gray-color-2: #eeeef0;
   --td-gray-color-3: #e8e8eb;
@@ -213,6 +214,7 @@
   --td-success-color-disabled: var(--td-success-color-3);
   --td-success-color-light: var(--td-success-color-1);
   --td-success-color-light-hover: var(--td-success-color-2);
+  --td-gray-color-0:#181818;
   --td-gray-color-1: #f3f3f4;
   --td-gray-color-2: #eeeef0;
   --td-gray-color-3: #e8e8eb;

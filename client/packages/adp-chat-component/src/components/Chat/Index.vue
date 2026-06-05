@@ -776,7 +776,7 @@ defineExpose({
 :deep(.share-setting-card) {
     box-sizing: border-box;
     box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 18px rgba(18, 19, 25, 0.08), 0px 16px 64px rgba(18, 19, 25, 0.16);
-    border-radius: 6px;
+    border-radius: var(--td-radius-medium);
     padding: var(--td-comp-paddingLR-s) var(--td-size-10) var(--td-comp-paddingLR-s) var(--td-comp-paddingLR-xl) !important;
 }
 
@@ -784,7 +784,7 @@ defineExpose({
     border: none;
     box-sizing: border-box;
     box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 18px rgba(18, 19, 25, 0.08), 0px 16px 64px rgba(18, 19, 25, 0.16);
-    border-radius: 6px;
+    border-radius: var(--td-radius-medium);
 }
 
 .share-setting-content.isMobile {
@@ -798,8 +798,8 @@ defineExpose({
 }
 
 .share-setting-content.isMobile .icon__share-copy :deep(svg) {
-    width: 14px;
-    height: 14px;
+    width: var(--td-font-size-body-medium);
+    height: var(--td-font-size-body-medium);
 }
 
 .share-setting-content.isMobile .icon__share-close {

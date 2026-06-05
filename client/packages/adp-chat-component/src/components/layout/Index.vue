@@ -1548,7 +1548,7 @@ defineExpose({
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--td-mask-disabled);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     z-index: 99;
@@ -1561,16 +1561,16 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: var(--td-comp-size-m);
+    height: var(--td-comp-size-m);
+    border-radius: var(--td-radius-medium);
     cursor: pointer;
-    color: var(--td-text-color-secondary, #666);
+    color: var(--td-text-color-secondary);
     transition: all 0.2s;
 }
 
 .open-file-list-btn:hover {
-    color: var(--td-brand-color, #0052d9);
-    background: var(--td-bg-color-container-hover, #f3f3f3);
+    color: var(--td-brand-color);
+    background: var(--td-bg-color-container-hover);
 }
 </style>

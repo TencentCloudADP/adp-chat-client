@@ -321,7 +321,7 @@ onUnmounted(() => {
     width: 36px;
     height: 36px;
     border: 3px solid #e8e8e8;
-    border-top-color: #0052d9;
+    border-top-color: var(--td-brand-color);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
@@ -333,8 +333,8 @@ onUnmounted(() => {
 }
 
 .loading-text {
-    font-size: 14px;
-    color: #666;
+    font-size: var(--td-font-size-body-medium);
+    color: var(--td-text-color-secondary);
     margin: 0;
 }
 
@@ -354,8 +354,8 @@ onUnmounted(() => {
 }
 
 .error-text {
-    font-size: 14px;
-    color: #e34d59;
+    font-size: var(--td-font-size-body-medium);
+    color: var(--td-error-color);
     margin: 0;
     text-align: center;
     max-width: 80%;
@@ -364,9 +364,9 @@ onUnmounted(() => {
 
 .retry-btn {
     padding: 6px 20px;
-    font-size: 14px;
-    color: #fff;
-    background-color: #0052d9;
+    font-size: var(--td-font-size-body-medium);
+    color: var(--td-text-color-anti);
+    background-color: var(--td-brand-color);
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -374,6 +374,6 @@ onUnmounted(() => {
 }
 
 .retry-btn:hover {
-    background-color: #003cab;
+    background-color: var(--td-brand-color-active);
 }
 </style>

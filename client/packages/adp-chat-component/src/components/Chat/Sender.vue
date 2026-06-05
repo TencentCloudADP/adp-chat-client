@@ -610,7 +610,7 @@ defineExpose({
 
 /* 文件区域 */
 .sender-files {
-    padding: 8px 12px 0;
+    padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-m) 0;
 }
 
 /* 编辑器区域 */
@@ -625,7 +625,7 @@ defineExpose({
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 4px 8px 8px;
+    padding: var(--td-comp-paddingTB-xxs) var(--td-comp-paddingLR-s) var(--td-comp-paddingTB-s);
     cursor: default;
 }
 
@@ -647,18 +647,18 @@ defineExpose({
 }
 
 .plus-btn {
-    width: 32px;
-    height: 32px;
+    width: var(--td-comp-size-m);
+    height: var(--td-comp-size-m);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    border-radius: var(--td-radius-default, 4px);
+    border-radius: var(--td-radius-default);
     transition: background 0.2s, transform 0.2s;
 }
 
 .plus-btn:hover {
-    background-color: var(--td-bg-color-container-active, rgba(0, 0, 0, 0.05));
+    background-color: var(--td-bg-color-container-active);
 }
 
 .plus-btn.disabled {
@@ -672,28 +672,28 @@ defineExpose({
     bottom: calc(100% + 8px);
     left: 0;
     width: 140px;
-    padding: 6px;
-    border-radius: 8px;
-    background: var(--td-bg-color-container, #fff);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    padding: var(--td-pop-padding-m);
+    border-radius: var(--td-radius-large);
+    background: var(--td-bg-color-container);
+    box-shadow: var(--td-shadow-2);
     z-index: 2000;
 }
 
 .plus-menu-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px;
-    border-radius: 6px;
-    font-size: 13px;
-    line-height: 20px;
-    color: rgba(0, 0, 0, 0.8);
+    gap: var(--td-comp-margin-s);
+    padding: var(--td-comp-paddingTB-s);
+    border-radius: var(--td-radius-medium);
+    font-size: var(--td-font-size-body-small);
+    line-height: var(--td-line-height-body-small);
+    color: var(--td-text-color-primary);
     cursor: pointer;
     transition: background 0.15s;
 }
 
 .plus-menu-item:hover {
-   background-color: var(--td-bg-color-container-active, rgba(0, 0, 0, 0.05));
+   background-color: var(--td-bg-color-container-active);
 }
 
 /* 菜单出入动画 */

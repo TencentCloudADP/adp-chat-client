@@ -408,7 +408,7 @@ defineExpose({
 
 .qa-editor__editor {
     width: 100%;
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
 }
 
 .qa-editor--no-toolbar .qa-editor__editor {
@@ -433,7 +433,7 @@ defineExpose({
     white-space: pre-wrap;
     word-wrap: break-word;
     font-style: normal;
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     top: 8px;
 }
 

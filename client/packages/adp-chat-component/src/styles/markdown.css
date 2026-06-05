@@ -1430,7 +1430,7 @@
 
 .markdown-body img {
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: var(--td-radius-medium);
 }
 
 .markdown-body p {

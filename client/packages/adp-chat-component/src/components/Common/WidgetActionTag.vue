@@ -30,7 +30,7 @@ withDefaults(defineProps<{
 .widget-action-text {
   font-family: 'PingFang SC', sans-serif;
   font-weight: 400;
-  font-size: 12px;
+  font-size: var(--td-font-size-link-small);
   line-height: 2em;
   color: var(--td-text-color-placeholder, rgba(1, 11, 50, 0.41));
 }

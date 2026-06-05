@@ -458,7 +458,7 @@ onBeforeUnmount(() => {
   display: block;
   max-width: 100%;
   max-height: 400px;
-  border-radius: 8px;
+  border-radius: var(--td-radius-large);
   margin: 8px 0;
   object-fit: contain;
   cursor: pointer;
@@ -468,7 +468,7 @@ onBeforeUnmount(() => {
 :deep(.md-img-card) {
   display: inline-flex;
   align-items: center;
-  border-radius: 8px;
+  border-radius: var(--td-radius-large);
   border: 1px solid rgba(16, 32, 69, 0.10);
   background: #FFFFFF;
   cursor: pointer;
@@ -487,7 +487,7 @@ onBeforeUnmount(() => {
   z-index: 1000;
   padding: 4px;
   background: #FFFFFF;
-  border-radius: 8px;
+  border-radius: var(--td-radius-large);
   border: 1px solid rgba(16, 32, 69, 0.10);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   pointer-events: none;
@@ -499,7 +499,7 @@ onBeforeUnmount(() => {
   display: block;
   max-width: 100%;
   max-height: 192px;
-  border-radius: 6px;
+  border-radius: var(--td-radius-medium);
   object-fit: contain;
 }
 
@@ -526,7 +526,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 6px;
   padding: 4px 10px;
-  border-radius: 8px;
+  border-radius: var(--td-radius-large);
   border: 1px solid rgba(16, 32, 69, 0.10);
   background: #FFFFFF;
   cursor: pointer;
@@ -569,7 +569,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   color: rgba(0, 1, 10, 0.93);
-  font-size: 13px;
+  font-size: var(--td-font-size-body-small);
   font-weight: 400;
   line-height: 20px;
   max-width: 170px;
@@ -623,7 +623,7 @@ onBeforeUnmount(() => {
   padding: 12px 16px;
   background-color: var(--td-warning-color-light, #fff7e6);
   border-bottom: 1px solid var(--td-component-stroke, #e0e0e0);
-  font-size: 14px;
+  font-size: var(--td-font-size-body-medium);
   color: var(--td-warning-color, #ed7b2f);
 }
 
@@ -647,7 +647,7 @@ onBeforeUnmount(() => {
   background-color: var(--td-bg-color-secondarycontainer, #fafafa);
   border-radius: var(--td-radius-small, 4px);
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  font-size: 13px;
+  font-size: var(--td-font-size-body-small);
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-all;

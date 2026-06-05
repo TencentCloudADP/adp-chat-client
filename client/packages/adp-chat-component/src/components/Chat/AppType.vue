@@ -104,7 +104,7 @@ const handleChooseQuestion = (value: string) => {
   color: var(--td-text-color-primary);
   font-size: var(--td-font-size-title-large);
   font-weight: 500;
-  margin-top:16px;
+  margin-top: var(--td-comp-margin-l);
 }
 .greeting-panel {
   display: flex;
