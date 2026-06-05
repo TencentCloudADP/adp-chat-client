@@ -1,14 +1,14 @@
 <template>
     <div class="markdown-preview">
         <!-- 加载状态 -->
-        <div v-if="loading" class="markdown-preview-loading">
+        <div v-if="loading" class="preview-loading">
             <div class="loading-spinner"></div>
         </div>
 
         <!-- 错误状态 -->
-        <div v-else-if="errorMsg" class="markdown-preview-error">
-            <div class="error-icon">⚠️</div>
-            <p class="error-text">{{ errorMsg }}</p>
+        <div v-else-if="errorMsg" class="preview-error">
+            <div class="preview-error__icon">⚠️</div>
+            <p class="preview-error__text">{{ errorMsg }}</p>
         </div>
 
         <!-- Markdown 内容渲染 -->
@@ -82,62 +82,21 @@ watch(
 </script>
 
 <style scoped>
+@import './preview-common.css';
+
 .markdown-preview {
     width: 100%;
     height: 100%;
     position: relative;
     overflow: hidden;
-    background: var(--td-bg-color-container, #fff);
+    background: var(--td-bg-color-container);
 }
 
 .markdown-preview-scroll {
     width: 100%;
     height: 100%;
     overflow: auto;
-    padding: 16px 20px;
+    padding: var(--td-comp-paddingLR-l) var(--td-comp-paddingLR-xl);
     box-sizing: border-box;
-}
-
-/* 加载状态 */
-.markdown-preview-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-}
-
-.loading-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid #e8e8e8;
-    border-top-color: #0052d9;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* 错误状态 */
-.markdown-preview-error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    gap: 8px;
-}
-
-.error-icon {
-    font-size: 36px;
-}
-
-.error-text {
-    font-size: 13px;
-    color: #e34d59;
-    margin: 0;
 }
 </style>

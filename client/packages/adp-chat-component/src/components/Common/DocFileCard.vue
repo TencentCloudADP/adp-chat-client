@@ -27,10 +27,10 @@ const isUploading = computed(() => props.file.status === 'uploading');
 
 const iconName = computed(() => {
     if (props.mode === 'claw') {
-        if (props.file.category === 'image') return 'picture';
+        if (props.file.category === 'image') return 'basic_picture_line';
         return getFileIconName(props.file.name || '');
     }
-    if (props.file.category === 'image') return 'picture';
+    if (props.file.category === 'image') return 'basic_picture_line';
     return getFileIconName(props.file.name || '');
 });
 
@@ -98,7 +98,7 @@ const fileSizeDisplay = computed(() => {
         <span v-else class="claw-tag-icon" :class="isImage ? 'claw-tag-icon--image' : 'claw-tag-icon--file'" />
         <div class="doc-filename" :title="file.name">{{ displayName }}</div>
         <span class="delete-btn claw-delete" @click.stop="emit('delete')">
-            <CustomizedIcon name="close_circle" :theme="theme" size="xs" nativeIcon :showHoverBg="false" />
+            <CustomizedIcon remote name="basic_close_line" :theme="theme" size="xs" :showHoverBg="false" />
         </span>
         <!-- 图片 hover 预览弹窗 -->
         <Transition name="fade">
@@ -120,10 +120,10 @@ const fileSizeDisplay = computed(() => {
         <!-- 图片缩略图 -->
         <img v-else-if="file.url" class="image-thumb" :src="file.url" alt="" />
         <!-- 兜底 icon -->
-        <CustomizedIcon v-else name="picture" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
+        <CustomizedIcon remote v-else name="basic_picture_line" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
         <!-- 删除按钮 -->
         <span class="delete-btn" @click.stop="emit('delete')">
-            <CustomizedIcon name="close_circle" :theme="theme" size="xs" nativeIcon :showHoverBg="false" />
+            <CustomizedIcon remote name="basic_close_line" :theme="theme" size="xs" :showHoverBg="false" />
         </span>
         <!-- hover 预览弹窗 -->
         <Transition name="fade">
@@ -139,7 +139,7 @@ const fileSizeDisplay = computed(() => {
             <div v-if="isUploading" class="loading-spinner">
                 <CustomizedIcon name="loading" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
             </div>
-            <CustomizedIcon v-else :name="iconName" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
+            <CustomizedIcon remote v-else :name="iconName" :theme="theme" nativeIcon :showHoverBg="false" size="xl" />
         </div>
         <div class="doc-file-info">
             <span class="doc-filename" :title="file.name">{{ displayName }}</span>
@@ -147,7 +147,7 @@ const fileSizeDisplay = computed(() => {
         </div>
         <!-- 删除按钮 -->
         <span class="delete-btn" @click.stop="emit('delete')">
-            <CustomizedIcon name="close_circle" :theme="theme" size="xs" nativeIcon :showHoverBg="false" />
+            <CustomizedIcon remote name="basic_close_line" :theme="theme" size="xs" :showHoverBg="false" />
         </span>
     </div>
 </template>
@@ -163,7 +163,7 @@ const fileSizeDisplay = computed(() => {
     justify-content: center;
     align-items: center;
     flex-shrink: 0;
-    border-radius: 8px;
+    border-radius: var(--td-radius-large);
     border: 1px solid rgba(16, 32, 69, 0.10);
     background: #FFFFFF;
     cursor: pointer;
@@ -216,7 +216,7 @@ const fileSizeDisplay = computed(() => {
 .doc-file-card.standard-file-card {
     gap: 8px;
     padding: 8px 12px;
-    border-radius: 8px;
+    border-radius: var(--td-radius-large);
     border-color: rgba(16, 32, 69, 0.08);
     background: rgba(16, 32, 69, 0.02);
     max-width: 280px;
@@ -246,7 +246,7 @@ const fileSizeDisplay = computed(() => {
 
 .doc-file-size {
     color: rgba(0, 1, 10, 0.4);
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     line-height: 16px;
     white-space: nowrap;
 }
@@ -291,7 +291,7 @@ const fileSizeDisplay = computed(() => {
     white-space: nowrap;
     overflow: hidden;
     color: rgba(0, 1, 10, 0.93);
-    font-size: 13px;
+    font-size: var(--td-font-size-body-small);
     font-weight: 400;
     line-height: 20px;
     max-width: 160px;
@@ -375,7 +375,7 @@ const fileSizeDisplay = computed(() => {
     z-index: 1000;
     padding: 4px;
     background: #fff;
-    border-radius: 8px;
+    border-radius: var(--td-radius-large);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
     pointer-events: none;
 }
@@ -384,7 +384,7 @@ const fileSizeDisplay = computed(() => {
     display: block;
     max-width: 200px;
     max-height: 200px;
-    border-radius: 6px;
+    border-radius: var(--td-radius-medium);
     object-fit: contain;
 }
 

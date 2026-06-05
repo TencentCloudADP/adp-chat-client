@@ -17,7 +17,7 @@ const handleClick = () => {
 </script>
 
 <template>
-    <CustomizedIcon class="sidebar-icon" name="sidebar" :theme="theme" @click="handleClick"/>
+    <CustomizedIcon remote class="sidebar-icon" name="basic_sidebarchat_line" :theme="theme" @click="handleClick"/>
 </template>
 
 <style scoped>

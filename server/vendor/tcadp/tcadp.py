@@ -472,7 +472,7 @@ class TCADP(BaseVendor):
         self,
         action: str,
         payload: dict = None,
-        service: str = "lke",
+        service: str = None,
         *,
         version: str = None,
         response_key: str = None,
@@ -588,6 +588,15 @@ class TCADP(BaseVendor):
     def get_vendor(self) -> str:
         return 'Tencent'
 
+    # AppMode 枚举值到 Pattern 字符串的映射
+    _APP_MODE_MAP = {
+        0: None,                # APP_MODE_UNSPECIFIED
+        1: 'standard',          # APP_MODE_STANDARD
+        2: 'agent',             # APP_MODE_AGENT
+        3: 'single_workflow',   # APP_MODE_SINGLE_WORKFLOW
+        4: 'ClawAgent',         # APP_MODE_CLAW_AGENT
+    }
+
     # ApplicationInterface
     async def get_info(self) -> ApplicationInfo:
         action = "DescribeRobotBizIDByAppKey"
@@ -603,13 +612,13 @@ class TCADP(BaseVendor):
                 Greeting='Please check your AppKey/SseURL/TC_SECRET_ID/TC_SECRET_KEY',
             )
 
-        BotBizId = resp['Response']['BotBizId']
-        self.config['BotBizId'] = BotBizId
+        app_id = resp['Response']['BotBizId']
+        self.config['AppId'] = app_id
 
-        action = "DescribeAppConf"
+        action = "DescribeApp"
         payload = {
-            "AppBizId": BotBizId,
-            "AppType": "knowledge_qa",
+            "AppId": app_id,
+            "FieldMask": {"Paths": ["AppConfig"]},
         }
         resp = await tc_request(self.tc_config(), action, payload)
 
@@ -622,18 +631,19 @@ class TCADP(BaseVendor):
             )
 
         response = resp['Response']
-        app_config = response.get('AppConfig', {})
-        base_config = response.get('BaseConfig', {})
+        app = response.get('App', {})
+        metadata = app.get('Metadata', {})
+        config = app.get('Config', {})
+        status_info = app.get('Status', {})
 
-        # V2 格式：从 app_config 中提取配置
-        base = app_config.get('Base', {})
-        greeting_config = app_config.get('Greeting', {})
-        conversation_experience = app_config.get('ConversationExperience', {})
-        search_engine = app_config.get('SearchEngine', {})
+        greeting_config = config.get('Greeting') or {}
+        experience = config.get('Experience') or {}
+        conversation = experience.get('Conversation') or {}
+        web_search = config.get('WebSearch') or {}
 
         # 输入框配置
-        input_box_config = conversation_experience.get('InputBoxConfig', {})
-        input_box_buttons = input_box_config.get('InputBoxButtons', [])
+        input_box_config = conversation.get('InputBoxConfig') or {}
+        input_box_buttons = input_box_config.get('InputBoxButtons') or []
 
         from vendor.interface import InputBoxButton, InputBoxConfig
         buttons = []
@@ -645,18 +655,25 @@ class TCADP(BaseVendor):
             else:
                 buttons.append(InputBoxButton(Type=int(btn)))
 
+        # AppMode 枚举转 Pattern 字符串
+        app_mode = metadata.get('AppMode', 0)
+        pattern = self._APP_MODE_MAP.get(app_mode)
+
+        # AppStatus 枚举转数值（协议枚举值与原数值一致：1=未上线,2=运行中,3=停用）
+        app_status = status_info.get('Status', 0) or None
+
         return ApplicationInfo(
             ApplicationId=self.application_id,
-            Name=base_config.get('Name') or base.get('Name', ''),
-            Avatar=base_config.get('Avatar') or base.get('Avatar', ''),
+            Name=metadata.get('Name', ''),
+            Avatar=metadata.get('Avatar', ''),
             Greeting=greeting_config.get('Greeting'),
-            OpeningQuestions=greeting_config.get('OpeningQuestions', []),
-            Pattern=base.get('Pattern'),
-            AppStatus=response.get('AppStatus'),
-            AgentType=response.get('AgentType'),
+            OpeningQuestions=greeting_config.get('OpeningQuestionList', []),
+            Pattern=pattern,
+            AppStatus=app_status,
+            AgentType=None,
             InputBox=InputBoxConfig(InputBoxButtons=buttons) if buttons else None,
-            EnableWebSearch=search_engine.get('UseSearchEngine', False),
-            EnableAudit=base.get('EnableAudit', False),
+            EnableWebSearch=web_search.get('Enabled', False) or conversation.get('EnableWebSearch', False),
+            EnableAudit=False,
         )
 
     # MessageInterface - V2 Protocol
@@ -720,7 +737,7 @@ class TCADP(BaseVendor):
         if last_record_id:
             payload['RecordId'] = last_record_id
 
-        resp = await tc_request(self.tc_config(), action, payload, version='2025-11-12')
+        resp = await tc_request(self.tc_config(), action, payload)
         response = resp.get('Response', resp)
         if 'Error' in response:
             raise Exception(response['Error'])
@@ -1053,7 +1070,9 @@ class TCADP(BaseVendor):
                     preview_url = get_presigned_preview_url(key=cos_key)
                     logging.info(f'[TCADP.fetch_file] preview URL: {preview_url}')
                 except Exception as e:
-                    logging.error(f'[TCADP.fetch_file] upload to COS failed: {e}')
+                    import traceback
+                    logging.error(f'[TCADP.fetch_file] upload to COS failed: type={type(e).__name__}, error={e}')
+                    logging.error(f'[TCADP.fetch_file] traceback: {traceback.format_exc()}')
 
                 return {
                     "status_code": resp.status,
@@ -1176,25 +1195,40 @@ class TCADP(BaseVendor):
         # claw/agent 模式使用 BotBizId='0' + IsPublic=True，确保文件在公有桶中可被 Claw Agent 下载
         if mode == 'claw':
             payload = {
-                "BotBizId": '0',
+                "AppId": '0',
                 "FileType": file_type,
                 "IsPublic": True,
                 "TypeKey": 'realtime',
             }
+            resp = await tc_request(self.tc_config(), action, payload)
         else:
             payload = {
-                "BotBizId": self.config['BotBizId'],
+                "AppId": self.config.get('AppId', ''),
                 "FileType": file_type,
                 "IsPublic": True,
                 "TypeKey": 'realtime',
             }
-        resp = await tc_request(self.tc_config(), action, payload)
+            resp = await tc_request(self.tc_config(), action, payload)
         resp = resp['Response']
         if 'Error' in resp:
             logging.error(resp)
             raise Exception(resp['Error']['Message'])
 
         logging.info(f"DescribeStorageCredential mode={mode}, response keys: {[k for k in resp.keys() if k != 'Credentials']}")
+
+        # 新协议将路径信息放在 StoragePath 子对象中，需要展平到 resp 顶层以保持后续逻辑一致
+        if 'StoragePath' in resp:
+            storage_path = resp['StoragePath']
+            logging.info(f"DescribeStorageCredential StoragePath type={type(storage_path).__name__}, value={storage_path}")
+            if isinstance(storage_path, dict):
+                for key in ('FilePath', 'FileUrl', 'ImagePath', 'UploadPath', 'UploadUrl', 'DownloadUrl'):
+                    if key in storage_path and key not in resp:
+                        resp[key] = storage_path[key]
+            elif isinstance(storage_path, str) and storage_path:
+                # adp 2026-05-20 协议：StoragePath 直接就是上传路径字符串
+                if 'UploadPath' not in resp:
+                    resp['UploadPath'] = storage_path
+
         logging.info(f"DescribeStorageCredential UploadPath: {resp.get('UploadPath')}, FileUrl: {resp.get('FileUrl')}, UploadUrl: {resp.get('UploadUrl')}, DownloadUrl: {resp.get('DownloadUrl')}")
 
         # 读取完整请求体
@@ -1243,7 +1277,7 @@ class TCADP(BaseVendor):
         # 对齐 webim openclaw 的 handleAgentDoc → cos.getDownloadUrl 逻辑
         if mode == 'claw' and cos_url:
             download_payload = {
-                "BotBizId": '0',
+                "AppId": '0',
                 "FileType": file_type,
                 "IsPublic": True,
                 "TypeKey": 'realtime',
@@ -1252,7 +1286,9 @@ class TCADP(BaseVendor):
             try:
                 dl_resp = await tc_request(self.tc_config(), action, download_payload)
                 dl_resp = dl_resp['Response']
-                download_url = dl_resp.get('DownloadUrl') or dl_resp.get('FileUrl') or dl_resp.get('file_url')
+                # 新协议：路径信息在 StoragePath 子对象中
+                dl_storage = dl_resp.get('StoragePath', {})
+                download_url = dl_resp.get('DownloadUrl') or dl_storage.get('FileUrl') or dl_resp.get('FileUrl') or dl_resp.get('file_url')
                 if download_url:
                     logging.info(f"claw mode DownloadUrl obtained: {download_url[:80]}...")
                     url = download_url
@@ -1304,7 +1340,7 @@ class TCADP(BaseVendor):
 
         action = "DescribeRefer"
         payload = {
-            "BotBizId": self.config['BotBizId'],
+            "BotBizId": self.config.get('AppId', ''),
             "ReferBizIds": unique_reference_ids,
         }
         resp = await tc_request(self.tc_config(), action, payload)
@@ -1351,6 +1387,8 @@ class TCADP(BaseVendor):
             config = json.loads(json.dumps(service_configs['China']))
             if self.config.get('CustomLkeUrl'):
                 config['lke']['url'] = self.config['CustomLkeUrl']
+            if self.config.get('CustomAdpUrl'):
+                config['adp']['url'] = self.config['CustomAdpUrl']
             if self.config.get('CustomLkeapUrl'):
                 config['lkeap']['url'] = self.config['CustomLkeapUrl']
             if self.config.get('CustomSseUrl'):
@@ -1365,6 +1403,11 @@ service_configs = {
             'url': '{PrivateUrl}',
             'region': 'ap-guangzhou',
             "version": "2023-11-30"
+        },
+        'adp': {
+            'url': '{PrivateUrl}',
+            'region': 'ap-guangzhou',
+            "version": "2026-05-20"
         },
         'lkeap': {
             'url': '{PrivateUrl}',
@@ -1384,6 +1427,11 @@ service_configs = {
             'region': 'ap-jakarta',
             "version": "2023-11-30"
         },
+        'adp': {
+            'url': 'https://adp.intl.tencentcloudapi.com',
+            'region': 'ap-jakarta',
+            "version": "2026-05-20"
+        },
         'lkeap': {
             'url': 'https://lkeap.intl.tencentcloudapi.com',
             'region': 'ap-jakarta',
@@ -1400,6 +1448,11 @@ service_configs = {
             'url': 'https://lke.tencentcloudapi.com',
             'region': 'ap-guangzhou',
             "version": "2023-11-30"
+        },
+        'adp': {
+            'url': 'https://adp.tencentcloudapi.com',
+            'region': 'ap-guangzhou',
+            "version": "2026-05-20"
         },
         'lkeap': {
             'url': 'https://lkeap.tencentcloudapi.com',

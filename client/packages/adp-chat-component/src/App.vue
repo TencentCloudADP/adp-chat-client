@@ -432,7 +432,7 @@ const actualAutoLoad = computed(() => props.autoLoad);
 
 .panel-park--overlay {
     /* 宽高由 style 动态设置 */
-    border-radius: 8px;
+    border-radius: var(--td-radius-large);
     box-shadow: 0 4px 16px #00000026;
 
     position: fixed;
@@ -441,7 +441,7 @@ const actualAutoLoad = computed(() => props.autoLoad);
     right: 0%;
     margin: 24px;
     background-color: white;
-    border-radius: 8px;
+    border-radius: var(--td-radius-large);
     box-shadow: 0 4px 16px #00000026;
     overflow: hidden;
 }

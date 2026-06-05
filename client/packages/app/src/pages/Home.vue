@@ -7,7 +7,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n';
 import { languageMap } from '@/i18n';
 import { getBaseURL } from '@/utils/url';
-import Logo from '@/assets/img/favicon.ico';
+import Logo from '@/assets/img/favicon.png';
 
 const router = useRouter()
 const uiStore = useUiStore()

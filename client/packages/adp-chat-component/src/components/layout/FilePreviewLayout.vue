@@ -1,7 +1,8 @@
 <script lang="ts">
-import type { FilePreviewI18n } from '../../model/type';
+import type { FilePreviewI18n, ThemeProps } from '../../model/type';
+import { themePropsDefaults } from '../../model/type';
 
-export interface FilePreviewLayoutProps {
+export interface FilePreviewLayoutProps extends ThemeProps {
     /** 是否显示预览面板 */
     visible?: boolean;
     /** 当前会话ID */
@@ -20,8 +21,11 @@ import FilePreview from '../FilePreview/index.vue';
 import FileDir from '../FileDir/index.vue';
 import { defaultFilePreviewI18n } from '../../model/type';
 import { describeConversation } from '../../service/api';
+import CustomizedIcon from '../CustomizedIcon.vue';
+
 
 const props = withDefaults(defineProps<FilePreviewLayoutProps>(), {
+    ...themePropsDefaults,
     visible: false,
     conversationId: '',
     applicationId: '',
@@ -106,9 +110,9 @@ watch(
 );
 
 // ========== 拖拽调整预览面板宽度 ==========
-const previewPanelWidth = ref(480);
+const previewPanelWidth = ref(600);
 const MIN_PANEL_WIDTH = 280;
-const MAX_PANEL_WIDTH = 900;
+const MAX_PANEL_WIDTH = 1000;
 
 let isResizing = false;
 let startX = 0;
@@ -265,10 +269,12 @@ defineExpose({
                     <!-- 预览标题栏 -->
                     <div class="file-preview-panel__preview-header">
                         <span class="file-preview-panel__toggle-dir" @click="toggleDirVisible" :title="dirVisible ? i18n.hideDocList : i18n.showDocList">
-                            <t-icon :name="dirVisible ? 'chevron-left' : 'view-list'" />
+                            <CustomizedIcon remote size="xs" :showHoverBg="false"  name="chart_structure_line" :theme="theme"/>
                         </span>
                         <span class="file-preview-panel__preview-title">{{ previewFileName }}</span>
-                        <span class="file-preview-panel__close" @click="handleClosePreview">✕</span>
+                        <span class="file-preview-panel__close" @click="handleClosePreview">
+                            <CustomizedIcon remote size="xs" :showHoverBg="false"  name="basic_close_line" :theme="theme"/>
+                        </span>
                     </div>
                     <FilePreview
                         class="file-preview-panel__preview-content"
@@ -386,7 +392,7 @@ defineExpose({
 
 .file-preview-panel__preview-title {
     flex: 1;
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     font-weight: 600;
     color: var(--td-text-color-primary);
     overflow: hidden;

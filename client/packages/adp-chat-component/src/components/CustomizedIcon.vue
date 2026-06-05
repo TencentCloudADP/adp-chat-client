@@ -1,129 +1,100 @@
 /**
  * 自定义图标组件
- * 
+ *
  * 用于显示SVG图标，支持不同尺寸和主题模式
- * 
+ *
  * @example
- * <!-- 基础用法 -->
- * <CustomizedIcon name="search" />
- * 
+ * <!-- 基础用法（本地图标） -->
+ * <CustomizedIcon name="loading" />
+ *
  * <!-- 指定尺寸 -->
- * <CustomizedIcon name="grid" size="xs" />
- * 
+ * <CustomizedIcon name="voice_input" size="xs" />
+ *
  * <!-- 原生图标（不应用暗色模式滤镜） -->
  * <CustomizedIcon name="send_fill" nativeIcon />
- * 
+ *
  * <!-- 禁用 hover 背景 -->
- * <CustomizedIcon name="arrow_up_small" :showHoverBg="false" />
- * 
+ * <CustomizedIcon name="overlay" :showHoverBg="false" />
+ *
  * <!-- 暗色主题 -->
- * <CustomizedIcon name="copy" theme="dark" />
+ * <CustomizedIcon name="thinking" theme="dark" />
+ *
+ * <!-- 远程图标（复用 v-icon 图标库，无需安装 @tencent/vhtml-ui） -->
+ * <CustomizedIcon name="basic_newchat_line" remote size="16" />
+ * <CustomizedIcon name="arrow_down_small_line" remote :rotate="-90" />
  */
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { ThemeProps } from '../model/type';
 import { themePropsDefaults } from '../model/type';
 
-// 静态导入所有图标
+// 记录已注入的 SVG sprite 文件路径，每个文件只注入一次
+const injectedSprites = new Set<string>();
+// 记录正在注入的 sprite 路径，避免并发重复注入
+const pendingSprites = new Map<string, Promise<void>>();
+
+/**
+ * 加载本地 SVG sprite 并注入到 DOM（隐藏 svg），供 <use> 引用
+ */
+function injectSvgSprite(url: string): Promise<void> {
+    if (injectedSprites.has(url)) return Promise.resolve();
+    if (pendingSprites.has(url)) return pendingSprites.get(url)!;
+    
+    const promise = fetch(url)
+        .then(res => res.text())
+        .then(svgText => {
+            const container = document.createElement('div');
+            container.style.display = 'none';
+            container.innerHTML = svgText;
+            document.body.appendChild(container);
+            injectedSprites.add(url);
+            pendingSprites.delete(url);
+        })
+        .catch(err => {
+            pendingSprites.delete(url);
+            throw err;
+        });
+    
+    pendingSprites.set(url, promise);
+    return promise;
+}
+
+// 静态导入所有图标（仅保留项目中实际使用的图标）
 import arrow_down_medium from '../assets/icons/arrow_down_medium.svg?raw';
-import arrow_right from '../assets/icons/arrow_right.svg?raw';
-import arrow_up_small from '../assets/icons/arrow_up_small.svg?raw';
-import copy from '../assets/icons/copy.svg?raw';
-import copy_link from '../assets/icons/copy_link.svg?raw';
-import deleteIcon from '../assets/icons/delete.svg?raw';
-import file from '../assets/icons/file.svg?raw';
 import overlay from '../assets/icons/overlay.svg?raw';
-import grid from '../assets/icons/grid.svg?raw';
 import loading from '../assets/icons/loading.svg?raw';
 import logout_close from '../assets/icons/logout_close.svg?raw';
-import more from '../assets/icons/more.svg?raw';
-import new_conversation from '../assets/icons/new_conversation.svg?raw';
 import pause_dark from '../assets/icons/pause_dark.svg?raw';
 import pause from '../assets/icons/pause.svg?raw';
-import picture from '../assets/icons/picture.svg?raw';
-import quit from '../assets/icons/quit.svg?raw';
-import read from '../assets/icons/read.svg?raw';
-import record from '../assets/icons/record.svg?raw';
-import refresh from '../assets/icons/refresh.svg?raw';
-import search from '../assets/icons/search.svg?raw';
 import send_dark from '../assets/icons/send_dark.svg?raw';
 import send_fill from '../assets/icons/send_fill.svg?raw';
 import send from '../assets/icons/send.svg?raw';
-import sendStop from '../assets/icons/sendStop.svg?raw';
-import setting from '../assets/icons/setting.svg?raw';
-import share from '../assets/icons/share.svg?raw';
-import sidebar from '../assets/icons/sidebar.svg?raw';
-import star from '../assets/icons/star.svg?raw';
-import stars from '../assets/icons/stars.svg?raw';
-import tencent_docs from '../assets/icons/tencent_docs.svg?raw';
 import thinking from '../assets/icons/thinking.svg?raw';
-import thumbs_down from '../assets/icons/thumbs_down.svg?raw';
-import thumbs_down_active from '../assets/icons/thumbs_down_active.svg?raw';
-import thumbs_up from '../assets/icons/thumbs_up.svg?raw';
-import thumbs_up_active from '../assets/icons/thumbs_up_active.svg?raw';
-import url from '../assets/icons/url.svg?raw';
 import voice_input from '../assets/icons/voice_input.svg?raw';
-import file_pdf from '../assets/icons/file_pdf.svg?raw';
-import file_word from '../assets/icons/file_word.svg?raw';
-import file_ppt from '../assets/icons/file_ppt.svg?raw';
-import file_excel from '../assets/icons/file_excel.svg?raw';
-import file_text from '../assets/icons/file_text.svg?raw';
-import attachment from '../assets/icons/attachment.svg?raw';
-import plus from '../assets/icons/plus.svg?raw';
-import close_circle from '../assets/icons/close_circle.svg?raw';
-import info from '../assets/icons/info.svg?raw';
 import open_file_list from '../assets/icons/open_file_list.svg?raw';
+import setting from '../assets/icons/setting.svg?raw';
+import stars from '../assets/icons/stars.svg?raw';
+import url from '../assets/icons/url.svg?raw';
+import quit from '../assets/icons/quit.svg?raw';
 
-// SVG 映射表
+// SVG 映射表（仅保留项目中实际使用的图标）
 const svgMap: Record<string, string> = {
     arrow_down_medium,
-    arrow_right,
-    arrow_up_small,
-    copy,
-    copy_link,
-    delete: deleteIcon,
-    file,
     overlay,
-    grid,
     loading,
     logout_close,
-    more,
-    new_conversation,
     pause_dark,
     pause,
-    picture,
-    quit,
-    read,
-    record,
-    refresh,
-    search,
     send_dark,
     send_fill,
     send,
-    sendStop,
-    setting,
-    share,
-    sidebar,
-    star,
-    stars,
-    tencent_docs,
     thinking,
-    thumbs_down,
-    thumbs_down_active,
-    thumbs_up,
-    thumbs_up_active,
-    url,
     voice_input,
-    file_pdf,
-    file_word,
-    file_ppt,
-    file_excel,
-    file_text,
-    attachment,
-    plus,
-    close_circle,
-    info,
     open_file_list,
+    setting,
+    stars,
+    url,
+    quit,
 };
 
 // 用于生成唯一 id 的计数器
@@ -143,6 +114,10 @@ interface Props extends ThemeProps {
     showHoverBg?: boolean;
     /** 自定义颜色 */
     color?: string;
+    /** 是否使用远程图标库（加载本地 SVG sprite，渲染为 <use href="#prefix-name"/>） */
+    remote?: boolean;
+    /** 远程图标前缀，默认 'v-'，与 v-icon 一致 */
+    remotePrefix?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -150,8 +125,13 @@ const props = withDefaults(defineProps<Props>(), {
   nativeIcon: false,
   showHoverBg: true,
   color: '',
+  remote: false,
+  remotePrefix: 'v-',
   ...themePropsDefaults,
 })
+
+// 本地 SVG sprite 文件路径
+const ICONFONT_SVG_URL = new URL('../assets/icons/remote/iconfont.svg', import.meta.url).href;
 
 // 计算内联样式（仅非 nativeIcon 时应用 color）
 const iconStyle = computed(() => {
@@ -163,6 +143,22 @@ const iconStyle = computed(() => {
 
 // 为每个组件实例生成唯一 id
 const uniqueId = `icon-${idCounter++}-${Math.random().toString(36).slice(2, 8)}`;
+
+// 远程图标模式：注入本地 SVG sprite 到 DOM，并生成 href
+// 使用 Promise 异步加载，加载中或失败时返回空字符串
+const remoteInjected = ref(false);
+if (props.remote) {
+    injectSvgSprite(ICONFONT_SVG_URL).then(() => {
+        remoteInjected.value = true;
+    }).catch(err => {
+        console.error('[CustomizedIcon] 加载图标 sprite 失败:', err);
+    });
+}
+
+const remoteHref = computed(() => {
+    if (!props.remote || !remoteInjected.value) return '';
+    return `#${props.remotePrefix}${props.name}`;
+});
 
 /**
  * 计算 SVG 内容
@@ -220,7 +216,9 @@ function processSvg(content: string, isNative: boolean): string {
 </script>
 
 <template>
+    <!-- 本地图标：使用 v-html 渲染 SVG 字符串 -->
     <span 
+        v-if="!remote"
         class="customeized-icon" 
         :class="{
             'showHoverBg': showHoverBg,
@@ -232,6 +230,23 @@ function processSvg(content: string, isNative: boolean): string {
         aria-hidden="true"
         v-html="svgContent"
     />
+    <!-- 远程图标：使用 <use> 引用 iconfont.js 注入的 symbol -->
+    <span
+        v-else
+        class="customeized-icon" 
+        :class="{
+            'showHoverBg': showHoverBg,
+            'normal': !nativeIcon,
+            'svg-dark-mode': theme === 'dark',
+            [`size-${size}`]: size 
+        }"
+        :style="iconStyle"
+        aria-hidden="true"
+    >
+        <svg class="svg-inner" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+            <use :href="remoteHref" />
+        </svg>
+    </span>
 </template>
 
 <style scoped>
@@ -282,7 +297,6 @@ function processSvg(content: string, isNative: boolean): string {
 .customeized-icon.size-xl {
     width: var(--td-comp-size-xl, 48px);
     height: var(--td-comp-size-xl, 48px);
-    padding: var(--td-pop-padding-xl, 12px);
 }
 
 /* 基础样式 */

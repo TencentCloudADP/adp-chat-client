@@ -11,7 +11,7 @@ import {
   chatItemI18n,
   senderI18n,
 } from '../config'
-import Logo from '../assets/favicon.ico'
+import Logo from '../assets/favicon.png'
 
 const Home: React.FC = () => {
   const { applicationId, conversationId } = useParams<{

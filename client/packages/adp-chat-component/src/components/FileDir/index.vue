@@ -4,9 +4,11 @@
             <span class="file-dir-title">{{ docListText }}</span>
             <div class="file-dir-actions">
                 <span class="file-dir-action" :title="refreshText" @click="handleRefresh">
-                    <t-icon name="refresh" :class="{ 'icon-spinning': refreshing }" />
+                    <CustomizedIcon remote size="xs" :showHoverBg="false" :class="{ 'icon-spinning': refreshing }" name="basic_refresh_line" :theme="theme"/>
                 </span>
-                <span class="file-dir-action file-dir-close" @click="emit('close')">✕</span>
+                <span class="file-dir-action " @click="emit('close')">
+                    <CustomizedIcon remote size="xs" :showHoverBg="false"  name="basic_close_line" :theme="theme"/>
+                </span>
             </div>
         </div>
         <div class="file-dir-tree">
@@ -26,10 +28,10 @@
                 @click="handleNodeClick"
             >
                 <template #icon="{ node }">
-                    <t-icon v-if="node.getChildren() && !node.expanded" name="folder" />
+                    <CustomizedIcon v-if="node.getChildren() && !node.expanded" remote name="arrow_up_small_line" :theme="theme" :showHoverBg="false" size="xs" class="tree-arrow tree-arrow--collapsed" />
                     <t-icon v-else-if="node.getChildren() && node.expanded && node.loading" name="loading" />
-                    <t-icon v-else-if="node.getChildren() && node.expanded" name="folder-open" />
-                    <t-icon v-else name="file" />
+                    <CustomizedIcon v-else-if="node.getChildren() && node.expanded" remote name="arrow_up_small_line" :theme="theme" :showHoverBg="false" size="xs" class="tree-arrow tree-arrow--expanded" />
+                    <CustomizedIcon v-else remote :name="getFileIconName(node.data?.entry?.name || '')" :theme="theme" nativeIcon :showHoverBg="false" size="xs" />
                 </template>
                 <template #operations="{ node }">
                     <span
@@ -38,7 +40,7 @@
                         :title="props.downloadText"
                         @click.stop="handleDownload(node)"
                     >
-                        <t-icon name="download" />
+                        <CustomizedIcon remote name="basic_download2_line" :theme="theme" nativeIcon :showHoverBg="false" size="xs" />
                     </span>
                 </template>
             </t-tree>
@@ -47,12 +49,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onBeforeUnmount } from 'vue';
 import { Tree as TTree, Icon as TIcon, MessagePlugin } from 'tdesign-vue-next';
 import { listDir, getFileDownloadUrl } from '../../service/api';
+import CustomizedIcon from '../CustomizedIcon.vue';
+import { getFileIconName } from '../../model/file';
+import type { ThemeProps } from '../../model/type';
+import { themePropsDefaults } from '../../model/type';
 import type { DirEntry } from '../../service/api';
 
-interface Props {
+interface Props extends ThemeProps {
     /** 应用 ID */
     applicationId?: string;
     /** 会话 ID */
@@ -72,6 +78,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    ...themePropsDefaults,
     applicationId: '',
     conversationId: '',
     workspaceId: '',
@@ -227,20 +234,44 @@ function handleDownload(node: any) {
     MessagePlugin.success(props.downloadStartedText.replace('{name}', entry.name));
 }
 
+/** 等待 workspaceId 就绪的超时定时器 */
+let loadingTimeoutTimer: ReturnType<typeof setTimeout> | null = null;
+/** loading 超时时间（毫秒） */
+const LOADING_TIMEOUT = 4000;
+
+function clearLoadingTimeout() {
+    if (loadingTimeoutTimer) {
+        clearTimeout(loadingTimeoutTimer);
+        loadingTimeoutTimer = null;
+    }
+}
+
 // 监听 workspaceId / applicationId 变化重新加载
 watch(
     [() => props.workspaceId, () => props.applicationId],
     ([newWsId, newAppId]) => {
+        clearLoadingTimeout();
         if (newAppId && newWsId) {
             initRootDir();
         } else {
-            // workspaceId 尚未就绪，显示 loading 状态
+            // workspaceId 尚未就绪，显示 loading 状态，但设置超时
             treeData.value = [];
             loading.value = true;
+            loadingTimeoutTimer = setTimeout(() => {
+                // 超时后仍未获取到 workspaceId，停止 loading 显示空列表
+                if (loading.value) {
+                    loading.value = false;
+                    treeData.value = [];
+                }
+            }, LOADING_TIMEOUT);
         }
     },
     { immediate: true }
 );
+
+onBeforeUnmount(() => {
+    clearLoadingTimeout();
+});
 </script>
 
 <style scoped>
@@ -250,21 +281,21 @@ watch(
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border-right: 1px solid var(--td-border-level-1-color, #e7e7e7);
-    background: var(--td-bg-color-container, #fff);
+    border-right: 1px solid var(--td-border-level-1-color);
+    background: var(--td-bg-color-container);
 }
 
 .file-dir-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--td-border-level-1-color, #e7e7e7);
+    padding: var(--td-comp-paddingTB-m) var(--td-comp-paddingLR-l);
+    border-bottom: 1px solid var(--td-border-level-1-color);
     flex-shrink: 0;
 }
 
 .file-dir-title {
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     font-weight: 600;
     color: var(--td-text-color-primary);
 }
@@ -272,24 +303,22 @@ watch(
 .file-dir-actions {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--td-comp-margin-xs);
 }
 
 .file-dir-action {
     cursor: pointer;
-    font-size: 16px;
     color: var(--td-text-color-secondary);
     line-height: 1;
-    padding: 4px;
-    border-radius: 4px;
     display: flex;
+    padding: var(--td-comp-paddingLR-xs);
     align-items: center;
     justify-content: center;
     transition: background-color 0.2s, color 0.2s;
 }
 
 .file-dir-action:hover {
-    background-color: var(--td-bg-color-container-hover, #f3f3f3);
+    background-color: var(--td-bg-color-container-hover);
     color: var(--td-text-color-primary);
 }
 
@@ -305,17 +334,17 @@ watch(
 .file-dir-tree {
     flex: 1;
     overflow-y: auto;
-    padding: 8px 16px;
+    padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-l);
 }
 
 .file-dir-loading {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 32px 0;
-    color: var(--td-text-color-secondary, #666);
-    font-size: 13px;
+    gap: var(--td-comp-margin-s);
+    padding: var(--td-comp-paddingTB-xxl) 0;
+    color: var(--td-text-color-secondary);
+    font-size: var(--td-font-size-body-small);
 }
 
 :deep(.t-tree__item) {
@@ -323,15 +352,17 @@ watch(
 }
 
 :deep(.t-tree__item:hover) {
-    background-color: var(--td-bg-color-container-hover, #f3f3f3);
+    background-color: var(--td-bg-color-container-hover);
 }
 
-:deep(.t-tree__item--active) {
-    background-color: var(--td-brand-color-light, #ecf2fe);
+:deep(.t-tree__item.t-is-active) {
+    background-color: var(--td-brand-color-light);
 }
-
+:deep(.t-tree--hoverable .t-tree__label:not(.t-is-active):not(.t-is-checked):hover) {
+    background-color: transparent;
+}
 :deep(.t-tree__label) {
-    font-size: 13px;
+    font-size: var(--td-font-size-body-small);
     color: var(--td-text-color-primary);
 }
 
@@ -339,23 +370,35 @@ watch(
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
+    width: var(--td-comp-size-xs);
+    height: var(--td-comp-size-xs);
+    border-radius: var(--td-radius-default);
     cursor: pointer;
-    color: var(--td-text-color-secondary, #666);
-    font-size: 14px;
+    color: var(--td-text-color-secondary);
+    font-size: var(--td-font-size-body-medium);
     transition: background-color 0.2s, color 0.2s;
     flex-shrink: 0;
 }
 
 .file-download-btn:hover {
-    background-color: var(--td-bg-color-container-hover, #f3f3f3);
-    color: var(--td-brand-color, #0052d9);
+    background-color: var(--td-bg-color-container-hover);
+    color: var(--td-brand-color);
+}
+
+.tree-arrow {
+    transition: transform 0.2s;
+}
+
+.tree-arrow--collapsed {
+    transform: rotate(90deg);
+}
+
+.tree-arrow--expanded {
+    transform: rotate(180deg);
 }
 
 .file-download-btn.is-loading {
     pointer-events: none;
-    color: var(--td-brand-color, #0052d9);
+    color: var(--td-brand-color);
 }
 </style>

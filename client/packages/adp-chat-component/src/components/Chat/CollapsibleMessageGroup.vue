@@ -1,6 +1,6 @@
 <!-- 可折叠消息组：将连续的 tool_call/thought 消息折叠为一行摘要 -->
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import type { Message } from '../../model/chat-v2';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
@@ -34,6 +34,16 @@ const props = withDefaults(defineProps<Props>(), {
 const expanded = ref(false);
 
 const isExpanded = computed(() => expanded.value);
+
+// 每条 thought 消息的展开状态
+const thoughtExpandedMap = reactive<Record<string, boolean>>({});
+
+function getThoughtExpanded(msgId: string): boolean {
+    return thoughtExpandedMap[msgId] ?? false;
+}
+function toggleThought(msgId: string) {
+    thoughtExpandedMap[msgId] = !(thoughtExpandedMap[msgId] ?? false);
+}
 
 const count = computed(() => (props.messages || []).length);
 
@@ -187,7 +197,7 @@ function extractText(msg: Message): string {
         <!-- 标题栏 -->
         <div class="collapsible-group__header" @click="toggle">
             <span class="collapsible-group__arrow" :class="{ 'collapsible-group__arrow--expanded': isExpanded }">
-                <CustomizedIcon name="arrow_right" :showHoverBg="false" size="xs" :theme="theme" />
+                <CustomizedIcon remote name="arrow_up_small_line" :showHoverBg="false" size="xs" :theme="theme" />
             </span>
             <span class="collapsible-group__title">{{ titleText }}</span>
             <span v-if="isStreaming" class="collapsible-group__loading-dot"></span>
@@ -204,12 +214,27 @@ function extractText(msg: Message): string {
                     :language="language"
                     class="collapsible-group__tool-item"
                 />
-                <!-- thought 类型：折叠组内的思考显示 -->
-                <div v-else-if="msg.Type === 'thought'" class="collapsible-group__item">
-                    <div class="collapsible-group__item-header">
-                        <span class="collapsible-group__item-tag thought-tag">{{ t('思考') }}</span>
+                <!-- thought 类型：可折叠的思考内容，样式与外层深度思考一致 -->
+                <div v-else-if="msg.Type === 'thought'" class="collapsible-group__thought">
+                    <div
+                        class="collapsible-group__thought-header"
+                        @click="toggleThought(msg.MessageId || '')"
+                    >
+                        <CustomizedIcon
+                            remote
+                            name="arrow_up_small_line"
+                            :showHoverBg="false"
+                            size="xs"
+                            :theme="theme"
+                            class="collapsible-group__thought-arrow"
+                            :class="{ 'collapsible-group__thought-arrow--expanded': getThoughtExpanded(msg.MessageId || '') }"
+                        />
+                        <span class="collapsible-group__thought-label">{{ t('深度思考') }}</span>
                     </div>
-                    <div v-if="extractText(msg)" class="collapsible-group__item-content">
+                    <div
+                        v-if="extractText(msg) && getThoughtExpanded(msg.MessageId || '')"
+                        class="collapsible-group__thought-content"
+                    >
                         <MdContent
                             :content="extractText(msg)"
                             role="assistant"
@@ -226,28 +251,28 @@ function extractText(msg: Message): string {
 <style scoped>
 .collapsible-group {
     width: 100%;
-    border-radius: 6px;
+    border-radius: var(--td-radius-medium);
 }
 
 .collapsible-group__header {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--td-comp-margin-xs);
     user-select: none;
-    padding: 4px;
-    border-radius: 3px;
+    padding: var(--td-comp-paddingTB-xxs);
+    border-radius: var(--td-radius-default);
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
 
 .collapsible-group__header:hover {
-    background: var(--td-bg-color-container-hover, #f3f3f3);
+    background: var(--td-bg-color-container-hover);
 }
 
 .collapsible-group__title {
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     font-weight: 400;
-    line-height: 16px;
+    line-height: var(--td-line-height-link-small);
     color: var(--td-text-color-placeholder);
 }
 
@@ -255,81 +280,76 @@ function extractText(msg: Message): string {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
+    width: var(--td-size-6);
+    height: var(--td-size-6);
     transition: transform 0.2s ease;
+     transform: rotate(90deg);
 }
 
 .collapsible-group__arrow--expanded {
-    transform: rotate(90deg);
+    transform: rotate(180deg);
 }
 
 .collapsible-group__content {
-    margin-top: 4px;
-    padding-left: 20px;
+    margin-top: var(--td-comp-margin-xs);
+    padding-left: var(--td-comp-paddingLR-l);
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--td-comp-margin-xxs);
 }
 
 .collapsible-group__tool-item {
-    border-left: 2px solid var(--td-component-border, #e7e7e7);
-    padding-left: 8px;
 }
 
-.collapsible-group__item {
-    border-left: 2px solid var(--td-component-border, #e7e7e7);
-    padding-left: 8px;
+/* thought 折叠项：与外层深度思考样式一致 */
+.collapsible-group__thought {
 }
 
-.collapsible-group__item-header {
+.collapsible-group__thought-header {
+    color: var(--td-text-color-placeholder);
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: 2px;
+    gap: var(--td-comp-margin-xs);
+    padding: var(--td-comp-paddingTB-xxs) var(--td-comp-paddingLR-s);
+    border-radius: var(--td-radius-default);
+    cursor: pointer;
+    font-size: var(--td-font-size-link-small);
+    line-height: 18px;
+    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+    transition: background 0.2s ease;
 }
 
-.collapsible-group__item-tag {
-    display: inline-block;
-    font-size: 11px;
-    line-height: 16px;
-    padding: 0 4px;
-    border-radius: 3px;
-    font-weight: 500;
+.collapsible-group__thought-header:hover {
+    background: var(--td-bg-color-container-hover);
 }
 
-.thought-tag {
-    background: var(--td-warning-color-1, #fff3e0);
-    color: var(--td-warning-color-6, #e37318);
+.collapsible-group__thought-arrow {
+    transform: rotate(90deg);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
 }
 
-.collapsible-group__item-title {
-    font-size: 12px;
+.collapsible-group__thought-arrow--expanded {
+    transform: rotate(180deg);
+}
+
+.collapsible-group__thought-content {
+    font-size: var(--td-font-size-body-small);
     color: var(--td-text-color-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 300px;
+    padding: 0 var(--td-comp-paddingLR-s);
 }
 
-.collapsible-group__item-content {
-    font-size: 13px;
-    color: var(--td-text-color-secondary);
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.collapsible-group__item-content :deep(.markdown-body) {
-    font-size: 12px;
+.collapsible-group__thought-content :deep(.markdown-body) {
+    font-size: var(--td-font-size-link-small);
 }
 
 .collapsible-group__loading-dot {
     display: inline-block;
-    width: 6px;
-    height: 6px;
+    width: var(--td-size-3);
+    height: var(--td-size-3);
     border-radius: 50%;
-    background: var(--td-brand-color, #0052d9);
-    margin-left: 4px;
+    background: var(--td-brand-color);
+    margin-left: var(--td-comp-margin-xs);
     animation: pulse-dot 1.2s ease-in-out infinite;
 }
 

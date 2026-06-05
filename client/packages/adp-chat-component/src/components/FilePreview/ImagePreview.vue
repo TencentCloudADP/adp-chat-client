@@ -1,12 +1,12 @@
 <template>
     <div class="image-preview">
-        <div v-if="loading" class="image-preview-loading">
+        <div v-if="loading" class="preview-loading">
             <div class="loading-spinner"></div>
         </div>
 
-        <div v-else-if="errorMsg" class="image-preview-error">
-            <div class="error-icon">⚠️</div>
-            <p class="error-text">{{ errorMsg }}</p>
+        <div v-else-if="errorMsg" class="preview-error">
+            <div class="preview-error__icon">⚠️</div>
+            <p class="preview-error__text">{{ errorMsg }}</p>
         </div>
 
         <!-- SVG：通过 Blob URL + img 标签渲染，天然禁止内嵌脚本执行 -->
@@ -121,6 +121,8 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@import './preview-common.css';
+
 .image-preview {
     width: 100%;
     height: 100%;
@@ -129,7 +131,7 @@ onUnmounted(() => {
     justify-content: center;
     overflow: hidden;
     position: relative;
-    background: var(--td-bg-color-page, #f3f3f3);
+    background: var(--td-bg-color-page);
 }
 
 .image-preview-content {
@@ -146,46 +148,5 @@ onUnmounted(() => {
     max-height: 100%;
     object-fit: contain;
     display: block;
-}
-
-/* 加载状态 */
-.image-preview-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-}
-
-.loading-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid #e8e8e8;
-    border-top-color: #0052d9;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* 错误状态 */
-.image-preview-error {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-.error-icon {
-    font-size: 36px;
-}
-
-.error-text {
-    font-size: 13px;
-    color: #e34d59;
-    margin: 0;
 }
 </style>

@@ -46,14 +46,17 @@ def _load_action_version_config() -> dict:
                 continue
             headers = {}
             payload_paths = {}  # {dotted_path: value}
+            action_service = None
             for k, v in value.items():
-                if k.startswith('headers.'):
+                if k == 'service':
+                    action_service = v
+                elif k.startswith('headers.'):
                     header_name = k[len('headers.'):]
                     headers[header_name] = v
                 elif k.startswith('payload.'):
                     path_str = k[len('payload.'):]
                     payload_paths[path_str] = v
-            result[action] = {'headers': headers, 'payload': payload_paths}
+            result[action] = {'headers': headers, 'payload': payload_paths, 'service': action_service}
         return result
     except (OSError, ValueError, KeyError, TypeError) as e:
         logging.warning(f'[tca] Failed to load action_version.json: {e}')
@@ -153,7 +156,6 @@ def tc_request_prepare(config: dict, action: str, payload: str, service = "lke",
     secret_id = tagentic_config.TC_SECRET_ID
     secret_key = tagentic_config.TC_SECRET_KEY
     token = ""
-
     url = config[service]['url']
     host = url.split('//')[1].split('/')[0]
     # 加载 action 级别的 headers 配置
@@ -222,22 +224,33 @@ def tc_request_prepare(config: dict, action: str, payload: str, service = "lke",
     return headers, url
 
 
+def _resolve_service(action: str, service) -> str:
+    """解析最终的 service：外部显式传入优先，否则使用 action_version.json 配置，最后回退到默认值 'lke'"""
+    if service is not None:
+        return service
+    action_config = ACTION_VERSION_OVERRIDES.get(action, {})
+    return action_config.get('service') or 'lke'
+
+
 async def tc_request(
     config: dict, action: str, payload: dict = None,
-    service="lke", version: str = None,
+    service=None, version: str = None,
     variables: dict = None,
 ) -> str:
+    service = _resolve_service(action, service)
     if payload is None:
         payload = {}
     payload = inject_action_payload(action, payload, variables)
     payload = json.dumps(payload)
     headers, url = tc_request_prepare(config, action, payload, service, version)
+    logging.info(f'[tc_request] url={url}, headers={headers}, payload={payload}')
     async with aiohttp.ClientSession() as session:
         async with session.post(f'{url}/', headers=headers, data=payload) as resp:
             return await resp.json()
 
 
-async def tc_request_sse(config: dict, action: str, payload: dict = None, service = "lke", version: str = None):
+async def tc_request_sse(config: dict, action: str, payload: dict = None, service=None, version: str = None):
+    service = _resolve_service(action, service)
     if payload is None:
         payload = {}
     payload = json.dumps(payload)

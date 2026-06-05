@@ -473,8 +473,8 @@ IFRAME_ORIGINS=https://example.com
 
 ## 部署：文件预览服务
 word、excel、ppt 等需要配置启动预览服务。
-1. 具体需要使用主账号登录 https://console.cloud.tencent.com/cos/bucket；
-2. 搜索.env中配置的 cos 桶名称COS_BUCKET（默认为chat-client-bucket-1322044278），点击打开选中的桶
+1. 需要使用主账号登录 https://console.cloud.tencent.com/cos/bucket；
+2. 搜索.env中配置的 cos 桶名称COS_BUCKET（默认为chat-client-bucket-${TC_SECRET_APPID}， 注意: ${TC_SECRET_APPID} 为配置中填入的TC_SECRET_APPID， 实际cos桶的名称例如chat-client-bucket-1322044278），点击打开选中的桶
 3. 左侧菜单中选中 “数据处理” -> “文档处理” -> “开启”；
 4. “数据处理” -> 文件处理 -> “开启”
 

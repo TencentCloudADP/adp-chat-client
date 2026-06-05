@@ -1,6 +1,7 @@
 <!-- assistant 系统对话中的文件附件卡片，支持点击下载 -->
 <script setup lang="ts">
-import { MessagePlugin, Icon as TIcon } from 'tdesign-vue-next';
+import { inject } from 'vue';
+import { MessagePlugin} from 'tdesign-vue-next';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import { getFileIconName } from '../../model/file';
 import type { ThemeProps } from '../../model/type';
@@ -17,15 +18,14 @@ const props = withDefaults(defineProps<Props>(), {
     files: () => [],
 });
 
+/** 注入父组件提供的文件预览方法 */
+const viewFile = inject<(filePath: string) => void>('viewFile', () => {});
+
 /**
  * 根据文件名获取图标名称
  */
 function getIconName(file: FileInfo): string {
     const name = file.FileName || '';
-    const type = file.FileType?.toLowerCase() || '';
-    if (type.startsWith('image/') || /\.(jpg|jpeg|png|bmp|webp|gif)$/i.test(name)) {
-        return 'picture';
-    }
     return getFileIconName(name);
 }
 
@@ -79,6 +79,39 @@ function getFileUrl(file: FileInfo): string {
 }
 
 /**
+ * 预览文件（打开预览工作台）
+ */
+function handlePreview(file: FileInfo) {
+    // 优先使用文件 URL 中的路径，否则用文件名构建默认路径
+    const url = getFileUrl(file);
+    const filePath = extractFilePath(url) || ('/workdir/' + (file.FileName || ''));
+    if (viewFile) {
+        viewFile(filePath);
+    } else {
+        // 降级：无预览工作台时新窗口打开
+        if (url) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        } else {
+            MessagePlugin.error('文件链接不可用');
+        }
+    }
+}
+
+/**
+ * 从 URL 中提取文件路径
+ */
+function extractFilePath(url: string): string {
+    try {
+        const pathname = new URL(url).pathname;
+        // 匹配 /workdir/ 或类似路径
+        const match = pathname.match(/\/workdir\/.+$/);
+        return match ? decodeURIComponent(match[0]) : '';
+    } catch {
+        return '';
+    }
+}
+
+/**
  * 下载文件
  */
 function handleDownload(file: FileInfo) {
@@ -106,10 +139,10 @@ function handleDownload(file: FileInfo) {
             class="assistant-file-card"
             :class="{ 'assistant-file-card--no-size': !showFileSize(file) }"
             :title="getDisplayName(file)"
-            @click="handleDownload(file)"
+            @click="handlePreview(file)"
         >
             <div class="assistant-file-card__icon">
-                <CustomizedIcon :name="getIconName(file)" :theme="theme" nativeIcon :showHoverBg="false" size="s" />
+                <CustomizedIcon remote :name="getIconName(file)" :theme="theme" nativeIcon :showHoverBg="false" size="xl" />
             </div>
             <div class="assistant-file-card__info">
                 <span class="assistant-file-card__name">
@@ -118,7 +151,7 @@ function handleDownload(file: FileInfo) {
                 <span v-if="showFileSize(file)" class="assistant-file-card__size">{{ file.FileSize }}</span>
             </div>
             <span class="assistant-file-card__download" @click.stop="handleDownload(file)">
-                <t-icon name="download" />
+                <CustomizedIcon remote name="basic_download2_line" :theme="theme" nativeIcon :showHoverBg="false" size="xs" />
             </span>
         </div>
     </div>
@@ -129,7 +162,7 @@ function handleDownload(file: FileInfo) {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-top: 8px;
+    margin: 8px 0;
 }
 
 .assistant-file-card {
@@ -140,7 +173,7 @@ function handleDownload(file: FileInfo) {
     padding: 8px 10px;
     background: var(--td-bg-color-container, #fff);
     border: 1px solid var(--td-component-border, rgba(16, 32, 69, 0.1));
-    border-radius: 6px;
+    border-radius: var(--td-radius-medium);
     cursor: pointer;
     box-sizing: border-box;
     transition: background 0.2s, border-color 0.2s;
@@ -174,7 +207,7 @@ function handleDownload(file: FileInfo) {
     display: flex;
     overflow: hidden;
     white-space: nowrap;
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     font-weight: 400;
     line-height: 20px;
     color: var(--td-text-color-primary, rgba(0, 1, 10, 0.93));
@@ -192,7 +225,7 @@ function handleDownload(file: FileInfo) {
 }
 
 .assistant-file-card__size {
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     line-height: 16px;
     color: var(--td-text-color-placeholder, rgba(1, 11, 50, 0.41));
     margin-top: 4px;
@@ -208,7 +241,7 @@ function handleDownload(file: FileInfo) {
     border-radius: 4px;
     cursor: pointer;
     color: var(--td-text-color-secondary, #666);
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     transition: background-color 0.2s, color 0.2s;
 }
 

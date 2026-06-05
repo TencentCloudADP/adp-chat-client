@@ -475,6 +475,6 @@ Please note: due to browser security restrictions, some OAuth login flows may be
 To preview files such as Word, Excel, and PPT, you need to enable the preview service:
 
 1. Log in to https://console.cloud.tencent.com/cos/bucket with the root account.
-2. Search for the COS bucket name configured in `.env` as `COS_BUCKET` (default: `chat-client-bucket-1322044278`), then click to open the selected bucket.
+2. Search for the COS bucket name configured in `.env` as `COS_BUCKET` (default: `chat-client-bucket-${TC_SECRET_APPID}`, note: `${TC_SECRET_APPID}` refers to the `TC_SECRET_APPID` value in your config, e.g. the actual bucket name would be `chat-client-bucket-1322044278`), then click to open the selected bucket.
 3. In the left menu, navigate to **Data Processing** → **Document Processing** → **Enable**.
 4. Navigate to **Data Processing** → **File Processing** → **Enable**.

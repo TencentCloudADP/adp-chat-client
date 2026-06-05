@@ -3,7 +3,7 @@
  @description 基于 wangEditor 的富文本编辑器组件，支持图片粘贴、字数限制、只读模式
 -->
 <template>
-    <div :class="['qa-editor', { 'qa-editor--no-toolbar': hideToolBar, 'qa-editor--disabled': disabled || readOnly }]">
+    <div :class="['qa-editor', { 'qa-editor--no-toolbar': hideToolBar, 'qa-editor--disabled': disabled || readOnly, 'qa-editor--dark': theme === 'dark' }]">
         <div v-if="!readOnly && !hideToolBar" class="qa-editor__toolbar" ref="toolbarRef"></div>
         <div class="qa-editor__editor" ref="editorRef"></div>
     </div>
@@ -39,6 +39,8 @@ export interface QaEditorProps {
     acceptImgType?: string
     /** 是否允许粘贴图片 */
     allowPasteImage?: boolean
+    /** 主题，'dark' 时深色模式 */
+    theme?: string
 }
 
 const props = withDefaults(defineProps<QaEditorProps>(), {
@@ -49,7 +51,8 @@ const props = withDefaults(defineProps<QaEditorProps>(), {
     disabled: false,
     hideToolBar: true,
     acceptImgType: '.jpg,.png,.jpeg,.bmp,.webp',
-    allowPasteImage: true
+    allowPasteImage: true,
+    theme: ''
 })
 
 const emit = defineEmits<{
@@ -405,7 +408,7 @@ defineExpose({
 
 .qa-editor__editor {
     width: 100%;
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
 }
 
 .qa-editor--no-toolbar .qa-editor__editor {
@@ -417,12 +420,20 @@ defineExpose({
     pointer-events: none;
 }
 
+.qa-editor--dark :deep(.w-e-text-container [data-slate-editor]) {
+    color: var(--td-text-color-primary);
+}
+
+.qa-editor--dark :deep(.w-e-text-placeholder) {
+    color: var(--td-text-color-placeholder);
+}
+
 :deep(.w-e-text-placeholder) {
     color: var(--td-text-color-placeholder, rgba(0, 0, 0, 0.35));
     white-space: pre-wrap;
     word-wrap: break-word;
     font-style: normal;
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     top: 8px;
 }
 

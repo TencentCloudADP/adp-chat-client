@@ -8,6 +8,8 @@ import { themePropsDefaults, defaultChatI18n, defaultChatI18nEn } from '../../mo
 import { copyToClipboard } from '../../utils/clipboard';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import MdContent from '../Common/MdContent.vue';
+import toolDefaultIcon from '../../assets/icons/tool-default-icon.png';
+import toolSkillsIcon from '../../assets/icons/tool-skills-icon.png';
 
 interface Props extends ThemeProps {
     /** 工具调用消息对象 */
@@ -68,22 +70,29 @@ const isViewableFile = computed(() => {
     return toolCategory.value === 'file' && !!operationTitle.value && isDone.value && !!viewFile;
 });
 
-/** 工具图标映射 */
-const toolIconName = computed(() => {
-    const iconMap: Record<string, string> = {
-        read: 'file',
-        write: 'file',
-        edit: 'file',
-        glob: 'search',
-        grep: 'search',
-        websearch: 'url',
-        web_search: 'url',
-        webfetch: 'url',
-        web_fetch: 'url',
-        bash: 'setting',
-    };
-    return iconMap[toolName.value] || 'stars';
+/** 工具图标：特定工具有对应 v-icon，通用/技能使用 PNG 图片 */
+const iconMap: Record<string, { type: 'icon'; name: string } | { type: 'img'; src: string }> = {
+    read: { type: 'icon', name: 'basic_password_on_line' },
+    write: { type: 'icon', name: 'basic_file_line' },
+    edit: { type: 'icon', name: 'basic_edit_line' },
+    glob: { type: 'icon', name: 'basic_scan_line' },
+    grep: { type: 'icon', name: 'basic_search_line' },
+    websearch: { type: 'icon', name: 'basic_url_line' },
+    web_search: { type: 'icon', name: 'basic_url_line' },
+    webfetch: { type: 'icon', name: 'basic_url_line' },
+    web_fetch: { type: 'icon', name: 'basic_url_line' },
+    bash: { type: 'icon', name: 'base_server_fill' },
+    skill: { type: 'img', src: toolSkillsIcon },
+    skills: { type: 'img', src: toolSkillsIcon },
+};
+
+const toolIconConfig = computed(() => {
+    return iconMap[toolName.value] || { type: 'img' as const, src: toolDefaultIcon };
 });
+
+const isImgIcon = computed(() => toolIconConfig.value.type === 'img');
+const iconName = computed(() => (toolIconConfig.value as { name: string }).name || '');
+const iconSrc = computed(() => (toolIconConfig.value as { src: string }).src || '');
 
 /** 状态 */
 const isProcessing = computed(() => props.msg.Status === 'processing');
@@ -243,7 +252,8 @@ function detectLanguage(): string {
             <div class="tool-call-item__header-left">
                 <!-- 工具图标 -->
                 <span class="tool-call-item__icon">
-                    <CustomizedIcon :name="toolIconName" :showHoverBg="false" size="xs" :theme="theme" />
+                    <img v-if="isImgIcon" :src="iconSrc" class="tool-call-item__icon-img" />
+                    <CustomizedIcon v-else remote :name="iconName" :showHoverBg="false" size="xs" :theme="theme" />
                 </span>
                 <!-- 操作文本 -->
                 <span class="tool-call-item__text">
@@ -254,7 +264,7 @@ function detectLanguage(): string {
             <div class="tool-call-item__header-right">
                 <!-- 错误状态图标 -->
                 <span v-if="isError" class="tool-call-item__error-badge">
-                    <CustomizedIcon name="close_circle" :showHoverBg="false" size="xs" :theme="theme" />
+                    <CustomizedIcon remote name="basic_close_line" :showHoverBg="false" size="xs" :theme="theme" />
                 </span>
                 <!-- 加载中动画 -->
                 <span v-if="isProcessing" class="tool-call-item__spinner"></span>
@@ -272,7 +282,7 @@ function detectLanguage(): string {
                     :title="i18n.copy"
                     @click.stop.prevent="handleCopy"
                 >
-                    <CustomizedIcon name="copy" :showHoverBg="false" size="xs" :theme="theme" />
+                    <CustomizedIcon remote name="basic_copy_line" :showHoverBg="false" size="xs" :theme="theme" />
                 </button>
                 <!-- 展开/收起箭头 -->
                 <span
@@ -280,8 +290,8 @@ function detectLanguage(): string {
                     class="tool-call-item__action-btn tool-call-item__toggle-btn"
                     @click.stop="toggleExpand"
                 >
-                    <CustomizedIcon
-                        name="arrow_right"
+                    <CustomizedIcon remote
+                        name="arrow_right_line"
                         :showHoverBg="false"
                         size="xs"
                         :theme="theme"
@@ -322,7 +332,7 @@ function detectLanguage(): string {
 <style scoped>
 .tool-call-item {
     width: 100%;
-    border-radius: 6px;
+    border-radius: var(--td-radius-medium);
     overflow: hidden;
 }
 
@@ -333,15 +343,19 @@ function detectLanguage(): string {
 
 .tool-call-item__header {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 4px 8px;
     user-select: none;
     border-radius: 4px;
+
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    user-select: none;
+    transition: all 0.2s ease;
 }
 
 .tool-call-item--expandable .tool-call-item__header {
     cursor: pointer;
+    background: var(--td-gray-color-0);
 }
 
 .tool-call-item--expandable .tool-call-item__header:hover {
@@ -372,12 +386,18 @@ function detectLanguage(): string {
     flex-shrink: 0;
     color: var(--td-text-color-placeholder);
 }
+.tool-call-item__icon-img {
+    width: 16px;
+    height: 16px;
+    display: block;
+}
+
 
 .tool-call-item__text {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     line-height: 18px;
     min-width: 0;
     color: var(--td-text-color-placeholder);
@@ -436,7 +456,7 @@ function detectLanguage(): string {
 /* 查看按钮 */
 .tool-call-item__view-btn {
     font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     line-height: 16px;
     color: var(--td-text-color-placeholder);
     cursor: pointer;
@@ -501,9 +521,19 @@ function detectLanguage(): string {
 .tool-call-item__code-area {
     max-height: 200px;
     overflow-y: auto;
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     scrollbar-color: var(--td-scrollbar-color) transparent;
     scrollbar-width: thin;
+}
+.tool-call-item__code-area :deep(.md-content-container) {
+    background: transparent;
+    padding: 0;
+}
+.tool-call-item__code-area :deep(pre) {
+    background: transparent;
+}
+.tool-call-item__code-area :deep(code) {
+    background: transparent;
 }
 
 .tool-call-item__code-area::-webkit-scrollbar {
@@ -529,14 +559,14 @@ function detectLanguage(): string {
 }
 
 .tool-call-item__code-area :deep(code) {
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     line-height: 18px;
 }
 
 /* 搜索/文本结果区域 */
 .tool-call-item__text-area {
     padding: 8px 12px;
-    font-size: 12px;
+    font-size: var(--td-font-size-link-small);
     line-height: 1.6;
     color: var(--td-text-color-secondary);
     word-break: break-word;

@@ -83,13 +83,13 @@ const handleCollapseClick = () => {
 
         <!-- 显示更多选项 -->
         <div v-if="showMore" class="application-item control" @click="handleMoreClick">
-            <CustomizedIcon :showHoverBg="false" class="application-avatar control" name="grid" :theme="theme"/>
+            <CustomizedIcon remote :showHoverBg="false" class="application-avatar control" name="basic_grid_view_line" :theme="theme"/>
             <span class="application-name">{{ moreText }}</span>
         </div>
 
         <!-- 显示收起选项 -->
         <div v-if="showCollapse" class="application-item control collapse" @click="handleCollapseClick">
-            <CustomizedIcon :showHoverBg="false" size="xs" class="application-avatar" name="arrow_up_small" :theme="theme"/>
+            <CustomizedIcon remote :showHoverBg="false" size="xs" class="application-avatar" name="arrow_up_small_line" :theme="theme"/>
             <span class="application-name">{{ collapseText }}</span>
         </div>
     </div>

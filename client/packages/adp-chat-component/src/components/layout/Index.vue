@@ -951,6 +951,8 @@ const handleSelectApplication = (app: Application) => {
             senderRef.changeSenderVal('', []);
         }
     }
+    // 切换应用时关闭文件预览面板
+    closeFilePreview();
     // 移动端选择应用后收起侧边栏
     if (isMobile.value || props.isSidePanelOverlay) {
         sidebarVisible.value = false;
@@ -1499,7 +1501,7 @@ defineExpose({
                 @widgetEvent="handleInternalWidgetEvent"
             >
                 <template #header-actions>
-                    <Tooltip v-if="!isMobile" :content="mergedFilePreviewI18n.openFileList" destroyOnClose showArrow theme="default">
+                    <Tooltip v-if="!isMobile && chatMode !== 'standard'" :content="mergedFilePreviewI18n.openFileList" destroyOnClose showArrow theme="default">
                         <span class="open-file-list-btn" @click="toggleFilePreview">
                             <CustomizedIcon name="open_file_list" :theme="theme" />
                         </span>
@@ -1546,7 +1548,7 @@ defineExpose({
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--td-mask-disabled);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     z-index: 99;
@@ -1559,16 +1561,16 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
+    width: var(--td-comp-size-m);
+    height: var(--td-comp-size-m);
+    border-radius: var(--td-radius-medium);
     cursor: pointer;
-    color: var(--td-text-color-secondary, #666);
+    color: var(--td-text-color-secondary);
     transition: all 0.2s;
 }
 
 .open-file-list-btn:hover {
-    color: var(--td-brand-color, #0052d9);
-    background: var(--td-bg-color-container-hover, #f3f3f3);
+    color: var(--td-brand-color);
+    background: var(--td-bg-color-container-hover);
 }
 </style>
