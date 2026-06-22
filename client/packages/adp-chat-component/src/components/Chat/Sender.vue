@@ -20,6 +20,8 @@ import CustomizedIcon from '../CustomizedIcon.vue';
 import WebRecorder from '../../utils/webRecorder';
 import { getAsrUrl } from '../../service/api';
 import QaEditor from '../QaEditor/index.vue';
+import { useAgentStore, AGENT_DOMAIN, AGENT_SCOPE } from '../../composables/useAgentStore';
+
 
 export interface Props extends ChatRelatedProps {
     /** 是否正在流式加载 */
@@ -32,6 +34,14 @@ export interface Props extends ChatRelatedProps {
     enableVoiceInput?: boolean;
     /** 是否正在上传/解析文件（禁止发送和继续上传） */
     isUploading?: boolean;
+    /** 当前应用 ID（用于初始化时拉取 Agent 列表） */
+    currentApplicationId?: string;
+    /** DescribeAgentSummaryList 接口路径覆盖 */
+    describeAgentSummaryListApi?: string;
+    /** CopyAgent 接口路径覆盖 */
+    copyAgentApi?: string;
+    /** 本地 Agent 配置接口路径覆盖（GET/POST /agent/config） */
+    agentConfigApi?: string;
     /** 国际化文本 */
     i18n?: SenderI18n;
 }
@@ -43,8 +53,15 @@ const props = withDefaults(defineProps<Props>(), {
     asrUrlApi: '',
     enableVoiceInput: true,
     isUploading: false,
+    currentApplicationId: '',
+    describeAgentSummaryListApi: '',
+    copyAgentApi: '',
+    agentConfigApi: '',
     i18n: () => ({})
 });
+
+/** Agent 全局 store */
+const { fetchAndSetAgentId } = useAgentStore();
 
 const i18n = computed(() => {
     const defaults = props.language?.startsWith('en') ? defaultSenderI18nEn : defaultSenderI18n;
@@ -112,6 +129,19 @@ const placeholder = computed(() => {
 
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
+    // 初始化：拉取 Agent 摘要列表，取 agent_list[0].agent_id 作为当前上下文 agent_id
+    if (props.currentApplicationId) {
+        fetchAndSetAgentId({
+            applicationId: props.currentApplicationId,
+            scope: AGENT_SCOPE.CROSS_APP,
+            domain: AGENT_DOMAIN.PROD,
+            pageSize: 1,
+            pageNumber: 0,
+            apiPath: props.describeAgentSummaryListApi || undefined,
+            copyAgentApiPath: props.copyAgentApi || undefined,
+            agentConfigApiPath: props.agentConfigApi || undefined,
+        });
+    }
 });
 
 onUnmounted(() => {

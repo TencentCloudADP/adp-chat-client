@@ -110,6 +110,7 @@
                     :asrUrlApi="asrUrlApi"
                     :enableVoiceInput="props.enableVoiceInput"
                     :isUploading="props.isUploading"
+                    :currentApplicationId="props.currentApplicationId"
                     @stop="onStop"
                     @send="handleSend"
                     @uploadFile="handleUploadFile"

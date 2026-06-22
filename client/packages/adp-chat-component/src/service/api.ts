@@ -45,6 +45,12 @@ export interface ApiDetailConfig {
     describeConversationMessageListApi?: string;
     /** 模型列表接口路径 */
     listModelApi?: string;
+    /** Agent 摘要列表接口路径 */
+    describeAgentSummaryListApi?: string;
+    /** Copy Agent 接口路径 */
+    copyAgentApi?: string;
+    /** 本地 Agent 配置接口路径（GET/POST /agent/config） */
+    agentConfigApi?: string;
 }
 
 /**
@@ -75,7 +81,10 @@ export const defaultApiDetailConfig: ApiDetailConfig = {
     listDirApi: '/adp/ListDir',
     fetchFileApi: '/adp/FetchFile',
     describeConversationMessageListApi: '/adp/DescribeConversationMessageList',
-    listModelApi: '/adp/ListModel'
+    listModelApi: '/adp/ListModel',
+    describeAgentSummaryListApi: '/adp/DescribeAgentSummaryList',
+    copyAgentApi: '/adp/CopyAgent',
+    agentConfigApi: '/agent/config',
 };
 
 export interface ReferenceDetailParams {
@@ -694,6 +703,182 @@ export const fetchModelList = async (
         return response?.list || [];
     } catch (error) {
         console.error('获取模型列表失败:', error);
+        throw error;
+    }
+};
+
+/** DescribeAgentSummaryList 请求 Payload */
+export interface DescribeAgentSummaryListPayload {
+    /** 查询范围 0-跨应用 1-单应用 */
+    Scope: number;
+    /** 应用 ID（Scope=SINGLE_APP 时必填） */
+    AppId?: string;
+    /** 1-开发域 2-生产域 */
+    Domain?: number;
+    /** 每页数量 */
+    PageSize?: number;
+    /** 页码，从 0 开始 */
+    PageNumber?: number;
+    /** 过滤条件 */
+    FilterList?: Array<{ Name: string; Operator?: number; ValueList?: string[] }>;
+}
+
+/** Agent 摘要信息 */
+export interface AgentSummary {
+    AgentId: string;
+    Profile?: { [key: string]: any };
+    AdvancedConfig?: { [key: string]: any };
+    Instructions?: string;
+}
+
+/** DescribeAgentSummaryList 响应 */
+export interface DescribeAgentSummaryListResponse {
+    Response: {
+        TotalCount: number;
+        AgentList?: AgentSummary[];
+        RequestId?: string;
+    };
+}
+
+/**
+ * 获取 Agent 摘要列表
+ * @param payload 请求 Payload
+ * @param applicationId 应用 ID（作为外层 ApplicationId 透传给 /adp 代理）
+ * @param apiPath 接口路径，缺省走 defaultApiDetailConfig.describeAgentSummaryListApi
+ */
+export const describeAgentSummaryList = async (
+    payload: DescribeAgentSummaryListPayload,
+    applicationId: string,
+    apiPath?: string
+): Promise<DescribeAgentSummaryListResponse['Response']> => {
+    const path = apiPath || defaultApiDetailConfig.describeAgentSummaryListApi!;
+    try {
+        const response: DescribeAgentSummaryListResponse = await httpService.post(
+            path,
+            {
+                ApplicationId: applicationId,
+                Payload: payload,
+            }
+        );
+        return response.Response;
+    } catch (error) {
+        console.error('获取 Agent 摘要列表失败:', error);
+        throw error;
+    }
+};
+
+/** AgentSource 枚举（1-开发域 2-发布域 3-用户端） */
+export const AGENT_SOURCE = {
+    UNSPECIFIED: 0,
+    DEV: 1,
+    PROD: 2,
+    USER: 3,
+} as const;
+
+/** CopyAgent 请求 Payload */
+export interface CopyAgentPayload {
+    /** 应用 ID */
+    AppId: string;
+    /** 源 Agent ID（不传则基于发布态模板初始化） */
+    AgentId?: string;
+    /** 复制源配置类型，区分发布态/用户端 */
+    Source: number;
+}
+
+/** CopyAgent 响应 */
+export interface CopyAgentResponse {
+    Response: {
+        /** 复制后新生成的 Agent Id */
+        AgentId: string;
+        RequestId?: string;
+    };
+}
+
+/**
+ * 复制 Agent，返回新生成的 AgentId
+ * @param payload 请求 Payload
+ * @param applicationId 应用 ID（作为外层 ApplicationId 透传给 /adp 代理）
+ * @param apiPath 接口路径，缺省走 defaultApiDetailConfig.copyAgentApi
+ */
+export const copyAgent = async (
+    payload: CopyAgentPayload,
+    applicationId: string,
+    apiPath?: string
+): Promise<CopyAgentResponse['Response']> => {
+    const path = apiPath || defaultApiDetailConfig.copyAgentApi!;
+    try {
+        const response: CopyAgentResponse = await httpService.post(
+            path,
+            {
+                ApplicationId: applicationId,
+                Payload: payload,
+            }
+        );
+        return response.Response;
+    } catch (error) {
+        console.error('CopyAgent 请求失败:', error);
+        throw error;
+    }
+};
+
+/** 本地 GET /agent/config 响应 */
+export interface GetAgentConfigResponse {
+    Response: {
+        ApplicationId: string;
+        AgentId: string | null;
+    };
+}
+
+/**
+ * 从本地后端查询当前用户在指定 application 下已绑定的 AgentId。
+ * 未绑定时 AgentId 为 null。
+ * @param applicationId 应用 ID
+ * @param apiPath 接口路径覆盖（可选）
+ */
+export const getAgentConfig = async (
+    applicationId: string,
+    apiPath?: string
+): Promise<GetAgentConfigResponse['Response']> => {
+    const path = apiPath || defaultApiDetailConfig.agentConfigApi!;
+    try {
+        const response: GetAgentConfigResponse = await httpService.get(path, {
+            ApplicationId: applicationId,
+        });
+        return response.Response;
+    } catch (error) {
+        console.error('查询本地 AgentConfig 失败:', error);
+        throw error;
+    }
+};
+
+/** 本地 POST /agent/config 响应 */
+export interface SaveAgentConfigResponse {
+    Response: {
+        ApplicationId: string;
+        AgentId: string;
+    };
+}
+
+/**
+ * 将当前用户在指定 application 下的 AgentId 上报并落库（upsert）。
+ * @param applicationId 应用 ID
+ * @param agentId 要绑定的 AgentId
+ * @param apiPath 接口路径覆盖（可选）
+ */
+export const saveAgentConfig = async (
+    applicationId: string,
+    agentId: string,
+    apiPath?: string
+): Promise<SaveAgentConfigResponse['Response']> => {
+    const path = apiPath || defaultApiDetailConfig.agentConfigApi!;
+    try {
+        const response: SaveAgentConfigResponse = await httpService.post(path, {
+            ApplicationId: applicationId,
+            AgentId: agentId,
+        });
+        return response.Response;
+    } catch (error) {
+        console.error('保存本地 AgentConfig 失败:', error);
         throw error;
     }
 };
