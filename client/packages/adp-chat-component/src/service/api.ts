@@ -43,6 +43,8 @@ export interface ApiDetailConfig {
     fetchFileApi?: string;
     /** 会话消息列表接口路径（claw 模式） */
     describeConversationMessageListApi?: string;
+    /** 模型列表接口路径 */
+    listModelApi?: string;
 }
 
 /**
@@ -73,6 +75,7 @@ export const defaultApiDetailConfig: ApiDetailConfig = {
     listDirApi: '/adp/ListDir',
     fetchFileApi: '/adp/FetchFile',
     describeConversationMessageListApi: '/adp/DescribeConversationMessageList',
+    listModelApi: '/adp/ListModel'
 };
 
 export interface ReferenceDetailParams {
@@ -636,4 +639,61 @@ export const getFileDownloadUrl = (
         Path: params.path,
     });
     return `${baseURL}/file/download?${queryParams.toString()}`;
+};
+
+/** ListModel 请求参数 */
+export interface ListModelParams {
+    /** 应用类型，例如 knowledge_qa */
+    app_type?: string;
+    /** 空间 ID，默认 default */
+    space_id?: string;
+    /** 模型分类，例如 corp_assistant */
+    model_category?: string;
+}
+
+/** ListModel 返回的原始模型条目（后端字段） */
+export interface ListModelRawItem {
+    model_name: string;
+    alias_name?: string;
+    icon?: string;
+    model_desc?: string;
+    prompt_words_limit?: string;
+    input_len_limit?: string | number;
+    model_tags?: string[];
+    model_ui_tags?: Array<{ text: string; theme?: string; tips?: string }>;
+    resource_status?: number;
+    is_exclusive?: boolean;
+    provider_type?: string;
+    provider_ailas_name?: string;
+    is_free?: boolean;
+    [key: string]: any;
+}
+
+/** ListModel 响应 */
+export interface ListModelResponse {
+    list?: ListModelRawItem[];
+    [key: string]: any;
+}
+
+/**
+ * 获取模型列表
+ * @param params 请求参数（space_id 缺省时为 'default'）
+ * @param apiPath 接口路径，缺省走 defaultApiDetailConfig.listModelApi
+ */
+export const fetchModelList = async (
+    params?: ListModelParams,
+    apiPath?: string
+): Promise<ListModelRawItem[]> => {
+    const path = apiPath || defaultApiDetailConfig.listModelApi!;
+    const payload: ListModelParams = {
+        space_id: 'default',
+        ...(params || {}),
+    };
+    try {
+        const response: ListModelResponse = await httpService.post(path, payload);
+        return response?.list || [];
+    } catch (error) {
+        console.error('获取模型列表失败:', error);
+        throw error;
+    }
 };

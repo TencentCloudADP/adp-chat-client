@@ -13,5 +13,12 @@ export {
     createShare,
     fetchUserInfo,
     uploadFile,
+    fetchModelList,
 } from './api';
-export type { ApiConfig, ApiDetailConfig } from './api';
+export type {
+    ApiConfig,
+    ApiDetailConfig,
+    ListModelParams,
+    ListModelRawItem,
+    ListModelResponse,
+} from './api';
