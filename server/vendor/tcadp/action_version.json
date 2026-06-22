@@ -23,5 +23,15 @@
         "headers.X-TC-Version": "2026-05-20",
         "payload.AppKey": "{{APP_KEY}}",
         "payload.UserId": "{{ACCOUNT_ID}}"
-    }
+    },
+    "DescribeAgentSummaryList": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Canary": "toe-test-4030-clawapi"        
+    },
+    "CreateUserAgentList": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Canary": "toe-test-4030-clawapi"      
+    }    
 }

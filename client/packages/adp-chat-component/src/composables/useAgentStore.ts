@@ -5,76 +5,40 @@
  * 拿到的都是同一份响应式数据。
  *
  * 设计要点：
- *  - agentId 按 applicationId 维度绑定存储（一个 application 对应一个当前 agentId 与一份 agentList）
+ *  - agentId 按 applicationId 维度绑定存储（一个 application 对应一个当前 agentId）
  *  - 在 Sender 初始化时调用 fetchAndSetAgentId(applicationId, ...)：
  *      1) 先调用本地后端 GET /agent/config 查询 DB 中是否已绑定 agentId：
  *           - 命中：直接写入 store 并返回，跳过走外部 ADP 接口
  *           - 未命中：进入下一步
- *      2) 调用 DescribeAgentSummaryList 拿到该应用下首个 agent_id（作为 sourceAgentId）
- *      3) 调用 CopyAgent 基于该 sourceAgentId 复制出新的 agent_id
- *      4) 调用 POST /agent/config 将新 agent_id 回写本地 DB
- *      5) 把"新生成的 agent_id"绑定写入该 applicationId 的槽位（即 store 中最终保存的 id）
+ *      2) 调用 CreateUserAgentList 创建新的 agent，返回 ParentAgentId
+ *      3) 调用 POST /agent/config 将 ParentAgentId 回写本地 DB
+ *      4) 把"新生成的 ParentAgentId"绑定写入该 applicationId 的槽位
  *  - 业务侧通过 getAgentIdByAppId(applicationId) 或响应式 agentIdMap[applicationId] 获取
  */
 import { ref, readonly, computed, type Ref, type ComputedRef } from 'vue';
 import {
-    describeAgentSummaryList,
-    copyAgent,
+    createUserAgentList,
     getAgentConfig,
     saveAgentConfig,
-    AGENT_SOURCE,
-    type AgentSummary,
-    type DescribeAgentSummaryListPayload,
-    type CopyAgentPayload,
+    type CreateUserAgentListPayload,
 } from '../service/api';
 
 // ------------------------------ 模块作用域单例 state ------------------------------
-/** 按 applicationId 绑定的 agent_id 映射：{ [applicationId]: agentId }（存储 CopyAgent 后的新 agentId） */
+/** 按 applicationId 绑定的 agent_id 映射：{ [applicationId]: agentId }（存储 CreateUserAgentList 返回的 ParentAgentId） */
 const agentIdMap = ref<Record<string, string>>({});
-/** 按 applicationId 绑定的 source agent_id 映射（DescribeAgentSummaryList 拿到的原始 agentId） */
-const sourceAgentIdMap = ref<Record<string, string>>({});
-/** 按 applicationId 绑定的 Agent 摘要列表映射 */
-const agentListMap = ref<Record<string, AgentSummary[]>>({});
 /** 按 applicationId 维度的加载状态：{ [applicationId]: boolean } */
 const loadingMap = ref<Record<string, boolean>>({});
 /** 按 applicationId 维度的 inflight Promise，避免并发重复请求 */
 const inflightMap = new Map<string, Promise<string>>();
 
-/** AdpDomain：1-开发域 2-生产域 */
-export const AGENT_DOMAIN = {
-    DEV: 1,
-    PROD: 2,
-} as const;
-
-/** SummaryScope：0-跨应用 1-单应用（按方案要求默认传 0） */
-export const AGENT_SCOPE = {
-    CROSS_APP: 0,
-    SINGLE_APP: 1,
-} as const;
-
-/** 重新导出 AgentSource 便于业务侧使用 */
-export { AGENT_SOURCE };
-
 /** fetchAndSetAgentId 选项 */
 export interface FetchAgentIdOptions {
     /** 应用 ID（作为存储 key，也透传给 /adp 代理） */
     applicationId: string;
-    /** Scope，默认 0 */
-    scope?: number;
-    /** Domain，默认 2（生产域） */
-    domain?: number;
-    /** 每页数量，默认 1 */
-    pageSize?: number;
-    /** 页码，默认 0 */
-    pageNumber?: number;
-    /** DescribeAgentSummaryList 接口路径覆盖（可选） */
-    apiPath?: string;
-    /** CopyAgent 接口路径覆盖（可选） */
-    copyAgentApiPath?: string;
+    /** CreateUserAgentList 接口路径覆盖（可选） */
+    createUserAgentListApiPath?: string;
     /** 本地 /agent/config 接口路径覆盖（可选） */
     agentConfigApiPath?: string;
-    /** CopyAgent 时使用的 AgentSource，默认 3（用户端） */
-    agentSource?: number;
     /** 是否强制刷新（默认 false，已绑定过 agentId 时不再重复请求；强制时也会跳过本地 DB 查询） */
     force?: boolean;
 }
@@ -84,32 +48,24 @@ export interface FetchAgentIdOptions {
  */
 export function useAgentStore() {
     /**
-     * 拉取指定 applicationId 的 Agent 摘要列表，并复制出一个新的 agent，
-     * 把"复制后的新 agent_id"绑定写入该 applicationId 的槽位。
-     * @returns 拉取并复制后得到的新 agent_id（失败或为空时返回 ''）
+     * 调用 CreateUserAgentList 创建用户 Agent，把返回的 ParentAgentId 绑定写入该 applicationId 的槽位。
+     * @returns 创建后得到的 ParentAgentId（失败或为空时返回 ''）
      */
     const fetchAndSetAgentId = async (
         options: FetchAgentIdOptions
     ): Promise<string> => {
         const {
             applicationId,
-            scope = AGENT_SCOPE.CROSS_APP,
-            domain = AGENT_DOMAIN.PROD,
-            pageSize = 1,
-            pageNumber = 0,
-            apiPath,
-            copyAgentApiPath,
             agentConfigApiPath,
-            agentSource = AGENT_SOURCE.USER,
             force = false,
         } = options;
 
         if (!applicationId) {
-            console.warn('[useAgentStore] applicationId 为空，跳过 DescribeAgentSummaryList');
+            console.warn('[useAgentStore] applicationId 为空，跳过 CreateUserAgentList');
             return '';
         }
 
-        // 命中前端内存缓存：同一 applicationId 已经绑定过新 agentId 且非强制刷新则直接复用
+        // 命中前端内存缓存：同一 applicationId 已经绑定过 agentId 且非强制刷新则直接复用
         if (!force && agentIdMap.value[applicationId]) {
             return agentIdMap.value[applicationId];
         }
@@ -140,7 +96,7 @@ export function useAgentStore() {
                             return localAgentId;
                         }
                     } catch (e) {
-                        // 本地查询失败不阻断主流程，继续走外部接口兑底
+                        // 本地查询失败不阻断主流程，继续走外部接口兜底
                         console.warn(
                             '[useAgentStore] 本地 AgentConfig 查询失败，回退外部接口:',
                             e
@@ -148,56 +104,23 @@ export function useAgentStore() {
                     }
                 }
 
-                // 2) 拉取 Agent 摘要列表
-                const summaryPayload: DescribeAgentSummaryListPayload = {
-                    Scope: scope,
+                // 2) 调用 CreateUserAgentList 创建用户 Agent
+                const payload: CreateUserAgentListPayload = {
                     AppId: applicationId,
-                    Domain: domain,
-                    PageSize: pageSize,
-                    PageNumber: pageNumber,
                 };
-                const summaryResp = await describeAgentSummaryList(
-                    summaryPayload,
+                const resp = await createUserAgentList(
+                    payload,
                     applicationId,
-                    apiPath
                 );
-                const list = summaryResp?.AgentList ?? [];
-                const sourceAgentId = list[0]?.AgentId || '';
+                const newAgentId = resp?.ParentAgentId || '';
 
-                agentListMap.value = { ...agentListMap.value, [applicationId]: list };
-                sourceAgentIdMap.value = {
-                    ...sourceAgentIdMap.value,
-                    [applicationId]: sourceAgentId,
-                };
-
-                if (!sourceAgentId) {
-                    console.warn(
-                        '[useAgentStore] DescribeAgentSummaryList 返回空，跳过 CopyAgent'
-                    );
-                    agentIdMap.value = { ...agentIdMap.value, [applicationId]: '' };
-                    return '';
-                }
-
-                // 3) 基于首个 agent 复制出一个新的 agent
-                const copyPayload: CopyAgentPayload = {
-                    AppId: applicationId,
-                    AgentId: sourceAgentId,
-                    Source: agentSource,
-                };
-                const copyResp = await copyAgent(
-                    copyPayload,
-                    applicationId,
-                    copyAgentApiPath
-                );
-                const newAgentId = copyResp?.AgentId || '';
-
-                // 4) 把"新生成的 agent_id"写入 store（最终对外暴露的 id）
+                // 3) 把"新生成的 ParentAgentId"写入 store（最终对外暴露的 id）
                 agentIdMap.value = {
                     ...agentIdMap.value,
                     [applicationId]: newAgentId,
                 };
 
-                // 5) 回写本地 DB，供下次/多端复用（失败不阻断主流程）
+                // 4) 回写本地 DB，供下次/多端复用（失败不阻断主流程）
                 if (newAgentId) {
                     try {
                         await saveAgentConfig(
@@ -215,7 +138,7 @@ export function useAgentStore() {
 
                 return newAgentId;
             } catch (error) {
-                console.error('[useAgentStore] 获取/复制 Agent 失败:', error);
+                console.error('[useAgentStore] CreateUserAgentList 失败:', error);
                 return '';
             } finally {
                 loadingMap.value = { ...loadingMap.value, [applicationId]: false };
@@ -229,7 +152,7 @@ export function useAgentStore() {
 
     /**
      * 根据 applicationId 获取已绑定的 agent_id（同步快照值）。
-     * 返回的是 CopyAgent 之后的新 agentId。
+     * 返回的是 CreateUserAgentList 之后的新 agentId。
      */
     const getAgentIdByAppId = (applicationId: string): string => {
         if (!applicationId) return '';
@@ -249,22 +172,6 @@ export function useAgentStore() {
     };
 
     /**
-     * 根据 applicationId 获取原始 source agent_id（DescribeAgentSummaryList 返回的）。
-     */
-    const getSourceAgentIdByAppId = (applicationId: string): string => {
-        if (!applicationId) return '';
-        return sourceAgentIdMap.value[applicationId] || '';
-    };
-
-    /**
-     * 根据 applicationId 获取 Agent 列表（同步快照值）。
-     */
-    const getAgentListByAppId = (applicationId: string): AgentSummary[] => {
-        if (!applicationId) return [];
-        return agentListMap.value[applicationId] || [];
-    };
-
-    /**
      * 手动设置指定 applicationId 的 agent_id 绑定。
      */
     const setAgentIdByAppId = (applicationId: string, agentId: string) => {
@@ -278,46 +185,30 @@ export function useAgentStore() {
     const resetAgentStore = (applicationId?: string) => {
         if (applicationId) {
             const nextIdMap = { ...agentIdMap.value };
-            const nextSrcMap = { ...sourceAgentIdMap.value };
-            const nextListMap = { ...agentListMap.value };
             const nextLoadingMap = { ...loadingMap.value };
             delete nextIdMap[applicationId];
-            delete nextSrcMap[applicationId];
-            delete nextListMap[applicationId];
             delete nextLoadingMap[applicationId];
             agentIdMap.value = nextIdMap;
-            sourceAgentIdMap.value = nextSrcMap;
-            agentListMap.value = nextListMap;
             loadingMap.value = nextLoadingMap;
             inflightMap.delete(applicationId);
         } else {
             agentIdMap.value = {};
-            sourceAgentIdMap.value = {};
-            agentListMap.value = {};
             loadingMap.value = {};
             inflightMap.clear();
         }
     };
 
     return {
-        /** 全量 applicationId -> agentId（CopyAgent 后的新 id）映射（只读响应式引用） */
+        /** 全量 applicationId -> agentId（CreateUserAgentList 返回的 ParentAgentId）映射（只读响应式引用） */
         agentIdMap: readonly(agentIdMap) as Readonly<Ref<Record<string, string>>>,
-        /** 全量 applicationId -> source agentId（DescribeAgentSummaryList 原始 id）映射 */
-        sourceAgentIdMap: readonly(sourceAgentIdMap) as Readonly<Ref<Record<string, string>>>,
-        /** 全量 applicationId -> Agent 列表 映射（只读响应式引用） */
-        agentListMap: readonly(agentListMap) as Readonly<Ref<Record<string, AgentSummary[]>>>,
         /** 全量 applicationId -> 加载状态 映射（只读响应式引用） */
         loadingMap: readonly(loadingMap) as Readonly<Ref<Record<string, boolean>>>,
-        /** 异步拉取并按 applicationId 绑定 agentId（内部串联 DescribeAgentSummaryList -> CopyAgent） */
+        /** 异步调用 CreateUserAgentList 并按 applicationId 绑定 agentId */
         fetchAndSetAgentId,
-        /** 按 applicationId 同步获取 agentId（CopyAgent 后的新 id） */
+        /** 按 applicationId 同步获取 agentId（CreateUserAgentList 返回的 ParentAgentId） */
         getAgentIdByAppId,
-        /** 按 applicationId 同步获取 source agentId（原始 id） */
-        getSourceAgentIdByAppId,
         /** 按 applicationId 获取响应式 agentId ComputedRef */
         useAgentIdRef,
-        /** 按 applicationId 同步获取 agent 列表 */
-        getAgentListByAppId,
         /** 按 applicationId 手动设置 agentId */
         setAgentIdByAppId,
         /** 清空指定/全部 applicationId 的绑定 */

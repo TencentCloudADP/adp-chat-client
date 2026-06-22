@@ -1,6 +1,6 @@
 <!-- 消息发送组件，支持富文本编辑、图片上传、文件上传、语音输入 -->
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { MessagePlugin, Tooltip as TTooltip } from 'tdesign-vue-next'
 import type { FileProps } from '../../model/file';
 import {
@@ -20,7 +20,9 @@ import CustomizedIcon from '../CustomizedIcon.vue';
 import WebRecorder from '../../utils/webRecorder';
 import { getAsrUrl } from '../../service/api';
 import QaEditor from '../QaEditor/index.vue';
-import { useAgentStore, AGENT_DOMAIN, AGENT_SCOPE } from '../../composables/useAgentStore';
+import ModelSelector from '../Common/ModelSelector.vue';
+import type { ModelOption, SelectedModel } from '../Common/ModelSelector.vue';
+import { useAgentStore } from '../../composables/useAgentStore';
 
 
 export interface Props extends ChatRelatedProps {
@@ -34,14 +36,18 @@ export interface Props extends ChatRelatedProps {
     enableVoiceInput?: boolean;
     /** 是否正在上传/解析文件（禁止发送和继续上传） */
     isUploading?: boolean;
-    /** 当前应用 ID（用于初始化时拉取 Agent 列表） */
+    /** 当前应用 ID（用于初始化时创建用户 Agent） */
     currentApplicationId?: string;
-    /** DescribeAgentSummaryList 接口路径覆盖 */
-    describeAgentSummaryListApi?: string;
-    /** CopyAgent 接口路径覆盖 */
-    copyAgentApi?: string;
     /** 本地 Agent 配置接口路径覆盖（GET/POST /agent/config） */
     agentConfigApi?: string;
+    /** 是否显示模型选择器 */
+    showModelSelector?: boolean;
+    /** 模型选择器：当前选中模型 */
+    selectedModel?: SelectedModel;
+    /** 模型选择器：候选模型列表（不传则由组件内部拉取） */
+    modelOptions?: ModelOption[];
+    /** 模型列表接口路径覆盖 */
+    listModelApi?: string;
     /** 国际化文本 */
     i18n?: SenderI18n;
 }
@@ -54,9 +60,11 @@ const props = withDefaults(defineProps<Props>(), {
     enableVoiceInput: true,
     isUploading: false,
     currentApplicationId: '',
-    describeAgentSummaryListApi: '',
-    copyAgentApi: '',
     agentConfigApi: '',
+    showModelSelector: true,
+    selectedModel: () => ({} as SelectedModel),
+    modelOptions: () => [],
+    listModelApi: '',
     i18n: () => ({})
 });
 
@@ -89,6 +97,8 @@ const emit = defineEmits<{
     (e: 'startRecord'): void;
     (e: 'stopRecord'): void;
     (e: 'message', code: MessageCode, message: string): void;
+    (e: 'update:selectedModel', model: ModelOption): void;
+    (e: 'modelChange', model: ModelOption): void;
 }>();
 
 const editorHtml = ref('');
@@ -127,20 +137,25 @@ const placeholder = computed(() => {
     return props.isMobile ? (i18n.value.placeholderMobile || '') : (i18n.value.placeholder || '');
 });
 
+const fetchAgentByApplicationId = (applicationId: string) => {
+    fetchAndSetAgentId({
+        applicationId,
+        agentConfigApiPath: props.agentConfigApi || undefined,
+    });
+};
+
+// 监听外部 currentApplicationId 变化，重新拉取 Agent
+watch(() => props.currentApplicationId, (newVal) => {
+    if (newVal) {
+        fetchAgentByApplicationId(newVal);
+    }
+});
+
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
     // 初始化：拉取 Agent 摘要列表，取 agent_list[0].agent_id 作为当前上下文 agent_id
     if (props.currentApplicationId) {
-        fetchAndSetAgentId({
-            applicationId: props.currentApplicationId,
-            scope: AGENT_SCOPE.CROSS_APP,
-            domain: AGENT_DOMAIN.PROD,
-            pageSize: 1,
-            pageNumber: 0,
-            apiPath: props.describeAgentSummaryListApi || undefined,
-            copyAgentApiPath: props.copyAgentApi || undefined,
-            agentConfigApiPath: props.agentConfigApi || undefined,
-        });
+        fetchAgentByApplicationId(props.currentApplicationId);
     }
 });
 
@@ -594,6 +609,17 @@ defineExpose({
                     <input ref="fileInputRef" type="file" :accept="fileAccept" multiple hidden @change="handleFileInputChange" />
                 </div>
 
+                <!-- 模型选择器（按钮模式） -->
+                <ModelSelector
+                    v-if="showModelSelector"
+                    class="sender-model-selector"
+                    :selected="selectedModel"
+                    :options="modelOptions"
+                    :list-model-api="listModelApi || undefined"
+                    is-button-mode
+                    @update:selected="(model: ModelOption) => { emit('update:selectedModel', model); emit('modelChange', model); }"
+                />
+
                 <TTooltip v-if="enableVoiceInput && !recording" :content="i18n.startRecord">
                     <span class="recording-icon" :class="{ isMobile: isMobile }" @click="handleStartRecord">
                         <CustomizedIcon name="voice_input" :theme="theme" :showHoverBg="!isMobile"/>
@@ -736,6 +762,12 @@ defineExpose({
 .fade-up-leave-to {
     opacity: 0;
     transform: translateY(4px);
+}
+
+/* 模型选择器 */
+.sender-model-selector {
+    display: inline-flex;
+    align-items: center;
 }
 
 /* 录音按钮 */
