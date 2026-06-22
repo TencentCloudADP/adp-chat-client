@@ -111,6 +111,9 @@
                     :enableVoiceInput="props.enableVoiceInput"
                     :isUploading="props.isUploading"
                     :currentApplicationId="props.currentApplicationId"
+                    :enableSkills="props.enableSkills"
+                    :spaceId="props.skillsSpaceId"
+                    :skillsApplicationId="skillsAppId"
                     @stop="onStop"
                     @send="handleSend"
                     @uploadFile="handleUploadFile"
@@ -174,6 +177,12 @@ export interface Props extends ChatRelatedProps {
     isUploading?: boolean;
     /** 是否显示遮罩层 */
     isOverlay?: boolean;
+    /** 是否启用 Skills 功能 */
+    enableSkills?: boolean;
+    /** Skills 空间 ID */
+    skillsSpaceId?: string;
+    /** Skills 应用 ID（/adp/ 转发需要） */
+    skillsApplicationId?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -193,7 +202,11 @@ const props = withDefaults(defineProps<Props>(), {
     asrUrlApi: '',
     enableVoiceInput: true,
     isUploading: false,
-    isOverlay: false
+    isOverlay: false,
+    enableSkills: true,
+    // TODO: skillsSpaceId 后续从实际空间上下文获取，当前使用默认值
+    skillsSpaceId: 'default_space',
+    skillsApplicationId: '',
 });
 
 // 解构 props 以便在模板中使用
@@ -226,6 +239,17 @@ const senderI18n = computed(() => {
     const defaults = props.language?.startsWith('en') ? defaultSenderI18nEn : defaultSenderI18n;
     return { ...defaults, ...props.senderI18n };
 });
+
+/** Skills 用的 ApplicationId：优先 skillsApplicationId，否则用当前应用 ID */
+const skillsAppId = computed(() => {
+    const val = props.skillsApplicationId || props.currentApplicationId || '';
+    return val;
+});
+
+// 调试：持续打印 currentApplicationId 变化
+watch(() => props.currentApplicationId, (v) => {
+    console.log('[Chat/Index] currentApplicationId prop changed:', v, 'skillsAppId:', skillsAppId.value);
+}, { immediate: true });
 
 const emit = defineEmits<{
     (e: 'send', query: string, fileList: FileProps[], conversationId: string, applicationId: string): void;

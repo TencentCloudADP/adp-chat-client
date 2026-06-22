@@ -501,4 +501,10 @@ export interface ChatConfig extends ChatRelatedProps, OverlayProps {
   apiConfig?: ApiConfig
   /** 是否自动加载数据（仅在使用 apiConfig 时生效） */
   autoLoad?: boolean
+  /** 是否启用 Skills 功能 */
+  enableSkills?: boolean
+  /** Skills 空间 ID */
+  skillsSpaceId?: string
+  /** Skills 应用 ID（/adp/ 转发需要） */
+  skillsApplicationId?: string
 }

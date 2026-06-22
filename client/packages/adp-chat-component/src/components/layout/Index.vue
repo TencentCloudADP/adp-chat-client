@@ -125,6 +125,12 @@ export interface Props extends ThemeProps, OverlayProps {
     apiConfig?: ApiConfig;
     /** 是否自动加载数据（仅在使用 apiConfig 时生效） */
     autoLoad?: boolean;
+    /** 是否启用 Skills 功能 */
+    enableSkills?: boolean;
+    /** Skills 空间 ID */
+    skillsSpaceId?: string;
+    /** Skills 应用 ID（/adp/ 转发需要） */
+    skillsApplicationId?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -152,6 +158,9 @@ const props = withDefaults(defineProps<Props>(), {
     aiWarningText: '内容由AI生成，仅供参考',
     apiConfig: () => ({}),
     autoLoad: true,
+    enableSkills: true,
+    skillsSpaceId: '',
+    skillsApplicationId: '',
 });
 
 const emit = defineEmits<{
@@ -495,6 +504,8 @@ const actualIsChatting = computed(() =>
 const currentApplicationId = computed(() => actualCurrentApplication.value?.ApplicationId || '');
 const currentApplicationAvatar = computed(() => actualCurrentApplication.value?.Avatar || '');
 const currentApplicationName = computed(() => actualCurrentApplication.value?.Name || '');
+// Skills 的 ApplicationId 优先用显式配置，否则回退到当前应用 ID
+const skillsAppId = computed(() => props.skillsApplicationId || currentApplicationId.value);
 const currentApplicationGreeting = computed(() => actualCurrentApplication.value?.Greeting || '');
 const currentApplicationOpeningQuestions = computed(() => actualCurrentApplication.value?.OpeningQuestions || []);
 const currentConversationId = computed(() => props.currentConversationId || actualCurrentConversation.value?.Id || '');
@@ -1483,6 +1494,9 @@ defineExpose({
                 :enableVoiceInput="enableVoiceInput"
                 :isUploading="isUploading"
                 :isOverlay="props.isOverlay"
+                :enableSkills="props.enableSkills"
+                :skillsSpaceId="props.skillsSpaceId"
+                :skillsApplicationId="skillsAppId"
                 @toggleSidebar="handleToggleSidebar"
                 @createConversation="handleCreateConversation"
                 @close="handleClose"

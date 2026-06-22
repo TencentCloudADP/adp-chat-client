@@ -1,0 +1,229 @@
+/**
+ * Skills API 服务
+ * 直接通过 /adp/<Action> 通用转发端点调用腾讯云 ADP Skills 接口
+ */
+import { httpService } from './httpService';
+
+/** Skills API 路径配置 */
+export interface SkillsApiConfig {
+    /** 全局 Agent 配置（DescribeGlobalCorpAssistantAgent） */
+    globalAgentApi?: string;
+    /** Skill 分类列表 */
+    skillCategoriesApi?: string;
+    /** Skill 摘要列表（技能广场） */
+    skillSummaryListApi?: string;
+    /** Skill 详情 */
+    skillDetailApi?: string;
+    /** 安装 Skill */
+    createSkillApi?: string;
+    /** 卸载 Skill */
+    deleteSkillApi?: string;
+}
+
+/** 默认 Skills API 路径（使用 /adp/ 转发） */
+export const defaultSkillsApiConfig: SkillsApiConfig = {
+    globalAgentApi: '/adp/DescribeAgentDetail',
+    skillCategoriesApi: '/adp/DescribeSkillCategoryList',
+    skillSummaryListApi: '/adp/DescribeSkillSummaryList',
+    skillDetailApi: '/adp/DescribeSkillDetail',
+    createSkillApi: '/adp/CreateSkill',
+    deleteSkillApi: '/adp/DeleteSkill',
+};
+
+/**
+ * 封装 /adp/<Action> 通用请求
+ * @param url API 路径
+ * @param applicationId 应用 ID
+ * @param payload 业务参数
+ * @param service 服务名（可选）
+ * @param version API 版本（可选）
+ */
+async function forwardRequest(
+    url: string,
+    applicationId: string,
+    payload: Record<string, unknown> = {},
+    service?: string,
+    version?: string,
+): Promise<Record<string, unknown>> {
+    const body: Record<string, unknown> = {
+        ApplicationId: applicationId,
+        Payload: payload,
+    };
+    if (service) body.Service = service;
+    if (version) body.Version = version;
+
+    const response = await httpService.post(url, body);
+    // 解析 Response 层
+    return (response?.Response || response || {}) as Record<string, unknown>;
+}
+
+/**
+ * 获取 Agent 详情（含已安装 Skills/Plugins/Tools 列表）
+ * 通过 DescribeAgentDetail 接口，service/version 由服务端 action_version.json 处理
+ * 请求 Payload：{ AppId, AdpDomain: 1, ProjectPath: '' }
+ * 响应：res.Agent.SkillList / PluginList / ToolList（兼容 snake_case）
+ */
+export async function fetchGlobalAgent(params: {
+    applicationId: string;
+    spaceId?: string;
+    projectPath?: string;
+}, apiPath?: string): Promise<{
+    skills: Record<string, unknown>[];
+    plugins: Record<string, unknown>[];
+    tools: Record<string, unknown>[];
+    agentId: string;
+}> {
+    const data = await forwardRequest(
+        apiPath || defaultSkillsApiConfig.globalAgentApi!,
+        params.applicationId,
+        {
+            AppId: params.applicationId,
+            AdpDomain: 1,
+            ProjectPath: params.projectPath || '',
+        },
+    );
+    // DescribeAgentDetail 返回 { Agent: { SkillList, PluginList, ToolList, AgentId } } 或 snake_case
+    const agent = (data.Agent || data.agent || {}) as Record<string, unknown>;
+    const rawSkills = (agent.SkillList || agent.skill_list || []) as Array<Record<string, unknown>>;
+    // 归一化 skill 字段（兼容 name → skill_name）
+    const skills = rawSkills.map((s) => ({
+        ...s,
+        skill_id: s.skill_id || s.SkillId || '',
+        skill_name: s.skill_name || s.SkillName || s.name || (s.profile as Record<string, unknown>)?.name || '',
+        skill_display_name: s.skill_display_name || s.SkillDisplayName || s.skill_name || s.name || '',
+        skill_display_desc: s.skill_display_description || s.skill_display_desc || s.SkillDisplayDesc || '',
+        icon_url: s.icon_url || s.skill_icon || s.IconUrl || '',
+    }));
+    return {
+        skills,
+        plugins: (agent.PluginList || agent.plugin_list || []) as Record<string, unknown>[],
+        tools: (agent.ToolList || agent.tool_list || []) as Record<string, unknown>[],
+        agentId: (agent.AgentId || agent.agent_id || '') as string,
+    };
+}
+
+/**
+ * 查询 Skill 分类列表
+ */
+export async function fetchSkillCategories(params: {
+    applicationId: string;
+}, apiPath?: string): Promise<{
+    categories: Array<{ category_key: string; category_name: string }>;
+}> {
+    const data = await forwardRequest(
+        apiPath || defaultSkillsApiConfig.skillCategoriesApi!,
+        params.applicationId,
+        {},
+    );
+    const rawList = (data.Categories || data.categories || data.CategoryList || []) as Array<Record<string, unknown>>;
+    return {
+        categories: rawList.map((c) => ({
+            category_key: (c.category_key || c.CategoryKey || '') as string,
+            category_name: (c.category_name || c.CategoryName || '') as string,
+        })),
+    };
+}
+
+/**
+ * 查询 Skill 摘要列表（技能广场）
+ */
+export async function fetchSkillSummaryList(params: {
+    applicationId: string;
+    space_id: string;
+    query?: string;
+    filter_list?: Array<{ key: string; values: string[] }>;
+    favorite_only?: boolean;
+    page_size?: number;
+    page_number?: number;
+}, apiPath?: string): Promise<{
+    skill_list: Record<string, unknown>[];
+    total_count: number;
+}> {
+    const { applicationId, ...rest } = params;
+    // filter_list → proto Filter { Name, ValueList }（v2 格式）
+    const filters = (rest.filter_list || []).map((f: Record<string, unknown>) => ({
+        Name: f.key || f.Key || f.name || f.Name || '',
+        Values: f.values || f.Values || f.valueList || f.ValueList || [],
+    }));
+    const data = await forwardRequest(
+        apiPath || defaultSkillsApiConfig.skillSummaryListApi!,
+        applicationId,
+        {
+            SpaceId: rest.space_id || '',
+            Query: rest.query || '',
+            Filters: filters,
+            FavoriteOnly: !!rest.favorite_only,
+            PageSize: rest.page_size || 12,
+            PageNumber: rest.page_number || 0,
+        },
+    );
+    const rawList = (data.SkillList || data.skill_list || data.SkillSummaryList || []) as Record<string, unknown>[];
+    return {
+        skill_list: rawList,
+        total_count: (data.TotalCount || data.total_count || data.Total || 0) as number,
+    };
+}
+
+/**
+ * 查询 Skill 详情
+ */
+export async function fetchSkillDetail(params: {
+    applicationId: string;
+    skill_id: string;
+    space_id: string;
+}, apiPath?: string): Promise<{ skill_detail: Record<string, unknown> }> {
+    const { applicationId, ...payload } = params;
+    const data = await forwardRequest(
+        apiPath || defaultSkillsApiConfig.skillDetailApi!,
+        applicationId,
+        payload as Record<string, unknown>,
+    );
+    return { skill_detail: (data.skill_detail || data.SkillDetail || {}) as Record<string, unknown> };
+}
+
+/**
+ * 安装 Skill（从 SkillHub，source=2）
+ */
+export async function installSkill(params: {
+    applicationId: string;
+    space_id: string;
+    source: number;
+    skill_id?: string;
+    version_id?: string;
+    name?: string;
+    file_url?: string;
+}, apiPath?: string): Promise<{ skill_id: string; version_id: string }> {
+    const { applicationId, ...rest } = params;
+    const data = await forwardRequest(
+        apiPath || defaultSkillsApiConfig.createSkillApi!,
+        applicationId,
+        {
+            SpaceId: rest.space_id || '',
+            Source: rest.source,
+            SkillId: rest.skill_id || '',
+            VersionId: rest.version_id || '',
+            Name: rest.name || '',
+            FileUrl: rest.file_url || '',
+        },
+    );
+    return {
+        skill_id: (data.SkillId || data.skill_id || '') as string,
+        version_id: (data.VersionId || data.version_id || '') as string,
+    };
+}
+
+/**
+ * 卸载 Skill
+ */
+export async function uninstallSkill(params: {
+    applicationId: string;
+    skill_id: string;
+    space_id: string;
+}, apiPath?: string): Promise<void> {
+    const { applicationId, ...rest } = params;
+    await forwardRequest(
+        apiPath || defaultSkillsApiConfig.deleteSkillApi!,
+        applicationId,
+        { SkillId: rest.skill_id, SpaceId: rest.space_id },
+    );
+}

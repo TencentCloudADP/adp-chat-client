@@ -27,11 +27,15 @@
     "DescribeAgentSummaryList": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4030-clawapi"        
+        "headers.X-TC-Canary": "toe-test-4030-clawapi"
     },
     "CreateUserAgentList": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4030-clawapi"      
-    }    
+        "headers.X-TC-Canary": "toe-test-4030-clawapi"
+    },
+    "DescribeAgentDetail": {
+        "service": "lke",
+        "headers.X-TC-Version": "2025-11-12"
+    }
 }

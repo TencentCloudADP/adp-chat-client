@@ -42,6 +42,11 @@ export { default as SideLayout } from './components/layout/SideLayout.vue'
 // 功能组件导出
 export { default as ShareChat } from './components/ShareChat.vue'
 
+// Skills 组件导出
+export { SkillsPopover } from './components/Skills';
+export { SkillsInstallDialog } from './components/Skills';
+export { SkillManageDialog } from './components/Skills';
+
 // 类型导出
 export type {
     ChatConfig,
@@ -90,6 +95,23 @@ export { ScoreValue } from './model/chat-v2'
 export type { FileProps } from './model/file'
 export type { ApiConfig, ApiDetailConfig } from './service/api'
 
+// Skills 类型导出
+export type {
+    AgentSkillInfo,
+    SkillSummary,
+    SkillDetail,
+    SkillCategory,
+    NormalizedSkill,
+    ManageSkillItem,
+    SkillSelectEvent,
+    SkillsI18n,
+} from './model/skills'
+export {
+    AgentSkillType,
+    defaultSkillsI18n,
+    defaultSkillsI18nEn,
+} from './model/skills'
+
 // Service 导出
 export {
     httpService,
@@ -125,8 +147,22 @@ export {
     getViewportHeight,
 } from './utils/device'
 
+// Skills API 服务导出
+export {
+    defaultSkillsApiConfig,
+    fetchGlobalAgent,
+    fetchSkillCategories,
+    fetchSkillSummaryList,
+    fetchSkillDetail,
+    installSkill,
+    uninstallSkill,
+} from './service/skillsApi'
+export type { SkillsApiConfig } from './service/skillsApi'
+
 // Composables 导出
 export { useApiConfig } from './composables'
+export { useSkills, normalizeSkill, normalizeManageItem } from './composables/useSkills'
+export type { UseSkillsOptions } from './composables/useSkills'
 export type { UseApiConfigOptions, UseApiConfigReturn } from './composables'
 
 // 默认导出 (用于全局挂载)

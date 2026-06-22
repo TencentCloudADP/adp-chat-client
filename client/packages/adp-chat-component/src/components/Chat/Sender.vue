@@ -14,6 +14,10 @@ import {
 import { MessageCode, getMessage } from '../../model/messages';
 import type { ChatRelatedProps, SenderI18n } from '../../model/type';
 import { chatRelatedPropsDefaults, defaultSenderI18n, defaultSenderI18nEn } from '../../model/type';
+import type { NormalizedSkill, SkillSelectEvent, SkillsI18n, AgentSkillInfo, ManageSkillItem } from '../../model/skills';
+import { defaultSkillsI18n, defaultSkillsI18nEn, AgentSkillType } from '../../model/skills';
+import { normalizeSkill, normalizeManageItem } from '../../composables/useSkills';
+import { fetchGlobalAgent, uninstallSkill as uninstallSkillApi } from '../../service/skillsApi';
 import RecordIcon from '../Common/RecordIcon.vue';
 import FileList from '../Common/FileList.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
@@ -23,7 +27,11 @@ import QaEditor from '../QaEditor/index.vue';
 import ModelSelector from '../Common/ModelSelector.vue';
 import type { ModelOption, SelectedModel } from '../Common/ModelSelector.vue';
 import { useAgentStore } from '../../composables/useAgentStore';
-
+import SkillsPopover from '../Skills/SkillsPopover.vue';
+import SkillsInstallDialog from '../Skills/SkillsInstallDialog.vue';
+import SkillManageDialog from '../Skills/SkillManageDialog.vue';
+import ConnectorDialog from '../Connector/ConnectorDialog.vue';
+import PluginInstallDialog from '../Plugin/PluginInstallDialog.vue';
 
 export interface Props extends ChatRelatedProps {
     /** 是否正在流式加载 */
@@ -50,6 +58,20 @@ export interface Props extends ChatRelatedProps {
     listModelApi?: string;
     /** 国际化文本 */
     i18n?: SenderI18n;
+    /** 是否启用 Skills 功能 */
+    enableSkills?: boolean;
+    /** 已安装 Skills 列表（标准化后） */
+    installedSkills?: NormalizedSkill[];
+    /** Skills 数据加载中 */
+    skillsLoading?: boolean;
+    /** 已安装 Skill ID 集合 */
+    installedSkillIds?: string[];
+    /** 空间 ID（Skills API 需要） */
+    spaceId?: string;
+    /** 应用 ID（Skills /adp/ 转发需要） */
+    skillsApplicationId?: string;
+    /** Skills 国际化文本 */
+    skillsI18n?: Partial<SkillsI18n>;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -65,7 +87,14 @@ const props = withDefaults(defineProps<Props>(), {
     selectedModel: () => ({} as SelectedModel),
     modelOptions: () => [],
     listModelApi: '',
-    i18n: () => ({})
+    i18n: () => ({}),
+    enableSkills: true,
+    installedSkills: () => [],
+    skillsLoading: false,
+    installedSkillIds: () => [],
+    spaceId: '',
+    skillsApplicationId: '',
+    skillsI18n: () => ({}),
 });
 
 /** Agent 全局 store */
@@ -75,6 +104,9 @@ const i18n = computed(() => {
     const defaults = props.language?.startsWith('en') ? defaultSenderI18nEn : defaultSenderI18n;
     return { ...defaults, ...props.i18n };
 });
+
+/** Skills 功能是否启用：显式传 true，或 spaceId 存在时自动启用 */
+const skillsEnabled = computed(() => props.enableSkills || !!props.spaceId);
 
 /**
  * 是否禁止发送和上传（上传/解析中或流式加载中）
@@ -99,6 +131,17 @@ const emit = defineEmits<{
     (e: 'message', code: MessageCode, message: string): void;
     (e: 'update:selectedModel', model: ModelOption): void;
     (e: 'modelChange', model: ModelOption): void;
+    /** Skills 选中事件 */
+    (e: 'skill-select', item: SkillSelectEvent): void;
+    /** Skills 浮层显隐变化 */
+    (e: 'skills-visible-change', visible: boolean): void;
+    /** 打开 Skills 管理 */
+    (e: 'skills-manage'): void;
+    /** Skill 安装 */
+    (e: 'skill-installed', skill: Record<string, unknown>): void;
+    /** Skill 卸载 */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (e: 'skill-uninstalled', skill: any): void;
 }>();
 
 const editorHtml = ref('');
@@ -111,6 +154,145 @@ const recordMaxTime = 60;
 const recordRef = ref<ReturnType<typeof setTimeout> | null>(null);
 const qaEditorRef = ref<InstanceType<typeof QaEditor> | null>(null);
 const inputValueBefore = ref('');
+
+// ─── Skills 状态 ──────────────────────────────────────────────────
+const skillsI18n = computed<Required<SkillsI18n>>(() => {
+    const defaults = props.language?.startsWith('en') ? defaultSkillsI18nEn : defaultSkillsI18n;
+    return { ...defaults, ...props.skillsI18n };
+});
+
+/** 已安装 Skills 原始数据 */
+const skillList = ref<AgentSkillInfo[]>([]);
+/** 正在刷新 */
+const skillsRefreshing = ref(false);
+
+/** 浮层用的标准化列表 */
+const normalizedSkills = computed<NormalizedSkill[]>(() => {
+    return skillList.value
+        .filter((s) => !!(s.skill_display_name || s.SkillDisplayName))
+        .sort((a, b) => {
+            const aType = a.skill_type ?? a.SkillType ?? 0;
+            const bType = b.skill_type ?? b.SkillType ?? 0;
+            return (aType === AgentSkillType.HUB_PRESET ? 1 : 0) - (bType === AgentSkillType.HUB_PRESET ? 1 : 0);
+        })
+        .map(normalizeSkill);
+});
+
+/** 管理弹窗用的列表 */
+const manageItems = computed<ManageSkillItem[]>(() => {
+    return skillList.value
+        .filter((s) => !!(s.skill_display_name || s.SkillDisplayName))
+        .sort((a, b) => {
+            const aType = a.skill_type ?? a.SkillType ?? 0;
+            const bType = b.skill_type ?? b.SkillType ?? 0;
+            return (aType === AgentSkillType.HUB_PRESET ? 1 : 0) - (bType === AgentSkillType.HUB_PRESET ? 1 : 0);
+        })
+        .map(normalizeManageItem);
+});
+
+/** 已安装 Skill ID 集合 */
+const skillsInstalledIds = computed(() => {
+    return [...new Set(skillList.value.map((s) => (s.skill_id || s.SkillId || '')).filter(Boolean))];
+});
+
+/** 刷新 Skills 列表 */
+async function refreshSkills() {
+    const appId = props.skillsApplicationId;
+    // TODO: spaceId 后续从实际空间上下文获取，当前使用默认值
+    const spId = props.spaceId || 'default_space';
+    console.log('[Sender] refreshSkills, appId:', appId, 'spaceId:', spId);
+    if (!appId) {
+        console.warn('[Sender] refreshSkills skipped: no applicationId');
+        return;
+    }
+    skillsRefreshing.value = true;
+    try {
+        console.log('[Sender] calling fetchGlobalAgent');
+        const result = await fetchGlobalAgent({
+            applicationId: appId,
+            spaceId: spId,
+        });
+        console.log('[Sender] fetchGlobalAgent result:', result);
+        skillList.value = result.skills as AgentSkillInfo[];
+    } catch (e) {
+        console.error('[Sender] refreshSkills error:', e);
+    } finally {
+        skillsRefreshing.value = false;
+    }
+}
+
+/** 卸载 Skill */
+async function removeSkillById(skillId: string) {
+    const appId = props.skillsApplicationId;
+    if (!appId) return;
+    try {
+        await uninstallSkillApi({
+            applicationId: appId,
+            skill_id: skillId,
+            space_id: props.spaceId || '',
+        });
+        skillList.value = skillList.value.filter(
+            (s) => (s.skill_id || s.SkillId) !== skillId
+        );
+    } catch (e) {
+        console.error('[Sender] removeSkill error:', e);
+    }
+}
+
+// 监听 skillsApplicationId 变化，有值时自动刷新
+watch(
+    () => props.skillsApplicationId,
+    (appId) => {
+        console.log('[Sender] skillsApplicationId changed:', appId);
+        if (appId && skillList.value.length === 0) {
+            refreshSkills();
+        }
+    },
+    { immediate: true }
+);
+
+const skillsPopoverRef = ref<InstanceType<typeof SkillsPopover> | null>(null);
+const showSkillsInstall = ref(false);
+const showSkillsManage = ref(false);
+// Connector + Plugin
+const showConnector = ref(false);
+const showPlugin = ref(false);
+
+// ─── Skills 事件处理 ──────────────────────────────────────────────
+const onSkillsPopoverSelect = (item: SkillSelectEvent) => {
+    emit('skill-select', item);
+};
+
+const onSkillsVisibleChange = (visible: boolean) => {
+    emit('skills-visible-change', visible);
+    console.log('[Sender] onSkillsVisibleChange, visible:', visible);
+    if (visible) {
+        refreshSkills();
+    }
+};
+
+const onSkillsManage = () => {
+    emit('skills-manage');
+    refreshSkills();
+    showSkillsManage.value = true;
+};
+
+const onSkillInstalled = (skill: Record<string, unknown>) => {
+    emit('skill-installed', skill);
+    refreshSkills();
+    showSkillsInstall.value = false;
+};
+
+const onSkillUninstalled = (skill: Record<string, unknown>) => {
+    emit('skill-uninstalled', skill);
+    refreshSkills();
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const onSkillDeleted = (item: any) => {
+    removeSkillById(item.id);
+    emit('skill-uninstalled', item);
+};
 
 /**
  * 加号菜单状态
@@ -631,6 +813,31 @@ defineExpose({
                         <RecordIcon />
                     </span>
                 </TTooltip>
+
+                <!-- Skills 按钮 -->
+                <SkillsPopover
+                    v-if="skillsEnabled"
+                    ref="skillsPopoverRef"
+                    :installed-skills="normalizedSkills"
+                    :loading="skillsRefreshing"
+                    :i18n="skillsI18n"
+                    :language="language"
+                    @select="onSkillsPopoverSelect"
+                    @manage="onSkillsManage"
+                    @visible-change="onSkillsVisibleChange"
+                />
+
+                <!-- 连接器按钮 -->
+                <div class="toolbar-pill-btn" @click="showConnector = true">
+                    <CustomizedIcon remote name="basic_api_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" />
+                    <span class="toolbar-pill-btn__text">{{ skillsI18n.connector }}</span>
+                </div>
+
+                <!-- 工具按钮 -->
+                <div class="toolbar-pill-btn" @click="showPlugin = true">
+                    <CustomizedIcon remote name="basic_plugin_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" />
+                    <span class="toolbar-pill-btn__text">{{ skillsI18n.tools }}</span>
+                </div>
             </div>
 
             <div class="sender-toolbar__right">
@@ -639,6 +846,36 @@ defineExpose({
                 <CustomizedIcon class="send-icon stop" v-if="isStreamLoad" nativeIcon :showHoverBg="false" :name="theme === 'dark' ? 'pause_dark' : 'pause'" @click="emit('stop')" />
             </div>
         </div>
+
+        <!-- Skills 安装弹窗 -->
+        <SkillsInstallDialog
+            v-if="skillsEnabled"
+            v-model="showSkillsInstall"
+            :installed-skill-ids="Array.from(skillsInstalledIds)"
+            :application-id="skillsApplicationId"
+            :space-id="spaceId"
+            :i18n="skillsI18n"
+            :language="language"
+            @skill-installed="onSkillInstalled"
+        />
+
+        <!-- Skills 管理弹窗 -->
+        <SkillManageDialog
+            v-if="skillsEnabled"
+            v-model="showSkillsManage"
+            :manage-list="manageItems"
+            :loading="skillsRefreshing"
+            :i18n="skillsI18n"
+            :language="language"
+            @add="showSkillsInstall = true"
+            @delete="onSkillDeleted"
+        />
+
+        <!-- 连接器弹窗 -->
+        <ConnectorDialog v-if="skillsEnabled" v-model="showConnector" :application-id="skillsApplicationId" />
+
+        <!-- 工具安装弹窗 -->
+        <PluginInstallDialog v-if="skillsEnabled" v-model="showPlugin" :application-id="skillsApplicationId" />
     </div>
 </template>
 
@@ -800,5 +1037,35 @@ defineExpose({
     opacity: 0.4;
     cursor: not-allowed;
     pointer-events: none;
+}
+
+/* Skills 添加按钮 */
+.skills-add-btn {
+    height: var(--td-comp-size-m);
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    margin-left: 2px;
+}
+
+/* 工具栏 pill 按钮（连接器、工具） */
+.toolbar-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 16px;
+    font-size: 12px;
+    line-height: 16px;
+    color: var(--td-text-color-primary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+}
+.toolbar-pill-btn:hover {
+    background: var(--td-bg-color-container-active);
+}
+.toolbar-pill-btn__text {
+    white-space: nowrap;
 }
 </style>

@@ -56,6 +56,12 @@ export interface Props extends ChatRelatedProps {
     isUploading?: boolean;
     /** 是否显示遮罩层 */
     isOverlay?: boolean;
+    /** 是否启用 Skills 功能 */
+    enableSkills?: boolean;
+    /** Skills 空间 ID */
+    skillsSpaceId?: string;
+    /** Skills 应用 ID */
+    skillsApplicationId?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -74,6 +80,9 @@ const props = withDefaults(defineProps<Props>(), {
     isUploading: false,
     enableVoiceInput: true,
     isOverlay: false,
+    enableSkills: true,
+    skillsSpaceId: '',
+    skillsApplicationId: '',
 });
 
 // 合并 i18n 配置，获取 createConversation 文本
@@ -222,6 +231,9 @@ defineExpose({
                 :enableVoiceInput="enableVoiceInput"
                 :isUploading="isUploading"
                 :isOverlay="isOverlay"
+                :enableSkills="enableSkills"
+                :skillsSpaceId="skillsSpaceId"
+                :skillsApplicationId="skillsApplicationId"
                 @send="(query: string, fileList: FileProps[], conversationId: string, applicationId: string) => emit('send', query, fileList, conversationId, applicationId)"
                 @stop="emit('stop')"
                 @loadMore="(conversationId: string, lastRecordId: string) => emit('loadMore', conversationId, lastRecordId)"
