@@ -1164,7 +1164,13 @@ defineExpose({
         />
 
         <!-- 连接器弹窗 -->
-        <ConnectorDialog v-if="skillsEnabled" v-model="showConnector" :application-id="skillsApplicationId" />
+        <ConnectorDialog
+            v-if="skillsEnabled"
+            v-model="showConnector"
+            :application-id="skillsApplicationId"
+            :agent-id="currentAgentId"
+            @change="refreshSkills"
+        />
 
         <!-- 管理工具弹窗（首次打开的入口） -->
         <PluginManageDialog

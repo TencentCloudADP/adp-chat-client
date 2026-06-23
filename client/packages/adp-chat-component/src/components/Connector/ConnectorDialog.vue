@@ -3,165 +3,100 @@
         v-model:visible="visible"
         header="管理连接器"
         :footer="false"
-        width="800px"
+        width="720px"
         :close-on-overlay-click="false"
     >
-        <div class="connector-dialog">
-            <!-- Tabs + 筛选栏 -->
-            <div class="connector-dialog__header">
-                <t-tabs v-model="activeTab" class="connector-dialog__tabs" @change="onTabChange">
-                    <t-tab-panel value="inner" label="连接器" />
-                    <t-tab-panel value="custom" label="自定义连接器" />
-                </t-tabs>
-                <div class="connector-dialog__actions">
-                    <!-- 分组多选筛选（仅内置连接器） -->
-                    <t-popup
-                        v-if="activeTab === 'inner'"
-                        v-model:visible="filterVisible"
-                        trigger="click"
-                        placement="bottom-right"
-                    >
-                        <span class="connector-dialog__filter-trigger">{{ filterLabel }}</span>
-                        <template #content>
-                            <div class="connector-dialog__filter-panel">
-                                <div v-for="group in filterGroups" :key="group.key" class="connector-dialog__filter-group">
-                                    <div class="connector-dialog__filter-group-title">{{ group.title }}</div>
-                                    <div
-                                        v-for="opt in group.options"
-                                        :key="opt.value"
-                                        class="connector-dialog__filter-option"
-                                    >
-                                        <t-checkbox
-                                            :checked="isFilterChecked(group.key, opt.value)"
-                                            @change="(v: boolean) => onFilterCheck(group.key, opt.value, v)"
-                                        >
-                                            {{ opt.text }}
-                                        </t-checkbox>
-                                    </div>
-                                </div>
-                            </div>
-                        </template>
-                    </t-popup>
-                    <t-checkbox v-model="filterFavorite" @change="doReset">收藏</t-checkbox>
-                    <t-input
-                        v-model="searchKeyword"
-                        placeholder="搜索连接器"
-                        
-                        clearable
-                        class="connector-dialog__search"
-                        @change="onSearch"
-                    >
-                        <template #prefix-icon><t-icon name="search" /></template>
-                    </t-input>
-                    <!-- 排序 -->
-                    <t-popup trigger="click" placement="bottom-right">
-                        <span class="connector-dialog__sort-btn" :title="sortLabel">
-                            <t-icon :name="sortIcon" />
-                        </span>
-                        <template #content>
-                            <div class="connector-dialog__sort-menu">
-                                <div
-                                    v-for="opt in sortOptions"
-                                    :key="opt.value"
-                                    :class="['connector-dialog__sort-item', { 'is-selected': selectedSort === opt.value }]"
-                                    @click="selectedSort = opt.value; doReset()"
-                                >
-                                    <span>{{ opt.label }}</span>
-                                </div>
-                            </div>
-                        </template>
-                    </t-popup>
-                </div>
+        <div class="connector-manage">
+            <!-- 顶部筛选栏 -->
+            <div class="connector-manage__filter-bar">
+                <t-input
+                    v-model="searchKeyword"
+                    placeholder="搜索连接器"
+                    clearable
+                    class="connector-manage__search"
+                    @change="onSearchChange"
+                >
+                    <template #prefix-icon><t-icon name="search" /></template>
+                </t-input>
+                <t-checkbox v-model="enabledOnly" @change="onEnabledOnlyChange">已启用</t-checkbox>
             </div>
 
-            <!-- 分类标签栏（仅内置连接器显示） -->
-            <div v-if="activeTab === 'inner'" ref="catRef" class="connector-dialog__cat-bar" @scroll="updateCatScroll">
-                <span
-                    v-for="cat in categories"
-                    :key="cat.value"
-                    :class="['connector-dialog__cat-tag', { 'is-active': activeCategory === cat.value }]"
-                    @click="activeCategory = cat.value"
-                >{{ cat.label }}</span>
-            </div>
-
-            <!-- 卡片列表 -->
-            <div v-if="loading" class="connector-dialog__loading">
+            <!-- 列表区 -->
+            <div v-if="loading" class="connector-manage__loading">
                 <t-loading size="large" text="加载中..." />
             </div>
-            <div v-else-if="cardList.length === 0" class="connector-dialog__empty">暂无数据</div>
-            <div v-else class="connector-dialog__list">
-                <div
-                    v-for="item in cardList"
-                    :key="(item as any).plugin_id || (item as any).PluginId"
-                    class="connector-card"
-                    :class="{ 'is-expanded': expandedId === (item.plugin_id || item.PluginId) }"
-                >
-                    <div class="connector-card__main" @click="onExpand(item)">
-                        <div class="connector-card__icon-area">
-                            <img v-if="itemIcon(item)" :src="itemIcon(item)" class="connector-card__icon" @error="onIconError" />
-                            <span v-else class="connector-card__icon-fb"><t-icon name="link" /></span>
-                        </div>
-                        <div class="connector-card__info">
-                            <div class="connector-card__title-row">
-                                <span class="connector-card__name" :title="itemName(item)">{{ itemName(item) }}</span>
-                                <t-tag v-if="itemFinanceType(item) === 3" color="orange" >公测</t-tag>
-                                <t-tag v-if="itemFinanceType(item) === 2" color="purple" >付费</t-tag>
-                                <t-tag v-if="itemCreateType(item)" color="gray" >{{ itemCreateType(item) }}</t-tag>
-                                <t-tag v-if="itemCategory(item)" color="gray" >{{ itemCategory(item) }}</t-tag>
-                            </div>
-                            <div class="connector-card__desc" :title="itemDesc(item)">{{ itemDesc(item) }}</div>
-                            <div class="connector-card__footer">
-                                <span v-if="itemCreator(item)" class="connector-card__author">@{{ itemCreator(item) }}</span>
-                                <span v-if="itemCreator(item)" class="connector-card__sep">|</span>
-                                <span class="connector-card__tool-count">含{{ itemToolCount(item) }}个工具</span>
-                                <span class="connector-card__sep">|</span>
-                                <span class="connector-card__fav" :class="{ 'is-fav': item.is_favorite }" @click.stop="onToggleFav(item)">
-                                    <t-icon :name="item.is_favorite ? 'star-filled' : 'star'" :style="{ color: item.is_favorite ? '#f8c544' : 'var(--td-text-color-placeholder)', fontSize: '14px' }" />
-                                    {{ item.is_favorite ? '已收藏' : '收藏' }}
+            <div v-else-if="displayList.length === 0" class="connector-manage__empty">
+                <span>{{ enabledOnly ? '暂无已启用的连接器' : '暂无连接器' }}</span>
+            </div>
+            <div v-else class="connector-manage__list">
+                <div v-for="item in displayList" :key="item.pluginId" class="connector-item">
+                    <div class="connector-item__icon">
+                        <img v-if="item.iconUrl" :src="item.iconUrl" @error="onIconError" />
+                        <span v-else class="connector-item__icon-fb"><t-icon name="link" /></span>
+                    </div>
+                    <div class="connector-item__info">
+                        <div class="connector-item__title">
+                            <span class="connector-item__name" :title="item.name">{{ item.name }}</span>
+                            <t-tag v-if="item.isInner" variant="light">预置</t-tag>
+                            <!-- 连接状态指示点：需要鉴权的连接器始终显示，反映"已连接/未连接" -->
+                            <span
+                                v-if="item.needAuth"
+                                class="connector-item__status"
+                                :class="item.connected ? 'is-success' : 'is-warning'"
+                            >
+                                <span class="connector-item__status-dot"></span>
+                                <span class="connector-item__status-label">
+                                    {{ item.connected ? '已连接' : '未连接' }}
                                 </span>
-                            </div>
+                            </span>
                         </div>
-                        <div class="connector-card__actions">
-                            <t-button
-                                v-if="isAllAdded(item)"
-                                
-                                variant="outline"
-                                theme="default"
-                                disabled
-                            >已全部添加</t-button>
-                            <t-button
-                                v-else
-                                
-                                variant="outline"
-                                theme="primary"
-                                @click.stop="onAddAll(item)"
-                            >添加</t-button>
+                        <div class="connector-item__desc" :title="item.desc">
+                            {{ item.desc || '暂无描述' }}
                         </div>
                     </div>
-                    <!-- 展开的工具子列表 -->
-                    <div v-if="expandedId === (item.plugin_id || item.PluginId)" class="connector-card__expand">
-                        <div
-                            v-for="(tool, ti) in ((item as any).tools || (item as any).Tools || [])"
-                            :key="ti"
-                            class="connector-card__tool"
+                    <div class="connector-item__actions">
+                        <!-- 连接按钮：需要鉴权的连接器始终可见，文案随连接状态切换 -->
+                        <t-button
+                            v-if="item.needAuth"
+                            variant="outline"
+                            theme="primary"
+                            size="small"
+                            @click="onConnect(item)"
                         >
-                            <span class="connector-card__tool-name">{{ (tool as any).tool_name || (tool as any).ToolName || (tool as any).name || '' }}</span>
-                            <span class="connector-card__tool-desc">{{ (tool as any).tool_desc || (tool as any).ToolDesc || (tool as any).description || '' }}</span>
-                        </div>
+                            {{ item.connected ? '重新连接' : '连接' }}
+                        </t-button>
+                        <!-- 启用开关 -->
+                        <t-switch
+                            :model-value="item.enabled"
+                            :loading="togglingId === item.pluginId"
+                            :disabled="!!togglingId && togglingId !== item.pluginId"
+                            @change="(v) => onToggleEnabled(item, v as boolean)"
+                        />
                     </div>
                 </div>
             </div>
 
+            <!-- 分页 -->
             <t-pagination
-                v-if="total > pageSize"
+                v-if="!enabledOnly && total > pageSize"
                 v-model="pageNumber"
                 :total="total"
                 :page-size="pageSize"
-                
-                class="connector-dialog__pagination"
+                :page-size-options="[]"
+                size="small"
+                class="connector-manage__pagination"
                 @change="fetchList"
             />
         </div>
+
+        <!-- 连接表单子弹窗 -->
+        <ConnectorConnectDialog
+            v-model="showConnect"
+            :connector="connectingConnector"
+            :application-id="applicationId"
+            :agent-id="agentId"
+            @connected="onConnected"
+        />
     </t-dialog>
 </template>
 
@@ -169,138 +104,189 @@
 import { ref, computed, watch } from 'vue';
 import {
     Dialog as TDialog, Button as TButton, Tag as TTag, Loading as TLoading, Icon as TIcon,
-    Tabs as TTabs, TabPanel as TTabPanel, Input as TInput, Checkbox as TCheckbox,
-    Pagination as TPagination, Popup as TPopup, MessagePlugin,
+    Input as TInput, Checkbox as TCheckbox, Switch as TSwitch, Pagination as TPagination, MessagePlugin,
 } from 'tdesign-vue-next';
-import { fetchPluginList, fetchPluginCategories, PluginClassEnum } from '../../service/connectorPluginApi';
+import {
+    fetchPluginList, bindAgentTool, unbindAgentTool, buildPluginConfig, PluginClassEnum,
+} from '../../service/connectorPluginApi';
+import { fetchGlobalAgent } from '../../service/skillsApi';
+import ConnectorConnectDialog from './ConnectorConnectDialog.vue';
 
 interface Props {
     modelValue: boolean;
     applicationId?: string;
+    agentId?: string;
 }
 
-const props = withDefaults(defineProps<Props>(), { modelValue: false, applicationId: '' });
-const emit = defineEmits<{ (e: 'update:modelValue', v: boolean): void; (e: 'add-connector', item: Record<string, unknown>): void }>();
-
-const visible = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) });
-const activeTab = ref('inner');
-const activeCategory = ref('all');
-const filterFavorite = ref(false);
-const searchKeyword = ref('');
-const selectedSort = ref(3); // SORT_TYPE_DEFAULT=3
-const filterVisible = ref(false);
-// filterValue: { plugintypes(来源), financetypes(付费方式), createtypes(类型) }
-const filterValue = ref<Record<string, number[]>>({
-    plugintypes: [1, 2],    // 官方(1) + 三方(2)
-    financetypes: [2, 3, 0], // 官方收费(2) + 公测(3) + 其他(0)
-    createtypes: [2],        // MCP(2)
+const props = withDefaults(defineProps<Props>(), {
+    modelValue: false,
+    applicationId: '',
+    agentId: '',
 });
+
+const emit = defineEmits<{
+    (e: 'update:modelValue', v: boolean): void;
+    /** 连接器启用/关闭/连接状态变更后通知父组件刷新 */
+    (e: 'change'): void;
+}>();
+
+const visible = computed({
+    get: () => props.modelValue,
+    set: (v) => emit('update:modelValue', v),
+});
+
+interface ConnectorItem {
+    pluginId: string;
+    name: string;
+    desc: string;
+    iconUrl: string;
+    isInner: boolean;
+    /** 是否已启用（已绑定到当前 Agent） */
+    enabled: boolean;
+    /** 是否已连接（鉴权信息已填） */
+    connected: boolean;
+    /** 是否需要鉴权（AuthMode !== 0） */
+    needAuth: boolean;
+    /** 原始数据，用于传给连接弹窗 */
+    raw: Record<string, unknown>;
+}
+
 const loading = ref(false);
-const cardList = ref<Record<string, unknown>[]>([]);
+const searchKeyword = ref('');
+const enabledOnly = ref(false);
 const pageNumber = ref(1);
-const pageSize = 12;
+const pageSize = 15;
 const total = ref(0);
-const expandedId = ref('');
-const catRef = ref<HTMLDivElement | null>(null);
+const cardList = ref<ConnectorItem[]>([]);
+const togglingId = ref('');
 
-const categories = ref<Array<{ label: string; value: string }>>([{ label: '全部', value: 'all' }]);
-
-const sortOptions = [
-    { label: '默认排序', value: 3 },
-    { label: '按热门排序', value: 4 },
-    { label: '按更新时间排序', value: 2 },
-];
-
-// 筛选分组（与 gpt-demo getDefalueFilterGroups(INNER_CONNECTOR) 对齐）
-const filterGroups = ref([
-    {
-        key: 'financetypes',
-        title: '付费方式',
-        options: [
-            { text: '官方收费', value: 2 },
-            { text: '公测', value: 3 },
-            { text: '其他', value: 0 },
-        ],
-    },
-    {
-        key: 'plugintypes',
-        title: '来源',
-        options: [
-            { text: '官方工具', value: 1 },
-            { text: '三方工具', value: 2 },
-        ],
-    },
-    {
-        key: 'createtypes',
-        title: '类型',
-        options: [
-            { text: 'MCP类', value: 2 },
-        ],
-    },
-]);
-
-const filterLabel = computed(() => {
-    const count = Object.values(filterValue.value).reduce((s, a) => s + a.length, 0);
-    return count > 0 ? `已选 ${count} 项` : '全部';
+/** 已启用的连接器集合（来自 fetchGlobalAgent 的 plugins 中 PluginClass===1 的项） */
+const installedConnectors = ref<Record<string, unknown>[]>([]);
+const installedIdSet = computed(() => {
+    const s = new Set<string>();
+    installedConnectors.value.forEach((p) => {
+        const id = (p.PluginId || p.plugin_id || '') as string;
+        if (id) s.add(id);
+    });
+    return s;
 });
 
-function isFilterChecked(key: string, val: number) {
-    return (filterValue.value[key] || []).includes(val);
-}
-
-function onFilterCheck(key: string, val: number, checked: boolean) {
-    const arr = filterValue.value[key] || [];
-    if (checked && !arr.includes(val)) {
-        arr.push(val);
-    } else if (!checked) {
-        const idx = arr.indexOf(val);
-        if (idx > -1) arr.splice(idx, 1);
+/**
+ * 判断 plugin 参数项是否已被填值（用于"已连接"状态推导）
+ * 兼容三种结构：
+ * 1. 旧 PascalCase：{ ParamValue }
+ * 2. 旧 snake_case：{ param_value }
+ * 3. 新 snake_case 协议：{ parameter_name, input: { input_type, user_input_value: { value_list, values } | system_variable | custom_var_id | env_var_id | app_var_id } }
+ */
+function hasParamValue(it: Record<string, unknown>): boolean {
+    if (it.ParamValue || it.param_value) return true;
+    const input = (it.input || it.Input || null) as Record<string, unknown> | null;
+    if (!input) return false;
+    const userVal = input.user_input_value as Record<string, unknown> | undefined;
+    if (userVal) {
+        const list = (userVal.value_list || userVal.values) as unknown[] | undefined;
+        if (Array.isArray(list) && list.length > 0) return true;
     }
-    filterValue.value = { ...filterValue.value, [key]: arr };
-    doReset();
+    if (input.system_variable || input.custom_var_id || input.env_var_id || input.app_var_id) return true;
+    return false;
 }
 
-const sortLabel = computed(() => sortOptions.find(o => o.value === selectedSort.value)?.label || '默认排序');
-const sortIcon = computed(() => {
-    if (selectedSort.value === 4) return 'fire';
-    if (selectedSort.value === 2) return 'time';
-    return 'swap';
+/** 已连接（鉴权信息已填）：plugin 中 header_parameter_list/query_parameter_list 任一项有取值 */
+const connectedIdSet = computed(() => {
+    const s = new Set<string>();
+    installedConnectors.value.forEach((p) => {
+        const id = (p.PluginId || p.plugin_id || '') as string;
+        if (!id) return;
+        const headers = (p.HeaderParameterList || p.header_parameter_list || []) as Record<string, unknown>[];
+        const query = (p.QueryParameterList || p.query_parameter_list || []) as Record<string, unknown>[];
+        if ([...headers, ...query].some(hasParamValue)) s.add(id);
+    });
+    return s;
 });
+
+/** 显示列表：已启用模式下从 installedConnectors 派生 + 关键字过滤；否则使用 ListPlugins 拉取的列表 */
+const displayList = computed<ConnectorItem[]>(() => {
+    if (enabledOnly.value) {
+        const kw = searchKeyword.value.trim().toLowerCase();
+        return installedConnectors.value
+            .map((p) => buildItemFromInstalled(p))
+            .filter((it) => !kw || it.name.toLowerCase().includes(kw) || it.desc.toLowerCase().includes(kw));
+    }
+    return cardList.value;
+});
+
+function buildItemFromInstalled(p: Record<string, unknown>): ConnectorItem {
+    const pluginId = (p.PluginId || p.plugin_id || '') as string;
+    // 已绑定接口：鉴权类型字段名为 auth_type（0=无鉴权 / 2=CAM / 3=OAuth）
+    const authType = Number(p.AuthType || p.auth_type || 0);
+    const headers = (p.HeaderParameterList || p.header_parameter_list || []) as Record<string, unknown>[];
+    const query = (p.QueryParameterList || p.query_parameter_list || []) as Record<string, unknown>[];
+    return {
+        pluginId,
+        name: (p.Name || p.PluginName || p.plugin_name || '') as string,
+        desc: (p.Desc || p.PluginDesc || p.plugin_desc || p.Introduction || '') as string,
+        iconUrl: (p.IconUrl || p.icon_url || '') as string,
+        isInner: Number(p.PluginType || p.plugin_type || 0) === 1,
+        enabled: true,
+        needAuth: authType !== 0,
+        connected: [...headers, ...query].some(hasParamValue),
+        raw: p,
+    };
+}
+
+function buildItemFromList(p: Record<string, unknown>): ConnectorItem {
+    const pluginId = (p.PluginId || p.plugin_id || '') as string;
+    // 列表接口：鉴权类型字段名为 AuthType（PascalCase）；AuthMode 是 OAuth 授权范围，非鉴权类型
+    const authType = Number(p.AuthType || p.auth_type || 0);
+    const enabled = installedIdSet.value.has(pluginId);
+    return {
+        pluginId,
+        name: (p.Name || p.PluginName || p.plugin_name || '') as string,
+        desc: (p.Desc || p.PluginDesc || p.plugin_desc || p.Introduction || '') as string,
+        iconUrl: (p.IconUrl || p.icon_url || '') as string,
+        isInner: Number(p.PluginType || p.plugin_type || 0) === 1,
+        enabled,
+        needAuth: authType !== 0,
+        connected: connectedIdSet.value.has(pluginId),
+        raw: p,
+    };
+}
+
+function onIconError(e: Event) { (e.target as HTMLImageElement).style.display = 'none'; }
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
-function itemIcon(i: Record<string, unknown>) { return (i.icon_url || i.IconUrl || '') as string; }
-function itemName(i: Record<string, unknown>) { return (i.plugin_name || i.PluginName || i.Name || '') as string; }
-function itemDesc(i: Record<string, unknown>) { return (i.plugin_desc || i.PluginDesc || i.Desc || '') as string; }
-function itemCreator(i: Record<string, unknown>) { return ((i.UserInfo as Record<string,unknown>)?.Name || i.creator || i.Creator || '') as string; }
-function itemCategory(i: Record<string, unknown>) { return (i.CategoryKey || i.category_key || '') as string; }
-function itemFinanceType(i: Record<string, unknown>) { return (i.FinanceType || i.finance_type || 0) as number; }
-function itemCreateType(i: Record<string, unknown>) {
-    const t = (i.CreateType || i.create_type || 0) as number;
-    if (t === 2) return 'MCP';
-    if (t === 0) return 'API';
-    if (t === 1) return '代码';
-    if (t === 3) return '应用';
-    return '';
+function onSearchChange() {
+    if (searchTimer) clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        if (enabledOnly.value) return;
+        pageNumber.value = 1;
+        fetchList();
+    }, 300);
 }
-function itemToolCount(i: Record<string, unknown>) {
-    const tools = (i.tools || i.Tools || i.ToolList) as Record<string, unknown>[] | undefined;
-    return tools ? tools.length : ((i.tool_count || i.ToolCount || 0) as number);
-}
-function isAllAdded(i: Record<string, unknown>) { return !!(i.all_added || i.AllAdded); }
-function onIconError(e: Event) { (e.target as HTMLImageElement).style.display = 'none'; }
 
-async function fetchCategories() {
+function onEnabledOnlyChange() {
+    pageNumber.value = 1;
+    if (!enabledOnly.value) {
+        fetchList();
+    }
+}
+
+/** 从 fetchGlobalAgent 拉取已启用的连接器列表 */
+async function fetchInstalled() {
     if (!props.applicationId) return;
     try {
-        const result = await fetchPluginCategories({ applicationId: props.applicationId, pluginClass: 1 });
-        categories.value = [
-            { label: '全部', value: 'all' },
-            ...result.categories.map((c) => ({ label: c.category_name, value: c.category_key })),
-        ];
-    } catch (e) { console.error(e); }
+        const result = await fetchGlobalAgent({ applicationId: props.applicationId });
+        const plugins = (result.plugins || []) as Record<string, unknown>[];
+        installedConnectors.value = plugins.filter(
+            (p) => Number(p.PluginClass || p.plugin_class || 0) === PluginClassEnum.CONNECTOR,
+        );
+    } catch (e) {
+        console.error('[ConnectorDialog] fetchInstalled error:', e);
+    }
 }
 
+/** 拉取连接器市场列表 */
 async function fetchList() {
     if (!props.applicationId) return;
     loading.value = true;
@@ -311,92 +297,108 @@ async function fetchList() {
             query: searchKeyword.value || undefined,
             pageNumber: pageNumber.value,
             pageSize,
-            sortType: selectedSort.value,
-            categoryKeys: activeCategory.value !== 'all' ? [activeCategory.value] : [],
-            favoriteOnly: filterFavorite.value,
-            pluginTypes: activeTab.value === 'custom' ? [0] : (filterValue.value.plugintypes || []).length > 0 ? filterValue.value.plugintypes! : [1, 2],
-            financeTypeList: activeTab.value === 'custom' ? undefined : (filterValue.value.financetypes || []).length > 0 ? filterValue.value.financetypes : undefined,
-            createTypes: activeTab.value === 'custom' ? undefined : (filterValue.value.createtypes || []).length > 0 ? filterValue.value.createtypes : undefined,
+            // 不区分 tag / 类型，全量拉
+            pluginTypes: [0, 1, 2],
         });
-        cardList.value = result.plugins;
+        cardList.value = result.plugins.map(buildItemFromList);
         total.value = result.total;
-    } catch (e) { console.error(e); } finally { loading.value = false; }
+    } catch (e) {
+        console.error('[ConnectorDialog] fetchList error:', e);
+    } finally {
+        loading.value = false;
+    }
 }
 
-function doReset() { pageNumber.value = 1; fetchList(); }
-function onSearch() { if (searchTimer) clearTimeout(searchTimer); searchTimer = setTimeout(doReset, 300); }
-function onTabChange() { activeCategory.value = 'all'; filterFavorite.value = false; filterValue.value = { plugintypes: [1, 2], financetypes: [2, 3, 0], createtypes: [2] }; searchKeyword.value = ''; selectedSort.value = 3; doReset(); }
-function onExpand(item: Record<string, unknown>) {
-    const id = (item.plugin_id || item.PluginId) as string;
-    expandedId.value = expandedId.value === id ? '' : id;
+/** 切换启用状态 */
+async function onToggleEnabled(item: ConnectorItem, val: boolean) {
+    if (togglingId.value) return;
+    if (!props.applicationId || !props.agentId) {
+        MessagePlugin.warning('缺少应用 ID 或 Agent ID');
+        return;
+    }
+    togglingId.value = item.pluginId;
+    try {
+        if (val) {
+            // 开启：BindAgentTool（连接器仅 plugin 维度）
+            await bindAgentTool({
+                applicationId: props.applicationId,
+                appId: props.applicationId,
+                agentId: props.agentId,
+                pluginId: item.pluginId,
+                toolSource: 0,
+                plugin: buildPluginConfig(item.raw),
+            });
+            MessagePlugin.success('已开启');
+        } else {
+            // 关闭：UnbindAgentTool（连接器整体卸载，tool_id 省略）
+            await unbindAgentTool({
+                applicationId: props.applicationId,
+                appId: props.applicationId,
+                agentId: props.agentId,
+                pluginId: item.pluginId,
+                toolId: '',
+            });
+            MessagePlugin.success('已关闭');
+        }
+        // 刷新已启用列表，列表项状态由 computed 派生
+        await fetchInstalled();
+        emit('change');
+    } catch (e) {
+        console.error('[ConnectorDialog] toggle error:', e);
+        MessagePlugin.error(val ? '开启失败' : '关闭失败');
+    } finally {
+        togglingId.value = '';
+    }
 }
-function onAddAll(item: Record<string, unknown>) {
-    emit('add-connector', item);
-    item.all_added = true;
-    MessagePlugin.success('已添加');
-}
-function onToggleFav(item: Record<string, unknown>) { item.is_favorite = !item.is_favorite; }
-function updateCatScroll() {}
 
-// 分类切换 → 重置并拉取
-watch(activeCategory, () => { if (activeCategory.value !== 'all') { doReset(); } });
+const showConnect = ref(false);
+const connectingConnector = ref<Record<string, unknown> | null>(null);
+
+function onConnect(item: ConnectorItem) {
+    connectingConnector.value = item.raw;
+    showConnect.value = true;
+}
+
+async function onConnected() {
+    await fetchInstalled();
+    emit('change');
+}
 
 watch(() => props.modelValue, (val) => {
-    if (val) { activeTab.value = 'inner'; activeCategory.value = 'all'; filterFavorite.value = false; filterValue.value = { plugintypes: [1, 2], financetypes: [2, 3, 0], createtypes: [2] }; searchKeyword.value = ''; selectedSort.value = 3; pageNumber.value = 1; expandedId.value = ''; fetchCategories(); fetchList(); }
+    if (val) {
+        searchKeyword.value = '';
+        enabledOnly.value = false;
+        pageNumber.value = 1;
+        fetchInstalled();
+        fetchList();
+    }
 });
 </script>
 
 <style scoped>
-.connector-dialog { display: flex; flex-direction: column; gap: 12px; height: 540px; overflow: hidden; }
-.connector-dialog__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.connector-dialog__tabs { flex-shrink: 0; }
-.connector-dialog__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.connector-dialog__sort-btn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; transition: background 0.15s; color: var(--td-text-color-secondary); }
-.connector-dialog__sort-btn:hover { background: var(--td-bg-color-container-active); }
-.connector-dialog__sort-menu { padding: 4px; min-width: 140px; }
-.connector-dialog__sort-item { padding: 6px 12px; font-size: 13px; cursor: pointer; border-radius: 4px; }
-.connector-dialog__sort-item:hover { background: var(--td-bg-color-container-active); }
-.connector-dialog__sort-item.is-selected { color: var(--td-brand-color); font-weight: 500; }
-.connector-dialog__filter-trigger { display: inline-flex; align-items: center; height: 28px; padding: 0 8px; font-size: 12px; color: var(--td-text-color-secondary); border: 1px solid var(--td-component-border); border-radius: 4px; cursor: pointer; white-space: nowrap; background: var(--td-bg-color-container); min-width: 100px; }
-.connector-dialog__filter-trigger:hover { border-color: var(--td-brand-color); }
-.connector-dialog__filter-panel { padding: 8px; min-width: 200px; max-height: 300px; overflow-y: auto; }
-.connector-dialog__filter-group { margin-bottom: 8px; }
-.connector-dialog__filter-group-title { font-size: 12px; font-weight: 500; color: var(--td-text-color-secondary); padding: 4px 0; }
-.connector-dialog__filter-option { padding: 2px 0; }
-.connector-dialog__search { width: 160px; }
-.connector-dialog__cat-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; flex-shrink: 0; }
-.connector-dialog__cat-bar::-webkit-scrollbar { display: none; }
-.connector-dialog__cat-tag { flex-shrink: 0; padding: 2px 12px; font-size: 12px; border-radius: 16px; cursor: pointer; color: var(--td-text-color-secondary); background: var(--td-bg-color-secondarycontainer); white-space: nowrap; transition: all 0.2s; }
-.connector-dialog__cat-tag:hover { color: var(--td-brand-color); background: var(--td-brand-color-light); }
-.connector-dialog__cat-tag.is-active { color: #fff; background: var(--td-brand-color); font-weight: 500; }
-.connector-dialog__loading { display: flex; justify-content: center; padding: 48px 0; }
-.connector-dialog__empty { text-align: center; padding: 48px 0; color: var(--td-text-color-placeholder); font-size: 14px; }
-.connector-dialog__list { display: flex; flex-direction: column; flex: 1; overflow-y: auto; min-height: 0; }
-.connector-dialog__list::-webkit-scrollbar { width: 4px; }
-.connector-dialog__list::-webkit-scrollbar-thumb { border-radius: 2px; background: rgba(17, 32, 70, 0.13); }
-.connector-dialog__pagination { display: flex; justify-content: center; }
+.connector-manage { display: flex; flex-direction: column; gap: 12px; height: 540px; overflow: hidden; }
+.connector-manage__filter-bar { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.connector-manage__search { width: 240px; }
+.connector-manage__loading { display: flex; align-items: center; justify-content: center; flex: 1; }
+.connector-manage__empty { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--td-text-color-placeholder); font-size: 13px; }
+.connector-manage__list { flex: 1; overflow-y: auto; min-height: 0; display: flex; flex-direction: column; padding-right: 8px; }
+.connector-manage__list::-webkit-scrollbar { width: 4px; }
+.connector-manage__list::-webkit-scrollbar-thumb { border-radius: 2px; background: rgba(17, 32, 70, 0.13); }
+.connector-manage__pagination { display: flex; justify-content: center; flex-shrink: 0; }
 
-.connector-card { margin-bottom: 12px; border-radius: var(--td-radius-large); border: 1px solid var(--td-component-border); background: var(--td-bg-color-container); box-shadow: 0 4px 16px rgba(0,55,159,0.04); transition: box-shadow 0.2s; }
-.connector-card:hover { box-shadow: 0 4px 24px rgba(0,55,159,0.10); }
-.connector-card.is-expanded { border-color: var(--td-brand-color); }
-.connector-card__main { display: flex; align-items: flex-start; gap: 16px; padding: 16px; cursor: pointer; }
-.connector-card__icon-area { padding-top: 2px; }
-.connector-card__icon { width: 40px; height: 40px; border-radius: var(--td-radius-large); object-fit: cover; flex-shrink: 0; border: 1px solid var(--td-component-border); box-sizing: border-box; }
-.connector-card__icon-fb { width: 40px; height: 40px; border-radius: var(--td-radius-large); flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--td-text-color-secondary); background: var(--td-bg-color-secondarycontainer); border: 1px solid var(--td-component-border); box-sizing: border-box; }
-.connector-card__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.connector-card__title-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.connector-card__name { font-size: 14px; font-weight: 500; color: var(--td-text-color-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.connector-card__desc { font-size: 12px; color: var(--td-text-color-placeholder); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.connector-card__footer { display: flex; align-items: center; gap: 6px; width: 100%; font-size: 11px; color: var(--td-text-color-placeholder); }
-.connector-card__author { color: var(--td-text-color-secondary); }
-.connector-card__sep { color: var(--td-component-border); }
-.connector-card__tool-count { color: var(--td-brand-color); }
-.connector-card__fav { cursor: pointer; display: inline-flex; align-items: center; gap: 2px; }
-.connector-card__fav:hover { opacity: 0.8; }
-.connector-card__actions { flex-shrink: 0; }
-
-.connector-card__expand { border-top: 1px solid var(--td-component-border); padding: 8px 16px 16px 74px; display: flex; flex-direction: column; gap: 6px; background: var(--td-bg-color-secondarycontainer); border-radius: 0 0 var(--td-radius-large) var(--td-radius-large); }
-.connector-card__tool { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.connector-card__tool-name { font-size: 12px; font-weight: 500; white-space: nowrap; }
-.connector-card__tool-desc { font-size: 11px; color: var(--td-text-color-placeholder); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; }
+.connector-item { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid rgba(0, 44, 85, 0.08); transition: background 0.15s; }
+.connector-item:last-child { border-bottom: none; }
+.connector-item:hover { background: var(--td-bg-color-container-hover); }
+.connector-item__icon { flex-shrink: 0; width: 40px; }
+.connector-item__icon img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
+.connector-item__icon-fb { width: 40px; height: 40px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: var(--td-bg-color-secondarycontainer); color: var(--td-text-color-placeholder); border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
+.connector-item__info { flex: 1; min-width: 0; overflow: hidden; }
+.connector-item__title { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
+.connector-item__name { font-size: 15px; font-weight: 500; color: var(--td-text-color-primary); line-height: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 360px; }
+.connector-item__desc { font-size: 13px; color: var(--td-text-color-placeholder); line-height: 20px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.connector-item__status { display: inline-flex; align-items: center; gap: 4px; padding: 0 6px; height: 20px; font-size: 12px; border-radius: 10px; }
+.connector-item__status.is-success { color: var(--td-success-color, #00a870); background: rgba(0, 168, 112, 0.08); }
+.connector-item__status.is-warning { color: var(--td-warning-color, #ed7b2f); background: rgba(237, 123, 47, 0.08); }
+.connector-item__status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.connector-item__actions { flex-shrink: 0; display: flex; align-items: center; gap: 12px; }
 </style>
