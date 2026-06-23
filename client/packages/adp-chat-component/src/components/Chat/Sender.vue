@@ -27,11 +27,14 @@ import QaEditor from '../QaEditor/index.vue';
 import ModelSelector from '../Common/ModelSelector.vue';
 import type { ModelOption, SelectedModel } from '../Common/ModelSelector.vue';
 import { useAgentStore } from '../../composables/useAgentStore';
+import { SlateTransforms, SlateEditor, SlateNode } from '@wangeditor/editor';
+import type { IDomEditor } from '@wangeditor/editor';
 import SkillsPopover from '../Skills/SkillsPopover.vue';
 import SkillsInstallDialog from '../Skills/SkillsInstallDialog.vue';
 import SkillManageDialog from '../Skills/SkillManageDialog.vue';
 import ConnectorDialog from '../Connector/ConnectorDialog.vue';
 import PluginInstallDialog from '../Plugin/PluginInstallDialog.vue';
+import AtMentionPanel from './AtMentionPanel.vue';
 
 export interface Props extends ChatRelatedProps {
     /** 是否正在流式加载 */
@@ -163,6 +166,10 @@ const skillsI18n = computed<Required<SkillsI18n>>(() => {
 
 /** 已安装 Skills 原始数据 */
 const skillList = ref<AgentSkillInfo[]>([]);
+/** 已安装 Plugin 原始数据 */
+const installedPlugins = ref<Record<string, unknown>[]>([]);
+/** 已安装 Tool 原始数据 */
+const installedToolsRaw = ref<Record<string, unknown>[]>([]);
 /** 正在刷新 */
 const skillsRefreshing = ref(false);
 
@@ -190,6 +197,92 @@ const manageItems = computed<ManageSkillItem[]>(() => {
         .map(normalizeManageItem);
 });
 
+/** 从 ToolList（有 IconUrl）+ PluginList（有 PluginClass）交叉提取 mention 数据 */
+function getPluginClassMap(): Map<string, number> {
+    const m = new Map<string, number>();
+    installedPlugins.value.forEach((p) => {
+        const id = (p.PluginId || p.plugin_id || '') as string;
+        if (id) m.set(id, (p.PluginClass ?? p.plugin_class ?? 0) as number);
+    });
+    return m;
+}
+
+function getPluginId(t: Record<string, unknown>): string {
+    const cfg = (t.Config || t.config || {}) as Record<string, unknown>;
+    return (cfg.plugin_id || cfg.pluginid || cfg.PluginId || '') as string;
+}
+
+/**
+ * 解析工具原始名称
+ * 后端 tool_name 形如 "中文别名/英文工具名"，按最后一个 "/" 拆分：
+ * - displayName 取 "/" 前的中文别名
+ * - name 取 "/" 后的英文技术名
+ * 无 "/" 时两者相同
+ */
+function parseToolRaw(t: Record<string, unknown>): { displayName: string; name: string } {
+    const cfg = (t.Config || t.config || {}) as Record<string, unknown>;
+    const raw = String(
+        t.tool_name || t.ToolName || t.name || t.Name || cfg.description || cfg.Description || '',
+    );
+    const idx = raw.lastIndexOf('/');
+    if (idx > -1) {
+        return { displayName: raw.slice(0, idx), name: raw.slice(idx + 1) };
+    }
+    return { displayName: raw, name: raw };
+}
+
+/** 所属插件名称，用于无中文别名时拼接展示 */
+function toolPluginName(t: Record<string, unknown>): string {
+    return String(t.plugin_name || t.PluginName || t.PluginDisplayName || t.plugin_display_name || '');
+}
+
+/** 工具技术名（英文），用于序列化为 @tool:name */
+function toolName(t: Record<string, unknown>): string {
+    const { name } = parseToolRaw(t);
+    return name || ((t.tool_id || t.ToolId || '') as string);
+}
+
+/**
+ * 工具展示名（中文优先）：
+ * - tool_name 含 "中文/英文" 时取中文别名
+ * - 无中文别名（displayName === name）时，回退「插件名/英文名」，再回退英文名
+ */
+function toolDisplayName(t: Record<string, unknown>): string {
+    const { displayName, name } = parseToolRaw(t);
+    if (displayName && name && displayName !== name) {
+        return displayName;
+    }
+    const pluginName = toolPluginName(t);
+    if (pluginName && pluginName !== name) {
+        return `${pluginName}/${name}`;
+    }
+    return displayName || name || ((t.tool_id || t.ToolId || '') as string);
+}
+
+const mentionConnectors = computed<NormalizedSkill[]>(() => {
+    const m = getPluginClassMap();
+    return installedToolsRaw.value
+        .filter((t) => m.get(getPluginId(t)) === 1)
+        .map((t) => ({
+            id: getPluginId(t) || ((t.tool_id || t.ToolId || '') as string),
+            name: toolName(t),
+            displayName: toolDisplayName(t),
+            iconUrl: (t.IconUrl || t.icon_url || '') as string,
+        }));
+});
+
+const mentionTools = computed<NormalizedSkill[]>(() => {
+    const m = getPluginClassMap();
+    return installedToolsRaw.value
+        .filter((t) => m.get(getPluginId(t)) === 0)
+        .map((t) => ({
+            id: getPluginId(t) || ((t.tool_id || t.ToolId || '') as string),
+            name: toolName(t),
+            displayName: toolDisplayName(t),
+            iconUrl: (t.IconUrl || t.icon_url || '') as string,
+        }));
+});
+
 /** 已安装 Skill ID 集合 */
 const skillsInstalledIds = computed(() => {
     return [...new Set(skillList.value.map((s) => (s.skill_id || s.SkillId || '')).filter(Boolean))];
@@ -214,6 +307,8 @@ async function refreshSkills() {
         });
         console.log('[Sender] fetchGlobalAgent result:', result);
         skillList.value = result.skills as AgentSkillInfo[];
+        installedPlugins.value = result.plugins;
+        installedToolsRaw.value = result.tools;
     } catch (e) {
         console.error('[Sender] refreshSkills error:', e);
     } finally {
@@ -257,6 +352,184 @@ const showSkillsManage = ref(false);
 // Connector + Plugin
 const showConnector = ref(false);
 const showPlugin = ref(false);
+
+// ─── @ Mention ───────────────────────────────────────────────
+const atMentionVisible = ref(false);
+const atMentionStyle = ref({ top: '0px', left: '0px' });
+const mentionPanelRef = ref<InstanceType<typeof AtMentionPanel> | null>(null);
+const mentionSearchStr = ref('');
+let _editableEl: HTMLElement | null = null;
+
+function _ensureEditableEl(): HTMLElement | null {
+    if (_editableEl) return _editableEl;
+    const editor = qaEditorRef.value;
+    if (!editor) return null;
+    _editableEl = (editor.$el || editor).querySelector('[contenteditable="true"]') as HTMLElement;
+    return _editableEl;
+}
+
+function _getCaretPosition(): { top: number; left: number } | null {
+    const el = _ensureEditableEl();
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    const sel = window.getSelection();
+    if (!sel?.rangeCount) return { top: rect.top, left: rect.left };
+    const range = sel.getRangeAt(0).cloneRange();
+    range.collapse(true);
+    const caretRect = range.getClientRects()[0];
+    return {
+        top: caretRect ? caretRect.top : rect.top,
+        left: caretRect ? caretRect.left : rect.left,
+    };
+}
+
+function _bindEditorKeydown() {
+    const el = _ensureEditableEl();
+    if (!el) return;
+    el.addEventListener('keydown', _onEditorKeydown);
+}
+
+function _onEditorKeydown(e: KeyboardEvent) {
+    if (atMentionVisible.value) {
+        // 键盘导航交给 mention 面板
+        if (mentionPanelRef.value?.handleKeydown(e)) {
+            e.preventDefault();
+            return;
+        }
+        if (e.key === 'Escape') { _hideMention(); return; }
+        if (e.key === 'Backspace') {
+            if (mentionSearchStr.value.length > 0) {
+                mentionSearchStr.value = mentionSearchStr.value.slice(0, -1);
+            } else {
+                _hideMention();
+            }
+            return;
+        }
+        // 搜索字符进入编辑器（不过滤），仅用于过滤列表
+        if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+            mentionSearchStr.value += e.key;
+            return;
+        }
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Home' || e.key === 'End') {
+            return;
+        }
+        _hideMention();
+        return;
+    }
+    // @ 触发：@ 正常进入编辑器，随后弹出面板
+    if (e.key === '@' && skillsEnabled.value) {
+        requestAnimationFrame(() => {
+            const pos = _getCaretPosition();
+            if (pos) {
+                atMentionStyle.value = { top: `${pos.top - 290}px`, left: `${pos.left}px` };
+                mentionSearchStr.value = '';
+                atMentionVisible.value = true;
+                mentionPanelRef.value?.resetNavigation();
+            }
+        });
+    }
+}
+
+function _hideMention() {
+    atMentionVisible.value = false;
+    mentionSearchStr.value = '';
+}
+
+/** 获取底层 wangEditor 实例 */
+function _getEditorInstance(): IDomEditor | null {
+    return (qaEditorRef.value?.editor as IDomEditor | undefined) || null;
+}
+
+/** 在 Slate 文本节点中查找光标前最后一个 @ 的位置 */
+function _findLastAtPoint(editor: IDomEditor): { path: number[]; offset: number } | null {
+    try {
+        const textEntries = Array.from(SlateNode.texts(editor));
+        for (let i = textEntries.length - 1; i >= 0; i--) {
+            const entry = textEntries[i];
+            if (!entry) continue;
+            const [node, path] = entry;
+            const text = (node as unknown as { text?: string }).text || '';
+            const atIndex = text.lastIndexOf('@');
+            if (atIndex !== -1) {
+                return { path: path as number[], offset: atIndex };
+            }
+        }
+    } catch (_) { /* ignore */ }
+    return null;
+}
+
+/**
+ * 选中 mention 项后：删除已输入的 @ + 搜索字符，插入 mention inline-void 节点
+ */
+function onAtMentionSelect(item: { type: string; id: string; name: string; displayName: string; categoryLabel: string }) {
+    // 捕获搜索字符长度（_hideMention 会清空 mentionSearchStr）
+    const searchLen = mentionSearchStr.value.length;
+    _hideMention();
+    const editor = _getEditorInstance();
+    if (!editor) return;
+    const editableEl = _ensureEditableEl();
+    if (editableEl) editableEl.focus();
+
+    const mentionNode = {
+        type: 'mention',
+        mentionType: item.type,
+        mentionId: item.id,
+        mentionName: item.name || item.displayName || '',
+        mentionDisplayName: item.displayName || item.name || '',
+        displayLabel: item.categoryLabel || '',
+        children: [{ text: '' }],
+    };
+
+    nextTick(() => {
+        try {
+            // 定位并删除已输入的 @ 及其后的搜索字符
+            const atPoint = _findLastAtPoint(editor);
+            if (atPoint) {
+                // 删除范围：@ 起始到 @ + 1（@ 本身）+ 搜索字符数，并按文本节点长度裁剪
+                let endOffset = atPoint.offset + 1 + searchLen;
+                try {
+                    const textNode = SlateNode.get(editor, atPoint.path) as unknown as { text?: string };
+                    const textLen = (textNode.text || '').length;
+                    if (endOffset > textLen) endOffset = textLen;
+                } catch (_) { /* ignore */ }
+                const atRange = {
+                    anchor: atPoint,
+                    focus: { path: atPoint.path, offset: endOffset },
+                };
+                SlateTransforms.select(editor, atRange);
+                editor.deleteFragment();
+            } else {
+                try { editor.restoreSelection(); } catch (_) { /* ignore */ }
+                if (!editor.selection) {
+                    const endPoint = SlateEditor.end(editor, []);
+                    editor.select(endPoint);
+                }
+            }
+
+            // 插入 mention 节点，并在其后补一个空格使光标脱离 void 节点
+            SlateTransforms.insertNodes(editor, mentionNode as unknown as SlateNode);
+            editor.move(1);
+            editor.insertText(' ');
+        } catch (e) {
+            console.warn('[Sender] insert mention failed', e);
+        }
+    });
+}
+
+// 挂载时绑定编辑器事件
+onMounted(() => {
+    _bindEditorKeydown();
+    document.addEventListener('click', _onClickOutsideMention);
+});
+onUnmounted(() => {
+    document.removeEventListener('click', _onClickOutsideMention);
+});
+
+function _onClickOutsideMention(e: MouseEvent) {
+    if (!atMentionVisible.value) return;
+    // 简单判断：点击不在面板内容上就关闭
+    // Teleport 渲染后由组件自身的 overlay 控制
+}
 
 // ─── Skills 事件处理 ──────────────────────────────────────────────
 const onSkillsPopoverSelect = (item: SkillSelectEvent) => {
@@ -531,11 +804,14 @@ const handleSend = async function () {
         }
     }
 
-    // 将编辑器中的内联图片转成 Markdown 格式后附加到消息中
-    const editorContent = editorHtml.value;
-    const processedContent = htmlImgToMarkdown(editorContent);
-    const plainContent = getPlainText(processedContent);
-    _query += plainContent || processedContent;
+    // 优先使用 Slate 序列化：mention 节点转为 @skill:/@tool: 内联标记，
+    // 内联图片转为 Markdown；编辑器不可用时回退到 HTML 解析
+    let editorText = qaEditorRef.value?.getMentionText?.() || '';
+    if (!editorText) {
+        const processedContent = htmlImgToMarkdown(editorHtml.value);
+        editorText = getPlainText(processedContent) || processedContent;
+    }
+    _query += editorText;
 
     emit('send', _query, fileList.value);
     editorHtml.value = '';
@@ -876,6 +1152,23 @@ defineExpose({
 
         <!-- 工具安装弹窗 -->
         <PluginInstallDialog v-if="skillsEnabled" v-model="showPlugin" :application-id="skillsApplicationId" />
+
+        <!-- @ Mention 面板 -->
+        <Teleport to="body">
+            <div v-if="atMentionVisible" class="at-mention-overlay" @click.self="_hideMention">
+                <div :style="atMentionStyle" style="position:absolute">
+                    <AtMentionPanel
+                        ref="mentionPanelRef"
+                        :installed-skills="normalizedSkills"
+                        :installed-connectors="mentionConnectors"
+                        :installed-tools="mentionTools"
+                        :search-keyword="mentionSearchStr"
+                        @select="onAtMentionSelect"
+                        @close="_hideMention"
+                    />
+                </div>
+            </div>
+        </Teleport>
     </div>
 </template>
 
@@ -1067,5 +1360,82 @@ defineExpose({
 }
 .toolbar-pill-btn__text {
     white-space: nowrap;
+}
+
+/* @Mention overlay */
+.at-mention-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 5600;
+}
+</style>
+
+<!-- mention tag 非 scoped 样式（chip 渲染在 QaEditor 的 contenteditable 内，需全局生效）对齐 webim .at-mention-tag -->
+<style>
+.at-mention-tag {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 4px;
+    margin: 0 2px;
+    background: #F1F6FF;
+    border: 1px solid #DBE8FF;
+    border-radius: 3px;
+    font-size: 12px;
+    line-height: 16px;
+    color: #4A70FF;
+    cursor: default;
+    user-select: none;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.at-mention-tag__icon {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+    background-size: 12px 12px;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+.at-mention-tag__icon--skills {
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7.94938 7.45818L7.80801 7.56435L7.72895 7.72248L7.25076 8.67885H4.74924L4.27105 7.72248L4.19199 7.56435L4.05062 7.45818C3.25943 6.86399 2.75 5.9203 2.75 4.85742C2.75 3.0625 4.20507 1.60742 6 1.60742C7.79493 1.60742 9.25 3.0625 9.25 4.85742C9.25 5.9203 8.74057 6.86399 7.94938 7.45818ZM4.28571 9.42885H7.71429L8.39977 8.05789C9.37146 7.32813 10 6.16618 10 4.85742C10 2.64828 8.20914 0.857422 6 0.857422C3.79086 0.857422 2 2.64828 2 4.85742C2 6.16618 2.62854 7.32813 3.60023 8.05789L4.28571 9.42885ZM6.57143 11.1431C7.20261 11.1431 7.71429 10.6315 7.71429 10.0003H4.28571C4.28571 10.6315 4.79739 11.1431 5.42857 11.1431H6.57143Z' fill='%234A70FF'/%3E%3C/svg%3E");
+}
+
+.at-mention-tag__icon--plugins,
+.at-mention-tag__icon--connectors {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 13 13' fill='none'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M12.2383 8.21079L6.32226 11.5402C6.2693 11.5702 6.20456 11.5703 6.15169 11.5402L0.209638 8.21144C0.117809 8.16004 0.00446184 8.22593 0.00390912 8.33123L2.87514e-06 9.11183C-0.000390956 9.18679 0.0397001 9.25643 0.10482 9.29347L5.63932 12.4413C6.00986 12.652 6.46399 12.6519 6.83463 12.4413L12.3659 9.29542C12.4328 9.25735 12.4733 9.18489 12.4707 9.10792L12.4447 8.32667C12.4412 8.22304 12.3286 8.15994 12.2383 8.21079ZM12.2383 5.52719L6.32226 8.85662C6.2693 8.88665 6.20456 8.88671 6.15169 8.85662L0.209638 5.52784C0.117809 5.47638 0.00446184 5.54241 0.00390912 5.64763L2.87514e-06 6.42823C-0.000390956 6.50313 0.0397001 6.57284 0.10482 6.60987L5.63932 9.75766C6.00986 9.96842 6.46399 9.96832 6.83463 9.75766L12.3659 6.61183C12.4328 6.57376 12.4733 6.50137 12.4707 6.42433L12.4447 5.64308C12.4412 5.53951 12.3286 5.47634 12.2383 5.52719ZM5.89583 0.0903423L0.324872 3.25831C0.0920792 3.39079 0.0920772 3.72675 0.324872 3.85922L5.89583 7.02719C6.1076 7.14761 6.36694 7.14762 6.57877 7.02719L12.1491 3.85922C12.382 3.72676 12.382 3.39077 12.1491 3.25831L6.57877 0.0903423C6.36694 -0.0301232 6.1076 -0.030105 5.89583 0.0903423ZM1.89323 3.55844L6.23698 6.02914L10.5814 3.55844L6.23698 1.08839L1.89323 3.55844Z' fill='%234A70FF'/%3E%3C/svg%3E");
+    background-size: 13px 13px;
+}
+
+.at-mention-tag__text {
+    margin-left: 2px;
+    font-family: 'PingFang SC', sans-serif;
+    font-weight: 400;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.at-mention-tag__close {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+    margin-left: 2px;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background 0.15s;
+    background-size: 12px 12px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M2.82542 9.67801C2.87136 9.65898 2.91255 9.6178 2.99492 9.53543L6.00011 6.53023L9.0053 9.53541C9.08766 9.61778 9.12885 9.65897 9.17479 9.678C9.23605 9.70337 9.30488 9.70337 9.36613 9.678C9.41208 9.65897 9.45326 9.61778 9.53563 9.53541C9.61799 9.45305 9.65918 9.41186 9.67821 9.36592C9.70358 9.30466 9.70358 9.23584 9.67821 9.17458C9.65918 9.12864 9.61799 9.08745 9.53563 9.00508L6.53044 5.9999L9.53565 2.99469C9.61802 2.91232 9.65921 2.87114 9.67824 2.8252C9.70361 2.76394 9.70361 2.69511 9.67824 2.63386C9.65921 2.58791 9.61802 2.54673 9.53565 2.46436C9.45329 2.38199 9.4121 2.34081 9.36616 2.32178C9.3049 2.29641 9.23608 2.29641 9.17482 2.32178C9.12888 2.34081 9.08769 2.38199 9.00532 2.46436L6.00011 5.46957L2.99489 2.46435C2.91252 2.38198 2.87134 2.34079 2.8254 2.32176C2.76414 2.29639 2.69531 2.29639 2.63405 2.32176C2.58811 2.34079 2.54693 2.38198 2.46456 2.46434C2.38219 2.54671 2.34101 2.5879 2.32198 2.63384C2.2966 2.6951 2.2966 2.76392 2.32198 2.82518C2.34101 2.87112 2.38219 2.91231 2.46456 2.99468L5.46978 5.9999L2.46459 9.0051C2.38222 9.08747 2.34103 9.12865 2.322 9.17459C2.29663 9.23585 2.29663 9.30468 2.322 9.36593C2.34103 9.41188 2.38222 9.45306 2.46459 9.53543C2.54695 9.6178 2.58814 9.65898 2.63408 9.67801C2.69534 9.70338 2.76416 9.70338 2.82542 9.67801Z' fill='%234A70FF'/%3E%3C/svg%3E");
+}
+
+.at-mention-tag__close:hover {
+    background-color: rgba(74, 112, 255, 0.15);
 }
 </style>

@@ -21,6 +21,10 @@ import {
 } from 'vue'
 import { createEditor, createToolbar } from '@wangeditor/editor'
 import type { IDomEditor, IEditorConfig, IToolbarConfig } from '@wangeditor/editor'
+import { registerMentionModule, serializeMentionToInlineText } from './mention-module'
+
+// 注册 mention 自定义模块（必须在 createEditor 之前，且全局只注册一次）
+registerMentionModule()
 
 export interface QaEditorProps {
     /** 输入内容（HTML） */
@@ -145,7 +149,7 @@ function initEditor() {
                 // 处理编辑器残留空白字符的情况
                 if (html) {
                     const text = ed.getText().replace(/[\u200b\s]/g, '')
-                    const hasVoidElements = html.includes('data-w-e-type="image"') || html.includes('<img')
+                    const hasVoidElements = html.includes('data-w-e-type="image"') || html.includes('<img') || html.includes('data-w-e-type="mention"')
                     if (!text && !hasVoidElements) {
                         ed.clear()
                         return
@@ -389,6 +393,14 @@ defineExpose({
     /** 判断是否为空 */
     isEmpty() {
         return editor.value?.isEmpty() ?? true
+    },
+    /**
+     * 获取序列化为内联标记的纯文本（mention 节点转为 @skill:/@tool: 形式）
+     * 用于发送给大模型
+     */
+    getMentionText() {
+        if (!editor.value) return ''
+        return serializeMentionToInlineText(editor.value)
     }
 })
 </script>

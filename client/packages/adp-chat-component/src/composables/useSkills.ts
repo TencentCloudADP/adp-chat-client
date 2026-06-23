@@ -44,8 +44,14 @@ function getSkillId(s: AgentSkillInfo): string {
     return (s.skill_id || s.SkillId || '') as string;
 }
 
+/** 中文展示名：优先 display_name，缺失时回退技术名 / id */
 function getSkillDisplayName(s: AgentSkillInfo): string {
-    return (s.skill_display_name || s.SkillDisplayName || s.skill_name || s.SkillName || '') as string;
+    return (s.skill_display_name || s.SkillDisplayName || s.skill_name || s.SkillName || getSkillId(s) || '') as string;
+}
+
+/** 技术名（英文 name）：用于发送给大模型的 @skill:name 序列化 */
+function getSkillTechnicalName(s: AgentSkillInfo): string {
+    return (s.skill_name || s.SkillName || s.skill_display_name || s.SkillDisplayName || getSkillId(s) || '') as string;
 }
 
 function getSkillIconUrl(s: AgentSkillInfo): string {
@@ -59,7 +65,8 @@ function getSkillType(s: AgentSkillInfo): number {
 export function normalizeSkill(item: AgentSkillInfo): NormalizedSkill {
     return {
         id: getSkillId(item),
-        name: getSkillDisplayName(item),
+        // name 为技术名（英文），用于序列化；displayName 为中文展示名，用于 UI
+        name: getSkillTechnicalName(item),
         displayName: getSkillDisplayName(item),
         iconUrl: getSkillIconUrl(item),
         skillType: getSkillType(item),

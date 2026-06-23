@@ -1,3 +1,22 @@
+## v0.5.0 (Unreleased)
+
+### Feat
+
+- **client**: add Skills management feature - SkillsPopover, SkillsInstallDialog, SkillManageDialog
+- **client**: add useSkills composable for Skills state management
+- **client**: add skillsApi service for Skills CRUD operations
+- **client**: integrate Skills functionality into Chat/Sender.vue as optional extra buttons
+- **server**: add /skills/<action> route for forwarding Skills API requests to ADP vendor
+
+### API
+
+- `POST /skills/global-agent` → DescribeGlobalCorpAssistantAgent（获取全局 Agent 配置及已安装 Skills）
+- `POST /skills/categories` → DescribeSkillCategoryList（获取 Skill 分类列表）
+- `POST /skills/summary-list` → DescribeSkillSummaryList（获取技能广场列表）
+- `POST /skills/detail` → DescribeSkillDetail（获取 Skill 详情）
+- `POST /skills/create` → CreateSkill（安装 Skill）
+- `POST /skills/delete` → DeleteSkill（卸载 Skill）
+
 ## v0.4.0 (2026-04-16)
 
 ### Feat
