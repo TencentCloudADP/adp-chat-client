@@ -57,9 +57,9 @@
 
             <!-- 卡片列表 -->
             <div v-if="loading" class="plugin-dialog__loading"><t-loading size="large" text="加载中..." /></div>
-            <div v-else-if="cardList.length === 0" class="plugin-dialog__empty">暂无数据</div>
+            <div v-else-if="filteredCardList.length === 0" class="plugin-dialog__empty">暂无数据</div>
             <div v-else class="plugin-dialog__list">
-                <div v-for="item in cardList" :key="itemId(item)"
+                <div v-for="item in filteredCardList" :key="itemId(item)"
                     class="plugin-card"
                     :class="{ 'is-expanded': expandedId === itemId(item) }">
                     <!-- 插件主卡片 -->
@@ -158,6 +158,15 @@
 
             <t-pagination v-if="total > pageSize" v-model="pageNumber" :total="total" :page-size="pageSize" size="small" class="plugin-dialog__pagination" @change="fetchList" />
         </div>
+
+        <!-- MCP 字段填写弹窗 -->
+        <McpFieldDialog
+            v-model="showFieldDialog"
+            :required-headers="fieldDialogHeaders"
+            :required-query="fieldDialogQuery"
+            @confirm="(e: any) => onFieldConfirm(e)"
+            @cancel="onFieldCancel"
+        />
     </t-dialog>
 </template>
 
@@ -172,6 +181,7 @@ import {
     fetchPluginList, fetchPluginCategories, PluginClassEnum,
     bindAgentTool, unbindAgentTool, buildToolConfig, buildPluginConfig,
 } from '../../service/connectorPluginApi';
+import McpFieldDialog from './McpFieldDialog.vue';
 
 interface Props {
     modelValue: boolean;
@@ -201,6 +211,8 @@ const searchKeyword = ref('');
 const selectedSort = ref(3);
 const loading = ref(false);
 const cardList = ref<Record<string, unknown>[]>([]);
+/** 过滤掉需要填写 MCP Header/Query 字段的插件 */
+const filteredCardList = computed(() => cardList.value.filter(item => !checkNeedFillFields(item)));
 const pageNumber = ref(1);
 const pageSize = 12;
 const total = ref(0);
@@ -332,16 +344,74 @@ async function doBindAgentTool(pluginItem: Record<string, unknown>, toolItems: R
     });
 }
 
-async function onAddAll(item: Record<string, unknown>) {
+/* ===== MCP 字段填写弹窗 ===== */
+const showFieldDialog = ref(false);
+const fieldDialogHeaders = ref<Record<string, unknown>[]>([]);
+const fieldDialogQuery = ref<Record<string, unknown>[]>([]);
+/** 待完成绑定的上下文（字段填写确认后使用） */
+let pendingFieldAction: { plugin: Record<string, unknown>; tools: Record<string, unknown>[]; mode: 'all' | 'single' } | null = null;
+
+/**
+ * 检查插件是否需要先填写 MCP Headers/Query
+ * MCP 类（CreateType===2）且有未填写的 required headers/query 时需要
+ * API 类（CreateType===0）且支持 CAM 授权（AuthType===2）时需要
+ */
+function checkNeedFillFields(plugin: Record<string, unknown>): boolean {
+    const createType = Number(plugin.CreateType || plugin.create_type || 0);
+    const authType = Number(plugin.AuthType || plugin.auth_type || 0);
+    if (createType === 2) {
+        const headers = getRequiredHeaders(plugin);
+        const query = getRequiredQuery(plugin);
+        return (headers.length + query.length) > 0;
+    }
+    if (authType === 2 && createType === 0) {
+        return true;
+    }
+    return false;
+}
+
+function getRequiredHeaders(plugin: Record<string, unknown>): Record<string, unknown>[] {
+    const headers = (plugin.Headers || plugin.headers || []) as Record<string, unknown>[];
+    return headers.filter(h => {
+        const hasValue = !!(h.ParamValue || h.param_value);
+        const hasInput = !!(h.Input || h.input);
+        const hidden = !!(h.GlobalHidden || h.global_hidden);
+        return (!hasValue || !hasInput) && !hidden;
+    });
+}
+
+function getRequiredQuery(plugin: Record<string, unknown>): Record<string, unknown>[] {
+    const query = (plugin.Query || plugin.query || []) as Record<string, unknown>[];
+    return query.filter(q => {
+        const hasValue = !!(q.ParamValue || q.param_value);
+        const hasInput = !!(q.Input || q.input);
+        const hidden = !!(q.GlobalHidden || q.global_hidden);
+        return (!hasValue || !hasInput) && !hidden;
+    });
+}
+
+function onFieldConfirm(payload: { headers: Array<Record<string, unknown>>; query: Array<Record<string, unknown>> }) {
+    if (!pendingFieldAction) return;
+    const { plugin, tools, mode } = pendingFieldAction;
+    pendingFieldAction = null;
+    /* 将填写结果写回插件对象 */
+    plugin.Headers = payload.headers;
+    plugin.Query = payload.query;
+    if (mode === 'all') {
+        doAddAllAfterFields(plugin, tools);
+    } else if (tools[0]) {
+        doAddSingleAfterFields(plugin, tools[0]);
+    }
+}
+
+function onFieldCancel() {
+    pendingFieldAction = null;
+}
+
+async function doAddAllAfterFields(item: Record<string, unknown>, tools: Record<string, unknown>[]) {
     const key = `plugin-${itemId(item)}`;
-    if (addingKey.value) return;
     addingKey.value = key;
     try {
-        const tools = getItemTools(item).filter(t => !isToolAdded(t));
-        if (tools.length === 0) {
-            MessagePlugin.info('所有工具已添加');
-            return;
-        }
         await doBindAgentTool(item, tools);
         tools.forEach(t => { const tid = getToolId(t); if (tid) localAddedToolIds.value.add(tid); });
         emit('install', item);
@@ -355,10 +425,9 @@ async function onAddAll(item: Record<string, unknown>) {
     }
 }
 
-async function onAddSingle(plugin: Record<string, unknown>, tool: Record<string, unknown>) {
+async function doAddSingleAfterFields(plugin: Record<string, unknown>, tool: Record<string, unknown>) {
     const tid = getToolId(tool);
     const key = `tool-${tid}`;
-    if (addingKey.value) return;
     addingKey.value = key;
     try {
         await doBindAgentTool(plugin, [tool]);
@@ -372,6 +441,35 @@ async function onAddSingle(plugin: Record<string, unknown>, tool: Record<string,
     } finally {
         addingKey.value = '';
     }
+}
+
+async function onAddAll(item: Record<string, unknown>) {
+    if (addingKey.value) return;
+    const tools = getItemTools(item).filter(t => !isToolAdded(t));
+    if (tools.length === 0) {
+        MessagePlugin.info('所有工具已添加');
+        return;
+    }
+    if (checkNeedFillFields(item) && !props.installedToolIds.some(tid => getItemTools(item).map(getToolId).includes(tid))) {
+        fieldDialogHeaders.value = getRequiredHeaders(item);
+        fieldDialogQuery.value = getRequiredQuery(item);
+        pendingFieldAction = { plugin: item, tools, mode: 'all' };
+        showFieldDialog.value = true;
+        return;
+    }
+    doAddAllAfterFields(item, tools);
+}
+
+async function onAddSingle(plugin: Record<string, unknown>, tool: Record<string, unknown>) {
+    if (addingKey.value) return;
+    if (checkNeedFillFields(plugin) && !props.installedToolIds.some(tid => getItemTools(plugin).map(getToolId).includes(tid))) {
+        fieldDialogHeaders.value = getRequiredHeaders(plugin);
+        fieldDialogQuery.value = getRequiredQuery(plugin);
+        pendingFieldAction = { plugin, tools: [tool], mode: 'single' };
+        showFieldDialog.value = true;
+        return;
+    }
+    doAddSingleAfterFields(plugin, tool);
 }
 
 async function onDeleteTool(plugin: Record<string, unknown>, tool: Record<string, unknown>) {
