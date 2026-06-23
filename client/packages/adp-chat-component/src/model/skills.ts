@@ -24,6 +24,8 @@ export interface AgentSkillInfo {
     SkillDisplayName?: string;
     skill_display_desc?: string;
     SkillDisplayDesc?: string;
+    skill_display_description?: string;
+    SkillDisplayDescription?: string;
     skill_desc?: string;
     SkillDesc?: string;
     skill_location?: string;
@@ -183,6 +185,8 @@ export interface SkillsI18n {
     manageSkills?: string;
     /** 添加 Skills（弹窗标题） */
     addSkills?: string;
+    /** 添加 Skills（弹窗标题） */
+    addSkillsBtn?: string;
     /** 内置 Skills（Tab 名） */
     builtinSkills?: string;
     /** 企业共享 Skills（Tab 名） */
@@ -213,12 +217,13 @@ export const defaultSkillsI18n: Required<SkillsI18n> = {
     noSkills: '暂无 Skills',
     manageSkills: '管理 Skills',
     addSkills: '添加 Skills',
+    addSkillsBtn: '添加',
     builtinSkills: '内置 Skills',
     sharedSkills: '企业共享 Skills',
     customSkills: '自定义 Skills',
-    install: '安装',
+    install: '添加',
     uninstall: '卸载',
-    installed: '已安装',
+    installed: '已添加',
     selectModel: '选择模型',
     connector: '连接器',
     tools: '工具',
@@ -233,6 +238,7 @@ export const defaultSkillsI18nEn: Required<SkillsI18n> = {
     noSkills: 'No Skills',
     manageSkills: 'Manage Skills',
     addSkills: 'Add Skills',
+    addSkillsBtn: 'Add',
     builtinSkills: 'Built-in Skills',
     sharedSkills: 'Shared Skills',
     customSkills: 'Custom Skills',

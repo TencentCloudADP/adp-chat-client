@@ -46,7 +46,7 @@
                     <t-input
                         v-model="searchKeyword"
                         placeholder="搜索连接器"
-                        size="small"
+                        
                         clearable
                         class="connector-dialog__search"
                         @change="onSearch"
@@ -104,10 +104,10 @@
                         <div class="connector-card__info">
                             <div class="connector-card__title-row">
                                 <span class="connector-card__name" :title="itemName(item)">{{ itemName(item) }}</span>
-                                <t-tag v-if="itemFinanceType(item) === 3" color="orange" size="small">公测</t-tag>
-                                <t-tag v-if="itemFinanceType(item) === 2" color="purple" size="small">付费</t-tag>
-                                <t-tag v-if="itemCreateType(item)" color="gray" size="small">{{ itemCreateType(item) }}</t-tag>
-                                <t-tag v-if="itemCategory(item)" color="gray" size="small">{{ itemCategory(item) }}</t-tag>
+                                <t-tag v-if="itemFinanceType(item) === 3" color="orange" >公测</t-tag>
+                                <t-tag v-if="itemFinanceType(item) === 2" color="purple" >付费</t-tag>
+                                <t-tag v-if="itemCreateType(item)" color="gray" >{{ itemCreateType(item) }}</t-tag>
+                                <t-tag v-if="itemCategory(item)" color="gray" >{{ itemCategory(item) }}</t-tag>
                             </div>
                             <div class="connector-card__desc" :title="itemDesc(item)">{{ itemDesc(item) }}</div>
                             <div class="connector-card__footer">
@@ -124,14 +124,14 @@
                         <div class="connector-card__actions">
                             <t-button
                                 v-if="isAllAdded(item)"
-                                size="small"
+                                
                                 variant="outline"
                                 theme="default"
                                 disabled
                             >已全部添加</t-button>
                             <t-button
                                 v-else
-                                size="small"
+                                
                                 variant="outline"
                                 theme="primary"
                                 @click.stop="onAddAll(item)"
@@ -157,7 +157,7 @@
                 v-model="pageNumber"
                 :total="total"
                 :page-size="pageSize"
-                size="small"
+                
                 class="connector-dialog__pagination"
                 @change="fetchList"
             />

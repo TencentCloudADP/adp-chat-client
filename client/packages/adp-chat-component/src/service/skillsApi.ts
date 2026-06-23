@@ -91,7 +91,7 @@ export async function fetchGlobalAgent(params: {
         skill_id: s.skill_id || s.SkillId || '',
         skill_name: s.skill_name || s.SkillName || s.name || (s.profile as Record<string, unknown>)?.name || '',
         skill_display_name: s.skill_display_name || s.SkillDisplayName || s.skill_name || s.name || '',
-        skill_display_desc: s.skill_display_description || s.skill_display_desc || s.SkillDisplayDesc || '',
+        skill_display_desc: s.skill_display_description || s.skill_display_desc || s.SkillDisplayDescription || s.SkillDisplayDesc || '',
         icon_url: s.icon_url || s.skill_icon || s.IconUrl || '',
     }));
     return {
@@ -210,6 +210,39 @@ export async function installSkill(params: {
         skill_id: (data.SkillId || data.skill_id || '') as string,
         version_id: (data.VersionId || data.version_id || '') as string,
     };
+}
+
+/**
+ * 通过 ModifyAgent 更新 Agent 的 skill_list
+ * 对应 v3 AgentSpec.skill_list，update_mask.paths = ["skill_list"]
+ */
+export async function modifyAgentSkillList(params: {
+    applicationId: string;
+    agentId: string;
+    /** 更新后的完整 skill 列表（含 skill_id 和 skill_type） */
+    skills: Array<{ skillId: string; skillType?: number }>;
+}, apiPath?: string): Promise<void> {
+    const data = await forwardRequest(
+        apiPath || '/adp/ModifyAgent',
+        params.applicationId,
+        {
+            AppId: params.applicationId,
+            AgentId: params.agentId,
+            Agent: {
+                SkillList: params.skills
+                    .filter((s) => s.skillId)
+                    .map((s) => ({
+                        SkillId: s.skillId,
+                        ...(s.skillType !== undefined ? { SkillType: s.skillType } : {}),
+                    })),
+            },
+            UpdateMask: { Paths: ['skill_list'] },
+        },
+    );
+    const error = data.Error as Record<string, unknown> | undefined;
+    if (error && error.Code) {
+        throw new Error((error.Message as string) || String(error.Code));
+    }
 }
 
 /**

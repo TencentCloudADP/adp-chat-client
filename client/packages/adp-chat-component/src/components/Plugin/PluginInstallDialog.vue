@@ -42,7 +42,7 @@
                         </template>
                     </t-popup>
                     <t-checkbox v-model="filterFavorite" @change="doReset">收藏</t-checkbox>
-                    <t-input v-model="searchKeyword" placeholder="搜索工具" size="small" clearable class="plugin-dialog__search" @change="onSearch">
+                    <t-input v-model="searchKeyword" placeholder="搜索工具"  clearable class="plugin-dialog__search" @change="onSearch">
                         <template #prefix-icon><t-icon name="search" /></template>
                     </t-input>
                 </div>
@@ -71,10 +71,10 @@
                         <div class="plugin-card__info">
                             <div class="plugin-card__title-row">
                                 <span class="plugin-card__name" :title="itemName(item)">{{ itemName(item) }}</span>
-                                <t-tag v-if="itemFinanceType(item) === 3" color="orange" size="small">公测</t-tag>
-                                <t-tag v-if="itemFinanceType(item) === 2" color="purple" size="small">付费</t-tag>
-                                <t-tag v-if="getCreateTypeLabel(item)" color="gray" size="small">{{ getCreateTypeLabel(item) }}</t-tag>
-                                <t-tag v-if="itemCategory(item)" color="gray" size="small">{{ itemCategory(item) }}</t-tag>
+                                <t-tag v-if="itemFinanceType(item) === 3" color="orange" >公测</t-tag>
+                                <t-tag v-if="itemFinanceType(item) === 2" color="purple" >付费</t-tag>
+                                <t-tag v-if="getCreateTypeLabel(item)" color="gray" >{{ getCreateTypeLabel(item) }}</t-tag>
+                                <t-tag v-if="itemCategory(item)" color="gray" >{{ itemCategory(item) }}</t-tag>
                                 <span v-if="itemStatus(item) === 2" class="plugin-card__error-dot">不可用</span>
                             </div>
                             <div class="plugin-card__desc" :title="itemDesc(item)">{{ itemDesc(item) }}</div>
@@ -99,7 +99,7 @@
                         <div class="plugin-card__right">
                             <template v-if="itemStatus(item) !== 2">
                                 <span v-if="checkIsAllAdd(item)" class="plugin-card__added-text">已全部添加</span>
-                                <t-button v-else size="small" variant="text" theme="primary"
+                                <t-button v-else  variant="text" theme="primary"
                                     :loading="addingKey === `plugin-${itemId(item)}`"
                                     :disabled="!!addingKey && addingKey !== `plugin-${itemId(item)}`"
                                     @click.stop="onAddAll(item)">全部添加</t-button>
@@ -123,23 +123,23 @@
                                 <div class="plugin-card__tool-content">
                                     <div class="plugin-card__tool-title-row">
                                         <span class="plugin-card__tool-name">{{ getToolName(tool) }}</span>
-                                        <t-tag v-if="getToolFinanceType(tool) === 3" color="orange" size="small">公测</t-tag>
-                                        <t-tag v-if="getToolFinanceType(tool) === 2" color="purple" size="small">付费</t-tag>
+                                        <t-tag v-if="getToolFinanceType(tool) === 3" color="orange" >公测</t-tag>
+                                        <t-tag v-if="getToolFinanceType(tool) === 2" color="purple" >付费</t-tag>
                                     </div>
                                     <div class="plugin-card__tool-desc" :title="getToolDesc(tool)">{{ getToolDesc(tool) }}</div>
                                     <div v-if="getToolTags(tool).length > 0" class="plugin-card__tool-tags">
-                                        <t-tag v-for="(tag, idx) in getToolTags(tool)" :key="idx" size="small" variant="light">{{ tag }}</t-tag>
+                                        <t-tag v-for="(tag, idx) in getToolTags(tool)" :key="idx"  variant="light">{{ tag }}</t-tag>
                                     </div>
                                 </div>
                                 <div class="plugin-card__tool-action">
                                     <template v-if="isToolAdded(tool)">
-                                        <t-button size="small" variant="outline" theme="default" disabled>已添加</t-button>
-                                        <t-button size="small" variant="text" theme="danger"
+                                        <t-button  variant="outline" theme="default" disabled>已添加</t-button>
+                                        <t-button  variant="text" theme="danger"
                                             :loading="addingKey === `del-${getToolId(tool)}`"
                                             :disabled="!!addingKey && addingKey !== `del-${getToolId(tool)}`"
                                             @click.stop="onDeleteTool(item, tool)">删除</t-button>
                                     </template>
-                                    <t-button v-else size="small" variant="outline" theme="primary"
+                                    <t-button v-else  variant="outline" theme="primary"
                                         :loading="addingKey === `tool-${getToolId(tool)}`"
                                         :disabled="!!addingKey && addingKey !== `tool-${getToolId(tool)}`"
                                         @click.stop="onAddSingle(item, tool)">添加</t-button>
@@ -156,7 +156,7 @@
                 </div>
             </div>
 
-            <t-pagination v-if="total > pageSize" v-model="pageNumber" :total="total" :page-size="pageSize" size="small" class="plugin-dialog__pagination" @change="fetchList" />
+            <t-pagination v-if="total > pageSize" v-model="pageNumber" :total="total" :page-size="pageSize"  class="plugin-dialog__pagination" @change="fetchList" />
         </div>
 
         <!-- MCP 字段填写弹窗 -->

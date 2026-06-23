@@ -385,7 +385,7 @@ watch(popupVisible, (v) => {
                             placement="top"
                             :disabled="!uiTag.tips"
                         >
-                            <t-tag size="small" :theme="tagTheme(uiTag.theme)" variant="light">
+                            <t-tag  :theme="tagTheme(uiTag.theme)" variant="light">
                                 {{ uiTag.text }}
                             </t-tag>
                         </t-tooltip>
@@ -412,7 +412,7 @@ watch(popupVisible, (v) => {
                             placement="top"
                             :disabled="!uiTag.tips"
                         >
-                            <t-tag size="small" :theme="tagTheme(uiTag.theme)" variant="light">
+                            <t-tag  :theme="tagTheme(uiTag.theme)" variant="light">
                                 {{ uiTag.text }}
                             </t-tag>
                         </t-tooltip>
@@ -469,14 +469,14 @@ watch(popupVisible, (v) => {
                                                 <t-button
                                                     theme="primary"
                                                     variant="text"
-                                                    size="small"
+                                                    
                                                     @click="handleUpgradeClick"
                                                 >
                                                     {{ upgradeActionText }}
                                                 </t-button>
                                             </div>
                                         </template>
-                                        <t-tag size="small" theme="primary" variant="light-outline">
+                                        <t-tag  theme="primary" variant="light-outline">
                                             <template #icon>
                                                 <t-icon name="star" />
                                             </template>
@@ -530,7 +530,7 @@ watch(popupVisible, (v) => {
                                                 :disabled="!uiTag.tips"
                                             >
                                                 <t-tag
-                                                    size="small"
+                                                    
                                                     :theme="tagTheme(uiTag.theme)"
                                                     variant="light"
                                                 >

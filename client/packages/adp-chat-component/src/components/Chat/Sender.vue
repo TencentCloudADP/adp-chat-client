@@ -586,7 +586,6 @@ const onSkillsManage = () => {
 const onSkillInstalled = (skill: Record<string, unknown>) => {
     emit('skill-installed', skill);
     refreshSkills();
-    showSkillsInstall.value = false;
 };
 
 const onSkillUninstalled = (skill: Record<string, unknown>) => {
@@ -1155,18 +1154,6 @@ defineExpose({
             </div>
         </div>
 
-        <!-- Skills 安装弹窗 -->
-        <SkillsInstallDialog
-            v-if="skillsEnabled"
-            v-model="showSkillsInstall"
-            :installed-skill-ids="Array.from(skillsInstalledIds)"
-            :application-id="skillsApplicationId"
-            :space-id="spaceId"
-            :i18n="skillsI18n"
-            :language="language"
-            @skill-installed="onSkillInstalled"
-        />
-
         <!-- Skills 管理弹窗 -->
         <SkillManageDialog
             v-if="skillsEnabled"
@@ -1177,6 +1164,20 @@ defineExpose({
             :language="language"
             @add="showSkillsInstall = true"
             @delete="onSkillDeleted"
+        />
+
+        <!-- Skills 安装弹窗（必须在管理弹窗之后，保证叠加时在上层） -->
+        <SkillsInstallDialog
+            v-if="skillsEnabled"
+            v-model="showSkillsInstall"
+            :installed-skill-ids="Array.from(skillsInstalledIds)"
+            :installed-skills="skillList"
+            :application-id="skillsApplicationId"
+            :agent-id="currentAgentId"
+            :space-id="spaceId"
+            :i18n="skillsI18n"
+            :language="language"
+            @skill-installed="onSkillInstalled"
         />
 
         <!-- 连接器弹窗 -->

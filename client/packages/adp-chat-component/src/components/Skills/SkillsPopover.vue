@@ -36,7 +36,6 @@
                             ref="searchInputRef"
                             v-model="searchInput"
                             :placeholder="i18n.search"
-                            size="small"
                             clearable
                         >
                             <template #prefix-icon>
@@ -47,7 +46,7 @@
 
                     <!-- Skill 列表 -->
                     <div class="skills-popover__list">
-                        <t-loading v-if="loading" size="small" class="skills-popover__loading" />
+                        <t-loading v-if="loading"  class="skills-popover__loading" />
                         <template v-else>
                             <div
                                 v-for="skill in filteredSkills"

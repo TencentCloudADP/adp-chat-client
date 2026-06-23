@@ -79,7 +79,7 @@ export function normalizeManageItem(item: AgentSkillInfo): ManageSkillItem {
     return {
         id: getSkillId(item),
         name: getSkillDisplayName(item),
-        desc: (item.skill_display_desc || item.SkillDisplayDesc || '') as string,
+        desc: (item.skill_display_desc || item.SkillDisplayDescription || item.SkillDisplayDesc || item.skill_display_description || '') as string,
         icon: getSkillIconUrl(item),
         version: (item.current_version || item.CurrentVersion || '') as string,
         category: (item.category_name || item.CategoryName || '') as string,

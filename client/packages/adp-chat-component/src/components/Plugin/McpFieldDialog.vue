@@ -18,7 +18,7 @@
                         :name="`headers_${idx}`"
                         :rules="item.is_required ? [{ required: true, message: '必填' }] : []"
                     >
-                        <t-input v-model="item._value" :placeholder="`请输入 ${item.param_name}`" size="small" />
+                        <t-input v-model="item._value" :placeholder="`请输入 ${item.param_name}`"  />
                     </t-form-item>
                 </template>
                 <template v-if="query.length > 0">
@@ -30,12 +30,12 @@
                         :name="`query_${idx}`"
                         :rules="item.is_required ? [{ required: true, message: '必填' }] : []"
                     >
-                        <t-input v-model="item._value" :placeholder="`请输入 ${item.param_name}`" size="small" />
+                        <t-input v-model="item._value" :placeholder="`请输入 ${item.param_name}`"  />
                     </t-form-item>
                 </template>
                 <div class="mcp-field-dialog__footer">
-                    <t-button theme="primary" type="submit" :loading="submitting" size="small">确定并添加工具</t-button>
-                    <t-button variant="outline" size="small" @click="onCancel">取消</t-button>
+                    <t-button theme="primary" type="submit" :loading="submitting" >确定并添加工具</t-button>
+                    <t-button variant="outline"  @click="onCancel">取消</t-button>
                 </div>
             </t-form>
         </div>

@@ -9,11 +9,11 @@
         <div class="manage-tool-dialog">
             <!-- 操作栏 -->
             <div class="manage-tool-dialog__action-bar">
-                <t-button theme="primary" size="small" @click="onOpenAdd">
+                <t-button theme="primary"  @click="onOpenAdd">
                     <template #icon><t-icon name="add" /></template>
                     添加
                 </t-button>
-                <t-input v-model="searchKeyword" placeholder="搜索工具" size="small" clearable class="manage-tool-dialog__search">
+                <t-input v-model="searchKeyword" placeholder="搜索工具"  clearable class="manage-tool-dialog__search">
                     <template #prefix-icon><t-icon name="search" /></template>
                 </t-input>
             </div>
@@ -34,15 +34,15 @@
                     <div class="manage-tool-item__info">
                         <div class="manage-tool-item__title">
                             <span class="manage-tool-item__name" :title="item.displayName">{{ item.displayName }}</span>
-                            <t-tag v-if="item.isInner" size="small" variant="light">预置</t-tag>
-                            <t-tag v-if="item.createTypeLabel" size="small" color="gray">{{ item.createTypeLabel }}</t-tag>
+                            <t-tag v-if="item.isInner"  variant="light">预置</t-tag>
+                            <t-tag v-if="item.createTypeLabel"  color="gray">{{ item.createTypeLabel }}</t-tag>
                         </div>
                         <div class="manage-tool-item__desc" :title="item.desc">{{ item.desc || item.pluginName }}</div>
                     </div>
                     <div class="manage-tool-item__actions">
                         <t-button
                             v-if="!item.isInner"
-                            size="small"
+                            
                             variant="text"
                             theme="danger"
                             :loading="deletingId === item.toolId"
@@ -53,7 +53,7 @@
                             删除
                         </t-button>
                         <t-tooltip v-else content="预置工具无法删除" placement="top">
-                            <t-button size="small" variant="text" theme="default" disabled>
+                            <t-button  variant="text" theme="default" disabled>
                                 <template #icon><t-icon name="delete" /></template>
                             </t-button>
                         </t-tooltip>
@@ -229,18 +229,19 @@ watch(() => props.modelValue, (val) => {
 .manage-tool-dialog__search { width: 200px; margin-left: auto; }
 .manage-tool-dialog__loading { display: flex; align-items: center; justify-content: center; flex: 1; }
 .manage-tool-dialog__empty { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--td-text-color-placeholder); font-size: 13px; }
-.manage-tool-dialog__list { flex: 1; overflow-y: auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; }
+.manage-tool-dialog__list { flex: 1; overflow-y: auto; min-height: 0; display: flex; flex-direction: column; padding-right: 10px; }
 .manage-tool-dialog__list::-webkit-scrollbar { width: 4px; }
 .manage-tool-dialog__list::-webkit-scrollbar-thumb { border-radius: 2px; background: rgba(17, 32, 70, 0.13); }
 
-.manage-tool-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--td-radius-medium); border: 1px solid var(--td-component-border); background: var(--td-bg-color-container); transition: box-shadow 0.2s; }
-.manage-tool-item:hover { box-shadow: 0 2px 12px rgba(0, 55, 159, 0.06); }
-.manage-tool-item__icon { flex-shrink: 0; }
-.manage-tool-item__icon img { width: 36px; height: 36px; border-radius: var(--td-radius-medium); object-fit: cover; border: 1px solid var(--td-component-border); }
-.manage-tool-item__icon-fb { width: 36px; height: 36px; border-radius: var(--td-radius-medium); display: inline-flex; align-items: center; justify-content: center; background: var(--td-bg-color-secondarycontainer); color: var(--td-text-color-placeholder); border: 1px solid var(--td-component-border); }
-.manage-tool-item__info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.manage-tool-item__title { display: flex; align-items: center; gap: 6px; }
-.manage-tool-item__name { font-size: 13px; font-weight: 500; color: var(--td-text-color-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
-.manage-tool-item__desc { font-size: 12px; color: var(--td-text-color-placeholder); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.manage-tool-item__actions { flex-shrink: 0; }
+.manage-tool-item { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid rgba(0, 44, 85, 0.08); transition: background 0.15s; }
+.manage-tool-item:last-child { border-bottom: none; }
+.manage-tool-item:hover { background: var(--td-bg-color-container-hover); }
+.manage-tool-item__icon { flex-shrink: 0; width: 40px; }
+.manage-tool-item__icon img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
+.manage-tool-item__icon-fb { width: 40px; height: 40px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: var(--td-bg-color-secondarycontainer); color: var(--td-text-color-placeholder); border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
+.manage-tool-item__info { flex: 1; min-width: 0; overflow: hidden; }
+.manage-tool-item__title { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
+.manage-tool-item__name { font-size: 15px; font-weight: 500; color: var(--td-text-color-primary); line-height: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
+.manage-tool-item__desc { font-size: 13px; color: var(--td-text-color-placeholder); line-height: 20px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.manage-tool-item__actions { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
 </style>

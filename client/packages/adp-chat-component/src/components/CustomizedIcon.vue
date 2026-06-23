@@ -76,6 +76,8 @@ import setting from '../assets/icons/setting.svg?raw';
 import stars from '../assets/icons/stars.svg?raw';
 import url from '../assets/icons/url.svg?raw';
 import quit from '../assets/icons/quit.svg?raw';
+import basic_star_line from '../assets/icons/basic_star_line.svg?raw';
+import basic_star_fill from '../assets/icons/basic_star_fill.svg?raw';
 
 // SVG 映射表（仅保留项目中实际使用的图标）
 const svgMap: Record<string, string> = {
@@ -95,6 +97,8 @@ const svgMap: Record<string, string> = {
     stars,
     url,
     quit,
+    basic_star_line,
+    basic_star_fill,
 };
 
 // 用于生成唯一 id 的计数器

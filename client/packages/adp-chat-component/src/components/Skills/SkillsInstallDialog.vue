@@ -23,7 +23,6 @@
                         <div class="skills-install__categories-wrapper">
                             <t-button
                                 variant="text"
-                                size="small"
                                 shape="square"
                                 :disabled="!canScrollLeft"
                                 @click="scrollCategories(-1)"
@@ -40,7 +39,7 @@
                             </div>
                             <t-button
                                 variant="text"
-                                size="small"
+                                
                                 shape="square"
                                 :disabled="!canScrollRight"
                                 @click="scrollCategories(1)"
@@ -54,7 +53,7 @@
                             <t-input
                                 v-model="searchKeyword"
                                 :placeholder="i18n.search"
-                                size="small"
+                                
                                 clearable
                                 class="skills-install__search"
                             >
@@ -72,7 +71,7 @@
                         <t-input
                             v-model="searchKeyword"
                             :placeholder="i18n.search"
-                            size="small"
+                            
                             clearable
                             class="skills-install__search"
                         >
@@ -84,7 +83,7 @@
 
             <!-- Skill 列表（触底加载更多） -->
             <div class="skills-install__list" @scroll="onListScroll">
-                <t-loading v-if="loading" size="small" class="skills-install__loading" />
+                <t-loading v-if="loading"  class="skills-install__loading" />
                 <template v-else>
                     <div v-if="skillList.length > 0" class="skills-install__items">
                         <div
@@ -105,30 +104,69 @@
                                 <div class="skill-card__info">
                                     <div class="skill-card__header">
                                         <span class="skill-card__name">{{ skillName(skill) }}</span>
-                                        <t-tag
+                                        <!-- 安全 / 疑似风险 tag -->
+                                        <t-tooltip
+                                            v-if="showSafetyTag(skill)"
+                                            :content="safetyTooltip(skill)"
+                                            placement="top"
+                                        >
+                                            <span
+                                                :class="[
+                                                    'skill-card__tag',
+                                                    isSuspectedRisk(skill)
+                                                        ? 'skill-card__tag--orange'
+                                                        : 'skill-card__tag--green',
+                                                ]"
+                                            >
+                                                <t-icon name="secured" size="12px" />
+                                                <span>{{ isSuspectedRisk(skill) ? '疑似风险' : '安全' }}</span>
+                                                <t-icon
+                                                    v-if="safetyReportUrl(skill)"
+                                                    name="jump"
+                                                    size="12px"
+                                                    class="skill-card__tag-suffix"
+                                                    @click.stop="onOpenReport(safetyReportUrl(skill))"
+                                                />
+                                            </span>
+                                        </t-tooltip>
+                                        <!-- 企业共享 tag -->
+                                        <t-tooltip
+                                            v-if="isSharedSkill(skill)"
+                                            :content="sharedTooltip(skill)"
+                                            placement="top"
+                                        >
+                                            <span class="skill-card__tag skill-card__tag--blue">企业共享</span>
+                                        </t-tooltip>
+                                        <!-- 付费 tag -->
+                                        <t-tooltip
                                             v-if="isPaidSkill(skill)"
-                                            theme="warning"
-                                            variant="light"
-                                            size="small"
-                                        >付费</t-tag>
+                                            content="包含官方付费工具"
+                                            placement="top"
+                                        >
+                                            <span class="skill-card__tag skill-card__tag--purple">
+                                                <t-icon name="vip" size="12px" />
+                                                <span>付费</span>
+                                            </span>
+                                        </t-tooltip>
                                     </div>
-                                    <span class="skill-card__desc" :title="skillDesc(skill)">{{ skillDesc(skill) }}</span>
-                                    <div class="skill-card__meta">
+                                    <div v-if="skillDesc(skill)" class="skill-card__desc" :title="skillDesc(skill)">{{ skillDesc(skill) }}</div>
+                                    <div v-if="skillAuthor(skill) || skillVersion(skill)" class="skill-card__meta">
                                         <span v-if="skillAuthor(skill)" class="skill-card__author">@{{ skillAuthor(skill) }}</span>
+                                        <span v-if="skillAuthor(skill) && skillVersion(skill)" class="skill-card__meta-divider">|</span>
                                         <span v-if="skillVersion(skill)" class="skill-card__version">v{{ skillVersion(skill) }}</span>
                                     </div>
                                 </div>
                                 <div class="skill-card__actions">
                                     <t-button
-                                        v-if="isInstalled(skill.skill_id as string)"
-                                        size="small"
+                                        v-if="isInstalled(skill)"
+                                        
                                         variant="outline"
                                         theme="default"
                                         disabled
                                     >{{ i18n.installed }}</t-button>
                                     <t-button
                                         v-else
-                                        size="small"
+                                        
                                         variant="outline"
                                         theme="primary"
                                         :loading="busyId === (skill.skill_id as string)"
@@ -140,7 +178,12 @@
                                         :class="{ 'is-favorite': skill.is_favorite }"
                                         @click="onToggleFavorite(skill)"
                                     >
-                                        <t-icon :name="skill.is_favorite ? 'star-filled' : 'star'" :style="{ color: skill.is_favorite ? '#f8c544' : 'var(--td-text-color-placeholder)' }" />
+                                        <CustomizedIcon
+                                            :name="skill.is_favorite ? 'basic_star_fill' : 'basic_star_line'"
+                                            size="xs"
+                                            :show-hover-bg="false"
+                                            :color="(skill.is_favorite ? '#f8c544' : 'var(--td-text-color-placeholder)')"
+                                        />
                                     </span>
                                 </div>
                             </div>
@@ -148,7 +191,7 @@
                     </div>
                     <div v-else class="skills-install__empty">暂无数据</div>
                 </template>
-                <t-loading v-if="loadingMore" size="small" class="skills-install__loading-more" />
+                <t-loading v-if="loadingMore"  class="skills-install__loading-more" />
             </div>
         </div>
     </t-dialog>
@@ -161,8 +204,8 @@ import {
     Tabs as TTabs,
     TabPanel as TTabPanel,
     Button as TButton,
-    Tag as TTag,
     Loading as TLoading,
+    Tooltip as TTooltip,
     Input as TInput,
     Checkbox as TCheckbox,
     Icon as TIcon,
@@ -170,12 +213,16 @@ import {
 } from 'tdesign-vue-next';
 import type { SkillsI18n } from '../../model/skills';
 import { defaultSkillsI18n, defaultSkillsI18nEn } from '../../model/skills';
-import { fetchSkillCategories, fetchSkillSummaryList, installSkill as installSkillApi } from '../../service/skillsApi';
+import { fetchSkillCategories, fetchSkillSummaryList, modifyAgentSkillList } from '../../service/skillsApi';
+import CustomizedIcon from '../CustomizedIcon.vue';
 
 interface Props {
     modelValue: boolean;
     installedSkillIds?: string[];
+    /** 已安装 skill 的完整原始数据列表，用于 ModifyAgent 时合并构造完整 skill_list */
+    installedSkills?: Record<string, unknown>[];
     applicationId?: string;
+    agentId?: string;
     spaceId?: string;
     i18n?: Partial<SkillsI18n>;
     language?: string;
@@ -184,7 +231,9 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
     modelValue: false,
     installedSkillIds: () => [],
+    installedSkills: () => [],
     applicationId: '',
+    agentId: '',
     spaceId: '',
     i18n: () => ({}),
     language: 'zh-CN',
@@ -274,8 +323,65 @@ function isPaidSkill(s: Record<string, unknown>): boolean {
     return (p.billing_type || p.BillingType || 0) === 1;
 }
 
-function isInstalled(skillId: string): boolean {
-    return installedIds.value.has(skillId);
+// ─── Tag 判定 ─────────────────────────────────────────
+// risk_level: 0=无风险, 1=低风险（疑似）, 2=中风险（疑似）, 3=高风险
+function getAnalysisInfo(s: Record<string, unknown>): Record<string, unknown> {
+    return (s.analysis_info || s.AnalysisInfo || {}) as Record<string, unknown>;
+}
+
+function riskLevel(s: Record<string, unknown>): number {
+    const info = getAnalysisInfo(s);
+    return Number(info.risk_level ?? info.RiskLevel ?? 0);
+}
+
+// 高风险（=3）不展示 tag
+function showSafetyTag(s: Record<string, unknown>): boolean {
+    return riskLevel(s) < 3;
+}
+
+function isSuspectedRisk(s: Record<string, unknown>): boolean {
+    const lvl = riskLevel(s);
+    return lvl === 1 || lvl === 2;
+}
+
+function safetyReportUrl(s: Record<string, unknown>): string {
+    const info = getAnalysisInfo(s);
+    return (info.security_report_url || info.SecurityReportUrl || '') as string;
+}
+
+function safetyTooltip(s: Record<string, unknown>): string {
+    return isSuspectedRisk(s)
+        ? '科恩实验室检测结果为"疑似风险"'
+        : '科恩实验室检测结果为"安全"';
+}
+
+function onOpenReport(url: string) {
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+// 企业共享：share_info 中存在 status===1 的记录
+function getShareInfo(s: Record<string, unknown>): Array<Record<string, unknown>> {
+    // 适配后已统一为 share_info，兼容原始格式
+    return (s.share_info || s.ShareList || s.ShareInfo || []) as Array<Record<string, unknown>>;
+}
+
+function isSharedSkill(s: Record<string, unknown>): boolean {
+    const p = getProfile(s);
+    // ProviderType=4 对应企业共享类型，不重复显示 tag
+    const providerType = p.type ?? p.Type ?? p.ProviderType ?? p.provider_type;
+    if (providerType === 4 || providerType === '4') return false;
+    return getShareInfo(s).some((item) => Number(item.Status ?? item.status) === 1);
+}
+
+function sharedTooltip(s: Record<string, unknown>): string {
+    const sharedItem = getShareInfo(s).find((item) => Number(item.status ?? item.Status) === 1);
+    const v = sharedItem?.share_version || sharedItem?.ShareVersion;
+    return v ? `已加入"企业共享Skill" 所用版本 v${v}` : '已加入"企业共享Skill"';
+}
+
+function isInstalled(skill: Record<string, unknown>): boolean {
+    const sid = (skill.skill_id || '') as string;
+    return !!skill.installed || (!!sid && installedIds.value.has(sid));
 }
 
 function onCardIconError(e: Event) {
@@ -353,10 +459,33 @@ async function fetchSkillList(append = false) {
 
         if (version !== fetchVersion.value) return;
 
-        const list = (result.skill_list || []).map((s: Record<string, unknown>) => ({
-            ...s,
-            installed: installedIds.value.has((s.skill_id || '') as string),
-        }));
+        const list = (result.skill_list || []).map((s: Record<string, unknown>) => {
+            // 接口返回 PascalCase，对齐 webim adaptSkillSummary，打平嵌套字段
+            const profile = (s.Profile || s.profile || {}) as Record<string, unknown>;
+            const classificationInfo = (s.ClassificationInfo || s.classification_info || {}) as Record<string, unknown>;
+            const currentVersionInfo = (s.CurrentVersionInfo || s.current_version_info || {}) as Record<string, unknown>;
+            const shareList = (s.ShareList || s.share_list || s.share_info || s.ShareInfo || []) as Array<Record<string, unknown>>;
+            const analysisInfo = (currentVersionInfo.AnalysisInfo || currentVersionInfo.analysis_info || s.AnalysisInfo || s.analysis_info || {}) as Record<string, unknown>;
+            const skillId = (s.SkillId || s.skill_id || '') as string;
+
+            return {
+                ...s,
+                skill_id: skillId,
+                is_favorite: s.IsFavorite ?? s.is_favorite ?? false,
+                share_info: shareList,
+                analysis_info: analysisInfo,
+                current_version: (currentVersionInfo.Version || currentVersionInfo.version || s.current_version || '') as string,
+                profile: {
+                    ...profile,
+                    // 打平 ClassificationInfo 字段到 profile
+                    type: classificationInfo.ProviderType ?? classificationInfo.provider_type ?? profile.type,
+                    billing_type: classificationInfo.BillingType ?? classificationInfo.billing_type ?? profile.billing_type,
+                    source_link: classificationInfo.SourceLink ?? classificationInfo.source_link ?? profile.source_link,
+                    category_key: classificationInfo.CategoryKey ?? classificationInfo.category_key ?? profile.category_key,
+                },
+                installed: installedIds.value.has(skillId),
+            };
+        });
 
         skillList.value = append ? [...skillList.value, ...list] : list;
         totalCount.value = result.total_count;
@@ -404,7 +533,7 @@ function onListScroll(e: Event) {
 async function onInstallSkill(skill: Record<string, unknown>) {
     if (!props.applicationId) return;
     const sid = (skill.skill_id || '') as string;
-    if (isInstalled(sid)) {
+    if (isInstalled(skill)) {
         emit('skill-uninstalled', skill);
         return;
     }
@@ -412,20 +541,37 @@ async function onInstallSkill(skill: Record<string, unknown>) {
         MessagePlugin.warning('已达到最大安装数量');
         return;
     }
+    if (!props.agentId) {
+        // 无 agentId 时仅 emit，由宿主自行处理接口调用
+        emit('skill-installed', skill);
+        return;
+    }
     busyId.value = sid;
     try {
-        await installSkillApi({
+        // 合并已安装 skill 列表 + 新增 skill，保留各自的 skill_type
+        const existingSkills = props.installedSkills
+            .filter((s) => {
+                const id = (s.skill_id || s.SkillId || '') as string;
+                return !!id;
+            })
+            .map((s) => ({
+                skillId: (s.skill_id || s.SkillId || '') as string
+            }));
+        const newSkillType = (skill.skill_type ?? skill.SkillType) as number | undefined;
+        const mergedSkills = [
+            ...existingSkills,
+            { skillId: sid, skillType: newSkillType },
+        ];
+        await modifyAgentSkillList({
             applicationId: props.applicationId,
-            space_id: props.spaceId || 'default_space',
-            source: 2,
-            skill_id: sid,
-            version_id: (skill.current_version_id || '') as string,
+            agentId: props.agentId,
+            skills: mergedSkills,
         });
-        MessagePlugin.success('添加成功');
         emit('skill-installed', skill);
+        MessagePlugin.success('添加成功');
     } catch (e) {
-        console.error('[SkillsInstallDialog] install error:', e);
-        MessagePlugin.error('安装失败');
+        console.error('[SkillsInstallDialog] ModifyAgent error:', e);
+        MessagePlugin.error('添加失败');
     } finally {
         busyId.value = '';
     }
@@ -585,74 +731,121 @@ function onClose() {
 
 /* Skill 卡片 */
 .skills-install__card {
-    border-bottom: 1px solid var(--td-component-border);
-    padding: 12px 0;
+    border-bottom: 1px solid rgba(18, 42, 79, 0.08);
+    transition: background 0.2s;
+}
+.skills-install__card:last-child {
+    border-bottom: none;
 }
 .skills-install__card:hover {
     background: var(--td-bg-color-container-hover);
 }
 .skill-card__body {
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 0 4px;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
 }
-.skill-card__icon {
-    width: 48px;
-    height: 48px;
+.skill-card__icon,
+.skill-card__icon-fallback {
+    width: 60px;
+    height: 60px;
     border-radius: 6px;
-    object-fit: cover;
     flex-shrink: 0;
+    object-fit: cover;
+    background: var(--td-brand-color-light, #f1f6ff);
 }
 .skill-card__icon-fallback {
-    width: 48px;
-    height: 48px;
-    border-radius: 6px;
-    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     color: var(--td-text-color-secondary);
-    background: var(--td-bg-color-secondarycontainer);
 }
 .skill-card__info {
     flex: 1;
     min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
 }
 .skill-card__header {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 .skill-card__name {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 500;
     color: var(--td-text-color-primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 24px;
+}
+.skill-card__tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    line-height: 1;
     white-space: nowrap;
+    border: 1px solid transparent;
+}
+.skill-card__tag--green {
+    color: var(--td-success-color, #00A870);
+    background: var(--td-success-color-light, #E8F8F2);
+    border-color: var(--td-success-color-light-active, #C5EBD9);
+}
+.skill-card__tag--orange {
+    color: var(--td-warning-color, #ED7B2F);
+    background: var(--td-warning-color-light, #FFF3E8);
+    border-color: var(--td-warning-color-light-active, #FFD9B7);
+}
+.skill-card__tag--blue {
+    color: var(--td-brand-color, #0052D9);
+    background: var(--td-brand-color-light, #F1F6FF);
+    border-color: var(--td-brand-color-light-active, #D9E5FF);
+}
+.skill-card__tag--purple {
+    color: #6649D9;
+    background: #F1ECFF;
+    border-color: #DCD0FF;
+}
+.skill-card__tag-suffix {
+    color: var(--td-text-color-placeholder, rgba(1, 11, 50, 0.41));
+    cursor: pointer;
+    margin-left: 2px;
+}
+.skill-card__tag-suffix:hover {
+    color: var(--td-brand-color);
 }
 .skill-card__desc {
-    font-size: 12px;
-    color: var(--td-text-color-secondary);
-    line-height: 18px;
+    font-size: 13px;
+    color: var(--td-text-color-placeholder, rgba(1, 11, 50, 0.41));
+    line-height: 20px;
+    margin-top: 8px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 340px;
+    max-width: 100%;
 }
 .skill-card__meta {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 11px;
-    color: var(--td-text-color-placeholder);
+    gap: 4px;
+    font-size: 13px;
+    line-height: 20px;
+    margin-top: 8px;
+    color: var(--td-text-color-placeholder, rgba(1, 11, 50, 0.41));
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+.skill-card__meta-divider {
+    margin: 0 2px;
 }
 .skill-card__author {
     cursor: pointer;
+    transition: color 0.2s;
 }
 .skill-card__author:hover {
     color: var(--td-brand-color);
@@ -662,7 +855,6 @@ function onClose() {
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
-    margin-top: 4px;
 }
 .skill-card__favorite {
     cursor: pointer;
