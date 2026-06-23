@@ -6,7 +6,7 @@ import { httpService } from './httpService';
 
 /** Skills API 路径配置 */
 export interface SkillsApiConfig {
-    /** 全局 Agent 配置（DescribeGlobalCorpAssistantAgent） */
+    /** 全局 Agent 配置（DescribeAgentDetail） */
     globalAgentApi?: string;
     /** Skill 分类列表 */
     skillCategoriesApi?: string;
@@ -14,9 +14,9 @@ export interface SkillsApiConfig {
     skillSummaryListApi?: string;
     /** Skill 详情 */
     skillDetailApi?: string;
-    /** 安装 Skill */
+    /** @deprecated 已改用 ModifyAgent 直接管理 skill_list */
     createSkillApi?: string;
-    /** 卸载 Skill */
+    /** @deprecated 已改用 ModifyAgent 直接管理 skill_list */
     deleteSkillApi?: string;
     /** 修改 Agent */
     modifyAgentApi?: string;
@@ -232,6 +232,7 @@ export async function fetchSkillDetail(params: {
 
 /**
  * 安装 Skill（从 SkillHub，source=2）
+ * @deprecated 已改用 modifyAgentSkillList 通过 ModifyAgent 统一管理 skill_list
  */
 export async function installSkill(params: {
     applicationId: string;
@@ -268,8 +269,8 @@ export async function installSkill(params: {
 export async function modifyAgentSkillList(params: {
     applicationId: string;
     agentId: string;
-    /** 更新后的完整 skill 列表（含 skill_id 和 skill_type） */
-    skills: Array<{ skillId: string; skillType?: number }>;
+    /** 更新后的完整 skill 列表 */
+    skills: Array<{ skillId: string }>;
 }, apiPath?: string): Promise<void> {
     const data = await forwardRequest(
         apiPath || '/adp/ModifyAgent',
@@ -280,10 +281,7 @@ export async function modifyAgentSkillList(params: {
             Agent: {
                 SkillList: params.skills
                     .filter((s) => s.skillId)
-                    .map((s) => ({
-                        SkillId: s.skillId,
-                        ...(s.skillType !== undefined ? { SkillType: s.skillType } : {}),
-                    })),
+                    .map((s) => ({ SkillId: s.skillId })),
             },
             UpdateMask: { Paths: ['skill_list'] },
         },
@@ -296,6 +294,7 @@ export async function modifyAgentSkillList(params: {
 
 /**
  * 卸载 Skill
+ * @deprecated 已改用 modifyAgentSkillList 通过 ModifyAgent 统一管理 skill_list
  */
 export async function uninstallSkill(params: {
     applicationId: string;

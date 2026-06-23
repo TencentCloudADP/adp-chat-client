@@ -49,7 +49,6 @@
                         </div>
                         <div class="skills-install__filter-actions">
                             <t-checkbox v-model="filterOfficial">官方</t-checkbox>
-                            <t-checkbox v-model="filterFavorite">收藏</t-checkbox>
                             <t-input
                                 v-model="searchKeyword"
                                 :placeholder="i18n.search"
@@ -63,11 +62,10 @@
                     </div>
                 </template>
 
-                <!-- 企业共享 / 自定义：收藏 + 搜索 -->
+                <!-- 企业共享 / 自定义：搜索 -->
                 <template v-else>
                     <div class="skills-install__filter-row skills-install__filter-row--simple">
                         <t-checkbox v-if="activeTab === 'custom'" v-model="filterShareStatus">企业共享</t-checkbox>
-                        <t-checkbox v-model="filterFavorite">收藏</t-checkbox>
                         <t-input
                             v-model="searchKeyword"
                             :placeholder="i18n.search"
@@ -176,7 +174,6 @@
                                     <span
                                         class="skill-card__favorite"
                                         :class="{ 'is-favorite': skill.is_favorite }"
-                                        @click="onToggleFavorite(skill)"
                                     >
                                         <CustomizedIcon
                                             :name="skill.is_favorite ? 'basic_star_fill' : 'basic_star_line'"
@@ -261,7 +258,6 @@ const tabsReady = ref(false);
 const activeTab = ref('builtin');
 const activeCategory = ref('all');
 const filterOfficial = ref(false);
-const filterFavorite = ref(false);
 const filterShareStatus = ref(false);
 const searchKeyword = ref('');
 const loading = ref(false);
@@ -454,7 +450,6 @@ async function fetchSkillList(append = false) {
             page_number: pageNumber.value,
             query: searchKeyword.value || undefined,
             filter_list: buildFilters(),
-            favorite_only: filterFavorite.value || undefined,
         });
 
         if (version !== fetchVersion.value) return;
@@ -548,19 +543,17 @@ async function onInstallSkill(skill: Record<string, unknown>) {
     }
     busyId.value = sid;
     try {
-        // 合并已安装 skill 列表 + 新增 skill，保留各自的 skill_type
         const existingSkills = props.installedSkills
             .filter((s) => {
                 const id = (s.skill_id || s.SkillId || '') as string;
                 return !!id;
             })
             .map((s) => ({
-                skillId: (s.skill_id || s.SkillId || '') as string
+                skillId: (s.skill_id || s.SkillId || '') as string,
             }));
-        const newSkillType = (skill.skill_type ?? skill.SkillType) as number | undefined;
         const mergedSkills = [
             ...existingSkills,
-            { skillId: sid, skillType: newSkillType },
+            { skillId: sid },
         ];
         await modifyAgentSkillList({
             applicationId: props.applicationId,
@@ -577,12 +570,6 @@ async function onInstallSkill(skill: Record<string, unknown>) {
     }
 }
 
-function onToggleFavorite(skill: Record<string, unknown>) {
-    // TODO: 调用 FavoriteSkill / UnfavoriteSkill API
-    skill.is_favorite = !skill.is_favorite;
-    MessagePlugin.success(skill.is_favorite ? '已收藏' : '已取消收藏');
-}
-
 // ─── 生命周期 / 监听 ──────────────────────────────────
 watch(() => props.modelValue, (val) => {
     if (val) {
@@ -597,13 +584,12 @@ watch(() => props.modelValue, (val) => {
 watch(activeTab, () => {
     activeCategory.value = 'all';
     filterOfficial.value = false;
-    filterFavorite.value = false;
     filterShareStatus.value = false;
     searchKeyword.value = '';
     resetAndFetch();
 });
 
-watch([activeCategory, filterOfficial, filterFavorite, filterShareStatus], () => {
+watch([activeCategory, filterOfficial, filterShareStatus], () => {
     resetAndFetch();
 });
 
@@ -857,14 +843,9 @@ function onClose() {
     flex-shrink: 0;
 }
 .skill-card__favorite {
-    cursor: pointer;
     display: inline-flex;
     align-items: center;
     padding: 4px;
     border-radius: 4px;
-    transition: background 0.15s;
-}
-.skill-card__favorite:hover {
-    background: var(--td-bg-color-container-active);
 }
 </style>

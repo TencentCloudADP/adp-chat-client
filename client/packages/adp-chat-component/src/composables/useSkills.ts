@@ -3,14 +3,13 @@
  * 管理已安装 Skills 列表的拉取、刷新、增删
  */
 import { ref, computed, watch, type MaybeRefOrGetter, toValue } from 'vue';
+import { MessagePlugin } from 'tdesign-vue-next';
 import {
-    fetchGlobalAgent,
     fetchSkillCategories,
     fetchSkillSummaryList,
     fetchSkillDetail,
-    installSkill as installSkillApi,
-    uninstallSkill as uninstallSkillApi,
 } from '../service/skillsApi';
+import { useAgentStore } from './useAgentStore';
 import type {
     AgentSkillInfo,
     SkillSummary,
@@ -34,8 +33,6 @@ export interface UseSkillsOptions {
         skillCategoriesApi?: string;
         skillSummaryListApi?: string;
         skillDetailApi?: string;
-        createSkillApi?: string;
-        deleteSkillApi?: string;
     };
 }
 
@@ -96,10 +93,24 @@ export function useSkills(options: UseSkillsOptions = {}) {
     const projectPath = ref(options.projectPath || '');
     const apiPaths = options.apiPaths || {};
 
-    const installedSkills = ref<AgentSkillInfo[]>([]);
+    // 从 useAgentStore 获取共享数据源和操作方法
+    const {
+        agentDetailMap,
+        getAgentIdByAppId,
+        refreshAgentCache,
+        modifySkillList,
+    } = useAgentStore();
+
+    /** 已安装 Skills（从 store 缓存派生，全局共享） */
+    const installedSkills = computed<AgentSkillInfo[]>(() =>
+        (agentDetailMap.value[applicationId.value]?.skills || []) as AgentSkillInfo[]
+    );
     const refreshing = ref(false);
     const error = ref<string | null>(null);
-    const agentId = ref<string>('');
+    /** 当前 agentId（从 store 缓存派生） */
+    const agentId = computed<string>(() =>
+        agentDetailMap.value[applicationId.value]?.agentId || getAgentIdByAppId(applicationId.value)
+    );
 
     const normalizedSkills = computed<NormalizedSkill[]>(() => {
         return installedSkills.value
@@ -141,7 +152,7 @@ export function useSkills(options: UseSkillsOptions = {}) {
     });
 
     async function refreshSkills() {
-        console.log('[useSkills] refreshSkills called, applicationId:', applicationId.value, 'spaceId:', spaceId.value);
+        console.log('[useSkills] refreshSkills called, applicationId:', applicationId.value);
         if (!applicationId.value) {
             console.warn('[useSkills] refreshSkills skipped: applicationId is empty');
             return;
@@ -149,18 +160,7 @@ export function useSkills(options: UseSkillsOptions = {}) {
         refreshing.value = true;
         error.value = null;
         try {
-            console.log('[useSkills] calling fetchGlobalAgent...');
-            const result = await fetchGlobalAgent(
-                {
-                    applicationId: applicationId.value,
-                    spaceId: spaceId.value || '',
-                    projectPath: projectPath.value,
-                },
-                apiPaths.globalAgentApi
-            );
-            console.log('[useSkills] fetchGlobalAgent result:', result);
-            installedSkills.value = result.skills as AgentSkillInfo[];
-            if (result.agentId) agentId.value = result.agentId;
+            await refreshAgentCache(applicationId.value);
         } catch (e: unknown) {
             console.error('[useSkills] refreshSkills error:', e);
             error.value = e instanceof Error ? e.message : '获取 Skills 数据失败';
@@ -238,46 +238,40 @@ export function useSkills(options: UseSkillsOptions = {}) {
         file_url?: string;
     }) {
         if (!applicationId.value) throw new Error('applicationId is required');
+        if (!agentId.value) throw new Error('agentId is required');
         try {
-            const result = await installSkillApi(
-                {
-                    applicationId: applicationId.value,
-                    space_id: spaceId.value,
-                    source: skillConfig.source,
-                    skill_id: skillConfig.skill_id,
-                    version_id: skillConfig.version_id,
-                    name: skillConfig.name,
-                    file_url: skillConfig.file_url,
-                },
-                apiPaths.createSkillApi
-            );
-            await refreshSkills();
-            return result;
+            const existingSkills = installedSkills.value
+                .filter((s) => !!getSkillId(s))
+                .map((s) => ({ skillId: getSkillId(s) }));
+            const mergedSkills = [
+                ...existingSkills,
+                { skillId: skillConfig.skill_id || '' },
+            ];
+            await modifySkillList(applicationId.value, mergedSkills.filter((s) => s.skillId));
+            MessagePlugin.success('添加成功');
         } catch (e) {
             console.error('[useSkills] addSkill error:', e);
+            MessagePlugin.error('添加失败');
             throw e;
         }
     }
 
     async function removeSkill(skillId: string) {
         if (!applicationId.value) throw new Error('applicationId is required');
+        if (!agentId.value) throw new Error('agentId is required');
         try {
-            await uninstallSkillApi(
-                { applicationId: applicationId.value, skill_id: skillId, space_id: spaceId.value },
-                apiPaths.deleteSkillApi
-            );
-            installedSkills.value = installedSkills.value.filter(
-                (s) => getSkillId(s) !== skillId
-            );
+            const remainingSkills = installedSkills.value
+                .filter((s) => getSkillId(s) !== skillId)
+                .filter((s) => !!getSkillId(s))
+                .map((s) => ({ skillId: getSkillId(s) }));
+            await modifySkillList(applicationId.value, remainingSkills);
+            MessagePlugin.success('已移除');
         } catch (e) {
             console.error('[useSkills] removeSkill error:', e);
+            MessagePlugin.error('移除失败');
             await refreshSkills();
             throw e;
         }
-    }
-
-    function setInstalledSkills(skills: AgentSkillInfo[]) {
-        installedSkills.value = skills || [];
     }
 
     return {
@@ -299,6 +293,5 @@ export function useSkills(options: UseSkillsOptions = {}) {
         getDetail,
         addSkill,
         removeSkill,
-        setInstalledSkills,
     };
 }

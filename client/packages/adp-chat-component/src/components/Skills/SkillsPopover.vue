@@ -39,7 +39,7 @@
                             clearable
                         >
                             <template #prefix-icon>
-                                <CustomizedIcon remote name="basic_search_line" size="s" :show-hover-bg="false" />
+                                <t-icon name="search" />
                             </template>
                         </t-input>
                     </div>
@@ -90,7 +90,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue';
-import { Input as TInput, Loading as TLoading } from 'tdesign-vue-next';
+import { Input as TInput, Loading as TLoading, Icon as TIcon } from 'tdesign-vue-next';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import type { NormalizedSkill, SkillsI18n, SkillSelectEvent } from '../../model/skills';
 import { defaultSkillsI18n, defaultSkillsI18nEn } from '../../model/skills';
@@ -284,6 +284,11 @@ defineExpose({ show, hide });
     &__search {
         flex-shrink: 0;
         padding: 4px;
+        box-sizing: border-box;
+
+        :deep(.t-input) {
+            width: 100%;
+        }
     }
 
     &__list {

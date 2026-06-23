@@ -17,7 +17,7 @@ import { chatRelatedPropsDefaults, defaultSenderI18n, defaultSenderI18nEn } from
 import type { NormalizedSkill, SkillSelectEvent, SkillsI18n, AgentSkillInfo, ManageSkillItem } from '../../model/skills';
 import { defaultSkillsI18n, defaultSkillsI18nEn, AgentSkillType } from '../../model/skills';
 import { normalizeSkill, normalizeManageItem } from '../../composables/useSkills';
-import { fetchGlobalAgent, uninstallSkill as uninstallSkillApi } from '../../service/skillsApi';
+
 import RecordIcon from '../Common/RecordIcon.vue';
 import FileList from '../Common/FileList.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
@@ -99,7 +99,13 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 /** Agent 全局 store */
-const { getAgentIdByAppId } = useAgentStore();
+const {
+    getAgentIdByAppId,
+    refreshAgentCache,
+    modifySkillList,
+    getAgentIdFromCacheByAppId,
+    agentDetailMap,
+} = useAgentStore();
 
 const i18n = computed(() => {
     const defaults = props.language?.startsWith('en') ? defaultSenderI18nEn : defaultSenderI18n;
@@ -167,14 +173,25 @@ const skillsI18n = computed<Required<SkillsI18n>>(() => {
     return { ...defaults, ...props.skillsI18n };
 });
 
-/** 已安装 Skills 原始数据 */
-const skillList = ref<AgentSkillInfo[]>([]);
+/** 已安装 Skills 原始数据（从 agentDetailMap 派生，store 统一缓存） */
+const skillList = computed(() =>
+    (agentDetailMap.value[props.skillsApplicationId]?.skills || []) as AgentSkillInfo[]
+);
+/** 供 SkillsInstallDialog prop 使用的 Record 泛型版本 */
+const skillListForInstall = computed<Record<string, unknown>[]>(() => skillList.value as unknown as Record<string, unknown>[]);
 /** 已安装 Plugin 原始数据 */
-const installedPlugins = ref<Record<string, unknown>[]>([]);
+const installedPlugins = computed<Record<string, unknown>[]>(() =>
+    agentDetailMap.value[props.skillsApplicationId]?.plugins || []
+);
 /** 已安装 Tool 原始数据 */
-const installedToolsRaw = ref<Record<string, unknown>[]>([]);
-/** 当前 Agent ID（从 DescribeAgentDetail 获取） */
-const currentAgentId = ref('');
+const installedToolsRaw = computed<Record<string, unknown>[]>(() =>
+    agentDetailMap.value[props.skillsApplicationId]?.tools || []
+);
+/** 当前 Agent ID（优先缓存，回退 store agentIdMap） */
+const currentAgentId = computed<string>(() =>
+    getAgentIdFromCacheByAppId(props.skillsApplicationId)
+    || getAgentIdByAppId(props.skillsApplicationId)
+);
 /** 正在刷新 */
 const skillsRefreshing = ref(false);
 
@@ -301,28 +318,18 @@ const currentInstalledToolIds = computed<string[]>(() => {
     }).filter(Boolean);
 });
 
-/** 刷新 Skills 列表 */
+/** 刷新 Skills 列表（通过 useAgentStore 统一缓存） */
 async function refreshSkills() {
     const appId = props.skillsApplicationId;
-    // TODO: spaceId 后续从实际空间上下文获取，当前使用默认值
-    const spId = props.spaceId || 'default_space';
-    console.log('[Sender] refreshSkills, appId:', appId, 'spaceId:', spId);
+    console.log('[Sender] refreshSkills, appId:', appId);
     if (!appId) {
         console.warn('[Sender] refreshSkills skipped: no applicationId');
         return;
     }
     skillsRefreshing.value = true;
     try {
-        console.log('[Sender] calling fetchGlobalAgent');
-        const result = await fetchGlobalAgent({
-            applicationId: appId,
-            spaceId: spId,
-        });
-        console.log('[Sender] fetchGlobalAgent result:', result);
-        skillList.value = result.skills as AgentSkillInfo[];
-        installedPlugins.value = result.plugins;
-        installedToolsRaw.value = result.tools;
-        currentAgentId.value = result.agentId || getAgentIdByAppId(appId);
+        await refreshAgentCache(appId);
+        console.log('[Sender] refreshSkills done, skills:', skillList.value.length);
     } catch (e) {
         console.error('[Sender] refreshSkills error:', e);
     } finally {
@@ -348,21 +355,21 @@ watch(
     { immediate: true },
 );
 
-/** 卸载 Skill */
+/** 卸载 Skill：通过 useAgentStore.modifySkillList 统一更新，缓存自动刷新 */
 async function removeSkillById(skillId: string) {
     const appId = props.skillsApplicationId;
     if (!appId) return;
     try {
-        await uninstallSkillApi({
-            applicationId: appId,
-            skill_id: skillId,
-            space_id: props.spaceId || '',
-        });
-        skillList.value = skillList.value.filter(
-            (s) => (s.skill_id || s.SkillId) !== skillId
-        );
+        const remainingSkills = skillList.value
+            .filter((s) => (s.skill_id || s.SkillId) !== skillId)
+            .map((s) => ({
+                skillId: (s.skill_id || s.SkillId || '') as string,
+            }));
+        await modifySkillList(appId, remainingSkills);
+        MessagePlugin.success('已移除');
     } catch (e) {
         console.error('[Sender] removeSkill error:', e);
+        MessagePlugin.error('移除失败');
     }
 }
 
@@ -566,6 +573,7 @@ function _onClickOutsideMention(e: MouseEvent) {
 
 // ─── Skills 事件处理 ──────────────────────────────────────────────
 const onSkillsPopoverSelect = (item: SkillSelectEvent) => {
+    onAtMentionSelect(item);
     emit('skill-select', item);
 };
 
@@ -1059,6 +1067,18 @@ defineExpose({
         <!-- 底部工具栏 -->
         <div class="sender-toolbar">
             <div class="sender-toolbar__left">
+                <TTooltip v-if="enableVoiceInput && !recording" :content="i18n.startRecord">
+                    <span class="recording-icon" :class="{ isMobile: isMobile }" @click="handleStartRecord">
+                        <CustomizedIcon name="voice_input" :theme="theme" :showHoverBg="!isMobile"/>
+                    </span>
+                </TTooltip>
+
+                <TTooltip v-if="enableVoiceInput && recording" :content="i18n.stopRecord">
+                    <span class="recording-icon stop-icon" :class="{ isMobile: isMobile }" @click="handleStopRecord">
+                        <RecordIcon />
+                    </span>
+                </TTooltip>
+
                 <!-- 加号菜单按钮 -->
                 <div ref="plusMenuRef" class="plus-menu-wrapper">
                     <span class="plus-btn" :class="{ active: showPlusMenu, disabled: isUploading }" @click="togglePlusMenu">
@@ -1091,18 +1111,6 @@ defineExpose({
                     is-button-mode
                     @update:selected="(model: ModelOption) => { emit('update:selectedModel', model); emit('modelChange', model); }"
                 />
-
-                <TTooltip v-if="enableVoiceInput && !recording" :content="i18n.startRecord">
-                    <span class="recording-icon" :class="{ isMobile: isMobile }" @click="handleStartRecord">
-                        <CustomizedIcon name="voice_input" :theme="theme" :showHoverBg="!isMobile"/>
-                    </span>
-                </TTooltip>
-
-                <TTooltip v-if="enableVoiceInput && recording" :content="i18n.stopRecord">
-                    <span class="recording-icon stop-icon" :class="{ isMobile: isMobile }" @click="handleStopRecord">
-                        <RecordIcon />
-                    </span>
-                </TTooltip>
 
                 <!-- Skills 按钮 -->
                 <SkillsPopover
@@ -1154,7 +1162,7 @@ defineExpose({
             v-if="skillsEnabled"
             v-model="showSkillsInstall"
             :installed-skill-ids="Array.from(skillsInstalledIds)"
-            :installed-skills="skillList"
+            :installed-skills="skillListForInstall"
             :application-id="skillsApplicationId"
             :agent-id="currentAgentId"
             :space-id="spaceId"
@@ -1476,4 +1484,5 @@ defineExpose({
 .at-mention-tag__close:hover {
     background-color: rgba(74, 112, 255, 0.15);
 }
+
 </style>

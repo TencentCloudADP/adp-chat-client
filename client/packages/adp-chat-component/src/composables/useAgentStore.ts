@@ -22,7 +22,7 @@ import {
     saveAgentConfig,
     type CopyAgentFromAppPayload,
 } from '../service/api';
-import { fetchGlobalAgent, modifyAgent as modifyAgentApi, type AgentModelInfo } from '../service/skillsApi';
+import { fetchGlobalAgent, modifyAgent as modifyAgentApi, modifyAgentSkillList as modifyAgentSkillListApi, type AgentModelInfo } from '../service/skillsApi';
 
 // ------------------------------ 模块作用域单例 state ------------------------------
 /** 按 applicationId 绑定的 agent_id 映射：{ [applicationId]: agentId }（存储 CopyAgentFromApp 返回的 ParentAgentId） */
@@ -319,6 +319,87 @@ export function useAgentStore() {
         await fetchAgentDetail(applicationId, { force: true });
     };
 
+    // ============================= Skills / Tools / Plugins 缓存读写 =============================
+
+    /**
+     * 从缓存中同步获取指定 applicationId 对应的 Skills 列表。
+     * 缓存由 fetchAgentDetail / refreshAgentCache 填充。
+     */
+    const getSkillsByAppId = (applicationId: string): Record<string, unknown>[] => {
+        if (!applicationId) return [];
+        return agentDetailMap.value[applicationId]?.skills || [];
+    };
+
+    /**
+     * 从缓存中同步获取指定 applicationId 对应的 Plugins 列表。
+     */
+    const getPluginsByAppId = (applicationId: string): Record<string, unknown>[] => {
+        if (!applicationId) return [];
+        return agentDetailMap.value[applicationId]?.plugins || [];
+    };
+
+    /**
+     * 从缓存中同步获取指定 applicationId 对应的 Tools 列表。
+     */
+    const getToolsByAppId = (applicationId: string): Record<string, unknown>[] => {
+        if (!applicationId) return [];
+        return agentDetailMap.value[applicationId]?.tools || [];
+    };
+
+    /**
+     * 从缓存中同步取 Agent 详情中的 agentId（与 agentIdMap 独立存储，互补）。
+     */
+    const getAgentIdFromCacheByAppId = (applicationId: string): string => {
+        if (!applicationId) return '';
+        return agentDetailMap.value[applicationId]?.agentId || '';
+    };
+
+    /**
+     * 从缓存中同步获取指定 applicationId 对应的 Agent 绑定模型信息。
+     */
+    const getModelByAppId = (applicationId: string): AgentModelInfo | null => {
+        if (!applicationId) return null;
+        return agentDetailMap.value[applicationId]?.model || null;
+    };
+
+    /**
+     * 修改 Skill 列表（安装 / 卸载均通过此方法）。
+     * 调用 ModifyAgent 更新 skill_list，成功后自动刷新缓存。
+     *
+     * @param applicationId 应用 ID
+     * @param skills 更新后的完整 Skill 列表 [{ skillId, skillType? }]
+     */
+    const modifySkillList = async (
+        applicationId: string,
+        skills: Array<{ skillId: string }>,
+    ): Promise<void> => {
+        const agentId = getAgentIdByAppId(applicationId);
+        if (!applicationId || !agentId) {
+            console.warn('[useAgentStore] applicationId 或 agentId 为空，跳过 modifySkillList');
+            return;
+        }
+        await modifyAgentSkillListApi({
+            applicationId,
+            agentId,
+            skills,
+        });
+        // 修改成功后刷新缓存
+        await fetchAgentDetail(applicationId, { force: true });
+    };
+
+    /**
+     * 强制刷新 Agent 缓存（Skills / Plugins / Tools / AgentId / Model），
+     * 同时从 DescribeAgentDetail 返回值中同步更新 agentIdMap。
+     */
+    const refreshAgentCache = async (applicationId: string): Promise<AgentDetail | null> => {
+        const detail = await fetchAgentDetail(applicationId, { force: true });
+        if (detail?.agentId) {
+            // 同步更新 agentIdMap，确保 getAgentIdByAppId 返回最新值
+            agentIdMap.value = { ...agentIdMap.value, [applicationId]: detail.agentId };
+        }
+        return detail;
+    };
+
     /**
      * 监听一个响应式的 applicationId 源，当其变化时自动调用 fetchAndSetAgentId。
      * 支持传入 Ref<string>、getter 函数 () => string 等。
@@ -366,6 +447,22 @@ export function useAgentStore() {
         getAgentDetailByAppId,
         /** 修改 Agent 配置（局部更新），成功后自动刷新缓存 */
         modifyAgent,
+
+        // ===== Skills / Tools / Plugins 缓存读写 =====
+        /** 从缓存同步获取 Skills 列表（缓存由 refreshAgentCache 填充） */
+        getSkillsByAppId,
+        /** 从缓存同步获取 Plugins 列表 */
+        getPluginsByAppId,
+        /** 从缓存同步获取 Tools 列表 */
+        getToolsByAppId,
+        /** 从缓存同步获取 Agent 详情中的 agentId */
+        getAgentIdFromCacheByAppId,
+        /** 从缓存同步获取 Agent 绑定的模型信息 */
+        getModelByAppId,
+        /** 修改 Skill 列表（安装/卸载），成功后自动刷新缓存 */
+        modifySkillList,
+        /** 强制刷新 Agent 缓存（Skills/Plugins/Tools/AgentId/Model），同步更新 agentIdMap */
+        refreshAgentCache,
     };
 }
 

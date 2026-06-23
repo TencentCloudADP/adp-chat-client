@@ -41,7 +41,6 @@
                             </div>
                         </template>
                     </t-popup>
-                    <t-checkbox v-model="filterFavorite" @change="doReset">收藏</t-checkbox>
                     <t-input v-model="searchKeyword" placeholder="搜索工具"  clearable class="plugin-dialog__search" @change="onSearch">
                         <template #prefix-icon><t-icon name="search" /></template>
                     </t-input>
@@ -83,7 +82,7 @@
                                 <span v-if="itemCreator(item)" class="plugin-card__sep">|</span>
                                 <span class="plugin-card__tool-count">含{{ itemToolCount(item) }}个工具</span>
                                 <span class="plugin-card__sep">|</span>
-                                <span class="plugin-card__fav" @click.stop="onToggleFav(item)">
+                                <span class="plugin-card__fav">
                                     <t-icon :name="item.IsFavorite || item.is_favorite ? 'star-filled' : 'star'" :style="{ color: (item.IsFavorite || item.is_favorite) ? '#f8c544' : 'var(--td-text-color-placeholder)', fontSize: '14px' }" />
                                     {{ (item.IsFavorite || item.is_favorite) ? '已收藏' : '收藏' }}
                                 </span>
@@ -205,7 +204,6 @@ const emit = defineEmits<{
 const visible = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) });
 const activeTab = ref('inner');
 const activeCategory = ref('all');
-const filterFavorite = ref(false);
 const filterVisible = ref(false);
 const searchKeyword = ref('');
 const selectedSort = ref(3);
@@ -305,7 +303,6 @@ async function fetchList() {
             query: searchKeyword.value || undefined, pageNumber: pageNumber.value, pageSize,
             sortType: selectedSort.value,
             categoryKeys: activeCategory.value !== 'all' ? [activeCategory.value] : [],
-            favoriteOnly: filterFavorite.value,
             pluginTypes: activeTab.value === 'custom' ? [0] : (filterValue.value.plugintypes || []).length > 0 ? filterValue.value.plugintypes! : [1, 2],
             financeTypeList: activeTab.value === 'custom' ? undefined : (filterValue.value.financetypes || []).length > 0 ? filterValue.value.financetypes : undefined,
             createTypes: activeTab.value === 'custom' ? undefined : (filterValue.value.createtypes || []).length > 0 ? filterValue.value.createtypes : undefined,
@@ -317,7 +314,7 @@ async function fetchList() {
 /* ===== 事件处理 ===== */
 function doReset() { pageNumber.value = 1; fetchList(); }
 function onSearch() { if (searchTimer) clearTimeout(searchTimer); searchTimer = setTimeout(doReset, 300); }
-function onTabChange() { activeCategory.value = 'all'; filterFavorite.value = false; filterValue.value = { plugintypes: [1, 2], financetypes: [2, 3, 0], createtypes: [2, 0, 1, 3] }; searchKeyword.value = ''; selectedSort.value = 3; doReset(); }
+function onTabChange() { activeCategory.value = 'all'; filterValue.value = { plugintypes: [1, 2], financetypes: [2, 3, 0], createtypes: [2, 0, 1, 3] }; searchKeyword.value = ''; selectedSort.value = 3; doReset(); }
 function onExpand(item: Record<string, unknown>) { const id = itemId(item); expandedId.value = expandedId.value === id ? '' : id; }
 
 /** 正在执行绑定的按钮 key */
@@ -501,11 +498,6 @@ async function onDeleteTool(plugin: Record<string, unknown>, tool: Record<string
     }
 }
 
-function onToggleFav(item: Record<string, unknown>) {
-    if (item.IsFavorite !== undefined) { item.IsFavorite = !item.IsFavorite; }
-    else { item.is_favorite = !item.is_favorite; }
-}
-
 async function onUpdatePlugin(item: Record<string, unknown>) {
     if (item._toolsLoading) return;
     item._toolsLoading = true;
@@ -525,7 +517,6 @@ watch(() => props.modelValue, (val) => {
     if (val) {
         activeTab.value = 'inner';
         activeCategory.value = 'all';
-        filterFavorite.value = false;
         filterValue.value = { plugintypes: [1, 2], financetypes: [2, 3, 0], createtypes: [2, 0, 1, 3] };
         searchKeyword.value = '';
         selectedSort.value = 3;
@@ -586,8 +577,7 @@ watch(() => props.modelValue, (val) => {
 .plugin-card__author { color: var(--td-text-color-secondary); }
 .plugin-card__sep { color: var(--td-component-border); }
 .plugin-card__tool-count { color: var(--td-brand-color); }
-.plugin-card__fav { cursor: pointer; display: inline-flex; align-items: center; gap: 2px; transition: color 0.15s; }
-.plugin-card__fav:hover { color: var(--td-text-color-primary); }
+.plugin-card__fav { display: inline-flex; align-items: center; gap: 2px; }
 .plugin-card__refresh { cursor: pointer; display: inline-flex; align-items: center; gap: 2px; transition: color 0.15s; }
 .plugin-card__refresh:hover { color: var(--td-brand-color); }
 .plugin-card__refresh.is-loading { opacity: 0.5; pointer-events: none; }

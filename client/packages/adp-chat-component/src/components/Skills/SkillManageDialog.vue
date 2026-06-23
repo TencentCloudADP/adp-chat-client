@@ -4,7 +4,7 @@
         :header="i18n.manageSkills"
         :footer="false"
         width="700px"
-        :close-on-overlay-click="true"
+        :close-on-overlay-click="false"
         @close="onClose"
     >
         <div class="skills-manage">

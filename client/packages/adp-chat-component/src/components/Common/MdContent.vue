@@ -378,7 +378,6 @@ const renderedMarkdown = computed(() => {
             `<span data-w-e-type="mention" data-mention-type="${mentionType}" data-mention-id="" data-mention-name="${safeName}" data-display-label="${safeLabel}"${displayNameAttr} class="at-mention-tag" contenteditable="false">` +
             `<span class="at-mention-tag__icon at-mention-tag__icon--${iconModifier}"></span>` +
             `<span class="at-mention-tag__text">${escapeHtml(textContent)}</span>` +
-            '<span class="at-mention-tag__close"></span>' +
             '</span>'
         );
       };

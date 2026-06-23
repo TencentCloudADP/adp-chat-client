@@ -51,7 +51,7 @@ function getIconModifier(mentionType: string): string {
 // ======================== 渲染（Slate → snabbdom VNode）========================
 
 /**
- * 通过 Slate API 删除指定 mention 节点
+ * 通过 Slate API 删除指定 mention 节点（编辑器内删除 chip 用）
  */
 function removeMentionNode(editor: IDomEditor, elemNode: MentionElement): void {
     try {
@@ -138,7 +138,6 @@ function mentionToHtml(elem: MentionElement): string {
         `<span data-w-e-type="mention" data-mention-type="${mentionType}" data-mention-id="${encodeURIComponent(mentionId)}" data-mention-name="${encodeURIComponent(mentionName)}" data-display-label="${encodeURIComponent(displayLabel || '')}"${displayNameAttr} class="at-mention-tag" contenteditable="false">` +
         `<span class="at-mention-tag__icon at-mention-tag__icon--${iconModifier}"></span>` +
         `<span class="at-mention-tag__text">${escapeHtmlText(textContent)}</span>` +
-        '<span class="at-mention-tag__close"></span>' +
         '</span>'
     )
 }
@@ -335,7 +334,6 @@ function buildMentionChipHtml(opts: {
         `<span data-w-e-type="mention" data-mention-type="${mentionType}" data-mention-id="${safeId}" data-mention-name="${safeName}" data-display-label="${safeLabel}"${displayNameAttr} class="at-mention-tag" contenteditable="false">` +
         `<span class="at-mention-tag__icon at-mention-tag__icon--${iconModifier}"></span>` +
         `<span class="at-mention-tag__text">${escapeHtmlText(textContent)}</span>` +
-        '<span class="at-mention-tag__close"></span>' +
         '</span>'
     )
 }
