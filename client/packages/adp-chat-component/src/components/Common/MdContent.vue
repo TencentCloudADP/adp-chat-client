@@ -25,6 +25,8 @@ import DOMPurify from 'dompurify';
 import 'katex/dist/katex.min.css';
 import '../../styles/markdown.css';
 import 'highlight.js/styles/default.css';
+import type { NormalizedSkill } from '../../model/skills';
+import { inlineTextToMentionHtml } from '../QaEditor/mention-module';
 
 // Widget 模块导入
 import { createMarkdownItWidgetPlugin } from '../../widget';
@@ -59,6 +61,12 @@ interface Props extends ThemeProps {
    * - number: 按指定比例缩放（如 0.5 表示缩放到 50%）
    */
   enableScale?: boolean | number;
+  /** 已注册 skills（用于把 user 消息中的 @skill:name 还原为蓝色 chip） */
+  mentionSkills?: NormalizedSkill[];
+  /** 已注册 tools */
+  mentionTools?: NormalizedSkill[];
+  /** 已注册 connectors */
+  mentionConnectors?: NormalizedSkill[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -71,6 +79,9 @@ const props = withDefaults(defineProps<Props>(), {
   recordId: '',
   disable: false,
   enableScale: false,
+  mentionSkills: () => [],
+  mentionTools: () => [],
+  mentionConnectors: () => [],
   ...themePropsDefaults,
 });
 
@@ -275,8 +286,128 @@ const renderedMarkdown = computed(() => {
   // 访问 mode 以确保 computed 能追踪其变化
   const _mode = props.mode;
   void _mode;
-  const html = mdIt.render(insertReference(props.content, props.quoteInfos));
-  return DOMPurify.sanitize(html, {
+
+  /*
+   * user 消息中的 @skill:name / @tool:name 需要还原为蓝色 chip，
+   * 但直接拼 chip span 会被 markdown-it 处理或被 DOMPurify 严格过滤。
+   * 采用占位符替换策略：
+   * 1) 渲染前把内联标记替换为 [\u0001MENTION_<idx>\u0001]，避开 markdown 与 DOMPurify
+   * 2) 渲染并消毒后再把占位符还原为安全的 chip HTML（chip 自身仅含 span/class/data-*，已在 DOMPurify 白名单内）
+   */
+  const mentionChips: string[] = [];
+  let preprocessed = props.content;
+  if (props.role === 'user') {
+    // 与 sender 中 chip 显示风格保持一致：标签前缀对应 AtMentionPanel 的分类 label
+    const LABEL_SKILLS = 'Skills';
+    const LABEL_TOOLS = '工具';
+    const LABEL_CONNECTORS = '连接器';
+
+    // eslint-disable-next-line no-console
+    console.log('[MdContent] user message render, mention lists:',
+        'skills:', (props.mentionSkills || []).length,
+        'tools:', (props.mentionTools || []).length,
+        'connectors:', (props.mentionConnectors || []).length);
+
+    const chipHtml = inlineTextToMentionHtml(props.content, {
+      skills: props.mentionSkills,
+      tools: [...(props.mentionTools || []), ...(props.mentionConnectors || [])],
+      labels: { skills: LABEL_SKILLS, tools: LABEL_TOOLS },
+    });
+    if (chipHtml && chipHtml.includes('class="at-mention-tag"')) {
+      // 把每个 chip 抽出并用占位符替换原文中的 @skill:/@tool:
+      const TAG_REGEX = /@(skill|tool):([^\s@<>]+)/g;
+      // 注册名按长度降序，与 inlineTextToMentionHtml 保持一致的最长前缀匹配规则
+      const skillNames = (props.mentionSkills || [])
+        .map((s) => s?.name || '')
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length);
+      const toolNames = [...(props.mentionTools || []), ...(props.mentionConnectors || [])]
+        .map((t) => t?.name || '')
+        .filter(Boolean)
+        .sort((a, b) => b.length - a.length);
+      const skillMap: Record<string, string> = Object.create(null);
+      (props.mentionSkills || []).forEach((s) => {
+        if (s?.name) skillMap[s.name] = s.displayName || s.name;
+      });
+      const toolMap: Record<string, string> = Object.create(null);
+      const connectorNameSet = new Set<string>();
+      (props.mentionConnectors || []).forEach((c) => {
+        if (c?.name) {
+          toolMap[c.name] = c.displayName || c.name;
+          connectorNameSet.add(c.name);
+        }
+      });
+      (props.mentionTools || []).forEach((t) => {
+        if (t?.name) toolMap[t.name] = t.displayName || t.name;
+      });
+
+      const buildChip = (rawType: 'skill' | 'tool', name: string): string => {
+        // tools 与 connectors 在序列化时都用 @tool:，此处通过 connectorNameSet 区分
+        let mentionType: 'skills' | 'tools' | 'connectors';
+        let displayLabel: string;
+        if (rawType === 'skill') {
+            mentionType = 'skills';
+            displayLabel = LABEL_SKILLS;
+        } else if (connectorNameSet.has(name)) {
+            mentionType = 'connectors';
+            displayLabel = LABEL_CONNECTORS;
+        } else {
+            mentionType = 'tools';
+            displayLabel = LABEL_TOOLS;
+        }
+        const map = rawType === 'skill' ? skillMap : toolMap;
+        const mentionDisplayName = map[name] || '';
+        const showName = mentionDisplayName || name;
+        // 与 mention-module.renderMention / mentionToHtml 保持一致：chip 文本为 "displayLabel showName"
+        const textContent = displayLabel ? `${displayLabel} ${showName}` : showName;
+        // 图标修饰符：tools → plugins，其余沿用 mentionType
+        const iconModifier = mentionType === 'tools' ? 'plugins' : mentionType;
+        const safeName = encodeURIComponent(name || '');
+        const escapeHtml = (str: string) =>
+            String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        const displayNameAttr = mentionDisplayName
+            ? ` data-mention-display-name="${encodeURIComponent(mentionDisplayName)}"`
+            : '';
+        const safeLabel = encodeURIComponent(displayLabel);
+        return (
+            `<span data-w-e-type="mention" data-mention-type="${mentionType}" data-mention-id="" data-mention-name="${safeName}" data-display-label="${safeLabel}"${displayNameAttr} class="at-mention-tag" contenteditable="false">` +
+            `<span class="at-mention-tag__icon at-mention-tag__icon--${iconModifier}"></span>` +
+            `<span class="at-mention-tag__text">${escapeHtml(textContent)}</span>` +
+            '<span class="at-mention-tag__close"></span>' +
+            '</span>'
+        );
+      };
+
+      preprocessed = props.content.replace(TAG_REGEX, (full, rawType: string, rawName: string) => {
+        let name = rawName;
+        const candidates = rawType === 'skill' ? skillNames : toolNames;
+        if (candidates.length) {
+          const hit = candidates.find((n) => name.startsWith(n));
+          if (hit && hit.length < name.length) {
+            // 把 chip 截断到注册名长度，多出的字符回退为后续文本
+            const remainder = name.slice(hit.length);
+            name = hit;
+            const idx = mentionChips.length;
+            mentionChips.push(buildChip(rawType as 'skill' | 'tool', name));
+            return `\u0001MENTION_${idx}\u0001${remainder}`;
+          }
+        }
+        const idx = mentionChips.length;
+        mentionChips.push(buildChip(rawType as 'skill' | 'tool', name));
+        // full 仅作为兜底使用以避免 lint 未使用警告
+        void full;
+        return `\u0001MENTION_${idx}\u0001`;
+      });
+    }
+  }
+
+  const html = mdIt.render(insertReference(preprocessed, props.quoteInfos));
+  const sanitized = DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [
       'p', 'br', 'strong', 'em', 'b', 'i', 'u', 's', 'del',
       'code', 'pre', 'ul', 'ol', 'li',
@@ -300,6 +431,13 @@ const renderedMarkdown = computed(() => {
     ALLOW_DATA_ATTR: true,
     ADD_TAGS: ['adp-widget'],
     ADD_ATTR: ['locale', 'disable', 'widget-json', 'data-widget-json', 'data-widget-id', 'data-widget-run-id', 'data-record-id', 'data-src'],
+  });
+
+  // 回填占位符为 chip HTML（chip 元素已在 ALLOWED_TAGS/ALLOW_DATA_ATTR 范围内）
+  if (mentionChips.length === 0) return sanitized;
+  return sanitized.replace(/\u0001MENTION_(\d+)\u0001/g, (_, idx: string) => {
+    const i = Number(idx);
+    return mentionChips[i] || '';
   });
 });
 

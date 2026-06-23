@@ -274,4 +274,145 @@ export function serializeMentionToInlineText(editor: IDomEditor): string {
     return root.children.map(serializeNode).join('\n').trim()
 }
 
+// ======================== 反向序列化（内联文本 → chip HTML）========================
+
+/** 已注册的 mention 项（用于在反向解析时把英文 name 还原为中文 displayName） */
+export interface RegisteredMentionItem {
+    /** 英文/技术名，对应 @skill:xxx / @tool:xxx 中的 xxx */
+    name: string
+    /** 中文展示名 */
+    displayName?: string
+    /** 唯一 ID（可选） */
+    id?: string
+}
+
+/**
+ * 反向序列化所需的上下文配置
+ * skills/tools 用于把内联文本中的 @skill:name / @tool:name 还原为中文 chip
+ */
+export interface InlineTextToMentionOptions {
+    /** 已注册 skills 列表（来自面板数据） */
+    skills?: RegisteredMentionItem[]
+    /** 已注册 tools/connectors 列表（合并） */
+    tools?: RegisteredMentionItem[]
+    /** 类目前缀文案，如 { skills: '技能', tools: '工具' } */
+    labels?: { skills?: string; tools?: string }
+}
+
+/** 构造 name → displayName 的映射 */
+function buildMentionNameMap(items?: RegisteredMentionItem[]): Record<string, string> {
+    const map: Record<string, string> = Object.create(null)
+    if (!items) return map
+    for (const item of items) {
+        if (!item || !item.name) continue
+        map[item.name] = item.displayName || item.name
+    }
+    return map
+}
+
+/**
+ * 拼装 chip HTML 片段，与 mentionToHtml 输出结构保持一致，
+ * 以便后续可被 parseMentionHtml 反序列化（如塞入编辑器）。
+ */
+function buildMentionChipHtml(opts: {
+    mentionType: string
+    mentionId: string
+    mentionName: string
+    mentionDisplayName: string
+    displayLabel: string
+}): string {
+    const { mentionType, mentionId, mentionName, mentionDisplayName, displayLabel } = opts
+    const iconModifier = getIconModifier(mentionType)
+    const showName = mentionDisplayName || mentionName
+    const textContent = displayLabel ? `${displayLabel} ${showName}` : showName
+    const safeId = encodeURIComponent(mentionId || '')
+    const safeName = encodeURIComponent(mentionName || '')
+    const safeLabel = encodeURIComponent(displayLabel || '')
+    const displayNameAttr = mentionDisplayName
+        ? ` data-mention-display-name="${encodeURIComponent(mentionDisplayName)}"`
+        : ''
+    return (
+        `<span data-w-e-type="mention" data-mention-type="${mentionType}" data-mention-id="${safeId}" data-mention-name="${safeName}" data-display-label="${safeLabel}"${displayNameAttr} class="at-mention-tag" contenteditable="false">` +
+        `<span class="at-mention-tag__icon at-mention-tag__icon--${iconModifier}"></span>` +
+        `<span class="at-mention-tag__text">${escapeHtmlText(textContent)}</span>` +
+        '<span class="at-mention-tag__close"></span>' +
+        '</span>'
+    )
+}
+
+/**
+ * 把 "已序列化的内联文本" 反向解析为含 chip HTML 的字符串：
+ * - @skill:name → 蓝色 skill chip
+ * - @tool:name  → 蓝色 tool chip
+ *
+ * 解析规则：
+ * - 优先在 skills/tools 注册表中按最长前缀匹配名字，命中则用其中文 displayName 做展示，
+ *   未匹配的部分回退到原始 name；
+ * - 未注册的 name 仍会渲染为 chip，文本直接显示英文 name；
+ * - 其它字符按原样保留并做 HTML 转义。
+ *
+ * 适用场景：用户消息气泡中把后端回显的文本内联标记转换为蓝色 chip 展示。
+ */
+export function inlineTextToMentionHtml(text: string, opts: InlineTextToMentionOptions = {}): string {
+    if (!text || typeof text !== 'string') return ''
+
+    const skillMap = buildMentionNameMap(opts.skills)
+    const toolMap = buildMentionNameMap(opts.tools)
+    const labelSkill = opts.labels?.skills || ''
+    const labelTool = opts.labels?.tools || ''
+
+    // 注册名按长度降序，便于做最长前缀匹配（避免 "foo" 把 "foobar" 截断成 "foo"）
+    const skillNames = Object.keys(skillMap).sort((a, b) => b.length - a.length)
+    const toolNames = Object.keys(toolMap).sort((a, b) => b.length - a.length)
+
+    // @tool/@skill 的通用正则：name 可包含字母数字下划线、'-'、'/'、'.'，遇到空白/中文/@ 等终止
+    const TAG_REGEX = /@(skill|tool):([^\s@<>]+)/g
+
+    const out: string[] = []
+    let lastIndex = 0
+    let m: RegExpExecArray | null
+    while ((m = TAG_REGEX.exec(text)) !== null) {
+        const matchStart = m.index
+        const rawType = m[1] || ''
+        let name = m[2] || ''
+        let matchEnd = matchStart + m[0].length
+
+        // 最长前缀匹配，把多余字符回退到外层文本
+        const candidates = rawType === 'skill' ? skillNames : rawType === 'tool' ? toolNames : []
+        if (candidates.length) {
+            const hit = candidates.find((n) => name.startsWith(n))
+            if (hit && hit.length < name.length) {
+                const prefixLen = m[0].indexOf(':') + 1
+                matchEnd = matchStart + prefixLen + hit.length
+                name = hit
+            }
+        }
+
+        // 先输出 chip 前的纯文本（转义）
+        if (matchStart > lastIndex) {
+            out.push(escapeHtmlText(text.slice(lastIndex, matchStart)))
+        }
+
+        const mentionType = rawType === 'skill' ? 'skills' : 'tools'
+        const map = rawType === 'skill' ? skillMap : toolMap
+        const mentionDisplayName = map[name] || ''
+        const displayLabel = rawType === 'skill' ? labelSkill : labelTool
+
+        out.push(
+            buildMentionChipHtml({
+                mentionType,
+                mentionId: '',
+                mentionName: name,
+                mentionDisplayName,
+                displayLabel,
+            }),
+        )
+        lastIndex = matchEnd
+    }
+    if (lastIndex < text.length) {
+        out.push(escapeHtmlText(text.slice(lastIndex)))
+    }
+    return out.join('')
+}
+
 export default mentionModule

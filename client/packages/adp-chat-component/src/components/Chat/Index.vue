@@ -57,6 +57,9 @@
                                 :mode="props.mode"
                                 :language="props.language"
                                 :i18n="chatItemI18n"
+                                :mentionSkills="mentionSkills"
+                                :mentionTools="mentionTools"
+                                :mentionConnectors="mentionConnectors"
                                 @resend="onResend"
                                 @share="onShare"
                                 @rate="onRate"
@@ -120,6 +123,7 @@
                     @startRecord="handleStartRecord"
                     @stopRecord="handleStopRecord"
                     @message="handleMessage"
+                    @mention-list-update="onMentionListUpdate"
                 />
             </template>
         </TChat>
@@ -132,6 +136,9 @@ import InfiniteLoading from 'vue-infinite-loading'
 import { Chat as TChat } from '@tdesign-vue-next/chat'
 import { Checkbox, Loading as TLoading, Card as TCard, Checkbox as TCheckbox, Divider as TDivider } from 'tdesign-vue-next'
 import type { Record } from '../../model/chat-v2'
+import type { NormalizedSkill, AgentSkillInfo } from '../../model/skills'
+import { normalizeSkill } from '../../composables/useSkills'
+import { fetchGlobalAgent } from '../../service/skillsApi'
 import { ScoreValue } from '../../model/chat-v2'
 import type { FileProps } from '../../model/file';
 import { MessageCode } from '../../model/messages';
@@ -271,6 +278,102 @@ const emit = defineEmits<{
  * 内部聊天列表（用于本地状态管理）
  */
 const internalChatList = ref<Record[]>([]);
+
+/**
+ * mention 列表：由 Sender 在拉取 Skills/Tools 后 emit，
+ * 透传给 ChatItem → MdContent，用于把消息文本中的 @skill:/@tool: 还原为蓝色 chip
+ */
+const mentionSkills = ref<NormalizedSkill[]>([]);
+const mentionTools = ref<NormalizedSkill[]>([]);
+const mentionConnectors = ref<NormalizedSkill[]>([]);
+
+/** Sender mention 列表更新事件处理 */
+function onMentionListUpdate(payload: { skills: NormalizedSkill[]; tools: NormalizedSkill[]; connectors: NormalizedSkill[] }) {
+    // eslint-disable-next-line no-console
+    console.log('[Chat/Index] onMentionListUpdate received',
+        'skills:', (payload.skills || []).length,
+        'tools:', (payload.tools || []).length,
+        'connectors:', (payload.connectors || []).length);
+    mentionSkills.value = payload.skills || [];
+    mentionTools.value = payload.tools || [];
+    mentionConnectors.value = payload.connectors || [];
+}
+
+/**
+ * 独立拉取 mention 数据（标准/claw 両モード共通）
+ * Sender の Skills ボタン表示に関わらず、ロードすれば使えるように
+ */
+async function refreshMentionLists() {
+    const appId = skillsAppId.value;
+    if (!appId) return;
+    try {
+        const result = await fetchGlobalAgent({ applicationId: appId });
+        // skills
+        mentionSkills.value = ((result.skills || []) as AgentSkillInfo[])
+            .filter((s) => !!(s.skill_display_name || s.SkillDisplayName))
+            .map(normalizeSkill);
+        // tools / connectors（Sender.vue と同様の解析ロジック）
+        const plugins = result.plugins || [];
+        const pluginClassMap = new Map<string, number>();
+        for (const p of plugins) {
+            const pid = (p.PluginId || p.plugin_id || '') as string;
+            if (pid) pluginClassMap.set(pid, (p.PluginClass ?? p.plugin_class ?? 0) as number);
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const allTools = (result.tools || []) as any[];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const parseRaw = (t: any) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const cfg = (t.Config || t.config || {}) as any;
+            const raw = String(t.tool_name || t.ToolName || t.name || t.Name || cfg.description || cfg.Description || '');
+            const idx = raw.lastIndexOf('/');
+            return idx > -1 ? { displayName: raw.slice(0, idx), name: raw.slice(idx + 1) } : { displayName: raw, name: raw };
+        };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const getPluginId = (t: any) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const cfg = (t.Config || t.config || {}) as any;
+            return (cfg.plugin_id || cfg.pluginid || cfg.PluginId || '') as string;
+        };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const toolPluginName = (t: any) =>
+            String(t.plugin_name || t.PluginName || t.PluginDisplayName || t.plugin_display_name || '');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const buildItem = (t: any) => {
+            const { displayName, name } = parseRaw(t);
+            const pluginName = toolPluginName(t);
+            let finalDisplayName = displayName;
+            if (!displayName || displayName === name) {
+                finalDisplayName = (pluginName && pluginName !== name) ? `${pluginName}/${name}` : (displayName || name);
+            }
+            return {
+                id: (t.tool_id || t.ToolId || '') as string,
+                name: name || ((t.tool_id || t.ToolId || '') as string),
+                displayName: finalDisplayName || displayName || name || '',
+                iconUrl: (t.IconUrl || t.icon_url || '') as string,
+            } as NormalizedSkill;
+        };
+        mentionConnectors.value = allTools
+            .filter((t) => pluginClassMap.get(getPluginId(t)) === 1)
+            .map(buildItem);
+        mentionTools.value = allTools
+            .filter((t) => pluginClassMap.get(getPluginId(t)) === 0)
+            .map(buildItem);
+    } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('[Chat/Index] refreshMentionLists failed:', e);
+    }
+    // eslint-disable-next-line no-console
+    console.log('[Chat/Index] refreshMentionLists done',
+        'skills:', mentionSkills.value.length,
+        'tools:', mentionTools.value.length,
+        'connectors:', mentionConnectors.value.length);
+}
+
+/** skillsAppId 変化時に mention データを独立取得 */
+watch(skillsAppId, (val) => {
+    if (val) refreshMentionLists();
+}, { immediate: true });
 
 /**
  * 计算属性：实际使用的聊天列表

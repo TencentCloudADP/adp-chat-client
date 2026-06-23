@@ -16,6 +16,7 @@ import CustomizedIcon from '../CustomizedIcon.vue';
 import CollapsibleMessageGroup from './CollapsibleMessageGroup.vue';
 import type { CollapseKind } from './CollapsibleMessageGroup.vue';
 import { widgetContentToMarkdown } from '../../utils/mergeRecord-v2';
+import type { NormalizedSkill } from '../../model/skills';
 
 interface Props extends CommonLayoutProps {
     /** 当前聊天记录项 */
@@ -36,6 +37,12 @@ interface Props extends CommonLayoutProps {
     language?: string;
     /** 聊天模式：claw-简化模式, standard-标准模式 */
     mode?: ChatMode;
+    /** 已注册 skills 列表（用于把 user 消息中的 @skill:name 还原为蓝色 chip） */
+    mentionSkills?: NormalizedSkill[];
+    /** 已注册 tools 列表 */
+    mentionTools?: NormalizedSkill[];
+    /** 已注册 connectors 列表 */
+    mentionConnectors?: NormalizedSkill[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -45,6 +52,9 @@ const props = withDefaults(defineProps<Props>(), {
     mode: 'standard',
     ...commonLayoutPropsDefaults,
     i18n: () => ({}),
+    mentionSkills: () => [],
+    mentionTools: () => [],
+    mentionConnectors: () => [],
 });
 
 // 合并默认值和传入值
@@ -596,6 +606,9 @@ const referenceDialogTitle = computed(() => {
                         :language="language"
                         :recordId="item.RecordId"
                         :enableScale="isMobile"
+                        :mentionSkills="mentionSkills"
+                        :mentionTools="mentionTools"
+                        :mentionConnectors="mentionConnectors"
                         @widgetEvent="handleWidgetEvent"
                     />
                     <span>

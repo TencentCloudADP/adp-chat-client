@@ -34,6 +34,7 @@ import SkillsInstallDialog from '../Skills/SkillsInstallDialog.vue';
 import SkillManageDialog from '../Skills/SkillManageDialog.vue';
 import ConnectorDialog from '../Connector/ConnectorDialog.vue';
 import PluginInstallDialog from '../Plugin/PluginInstallDialog.vue';
+import PluginManageDialog from '../Plugin/PluginManageDialog.vue';
 import AtMentionPanel from './AtMentionPanel.vue';
 
 export interface Props extends ChatRelatedProps {
@@ -101,7 +102,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 /** Agent 全局 store */
-const { fetchAndSetAgentId } = useAgentStore();
+const { fetchAndSetAgentId, getAgentIdByAppId } = useAgentStore();
 
 const i18n = computed(() => {
     const defaults = props.language?.startsWith('en') ? defaultSenderI18nEn : defaultSenderI18n;
@@ -145,6 +146,11 @@ const emit = defineEmits<{
     /** Skill 卸载 */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (e: 'skill-uninstalled', skill: any): void;
+    /**
+     * mention 列表更新：包含已注册 skills/tools/connectors 的标准化数据，
+     * 父组件可将其透传给 ChatItem/MdContent，用于把消息中的 @skill:/@tool: 还原为蓝色 chip
+     */
+    (e: 'mention-list-update', payload: { skills: NormalizedSkill[]; tools: NormalizedSkill[]; connectors: NormalizedSkill[] }): void;
 }>();
 
 const editorHtml = ref('');
@@ -170,6 +176,8 @@ const skillList = ref<AgentSkillInfo[]>([]);
 const installedPlugins = ref<Record<string, unknown>[]>([]);
 /** 已安装 Tool 原始数据 */
 const installedToolsRaw = ref<Record<string, unknown>[]>([]);
+/** 当前 Agent ID（从 DescribeAgentDetail 获取） */
+const currentAgentId = ref('');
 /** 正在刷新 */
 const skillsRefreshing = ref(false);
 
@@ -288,6 +296,14 @@ const skillsInstalledIds = computed(() => {
     return [...new Set(skillList.value.map((s) => (s.skill_id || s.SkillId || '')).filter(Boolean))];
 });
 
+/** 已安装工具 ID 集合（传递给 PluginInstallDialog 用于判断已添加状态） */
+const currentInstalledToolIds = computed<string[]>(() => {
+    return installedToolsRaw.value.map((t) => {
+        const cfg = (t.Config || t.config || {}) as Record<string, unknown>;
+        return (cfg.tool_id || cfg.ToolId || t.tool_id || t.ToolId || '') as string;
+    }).filter(Boolean);
+});
+
 /** 刷新 Skills 列表 */
 async function refreshSkills() {
     const appId = props.skillsApplicationId;
@@ -309,12 +325,31 @@ async function refreshSkills() {
         skillList.value = result.skills as AgentSkillInfo[];
         installedPlugins.value = result.plugins;
         installedToolsRaw.value = result.tools;
+        currentAgentId.value = result.agentId || getAgentIdByAppId(appId);
     } catch (e) {
         console.error('[Sender] refreshSkills error:', e);
     } finally {
         skillsRefreshing.value = false;
     }
 }
+
+/** 已注册 mention 数据变化时向父组件 emit，父组件再透传给 ChatItem/MdContent 渲染 chip */
+watch(
+    [skillList, installedToolsRaw],
+    () => {
+        // eslint-disable-next-line no-console
+        console.log('[Sender] emit mention-list-update (raw data changed)',
+            'skills:', normalizedSkills.value.length,
+            'tools:', mentionTools.value.length,
+            'connectors:', mentionConnectors.value.length);
+        emit('mention-list-update', {
+            skills: normalizedSkills.value,
+            tools: mentionTools.value,
+            connectors: mentionConnectors.value,
+        });
+    },
+    { immediate: true },
+);
 
 /** 卸载 Skill */
 async function removeSkillById(skillId: string) {
@@ -352,6 +387,7 @@ const showSkillsManage = ref(false);
 // Connector + Plugin
 const showConnector = ref(false);
 const showPlugin = ref(false);
+const showPluginManage = ref(false);
 
 // ─── @ Mention ───────────────────────────────────────────────
 const atMentionVisible = ref(false);
@@ -1092,7 +1128,7 @@ defineExpose({
 
                 <!-- Skills 按钮 -->
                 <SkillsPopover
-                    v-if="skillsEnabled"
+                    v-if="skillsEnabled && mode === 'claw'"
                     ref="skillsPopoverRef"
                     :installed-skills="normalizedSkills"
                     :loading="skillsRefreshing"
@@ -1104,13 +1140,13 @@ defineExpose({
                 />
 
                 <!-- 连接器按钮 -->
-                <div class="toolbar-pill-btn" @click="showConnector = true">
+                <div v-if="mode === 'claw'"  class="toolbar-pill-btn" @click="showConnector = true">
                     <CustomizedIcon remote name="basic_api_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" />
                     <span class="toolbar-pill-btn__text">{{ skillsI18n.connector }}</span>
                 </div>
 
                 <!-- 工具按钮 -->
-                <div class="toolbar-pill-btn" @click="showPlugin = true">
+                <div v-if="mode === 'claw'" class="toolbar-pill-btn" @click="showPluginManage = true">
                     <CustomizedIcon remote name="basic_plugin_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" />
                     <span class="toolbar-pill-btn__text">{{ skillsI18n.tools }}</span>
                 </div>
@@ -1150,8 +1186,24 @@ defineExpose({
         <!-- 连接器弹窗 -->
         <ConnectorDialog v-if="skillsEnabled" v-model="showConnector" :application-id="skillsApplicationId" />
 
-        <!-- 工具安装弹窗 -->
-        <PluginInstallDialog v-if="skillsEnabled" v-model="showPlugin" :application-id="skillsApplicationId" />
+        <!-- 管理工具弹窗（首次打开的入口） -->
+        <PluginManageDialog
+            v-if="skillsEnabled"
+            v-model="showPluginManage"
+            :application-id="skillsApplicationId"
+            :agent-id="currentAgentId"
+            @change="refreshSkills"
+        />
+
+        <!-- 工具安装弹窗（独立打开时使用） -->
+        <PluginInstallDialog
+            v-if="skillsEnabled"
+            v-model="showPlugin"
+            :application-id="skillsApplicationId"
+            :agent-id="currentAgentId"
+            :installed-tool-ids="currentInstalledToolIds"
+            @installed="refreshSkills"
+        />
 
         <!-- @ Mention 面板 -->
         <Teleport to="body">
