@@ -47,8 +47,8 @@ export interface ApiDetailConfig {
     listModelApi?: string;
     /** Agent 摘要列表接口路径 */
     describeAgentSummaryListApi?: string;
-    /** CreateUserAgentList 接口路径 */
-    createUserAgentListApi?: string;
+    /** CopyAgentFromApp 接口路径 */
+    copyAgentFromAppApi?: string;
     /** 本地 Agent 配置接口路径（GET/POST /agent/config） */
     agentConfigApi?: string;
     /** 创建会话接口路径 */
@@ -85,7 +85,7 @@ export const defaultApiDetailConfig: ApiDetailConfig = {
     describeConversationMessageListApi: '/adp/DescribeConversationMessageList',
     listModelApi: '/adp/ListModel',
     describeAgentSummaryListApi: '/adp/DescribeAgentSummaryList',
-    createUserAgentListApi: '/adp/CreateUserAgentList',
+    copyAgentFromAppApi: '/adp/CopyAgentFromApp',
     agentConfigApi: '/agent/config',
     createConversationApi: '/adp/CreateConversation',
 };
@@ -782,14 +782,14 @@ export const AGENT_SOURCE = {
     USER: 3,
 } as const;
 
-/** CreateUserAgentList 请求 Payload */
-export interface CreateUserAgentListPayload {
+/** CopyAgentFromApp 请求 Payload */
+export interface CopyAgentFromAppPayload {
     /** 应用 ID */
     AppId: string;
 }
 
-/** CreateUserAgentList 响应 */
-export interface CreateUserAgentListResponse {
+/** CopyAgentFromApp 响应 */
+export interface CopyAgentFromAppResponse {
     Response: {
         /** 新生成的主 Agent Id */
         ParentAgentId: string;
@@ -798,26 +798,29 @@ export interface CreateUserAgentListResponse {
 }
 
 /**
- * 创建用户 Agent 列表，返回新生成的 AgentId
+ * 从应用复制 Agent，返回新生成的 AgentId
  * @param payload 请求 Payload
  * @param applicationId 应用 ID（作为外层 ApplicationId 透传给 /adp 代理）
  */
-export const createUserAgentList = async (
-    payload: CreateUserAgentListPayload,
+export const copyAgentFromApp = async (
+    payload: CopyAgentFromAppPayload,
     applicationId: string,
-): Promise<CreateUserAgentListResponse['Response']> => {
-    const path = defaultApiDetailConfig.createUserAgentListApi!;
+): Promise<CopyAgentFromAppResponse['Response']> => {
+    const path = defaultApiDetailConfig.copyAgentFromAppApi!;
     try {
-        const response: CreateUserAgentListResponse = await httpService.post(
+        const response: CopyAgentFromAppResponse = await httpService.post(
             path,
             {
                 ApplicationId: applicationId,
-                Payload: payload,
+                Payload: {
+                    Kind: 1, 
+                    ...payload,
+                },
             }
         );
         return response.Response;
     } catch (error) {
-        console.error('CreateUserAgentList 请求失败:', error);
+        console.error('CopyAgentFromApp 请求失败:', error);
         throw error;
     }
 };

@@ -10,26 +10,44 @@
  *      1) 先调用本地后端 GET /agent/config 查询 DB 中是否已绑定 agentId：
  *           - 命中：直接写入 store 并返回，跳过走外部 ADP 接口
  *           - 未命中：进入下一步
- *      2) 调用 CreateUserAgentList 创建新的 agent，返回 ParentAgentId
+ *      2) 调用 CopyAgentFromApp 创建新的 agent，返回 ParentAgentId
  *      3) 调用 POST /agent/config 将 ParentAgentId 回写本地 DB
  *      4) 把"新生成的 ParentAgentId"绑定写入该 applicationId 的槽位
  *  - 业务侧通过 getAgentIdByAppId(applicationId) 或响应式 agentIdMap[applicationId] 获取
  */
-import { ref, readonly, computed, type Ref, type ComputedRef } from 'vue';
+import { ref, readonly, computed, watch, type Ref, type ComputedRef, type WatchSource } from 'vue';
 import {
-    createUserAgentList,
+    copyAgentFromApp,
     getAgentConfig,
     saveAgentConfig,
-    type CreateUserAgentListPayload,
+    type CopyAgentFromAppPayload,
 } from '../service/api';
+import { fetchGlobalAgent, modifyAgent as modifyAgentApi, type AgentModelInfo } from '../service/skillsApi';
 
 // ------------------------------ 模块作用域单例 state ------------------------------
-/** 按 applicationId 绑定的 agent_id 映射：{ [applicationId]: agentId }（存储 CreateUserAgentList 返回的 ParentAgentId） */
+/** 按 applicationId 绑定的 agent_id 映射：{ [applicationId]: agentId }（存储 CopyAgentFromApp 返回的 ParentAgentId） */
 const agentIdMap = ref<Record<string, string>>({});
 /** 按 applicationId 维度的加载状态：{ [applicationId]: boolean } */
 const loadingMap = ref<Record<string, boolean>>({});
 /** 按 applicationId 维度的 inflight Promise，避免并发重复请求 */
 const inflightMap = new Map<string, Promise<string>>();
+
+/** Agent 配置详情（DescribeAgentDetail 返回） */
+export interface AgentDetail {
+    skills: Record<string, unknown>[];
+    plugins: Record<string, unknown>[];
+    tools: Record<string, unknown>[];
+    agentId: string;
+    /** 当前 Agent 绑定的模型信息 */
+    model: AgentModelInfo | null;
+}
+
+/** 按 applicationId 缓存的 Agent 配置详情 */
+const agentDetailMap = ref<Record<string, AgentDetail>>({});
+/** 按 applicationId 维度的 Agent 详情加载状态 */
+const agentDetailLoadingMap = ref<Record<string, boolean>>({});
+/** 按 applicationId 维度的 inflight Promise，避免并发重复请求 Agent 详情 */
+const detailInflightMap = new Map<string, Promise<AgentDetail | null>>();
 
 /** fetchAndSetAgentId 选项 */
 export interface FetchAgentIdOptions {
@@ -45,7 +63,7 @@ export interface FetchAgentIdOptions {
  */
 export function useAgentStore() {
     /**
-     * 调用 CreateUserAgentList 创建用户 Agent，把返回的 ParentAgentId 绑定写入该 applicationId 的槽位。
+     * 调用 CopyAgentFromApp 创建用户 Agent，把返回的 ParentAgentId 绑定写入该 applicationId 的槽位。
      * @returns 创建后得到的 ParentAgentId（失败或为空时返回 ''）
      */
     const fetchAndSetAgentId = async (
@@ -57,7 +75,7 @@ export function useAgentStore() {
         } = options;
 
         if (!applicationId) {
-            console.warn('[useAgentStore] applicationId 为空，跳过 CreateUserAgentList');
+            console.warn('[useAgentStore] applicationId 为空，跳过 CopyAgentFromApp');
             return '';
         }
 
@@ -99,11 +117,11 @@ export function useAgentStore() {
                     }
                 }
 
-                // 2) 调用 CreateUserAgentList 创建用户 Agent
-                const payload: CreateUserAgentListPayload = {
+                // 2) 调用 CopyAgentFromApp 创建用户 Agent
+                const payload: CopyAgentFromAppPayload = {
                     AppId: applicationId,
                 };
-                const resp = await createUserAgentList(
+                const resp = await copyAgentFromApp(
                     payload,
                     applicationId,
                 );
@@ -132,7 +150,7 @@ export function useAgentStore() {
 
                 return newAgentId;
             } catch (error) {
-                console.error('[useAgentStore] CreateUserAgentList 失败:', error);
+                console.error('[useAgentStore] CopyAgentFromApp 失败:', error);
                 return '';
             } finally {
                 loadingMap.value = { ...loadingMap.value, [applicationId]: false };
@@ -146,12 +164,14 @@ export function useAgentStore() {
 
     /**
      * 根据 applicationId 获取已绑定的 agent_id（同步快照值）。
-     * 返回的是 CreateUserAgentList 之后的新 agentId。
+     * 返回的是 CopyAgentFromApp 之后的新 agentId。
      */
     const getAgentIdByAppId = (applicationId: string): string => {
         if (!applicationId) return '';
         return agentIdMap.value[applicationId] || '';
     };
+
+    
 
     /**
      * 根据 applicationId 获取响应式的 agent_id ComputedRef，
@@ -192,14 +212,145 @@ export function useAgentStore() {
         }
     };
 
+    /**
+     * 获取指定 applicationId 对应 Agent 的配置详情（Skills / Plugins / Tools 等）。
+     * 调用 DescribeAgentDetail 接口（globalAgentApi），结果按 applicationId 缓存。
+     *
+     * @param applicationId 应用 ID
+     * @param options.force 是否强制刷新（默认 false，命中缓存则直接返回）
+     * @returns AgentDetail
+     */
+    const fetchAgentDetail = async (
+        applicationId: string,
+        options?: { force?: boolean },
+    ): Promise<AgentDetail | null> => {
+        if (!applicationId) {
+            console.warn('[useAgentStore] applicationId 为空，跳过 fetchAgentDetail');
+            return null;
+        }
+
+        const force = options?.force ?? false;
+
+        // 命中缓存
+        if (!force && agentDetailMap.value[applicationId]) {
+            return agentDetailMap.value[applicationId];
+        }
+
+        try {
+            agentDetailLoadingMap.value = { ...agentDetailLoadingMap.value, [applicationId]: true };
+
+            const result = await fetchGlobalAgent({ applicationId });
+
+            const detail: AgentDetail = {
+                skills: result.skills,
+                plugins: result.plugins,
+                tools: result.tools,
+                agentId: result.agentId,
+                model: result.model,
+            };
+
+            agentDetailMap.value = {
+                ...agentDetailMap.value,
+                [applicationId]: detail,
+            };
+
+            return detail;
+        } catch (error) {
+            console.error('[useAgentStore] fetchAgentDetail 失败:', error);
+            return null;
+        } finally {
+            agentDetailLoadingMap.value = { ...agentDetailLoadingMap.value, [applicationId]: false };
+        }
+    };
+
+    /**
+     * 根据 applicationId 获取 Agent 配置详情。
+     * 优先返回缓存；若缓存未命中且 applicationId 非空，则自动调用 fetchAgentDetail 请求。
+     * 使用 detailInflightMap 去重并发请求：多个调用同时命中同一 applicationId 时，
+     * 只发起一次 fetchAgentDetail，其余调用共享同一 Promise。
+     */
+    const getAgentDetailByAppId = async (applicationId: string): Promise<AgentDetail | null> => {
+        if (!applicationId) return null;
+        const cached = agentDetailMap.value[applicationId];
+        if (cached) return cached;
+
+        // 如果该 applicationId 已有正在进行中的请求，直接复用其 Promise
+        const inflight = detailInflightMap.get(applicationId);
+        if (inflight) return inflight;
+
+        // 发起请求并存入 inflightMap
+        const promise = fetchAgentDetail(applicationId).finally(() => {
+            detailInflightMap.delete(applicationId);
+        });
+        detailInflightMap.set(applicationId, promise);
+
+        return promise;
+    };
+
+    /**
+     * 修改 Agent 配置（局部更新）。
+     * 调用 ModifyAgent 接口，按 updateMask 指定的字段路径进行更新。
+     * 修改成功后自动刷新该 applicationId 对应的 AgentDetail 缓存。
+     *
+     * @param applicationId 应用 ID
+     * @param agentId Agent ID
+     * @param agent 更新后的 Agent 可编辑配置对象
+     * @param updateMask 需要更新的字段路径列表，如 ["profile.name", "instructions", "model"]
+     */
+    const modifyAgent = async (
+        applicationId: string,
+        agentId: string,
+        agent: Record<string, unknown>,
+        updateMask: string[],
+    ): Promise<void> => {
+        if (!applicationId || !agentId) {
+            console.warn('[useAgentStore] applicationId 或 agentId 为空，跳过 modifyAgent');
+            return;
+        }
+
+        await modifyAgentApi({
+            applicationId,
+            agentId,
+            agent,
+            updateMask,
+        });
+
+        // 修改成功后刷新本地缓存
+        await fetchAgentDetail(applicationId, { force: true });
+    };
+
+    /**
+     * 监听一个响应式的 applicationId 源，当其变化时自动调用 fetchAndSetAgentId。
+     * 支持传入 Ref<string>、getter 函数 () => string 等。
+     * 内部使用 immediate: true，初始值非空时也会立即触发。
+     *
+     * @param source 响应式 applicationId 来源（Ref<string> 或 getter）
+     * @returns 停止监听的函数（stop handle）
+     */
+    const watchApplicationId = (source: WatchSource<string | undefined>) => {
+        return watch(
+            source,
+            (newVal) => {
+                if (newVal) {
+                    fetchAndSetAgentId({ applicationId: newVal });
+                }
+            },
+            { immediate: true },
+        );
+    };
+
     return {
-        /** 全量 applicationId -> agentId（CreateUserAgentList 返回的 ParentAgentId）映射（只读响应式引用） */
+        /** 全量 applicationId -> agentId（CopyAgentFromApp 返回的 ParentAgentId）映射（只读响应式引用） */
         agentIdMap: readonly(agentIdMap) as Readonly<Ref<Record<string, string>>>,
         /** 全量 applicationId -> 加载状态 映射（只读响应式引用） */
         loadingMap: readonly(loadingMap) as Readonly<Ref<Record<string, boolean>>>,
-        /** 异步调用 CreateUserAgentList 并按 applicationId 绑定 agentId */
+        /** 全量 applicationId -> AgentDetail 配置详情映射（只读响应式引用） */
+        agentDetailMap: readonly(agentDetailMap) as Readonly<Ref<Record<string, AgentDetail>>>,
+        /** 全量 applicationId -> Agent 详情加载状态映射（只读响应式引用） */
+        agentDetailLoadingMap: readonly(agentDetailLoadingMap) as Readonly<Ref<Record<string, boolean>>>,
+        /** 异步调用 CopyAgentFromApp 并按 applicationId 绑定 agentId */
         fetchAndSetAgentId,
-        /** 按 applicationId 同步获取 agentId（CreateUserAgentList 返回的 ParentAgentId） */
+        /** 按 applicationId 同步获取 agentId（CopyAgentFromApp 返回的 ParentAgentId） */
         getAgentIdByAppId,
         /** 按 applicationId 获取响应式 agentId ComputedRef */
         useAgentIdRef,
@@ -207,6 +358,14 @@ export function useAgentStore() {
         setAgentIdByAppId,
         /** 清空指定/全部 applicationId 的绑定 */
         resetAgentStore,
+        /** 监听响应式 applicationId 变化，自动触发 fetchAndSetAgentId */
+        watchApplicationId,
+        /** 异步获取 Agent 配置详情（DescribeAgentDetail），按 applicationId 缓存 */
+        fetchAgentDetail,
+        /** 按 applicationId 获取 Agent 配置详情（异步，缓存未命中时自动请求） */
+        getAgentDetailByAppId,
+        /** 修改 Agent 配置（局部更新），成功后自动刷新缓存 */
+        modifyAgent,
     };
 }
 

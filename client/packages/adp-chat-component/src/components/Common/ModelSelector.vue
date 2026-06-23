@@ -10,6 +10,7 @@ import {
     Icon as TIcon,
 } from 'tdesign-vue-next';
 import { fetchModelList, type ListModelRawItem } from '../../service/api';
+import useAgentStore from '../../composables/useAgentStore';
 
 /** 接口下发的 UI 标签 */
 export interface ModelUiTag {
@@ -195,19 +196,56 @@ function refresh(): Promise<ModelOption[]> {
 
 defineExpose({ refresh });
 
-onMounted(() => {
+/** 通过 AgentDetail 获取当前 Agent 绑定的模型，设置为默认选中 */
+const { getAgentDetailByAppId } = useAgentStore();
+
+async function syncSelectedModelFromAgent(applicationId: string) {
+    if (!applicationId) return;
+    const detail = await getAgentDetailByAppId(applicationId);
+    if (!detail?.model) return;
+    const agentModel = detail.model;
+    // 在已加载的模型列表中查找对应项
+    const allOptions = effectiveOptions.value;
+    const matched = allOptions.find((opt) => opt.value === agentModel.ModelName);
+    if (matched) {
+        // 使用列表中完整的 ModelOption（含 icon / tags 等完整信息）
+        innerSelected.value = matched;
+        emit('update:selected', matched);
+        emit('change', matched);
+    } else {
+        // 列表中未找到：构造一个基本 ModelOption 作为选中态
+        const fallback: ModelOption = {
+            value: agentModel.ModelName,
+            name: agentModel.ModelName,
+            text: agentModel.ModelAliasName || agentModel.ModelName,
+        };
+        innerSelected.value = fallback;
+        emit('update:selected', fallback);
+        emit('change', fallback);
+    }
+}
+
+onMounted(async () => {
     // 受控逗逃口：父层显式传入非空 options 时不自动拉取
     if (props.autoFetch && props.applicationId && (!props.options || props.options.length === 0)) {
-        loadModelList();
+        await loadModelList();
+    }
+    // 如果外部未传入有效选中，则从 AgentDetail 获取当前绑定模型
+    if (props.applicationId && (!props.selected || !props.selected.value)) {
+        await syncSelectedModelFromAgent(props.applicationId);
     }
 });
 
-// 监听 applicationId 变化，存在时重新拉取模型列表
+// 监听 applicationId 变化，存在时重新拉取模型列表并同步 Agent 绑定模型
 watch(
     () => props.applicationId,
-    (newId) => {
+    async (newId) => {
         if (newId && (!props.options || props.options.length === 0)) {
-            loadModelList();
+            await loadModelList();
+        }
+        // applicationId 变化后，若外部未指定选中模型，则从 AgentDetail 同步
+        if (newId && (!props.selected || !props.selected.value)) {
+            await syncSelectedModelFromAgent(newId);
         }
     },
 );

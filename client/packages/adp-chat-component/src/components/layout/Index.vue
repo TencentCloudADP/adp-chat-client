@@ -167,7 +167,7 @@ const props = withDefaults(defineProps<Props>(), {
     skillsApplicationId: '',
 });
 
-const { getAgentIdByAppId } = useAgentStore();
+const { getAgentIdByAppId, watchApplicationId } = useAgentStore();
 
 const emit = defineEmits<{
     (e: 'selectApplication', app: Application): void;
@@ -508,6 +508,8 @@ const actualIsChatting = computed(() =>
 
 // 计算属性
 const currentApplicationId = computed(() => actualCurrentApplication.value?.ApplicationId || '');
+// 在最外层监听 currentApplicationId 变化，自动触发 Agent 拉取
+watchApplicationId(currentApplicationId);
 const currentApplicationAvatar = computed(() => actualCurrentApplication.value?.Avatar || '');
 const currentApplicationName = computed(() => actualCurrentApplication.value?.Name || '');
 // Skills 的 ApplicationId 优先用显式配置，否则回退到当前应用 ID

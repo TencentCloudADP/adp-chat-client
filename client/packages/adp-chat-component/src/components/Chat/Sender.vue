@@ -99,7 +99,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 /** Agent 全局 store */
-const { fetchAndSetAgentId, getAgentIdByAppId } = useAgentStore();
+const { getAgentIdByAppId } = useAgentStore();
 
 const i18n = computed(() => {
     const defaults = props.language?.startsWith('en') ? defaultSenderI18nEn : defaultSenderI18n;
@@ -624,25 +624,8 @@ const placeholder = computed(() => {
     return props.isMobile ? (i18n.value.placeholderMobile || '') : (i18n.value.placeholder || '');
 });
 
-const fetchAgentByApplicationId = (applicationId: string) => {
-    fetchAndSetAgentId({
-        applicationId,
-    });
-};
-
-// 监听外部 currentApplicationId 变化，重新拉取 Agent
-watch(() => props.currentApplicationId, (newVal) => {
-    if (newVal) {
-        fetchAgentByApplicationId(newVal);
-    }
-});
-
 onMounted(() => {
     document.addEventListener('click', handleClickOutside);
-    // 初始化：拉取 Agent 摘要列表，取 agent_list[0].agent_id 作为当前上下文 agent_id
-    if (props.currentApplicationId) {
-        fetchAgentByApplicationId(props.currentApplicationId);
-    }
 });
 
 onUnmounted(() => {

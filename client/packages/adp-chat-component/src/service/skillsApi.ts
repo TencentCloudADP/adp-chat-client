@@ -18,6 +18,8 @@ export interface SkillsApiConfig {
     createSkillApi?: string;
     /** 卸载 Skill */
     deleteSkillApi?: string;
+    /** 修改 Agent */
+    modifyAgentApi?: string;
 }
 
 /** 默认 Skills API 路径（使用 /adp/ 转发） */
@@ -28,6 +30,7 @@ export const defaultSkillsApiConfig: SkillsApiConfig = {
     skillDetailApi: '/adp/DescribeSkillDetail',
     createSkillApi: '/adp/CreateSkill',
     deleteSkillApi: '/adp/DeleteSkill',
+    modifyAgentApi: '/adp/ModifyAgent',
 };
 
 /**
@@ -63,6 +66,27 @@ async function forwardRequest(
  * 请求 Payload：{ AppId, AdpDomain: 1, ProjectPath: '' }
  * 响应：res.Agent.SkillList / PluginList / ToolList（兼容 snake_case）
  */
+/** Agent 模型信息（DescribeAgentDetail 中 Agent.Model 字段） */
+export interface AgentModelInfo {
+    /** 模型别名（展示名） */
+    ModelAliasName: string;
+    /** 模型名称（唯一标识） */
+    ModelName: string;
+    /** 上下文 token 限制描述 */
+    ModelContextWordsLimit: string;
+    /** 指令 token 限制 */
+    InstructionsWordsLimit: number;
+    /** 模型参数 */
+    ModelParameters: {
+        Temperature: number;
+        DeepThinking: string;
+        MaxTokens: number;
+        ReasoningEffort: string;
+        ReplyFormat: string;
+        StopSequences: string[];
+    };
+}
+
 export async function fetchGlobalAgent(params: {
     applicationId: string;
     spaceId?: string;
@@ -72,6 +96,7 @@ export async function fetchGlobalAgent(params: {
     plugins: Record<string, unknown>[];
     tools: Record<string, unknown>[];
     agentId: string;
+    model: AgentModelInfo | null;
 }> {
     const data = await forwardRequest(
         apiPath || defaultSkillsApiConfig.globalAgentApi!,
@@ -82,7 +107,7 @@ export async function fetchGlobalAgent(params: {
             ProjectPath: params.projectPath || '',
         },
     );
-    // DescribeAgentDetail 返回 { Agent: { SkillList, PluginList, ToolList, AgentId } } 或 snake_case
+    // DescribeAgentDetail 返回 { Agent: { SkillList, PluginList, ToolList, AgentId, Model } } 或 snake_case
     const agent = (data.Agent || data.agent || {}) as Record<string, unknown>;
     const rawSkills = (agent.SkillList || agent.skill_list || []) as Array<Record<string, unknown>>;
     // 归一化 skill 字段（兼容 name → skill_name）
@@ -94,11 +119,35 @@ export async function fetchGlobalAgent(params: {
         skill_display_desc: s.skill_display_description || s.skill_display_desc || s.SkillDisplayDescription || s.SkillDisplayDesc || '',
         icon_url: s.icon_url || s.skill_icon || s.IconUrl || '',
     }));
+
+    // 解析模型信息
+    const rawModel = (agent.Model || agent.model || null) as Record<string, unknown> | null;
+    const model: AgentModelInfo | null = rawModel
+        ? {
+            ModelAliasName: (rawModel.ModelAliasName || rawModel.model_alias_name || '') as string,
+            ModelName: (rawModel.ModelName || rawModel.model_name || '') as string,
+            ModelContextWordsLimit: (rawModel.ModelContextWordsLimit || rawModel.model_context_words_limit || '') as string,
+            InstructionsWordsLimit: (rawModel.InstructionsWordsLimit || rawModel.instructions_words_limit || 0) as number,
+            ModelParameters: (() => {
+                const p = (rawModel.ModelParameters || rawModel.model_parameters || {}) as Record<string, unknown>;
+                return {
+                    Temperature: (p.Temperature ?? p.temperature ?? 1) as number,
+                    DeepThinking: (p.DeepThinking || p.deep_thinking || '') as string,
+                    MaxTokens: (p.MaxTokens || p.max_tokens || 0) as number,
+                    ReasoningEffort: (p.ReasoningEffort || p.reasoning_effort || '') as string,
+                    ReplyFormat: (p.ReplyFormat || p.reply_format || '') as string,
+                    StopSequences: (p.StopSequences || p.stop_sequences || []) as string[],
+                };
+            })(),
+        }
+        : null;
+
     return {
         skills,
         plugins: (agent.PluginList || agent.plugin_list || []) as Record<string, unknown>[],
         tools: (agent.ToolList || agent.tool_list || []) as Record<string, unknown>[],
         agentId: (agent.AgentId || agent.agent_id || '') as string,
+        model,
     };
 }
 
@@ -258,5 +307,45 @@ export async function uninstallSkill(params: {
         apiPath || defaultSkillsApiConfig.deleteSkillApi!,
         applicationId,
         { SkillId: rest.skill_id, SpaceId: rest.space_id },
+    );
+}
+
+/** ModifyAgent 请求参数 */
+export interface ModifyAgentPayload {
+    /** 应用 ID */
+    AppId: string;
+    /** Agent ID */
+    AgentId: string;
+    /** 更新后的 Agent 可编辑配置 */
+    Agent: Record<string, unknown>;
+    /** 需要更新的字段路径，如 ["profile.name", "instructions", "model", "tool_list"] */
+    UpdateMask: string[];
+}
+
+/**
+ * 修改 Agent 配置
+ * 调用 ModifyAgent 接口，按 UpdateMask 指定的字段路径进行局部更新。
+ *
+ * @param params 请求参数
+ * @param apiPath API 路径
+ */
+export async function modifyAgent(
+    params: {
+        applicationId: string;
+        agentId: string;
+        agent: Record<string, unknown>;
+        updateMask: string[];
+    },
+    apiPath?: string,
+): Promise<void> {
+    await forwardRequest(
+        apiPath || defaultSkillsApiConfig.modifyAgentApi!,
+        params.applicationId,
+        {
+            AppId: params.applicationId,
+            AgentId: params.agentId,
+            Agent: params.agent,
+            UpdateMask: params.updateMask,
+        },
     );
 }

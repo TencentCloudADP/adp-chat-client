@@ -29,7 +29,7 @@
         "headers.X-TC-Version": "2026-05-20",
         "headers.X-TC-Canary": "toe-test-4030-clawapi"
     },
-    "CreateUserAgentList": {
+    "CopyAgentFromApp": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
         "headers.X-TC-Canary": "toe-test-4030-clawapi"
