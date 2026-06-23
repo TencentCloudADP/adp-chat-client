@@ -50,8 +50,6 @@ export interface Props extends ChatRelatedProps {
     isUploading?: boolean;
     /** 当前应用 ID（用于初始化时创建用户 Agent） */
     currentApplicationId?: string;
-    /** 本地 Agent 配置接口路径覆盖（GET/POST /agent/config） */
-    agentConfigApi?: string;
     /** 是否显示模型选择器 */
     showModelSelector?: boolean;
     /** 模型选择器：当前选中模型 */
@@ -86,7 +84,6 @@ const props = withDefaults(defineProps<Props>(), {
     enableVoiceInput: true,
     isUploading: false,
     currentApplicationId: '',
-    agentConfigApi: '',
     showModelSelector: true,
     selectedModel: () => ({} as SelectedModel),
     modelOptions: () => [],
@@ -631,7 +628,6 @@ const placeholder = computed(() => {
 const fetchAgentByApplicationId = (applicationId: string) => {
     fetchAndSetAgentId({
         applicationId,
-        agentConfigApiPath: props.agentConfigApi || undefined,
     });
 };
 
@@ -1109,7 +1105,7 @@ defineExpose({
                     class="sender-model-selector"
                     :selected="selectedModel"
                     :options="modelOptions"
-                    :list-model-api="listModelApi || undefined"
+                    :application-id="currentApplicationId"
                     is-button-mode
                     @update:selected="(model: ModelOption) => { emit('update:selectedModel', model); emit('modelChange', model); }"
                 />

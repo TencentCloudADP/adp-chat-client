@@ -35,10 +35,7 @@ const inflightMap = new Map<string, Promise<string>>();
 export interface FetchAgentIdOptions {
     /** 应用 ID（作为存储 key，也透传给 /adp 代理） */
     applicationId: string;
-    /** CreateUserAgentList 接口路径覆盖（可选） */
-    createUserAgentListApiPath?: string;
-    /** 本地 /agent/config 接口路径覆盖（可选） */
-    agentConfigApiPath?: string;
+
     /** 是否强制刷新（默认 false，已绑定过 agentId 时不再重复请求；强制时也会跳过本地 DB 查询） */
     force?: boolean;
 }
@@ -56,7 +53,6 @@ export function useAgentStore() {
     ): Promise<string> => {
         const {
             applicationId,
-            agentConfigApiPath,
             force = false,
         } = options;
 
@@ -85,7 +81,6 @@ export function useAgentStore() {
                     try {
                         const localResp = await getAgentConfig(
                             applicationId,
-                            agentConfigApiPath
                         );
                         const localAgentId = localResp?.AgentId || '';
                         if (localAgentId) {
@@ -126,7 +121,6 @@ export function useAgentStore() {
                         await saveAgentConfig(
                             applicationId,
                             newAgentId,
-                            agentConfigApiPath
                         );
                     } catch (e) {
                         console.warn(

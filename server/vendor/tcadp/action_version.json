@@ -36,6 +36,19 @@
     },
     "DescribeAgentDetail": {
         "service": "lke",
-        "headers.X-TC-Version": "2025-11-12"
+        "headers.X-TC-Version": "2025-11-12",
+        "headers.X-TC-Canary": "toe-test-4030-clawapi"      
+    },
+    "ListModel": {
+        "service": "lke",
+        "headers.X-TC-Version": "2025-11-12",
+        "headers.X-TC-Canary": "toe-test-4030-clawapi"      
+    },
+    "CreateConversation": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Canary": "toe-test-4030-clawapi",
+        "payload.AppKey": "{{APP_KEY}}",
+        "payload.UserId": "{{ACCOUNT_ID}}"
     }
 }

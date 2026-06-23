@@ -9,7 +9,7 @@ import {
     Button as TButton,
     Icon as TIcon,
 } from 'tdesign-vue-next';
-import { fetchModelList, type ListModelParams, type ListModelRawItem } from '../../service/api';
+import { fetchModelList, type ListModelRawItem } from '../../service/api';
 
 /** 接口下发的 UI 标签 */
 export interface ModelUiTag {
@@ -69,8 +69,7 @@ interface Props {
     isEnterpriseUser?: boolean;
     /** 是否为海外站（海外站所有套餐都可使用第三方模型） */
     isIntl?: boolean;
-    /** "去模型广场" 链接文案 */
-    goModelCenterText?: string;
+
     /** 升级提示文案 */
     upgradeTipText?: string;
     /** 升级按钮文案 */
@@ -79,10 +78,8 @@ interface Props {
     listMaxHeight?: number;
     /** 是否在挂载时自动拉取模型列表 */
     autoFetch?: boolean;
-    /** 拉取模型列表的请求参数（会与默认参数合并，space_id 默认 'default'） */
-    fetchParams?: ListModelParams;
-    /** 模型列表接口路径，不传走 defaultApiDetailConfig.listModelApi */
-    listModelApi?: string;
+    /** 应用 ID（用于拉取模型列表时传递 AppBizId） */
+    applicationId?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -93,19 +90,18 @@ const props = withDefaults(defineProps<Props>(), {
     isButtonMode: false,
     isEnterpriseUser: true,
     isIntl: false,
-    goModelCenterText: '去模型广场配置更多模型',
+
     upgradeTipText: '企业版可使用第三方模型',
     upgradeActionText: '去升级',
     listMaxHeight: 264,
     autoFetch: true,
-    fetchParams: () => ({} as ListModelParams),
-    listModelApi: '',
+    applicationId: '',
 });
 
 const emit = defineEmits<{
     (e: 'update:selected', model: ModelOption): void;
     (e: 'change', model: ModelOption): void;
-    (e: 'goModelCenter'): void;
+
     (e: 'upgradeClick'): void;
     (e: 'consoleBuy'): void;
     (e: 'buyPkg'): void;
@@ -123,24 +119,44 @@ const searchValue = ref('');
 const innerOptions = ref<ModelOption[]>([]);
 /** 请求 loading */
 const loading = ref(false);
+/** 内部选中状态（优先使用 props.selected，否则使用内部维护的值） */
+const innerSelected = ref<ModelOption | null>(null);
+
+/** 监听外部 props.selected 变化，同步更新内部状态 */
+watch(
+    () => props.selected,
+    (newVal) => {
+        if (newVal && newVal.value) {
+            innerSelected.value = newVal as ModelOption;
+        }
+    },
+    { immediate: true, deep: true },
+);
+
+/** 当前实际展示的选中模型 */
+const currentSelected = computed<SelectedModel | undefined>(() => {
+    // 如果外部传入了有效的 selected（有 value），以外部为准
+    if (props.selected && props.selected.value) return props.selected;
+    // 否则使用内部选中状态
+    return innerSelected.value || undefined;
+});
 
 /** 原始接口字段 -> ModelOption 映射 */
 function mapRawToOption(raw: ListModelRawItem): ModelOption {
     return {
-        ...raw,
-        value: raw.model_name,
-        name: raw.model_name,
-        text: raw.alias_name || raw.model_name,
-        icon: raw.icon || '',
-        model_desc: raw.model_desc,
-        prompt_words_limit: raw.prompt_words_limit,
-        model_tags: raw.model_tags || [],
-        model_ui_tags: raw.model_ui_tags || [],
-        resource_status: raw.resource_status,
-        is_exclusive: raw.is_exclusive,
-        provider_type: (raw.provider_type as ModelOption['provider_type']) || 'Third',
-        provider_ailas_name: raw.provider_ailas_name,
-        is_free: raw.is_free,
+        value: raw.ModelName,
+        name: raw.ModelName,
+        text: raw.AliasName || raw.ModelName,
+        icon: raw.Icon || '',
+        model_desc: raw.ModelDesc,
+        prompt_words_limit: raw.PromptWordsLimit,
+        model_tags: raw.ModelTags || [],
+        model_ui_tags: raw.ModelUiTags || [],
+        resource_status: raw.ResourceStatus,
+        is_exclusive: raw.IsExclusive,
+        provider_type: (raw.ProviderType as ModelOption['provider_type']) || 'Third',
+        provider_ailas_name: raw.ProviderAliasName,
+        is_free: raw.IsFree,
     } as ModelOption;
 }
 
@@ -149,9 +165,14 @@ async function loadModelList(): Promise<ModelOption[]> {
     loading.value = true;
     emit('update:loading', true);
     try {
-        const list = await fetchModelList(
-            { space_id: 'default', ...(props.fetchParams || {}) },
-            props.listModelApi || undefined
+        const list = await fetchModelList(          
+            {
+                AppType: 'knowledge_qa',
+                Pattern: 'ClawAgent',  
+                ModelCategory: "corp_assistant",              
+                SpaceId: 'default_space',
+            },
+            props.applicationId
         );
         const mapped = (list || []).map(mapRawToOption);
         innerOptions.value = mapped;
@@ -176,10 +197,20 @@ defineExpose({ refresh });
 
 onMounted(() => {
     // 受控逗逃口：父层显式传入非空 options 时不自动拉取
-    if (props.autoFetch && (!props.options || props.options.length === 0)) {
+    if (props.autoFetch && props.applicationId && (!props.options || props.options.length === 0)) {
         loadModelList();
     }
 });
+
+// 监听 applicationId 变化，存在时重新拉取模型列表
+watch(
+    () => props.applicationId,
+    (newId) => {
+        if (newId && (!props.options || props.options.length === 0)) {
+            loadModelList();
+        }
+    },
+);
 
 /** 给列表添加分组头部标识：每个 provider 的首项 sourceHead=true */
 function addSourceHeadFlag(list: ModelOption[]): ModelOption[] {
@@ -245,11 +276,11 @@ const localOptions = computed<ModelOption[]>(() => {
 });
 
 /** 当前选中模型资源是否不可用 */
-const isSelectedResourceExhausted = computed(() => props.selected?.resource_status === 2);
+const isSelectedResourceExhausted = computed(() => currentSelected.value?.resource_status === 2);
 
 /** 当前选中模型 UI 标签 */
 const selectedUiTags = computed<ModelUiTag[]>(() => {
-    const tags = props.selected?.model_ui_tags || [];
+    const tags = currentSelected.value?.model_ui_tags || [];
     return Array.isArray(tags) ? tags : [];
 });
 
@@ -286,6 +317,7 @@ function highlightText(text?: string, keyword?: string): string {
 /** 选中模型 */
 function handlePick(model: ModelOption) {
     if (!model || isDisabledModel(model)) return;
+    innerSelected.value = model;
     emit('update:selected', model);
     emit('change', model);
     popupVisible.value = false;
@@ -309,10 +341,7 @@ function handleClear() {
     searchValue.value = '';
 }
 
-function handleGoModelCenter() {
-    emit('goModelCenter');
-    popupVisible.value = false;
-}
+
 
 function handleUpgradeClick() {
     emit('upgradeClick');
@@ -343,11 +372,11 @@ watch(popupVisible, (v) => {
             <template v-if="isButtonMode">
                 <t-button theme="default" variant="text" class="model-selector__trigger-btn">
                     <span class="model-selector__trigger-inner">
-                        <span v-if="selected && selected.icon" class="model-selector__trigger-icon">
-                            <img :src="selected.icon" alt="" />
+                        <span v-if="currentSelected && currentSelected.icon" class="model-selector__trigger-icon">
+                            <img :src="currentSelected.icon" alt="" />
                         </span>
-                        <span class="model-selector__trigger-text" :title="selected && selected.text">
-                            {{ (selected && selected.text) || placeholder }}
+                        <span class="model-selector__trigger-text" :title="currentSelected && currentSelected.text">
+                            {{ (currentSelected && currentSelected.text) || placeholder }}
                         </span>
                         <t-tooltip
                             v-for="(uiTag, idx) in selectedUiTags"
@@ -370,8 +399,11 @@ watch(popupVisible, (v) => {
                     :class="{ 'model-selector__header--warning': isSelectedResourceExhausted }"
                 >
                     <div class="model-selector__header-left">
-                        <span class="model-selector__trigger-text" :title="selected && selected.text">
-                            {{ (selected && selected.text) || placeholder }}
+                        <span v-if="currentSelected && currentSelected.icon" class="model-selector__trigger-icon">
+                            <img :src="currentSelected.icon" alt="" />
+                        </span>
+                        <span class="model-selector__trigger-text" :title="currentSelected && currentSelected.text">
+                            {{ (currentSelected && currentSelected.text) || placeholder }}
                         </span>
                         <t-tooltip
                             v-for="(uiTag, idx) in selectedUiTags"
@@ -386,7 +418,7 @@ watch(popupVisible, (v) => {
                         </t-tooltip>
                         <t-tooltip v-if="isSelectedResourceExhausted" placement="top">
                             <template #content>
-                                <slot name="resourceErrorTip" :is-exclusive="selected && selected.is_exclusive">
+                                <slot name="resourceErrorTip" :is-exclusive="currentSelected && currentSelected.is_exclusive">
                                     <span>资源不可用</span>
                                 </slot>
                             </template>
@@ -458,7 +490,7 @@ watch(popupVisible, (v) => {
                                     class="model-selector__item"
                                     :class="{
                                         'is-disabled': isDisabledModel(item),
-                                        'is-active': props.selected && props.selected.value === item.value,
+                                        'is-active': currentSelected && currentSelected.value === item.value,
                                     }"
                                     @click="handlePick(item)"
                                 >
@@ -558,11 +590,7 @@ watch(popupVisible, (v) => {
                         </div>
                     </div>
 
-                    <!-- 底部入口 -->
-                    <div class="model-selector__footer" @click="handleGoModelCenter">
-                        <t-icon name="add" />
-                        <a>{{ goModelCenterText }}</a>
-                    </div>
+
                 </div>
             </template>
         </t-popup>
@@ -633,6 +661,7 @@ watch(popupVisible, (v) => {
 .model-selector__trigger-btn {
     padding: 4px 8px;
     border-radius: 16px;
+    outline: none;
 }
 
 .model-selector__trigger-inner {
@@ -663,6 +692,22 @@ watch(popupVisible, (v) => {
 .model-selector__list {
     overflow-y: auto;
     overflow-x: hidden;
+    scrollbar-color: var(--td-scrollbar-color) transparent;
+    scrollbar-width: thin;
+}
+
+.model-selector__list::-webkit-scrollbar {
+    width: 4px;
+    background: transparent;
+}
+
+.model-selector__list::-webkit-scrollbar-thumb {
+    border-radius: 4px;
+    background-color: var(--td-scrollbar-color, rgba(0, 0, 0, 0.1));
+}
+
+.model-selector__list::-webkit-scrollbar-thumb:hover {
+    background-color: var(--td-scrollbar-hover-color, rgba(0, 0, 0, 0.3));
 }
 
 .model-selector__group-head {
@@ -787,28 +832,7 @@ watch(popupVisible, (v) => {
     font-size: 14px;
 }
 
-/* 底部入口 */
-.model-selector__footer {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    height: 36px;
-    margin-top: 4px;
-    border-top: 1px solid var(--td-component-border, rgba(16, 32, 69, 0.1));
-    cursor: pointer;
-    color: var(--td-brand-color, #0052d9);
-    font-size: 12px;
-}
 
-.model-selector__footer a {
-    color: var(--td-brand-color, #0052d9);
-    text-decoration: none;
-}
-
-.model-selector__footer:hover a {
-    text-decoration: underline;
-}
 </style>
 
 <style>

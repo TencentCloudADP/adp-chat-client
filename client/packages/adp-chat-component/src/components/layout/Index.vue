@@ -19,6 +19,8 @@ import {
     fetchConversationList,
     fetchConversationDetail,
     fetchReferenceDetails,
+    createConversation,
+    ConversationType,
     sendMessage,
     rateMessage,
     createShare,
@@ -65,6 +67,8 @@ import {
     defaultSenderI18n,
     defaultSenderI18nEn
 } from '../../model/type';
+import { useAgentStore } from '../../composables/useAgentStore';
+
 
 export interface Props extends ThemeProps, OverlayProps {
     /** 当前语言标识，用于自动选择内部默认 i18n（如 'zh-CN'、'en-US'） */
@@ -162,6 +166,8 @@ const props = withDefaults(defineProps<Props>(), {
     skillsSpaceId: '',
     skillsApplicationId: '',
 });
+
+const { getAgentIdByAppId } = useAgentStore();
 
 const emit = defineEmits<{
     (e: 'selectApplication', app: Application): void;
@@ -617,6 +623,25 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
     if (!useApiMode.value) {
         emit('send', query, fileList, conversationId, applicationId);
         return;
+    }
+
+    const agentId = getAgentIdByAppId(applicationId);
+
+    // 如果存在 agentId 且没有 conversationId，则先调用 CreateConversation 获取
+    if (agentId && !conversationId) {
+        try {
+            conversationId = await createConversation(
+                {
+                    Type: ConversationType.CONVERSATION_TYPE_VISITOR,
+                    AppId: applicationId,
+                    AgentId: agentId,
+                },
+                applicationId
+            );
+        } catch (error) {
+            console.error('CreateConversation 失败:', error);
+            return;
+        }
     }
 
     let streamConversationKey = conversationId || currentConversationStateKey.value || createPendingConversationKey();

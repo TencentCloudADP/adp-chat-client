@@ -51,6 +51,8 @@ export interface ApiDetailConfig {
     createUserAgentListApi?: string;
     /** 本地 Agent 配置接口路径（GET/POST /agent/config） */
     agentConfigApi?: string;
+    /** 创建会话接口路径 */
+    createConversationApi?: string;
 }
 
 /**
@@ -85,6 +87,7 @@ export const defaultApiDetailConfig: ApiDetailConfig = {
     describeAgentSummaryListApi: '/adp/DescribeAgentSummaryList',
     createUserAgentListApi: '/adp/CreateUserAgentList',
     agentConfigApi: '/agent/config',
+    createConversationApi: '/adp/CreateConversation',
 };
 
 export interface ReferenceDetailParams {
@@ -653,54 +656,58 @@ export const getFileDownloadUrl = (
 /** ListModel 请求参数 */
 export interface ListModelParams {
     /** 应用类型，例如 knowledge_qa */
-    app_type?: string;
-    /** 空间 ID，默认 default */
-    space_id?: string;
-    /** 模型分类，例如 corp_assistant */
-    model_category?: string;
+    AppType?: string;
+    /** 空间 ID，默认 default_space */
+    SpaceId?: string;   
+    Pattern: string;
+    ModelCategory: string;
 }
 
-/** ListModel 返回的原始模型条目（后端字段） */
+/** ListModel 返回的原始模型条目（后端字段，PascalCase） */
 export interface ListModelRawItem {
-    model_name: string;
-    alias_name?: string;
-    icon?: string;
-    model_desc?: string;
-    prompt_words_limit?: string;
-    input_len_limit?: string | number;
-    model_tags?: string[];
-    model_ui_tags?: Array<{ text: string; theme?: string; tips?: string }>;
-    resource_status?: number;
-    is_exclusive?: boolean;
-    provider_type?: string;
-    provider_ailas_name?: string;
-    is_free?: boolean;
+    ModelName: string;
+    AliasName?: string;
+    Icon?: string;
+    ModelDesc?: string;
+    PromptWordsLimit?: string;
+    InputLenLimit?: string | number;
+    ModelTags?: string[];
+    ModelUiTags?: Array<{ text: string; theme?: string; tips?: string }>;
+    ResourceStatus?: number;
+    IsExclusive?: boolean;
+    ProviderType?: string;
+    ProviderAliasName?: string;
+    IsFree?: boolean;
+    IsDefault?: boolean;
+    IsDeepThinking?: boolean;
+    ModelCategory?: string;
     [key: string]: any;
 }
 
 /** ListModel 响应 */
 export interface ListModelResponse {
-    list?: ListModelRawItem[];
+    Response?: {
+        RequestId?: string;
+        List?: ListModelRawItem[];
+    };
     [key: string]: any;
 }
 
 /**
  * 获取模型列表
  * @param params 请求参数（space_id 缺省时为 'default'）
- * @param apiPath 接口路径，缺省走 defaultApiDetailConfig.listModelApi
  */
 export const fetchModelList = async (
-    params?: ListModelParams,
-    apiPath?: string
+    params: ListModelParams,
+    applicationId: string,
 ): Promise<ListModelRawItem[]> => {
-    const path = apiPath || defaultApiDetailConfig.listModelApi!;
-    const payload: ListModelParams = {
-        space_id: 'default',
-        ...(params || {}),
-    };
+    const path = defaultApiDetailConfig.listModelApi!;   
     try {
-        const response: ListModelResponse = await httpService.post(path, payload);
-        return response?.list || [];
+        const response: ListModelResponse = await httpService.post(path, {
+             ApplicationId: applicationId,
+             Payload: params
+        });
+        return response?.Response?.List || [];
     } catch (error) {
         console.error('获取模型列表失败:', error);
         throw error;
@@ -827,13 +834,11 @@ export interface GetAgentConfigResponse {
  * 从本地后端查询当前用户在指定 application 下已绑定的 AgentId。
  * 未绑定时 AgentId 为 null。
  * @param applicationId 应用 ID
- * @param apiPath 接口路径覆盖（可选）
  */
 export const getAgentConfig = async (
     applicationId: string,
-    apiPath?: string
 ): Promise<GetAgentConfigResponse['Response']> => {
-    const path = apiPath || defaultApiDetailConfig.agentConfigApi!;
+    const path = defaultApiDetailConfig.agentConfigApi!;
     try {
         const response: GetAgentConfigResponse = await httpService.get(path, {
             ApplicationId: applicationId,
@@ -857,14 +862,12 @@ export interface SaveAgentConfigResponse {
  * 将当前用户在指定 application 下的 AgentId 上报并落库（upsert）。
  * @param applicationId 应用 ID
  * @param agentId 要绑定的 AgentId
- * @param apiPath 接口路径覆盖（可选）
  */
 export const saveAgentConfig = async (
     applicationId: string,
     agentId: string,
-    apiPath?: string
 ): Promise<SaveAgentConfigResponse['Response']> => {
-    const path = apiPath || defaultApiDetailConfig.agentConfigApi!;
+    const path = defaultApiDetailConfig.agentConfigApi!;
     try {
         const response: SaveAgentConfigResponse = await httpService.post(path, {
             ApplicationId: applicationId,
@@ -873,6 +876,64 @@ export const saveAgentConfig = async (
         return response.Response;
     } catch (error) {
         console.error('保存本地 AgentConfig 失败:', error);
+        throw error;
+    }
+};
+
+/** CreateConversation 会话类型 */
+export const ConversationType = {
+    /** Web 端会话 */
+    CONVERSATION_TYPE_VISITOR: 1   
+} as const;
+
+export type ConversationTypeValue = typeof ConversationType[keyof typeof ConversationType];
+
+/** CreateConversation 请求参数 */
+export interface CreateConversationParams {
+    /** 会话类型 */
+    Type: ConversationTypeValue;
+    /** 应用 ID */
+    AppId: string;
+    /** Type=CONVERSATION_TYPE_API 时必填，访客ID */
+    UserId?: string;
+    /** Type=CONVERSATION_TYPE_API 时必填，应用密钥 */
+    AppKey?: string;
+    /** Type=CONVERSATION_TYPE_SHARE 时必填，分享码 */
+    ShareCode?: string;
+    /** Agent ID */
+    AgentId?: string;
+}
+
+/** CreateConversation 响应 */
+export interface CreateConversationResponse {
+    Response: {
+        ConversationId: string;
+    };
+}
+
+/**
+ * 创建会话
+ * @param params 请求参数
+ * @param applicationId 应用 ID（作为外层 ApplicationId 透传给 /adp 代理）
+ * @param apiPath API 路径
+ */
+export const createConversation = async (
+    params: CreateConversationParams,
+    applicationId: string,
+    apiPath?: string
+): Promise<string> => {
+    const path = apiPath || defaultApiDetailConfig.createConversationApi!;
+    try {
+        const response: CreateConversationResponse = await httpService.post(
+            path,
+            {
+                ApplicationId: applicationId,
+                Payload: params,
+            }
+        );
+        return response.Response.ConversationId;
+    } catch (error) {
+        console.error('创建会话失败:', error);
         throw error;
     }
 };
