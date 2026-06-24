@@ -7,10 +7,13 @@ import {
     Tag as TTag,
     Tooltip as TTooltip,
     Button as TButton,
-    Icon as TIcon,
+   
 } from 'tdesign-vue-next';
+import CustomizedIcon from '../CustomizedIcon.vue';
 import { fetchModelList, type ListModelRawItem } from '../../service/api';
 import useAgentStore from '../../composables/useAgentStore';
+import type { ThemeProps } from '../../model/type';
+import { themePropsDefaults } from '../../model/type';
 
 /** 接口下发的 UI 标签 */
 export interface ModelUiTag {
@@ -55,7 +58,7 @@ export interface ModelOption {
 /** 选中模型（与 ModelOption 兼容） */
 export type SelectedModel = Partial<ModelOption> & { value?: string; text?: string };
 
-interface Props {
+interface Props extends ThemeProps {
     /** 候选模型列表（受控逗逃口：传入非空数组时使用父层数据，否则由组件内部拉取） */
     options?: ModelOption[];
     /** 当前选中模型 */
@@ -84,6 +87,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    ...themePropsDefaults,
     options: () => [],
     selected: () => ({} as SelectedModel),
     historyModel: null,
@@ -427,7 +431,7 @@ watch(popupVisible, (v) => {
                                 {{ uiTag.text }}
                             </t-tag>
                         </t-tooltip>
-                        <t-icon name="chevron-down" />
+                        <CustomizedIcon remote name="arrow_down_line" size="s" :show-hover-bg="false" :theme="theme" />
                     </span>
                 </t-button>
             </template>
@@ -460,10 +464,10 @@ watch(popupVisible, (v) => {
                                     <span>资源不可用</span>
                                 </slot>
                             </template>
-                            <t-icon class="model-selector__warning-icon" name="error-circle" />
+                            <CustomizedIcon remote class="model-selector__warning-icon" name="basic_error_line" size="s" :show-hover-bg="false" :theme="theme" />
                         </t-tooltip>
                     </div>
-                    <t-icon class="model-selector__arrow" name="chevron-down" />
+                    <CustomizedIcon remote class="model-selector__arrow" name="arrow_down_line" size="s" :show-hover-bg="false" :theme="theme" />
                 </div>
             </template>
 
@@ -478,7 +482,7 @@ watch(popupVisible, (v) => {
                         @clear="handleClear"
                     >
                         <template #prefix-icon>
-                            <t-icon name="search" />
+                            <CustomizedIcon remote name="basic_search_line" size="xs" :show-hover-bg="false" :theme="theme" />
                         </template>
                     </t-input>
 
@@ -516,7 +520,7 @@ watch(popupVisible, (v) => {
                                         </template>
                                         <t-tag  theme="primary" variant="light-outline">
                                             <template #icon>
-                                                <t-icon name="star" />
+                                                <CustomizedIcon remote name="basic_star_line" size="s" :show-hover-bg="false" :theme="theme" />
                                             </template>
                                             升级
                                         </t-tag>
@@ -587,9 +591,13 @@ watch(popupVisible, (v) => {
                                                         <span>资源不可用</span>
                                                     </slot>
                                                 </template>
-                                                <t-icon
+                                                <CustomizedIcon
+                                                    remote
                                                     class="model-selector__warning-icon"
-                                                    name="error-circle"
+                                                    name="basic_error_line"
+                                                    size="s"
+                                                    :show-hover-bg="false"
+                                                    :theme="theme"
                                                 />
                                             </t-tooltip>
                                         </div>

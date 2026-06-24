@@ -6,7 +6,7 @@
         :on-cancel="handleClose"
         :confirm-loading="loading"
         :close-on-overlay-click="false"
-        width="520px"
+        width="min(520px, calc(100vw - 40px))"
     >
         <div class="connector-connect">
             <!-- OAuth 类型：展示授权状态 + 跳转授权链接 -->

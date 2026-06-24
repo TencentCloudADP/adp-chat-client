@@ -3,9 +3,9 @@
         v-model:visible="visible"
         :header="i18n.addSkills"
         :footer="false"
-        width="800px"
         :close-on-overlay-click="false"
         @close="onClose"
+        width="min(900px, calc(100vw - 40px))"
     >
         <div class="skills-install">
             <!-- Tabs -->
@@ -21,14 +21,6 @@
                 <template v-if="activeTab === 'builtin'">
                     <div class="skills-install__filter-row">
                         <div class="skills-install__categories-wrapper">
-                            <t-button
-                                variant="text"
-                                shape="square"
-                                :disabled="!canScrollLeft"
-                                @click="scrollCategories(-1)"
-                            >
-                                <template #icon><t-icon name="chevron-left" /></template>
-                            </t-button>
                             <div ref="categoriesRef" class="skills-install__categories" @scroll="updateScrollState">
                                 <span
                                     v-for="cat in categories"
@@ -37,18 +29,24 @@
                                     @click="activeCategory = cat.value"
                                 >{{ cat.label }}</span>
                             </div>
-                            <t-button
-                                variant="text"
-                                
-                                shape="square"
-                                :disabled="!canScrollRight"
-                                @click="scrollCategories(1)"
-                            >
-                                <template #icon><t-icon name="chevron-right" /></template>
-                            </t-button>
+                            <div class="skills-install__scroll-btns">
+                                <span
+                                    :class="['skills-install__scroll-btn', { 'is-disabled': !canScrollLeft }]"
+                                    @click="scrollCategories(-1)"
+                                >
+                                    <CustomizedIcon remote name="arrow_left_small_line" size="xs" :show-hover-bg="false" :theme="theme" />
+                                </span>
+                                <span
+                                    :class="['skills-install__scroll-btn', { 'is-disabled': !canScrollRight }]"
+                                    @click="scrollCategories(1)"
+                                >
+                                    <CustomizedIcon remote name="arrow_right_small_line" size="xs" :show-hover-bg="false" :theme="theme" />
+                                </span>
+                            </div>
                         </div>
                         <div class="skills-install__filter-actions">
                             <t-checkbox v-model="filterOfficial">官方</t-checkbox>
+                            <t-checkbox v-model="filterFavorite">收藏</t-checkbox>
                             <t-input
                                 v-model="searchKeyword"
                                 :placeholder="i18n.search"
@@ -56,7 +54,7 @@
                                 clearable
                                 class="skills-install__search"
                             >
-                                <template #prefix-icon><t-icon name="search" /></template>
+                                <template #prefix-icon><CustomizedIcon remote name="basic_search_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                             </t-input>
                         </div>
                     </div>
@@ -65,6 +63,7 @@
                 <!-- 企业共享 / 自定义：搜索 -->
                 <template v-else>
                     <div class="skills-install__filter-row skills-install__filter-row--simple">
+                        <t-checkbox v-model="filterFavorite">收藏</t-checkbox>
                         <t-checkbox v-if="activeTab === 'custom'" v-model="filterShareStatus">企业共享</t-checkbox>
                         <t-input
                             v-model="searchKeyword"
@@ -73,7 +72,7 @@
                             clearable
                             class="skills-install__search"
                         >
-                            <template #prefix-icon><t-icon name="search" /></template>
+                            <template #prefix-icon><CustomizedIcon remote name="basic_search_line" size="s" :show-hover-bg="false" :theme="theme" /></template>
                         </t-input>
                     </div>
                 </template>
@@ -97,7 +96,7 @@
                                     @error="onCardIconError($event)"
                                 />
                                 <span v-else class="skill-card__icon-fallback">
-                                    <t-icon name="lightbulb" />
+                                    <CustomizedIcon remote name="basic_bulb_line" size="s" :show-hover-bg="false" :theme="theme" />
                                 </span>
                                 <div class="skill-card__info">
                                     <div class="skill-card__header">
@@ -108,24 +107,23 @@
                                             :content="safetyTooltip(skill)"
                                             placement="top"
                                         >
-                                            <span
-                                                :class="[
-                                                    'skill-card__tag',
-                                                    isSuspectedRisk(skill)
-                                                        ? 'skill-card__tag--orange'
-                                                        : 'skill-card__tag--green',
-                                                ]"
+                                            <TagWithColor
+                                                :color="isSuspectedRisk(skill) ? 'orange' : 'green'"
+                                                icon="basic_verification_code_line"
+                                                :theme="theme"
                                             >
-                                                <t-icon name="secured" size="12px" />
-                                                <span>{{ isSuspectedRisk(skill) ? '疑似风险' : '安全' }}</span>
-                                                <t-icon
+                                                {{ isSuspectedRisk(skill) ? '疑似风险' : '安全' }}
+                                                <CustomizedIcon
+                                                    remote
                                                     v-if="safetyReportUrl(skill)"
-                                                    name="jump"
-                                                    size="12px"
+                                                    name="arrow_up_right2_line"
+                                                    size="xxs"
+                                                    :show-hover-bg="false"
+                                                    :theme="theme"
                                                     class="skill-card__tag-suffix"
                                                     @click.stop="onOpenReport(safetyReportUrl(skill))"
                                                 />
-                                            </span>
+                                            </TagWithColor>
                                         </t-tooltip>
                                         <!-- 企业共享 tag -->
                                         <t-tooltip
@@ -133,7 +131,7 @@
                                             :content="sharedTooltip(skill)"
                                             placement="top"
                                         >
-                                            <span class="skill-card__tag skill-card__tag--blue">企业共享</span>
+                                            <TagWithColor color="blue" :theme="theme">企业共享</TagWithColor>
                                         </t-tooltip>
                                         <!-- 付费 tag -->
                                         <t-tooltip
@@ -141,10 +139,7 @@
                                             content="包含官方付费工具"
                                             placement="top"
                                         >
-                                            <span class="skill-card__tag skill-card__tag--purple">
-                                                <t-icon name="vip" size="12px" />
-                                                <span>付费</span>
-                                            </span>
+                                            <TagWithColor color="purple" icon="basic_vip_line" :theme="theme">官方收费</TagWithColor>
                                         </t-tooltip>
                                     </div>
                                     <div v-if="skillDesc(skill)" class="skill-card__desc" :title="skillDesc(skill)">{{ skillDesc(skill) }}</div>
@@ -160,13 +155,14 @@
                                         
                                         variant="outline"
                                         theme="default"
+                                        size="small"
                                         disabled
                                     >{{ i18n.installed }}</t-button>
                                     <t-button
                                         v-else
                                         
-                                        variant="outline"
                                         theme="primary"
+                                        size="small"
                                         :loading="busyId === (skill.skill_id as string)"
                                         :disabled="isLimitReached && !busyId"
                                         @click="onInstallSkill(skill)"
@@ -179,6 +175,7 @@
                                             :name="skill.is_favorite ? 'basic_star_fill' : 'basic_star_line'"
                                             size="xs"
                                             :show-hover-bg="false"
+                                            :theme="theme"
                                             :color="(skill.is_favorite ? '#f8c544' : 'var(--td-text-color-placeholder)')"
                                         />
                                     </span>
@@ -205,15 +202,18 @@ import {
     Tooltip as TTooltip,
     Input as TInput,
     Checkbox as TCheckbox,
-    Icon as TIcon,
+   
     MessagePlugin,
 } from 'tdesign-vue-next';
 import type { SkillsI18n } from '../../model/skills';
 import { defaultSkillsI18n, defaultSkillsI18nEn } from '../../model/skills';
 import { fetchSkillCategories, fetchSkillSummaryList, modifyAgentSkillList } from '../../service/skillsApi';
 import CustomizedIcon from '../CustomizedIcon.vue';
+import TagWithColor from '../Common/TagWithColor.vue';
+import type { ThemeProps } from '../../model/type';
+import { themePropsDefaults } from '../../model/type';
 
-interface Props {
+interface Props extends ThemeProps {
     modelValue: boolean;
     installedSkillIds?: string[];
     /** 已安装 skill 的完整原始数据列表，用于 ModifyAgent 时合并构造完整 skill_list */
@@ -226,6 +226,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    ...themePropsDefaults,
     modelValue: false,
     installedSkillIds: () => [],
     installedSkills: () => [],
@@ -258,6 +259,7 @@ const tabsReady = ref(false);
 const activeTab = ref('builtin');
 const activeCategory = ref('all');
 const filterOfficial = ref(false);
+const filterFavorite = ref(false);
 const filterShareStatus = ref(false);
 const searchKeyword = ref('');
 const loading = ref(false);
@@ -450,6 +452,7 @@ async function fetchSkillList(append = false) {
             page_number: pageNumber.value,
             query: searchKeyword.value || undefined,
             filter_list: buildFilters(),
+            favorite_only: filterFavorite.value || undefined,
         });
 
         if (version !== fetchVersion.value) return;
@@ -589,7 +592,7 @@ watch(activeTab, () => {
     resetAndFetch();
 });
 
-watch([activeCategory, filterOfficial, filterShareStatus], () => {
+watch([activeCategory, filterOfficial, filterFavorite, filterShareStatus], () => {
     resetAndFetch();
 });
 
@@ -638,40 +641,66 @@ function onClose() {
     gap: 8px;
     flex-shrink: 0;
 }
-.skills-install__categories-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
 .skills-install__categories {
     display: flex;
     gap: 8px;
-    overflow-x: auto;
     flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
     scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 .skills-install__categories::-webkit-scrollbar {
     display: none;
 }
 .skills-install__category {
-    flex-shrink: 0;
-    padding: 2px 12px;
-    font-size: 12px;
-    border-radius: 16px;
-    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 3px;
+    font-size: 13px;
     color: var(--td-text-color-secondary);
     background: var(--td-bg-color-secondarycontainer);
-    white-space: nowrap;
+    cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
 }
 .skills-install__category:hover {
     color: var(--td-brand-color);
     background: var(--td-brand-color-light);
 }
 .skills-install__category.is-active {
-    color: #fff;
-    background: var(--td-brand-color);
-    font-weight: 500;
+    color: var(--td-brand-color);
+    background: var(--td-brand-color-light);
+}
+
+/* 滚动箭头按钮 */
+.skills-install__scroll-btns {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.skills-install__scroll-btn {
+    flex-shrink: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    color: var(--td-text-color-placeholder);
+    transition: color 0.2s;
+}
+.skills-install__scroll-btn:hover {
+    color: var(--td-text-color-primary);
+}
+.skills-install__scroll-btn.is-disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
 }
 .skills-install__filter-actions {
     display: flex;
@@ -722,9 +751,6 @@ function onClose() {
 }
 .skills-install__card:last-child {
     border-bottom: none;
-}
-.skills-install__card:hover {
-    background: var(--td-bg-color-container-hover);
 }
 .skill-card__body {
     display: flex;

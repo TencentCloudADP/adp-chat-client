@@ -2,10 +2,10 @@
     <t-dialog
         v-model:visible="visible"
         header="请填充相关信息并继续"
-        width="440px"
         :confirm-btn="null"
         :cancel-btn="null"
         :close-on-overlay-click="false"
+        width="min(440px, calc(100vw - 40px))"
     >
         <div class="mcp-field-dialog">
             <t-form ref="formRef" :data="formData" layout="vertical" label-align="top" @submit="onSubmit">

@@ -3,20 +3,20 @@
         v-model:visible="visible"
         :header="i18n.manageSkills"
         :footer="false"
-        width="700px"
         :close-on-overlay-click="false"
+        width="min(900px, calc(100vw - 40px))"
         @close="onClose"
     >
         <div class="skills-manage">
             <!-- 操作栏：添加 + 导入 + 搜索 -->
             <div class="skills-manage__action-bar">
                 <t-button theme="primary"  @click="handleAdd">
-                    <template #icon><t-icon name="add" /></template>
+                    <template #icon><CustomizedIcon color="var(--td-font-white-1)" remote name="basic_new_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                     {{ i18n.addSkillsBtn }}
                 </t-button>
                 <label v-if="enableImport" class="skills-manage__import-btn">
                     <t-button  :loading="importing" @click.stop>
-                        <template #icon><t-icon name="upload" /></template>
+                        <template #icon><CustomizedIcon remote name="basic_upload2_line" size="s" :show-hover-bg="false" :theme="theme" /></template>
                         导入
                     </t-button>
                     <input
@@ -30,11 +30,10 @@
                 <t-input
                     v-model="searchKeyword"
                     placeholder="搜索 Skills"
-                    
                     clearable
                     class="skills-manage__search"
                 >
-                    <template #prefix-icon><t-icon name="search" /></template>
+                    <template #prefix-icon><CustomizedIcon remote name="basic_search_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                 </t-input>
             </div>
 
@@ -63,7 +62,7 @@
                             @error="onIconError($event)"
                         />
                         <span v-else class="skills-manage__item-icon-fb">
-                            <t-icon name="lightbulb" />
+                            <CustomizedIcon remote name="basic_bulb_line" size="s" :show-hover-bg="false" :theme="theme" />
                         </span>
                     </div>
                     <div class="skills-manage__item-info">
@@ -77,7 +76,7 @@
                     <div class="skills-manage__item-actions">
                         <t-tooltip v-if="isPreset(item)" content="预置 Skill 无法删除" placement="top">
                             <t-button  variant="text" theme="default" disabled>
-                                <template #icon><t-icon name="delete" /></template>
+                                <template #icon><CustomizedIcon remote name="basic_delete_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                             </t-button>
                         </t-tooltip>
                         <t-button
@@ -89,8 +88,7 @@
                             :loading="deletingId === item.id"
                             @click="handleDelete(item)"
                         >
-                            <template #icon><t-icon name="delete" /></template>
-                            移除
+                            <template #icon><CustomizedIcon remote name="basic_delete_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                         </t-button>
                     </div>
                 </div>
@@ -103,12 +101,15 @@
 import { ref, computed } from 'vue';
 import {
     Dialog as TDialog, Button as TButton, Tag as TTag, Loading as TLoading,
-    Input as TInput, Icon as TIcon, Tooltip as TTooltip,
+    Input as TInput, Tooltip as TTooltip,
 } from 'tdesign-vue-next';
+import CustomizedIcon from '../CustomizedIcon.vue';
 import type { ManageSkillItem, SkillsI18n } from '../../model/skills';
 import { AgentSkillType, defaultSkillsI18n, defaultSkillsI18nEn } from '../../model/skills';
+import type { ThemeProps } from '../../model/type';
+import { themePropsDefaults } from '../../model/type';
 
-interface Props {
+interface Props extends ThemeProps {
     modelValue: boolean;
     manageList?: ManageSkillItem[];
     loading?: boolean;
@@ -118,6 +119,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    ...themePropsDefaults,
     modelValue: false,
     manageList: () => [],
     loading: false,
@@ -203,6 +205,9 @@ defineExpose({ resetDeleting });
 <style scoped>
 .skills-manage { display: flex; flex-direction: column; gap: 12px; height: 480px; overflow: hidden; }
 .skills-manage__action-bar { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.skills-manage__action-bar .customeized-icon{
+    margin-right: 4px;
+}
 .skills-manage__import-btn { display: inline-flex; cursor: pointer; }
 .skills-manage__search { width: 200px; margin-left: auto; }
 .skills-manage__loading { display: flex; align-items: center; justify-content: center; flex: 1; }
@@ -213,7 +218,6 @@ defineExpose({ resetDeleting });
 
 .skills-manage__item { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid rgba(0, 44, 85, 0.08); transition: background 0.15s; }
 .skills-manage__item:last-child { border-bottom: none; }
-.skills-manage__item:hover { background: var(--td-bg-color-container-hover); }
 .skills-manage__item-icon { flex-shrink: 0; width: 40px; }
 .skills-manage__item-icon img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
 .skills-manage__item-icon-fb { width: 40px; height: 40px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: var(--td-bg-color-secondarycontainer); color: var(--td-text-color-placeholder); border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
@@ -222,4 +226,6 @@ defineExpose({ resetDeleting });
 .skills-manage__item-name { font-size: 15px; font-weight: 500; color: var(--td-text-color-primary); line-height: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
 .skills-manage__item-desc { font-size: 13px; color: var(--td-text-color-placeholder); line-height: 20px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .skills-manage__item-actions { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+/* 禁用状态删除按钮 */
+.skills-manage__item-actions :deep(.t-button.t-is-disabled) { opacity: 0.35; cursor: not-allowed; }
 </style>

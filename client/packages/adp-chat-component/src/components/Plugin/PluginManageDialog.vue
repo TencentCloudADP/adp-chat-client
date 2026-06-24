@@ -3,19 +3,16 @@
         v-model:visible="visible"
         header="管理工具"
         :footer="false"
-        width="700px"
         :close-on-overlay-click="false"
+        width="min(900px, calc(100vw - 40px))"
     >
         <div class="manage-tool-dialog">
             <!-- 操作栏 -->
             <div class="manage-tool-dialog__action-bar">
                 <t-button theme="primary"  @click="onOpenAdd">
-                    <template #icon><t-icon name="add" /></template>
+                    <template #icon><CustomizedIcon  color="var(--td-font-white-1)"  remote name="basic_new_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                     添加
                 </t-button>
-                <t-input v-model="searchKeyword" placeholder="搜索工具"  clearable class="manage-tool-dialog__search">
-                    <template #prefix-icon><t-icon name="search" /></template>
-                </t-input>
             </div>
 
             <!-- 列表区域 -->
@@ -29,13 +26,13 @@
                 <div v-for="item in filteredList" :key="item.toolId" class="manage-tool-item">
                     <div class="manage-tool-item__icon">
                         <img v-if="item.iconUrl" :src="item.iconUrl" @error="onIconError" />
-                        <span v-else class="manage-tool-item__icon-fb"><t-icon name="tools" /></span>
+                        <span v-else class="manage-tool-item__icon-fb"><CustomizedIcon remote name="basic_plugin_line" size="s" :show-hover-bg="false" :theme="theme" /></span>
                     </div>
                     <div class="manage-tool-item__info">
                         <div class="manage-tool-item__title">
                             <span class="manage-tool-item__name" :title="item.displayName">{{ item.displayName }}</span>
-                            <t-tag v-if="item.isInner"  variant="light">预置</t-tag>
-                            <t-tag v-if="item.createTypeLabel"  color="gray">{{ item.createTypeLabel }}</t-tag>
+                            <t-tag v-if="item.isInner"  variant="light-outline">预置</t-tag>
+                            <t-tag v-if="item.createTypeLabel"  variant="light">{{ item.createTypeLabel }}</t-tag>
                         </div>
                         <div class="manage-tool-item__desc" :title="item.desc">{{ item.desc || item.pluginName }}</div>
                     </div>
@@ -49,12 +46,11 @@
                             :disabled="!!deletingId && deletingId !== item.toolId"
                             @click="onDelete(item)"
                         >
-                            <template #icon><t-icon name="delete" /></template>
-                            删除
+                            <template #icon><CustomizedIcon remote name="basic_delete_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                         </t-button>
                         <t-tooltip v-else content="预置工具无法删除" placement="top">
                             <t-button  variant="text" theme="default" disabled>
-                                <template #icon><t-icon name="delete" /></template>
+                                <template #icon><CustomizedIcon remote name="basic_delete_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                             </t-button>
                         </t-tooltip>
                     </div>
@@ -76,19 +72,22 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import {
-    Dialog as TDialog, Button as TButton, Icon as TIcon, Tag as TTag,
+    Dialog as TDialog, Button as TButton, Tag as TTag,
     Input as TInput, Loading as TLoading, Tooltip as TTooltip, MessagePlugin,
 } from 'tdesign-vue-next';
+import CustomizedIcon from '../CustomizedIcon.vue';
 import { fetchGlobalAgent } from '../../service/skillsApi';
 import { unbindAgentTool } from '../../service/connectorPluginApi';
 import PluginInstallDialog from './PluginInstallDialog.vue';
+import type { ThemeProps } from '../../model/type';
+import { themePropsDefaults } from '../../model/type';
 
-interface Props {
+interface Props extends ThemeProps {
     modelValue: boolean;
     applicationId?: string;
     agentId?: string;
 }
-const props = withDefaults(defineProps<Props>(), { modelValue: false, applicationId: '', agentId: '' });
+const props = withDefaults(defineProps<Props>(), { ...themePropsDefaults, modelValue: false, applicationId: '', agentId: '' });
 const emit = defineEmits<{
     (e: 'update:modelValue', v: boolean): void;
     /** 数据变更后通知父组件刷新 */
@@ -226,6 +225,9 @@ watch(() => props.modelValue, (val) => {
 <style scoped>
 .manage-tool-dialog { display: flex; flex-direction: column; gap: 12px; height: 480px; overflow: hidden; }
 .manage-tool-dialog__action-bar { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.manage-tool-dialog__action-bar  .customeized-icon{
+    margin-right: 4px;
+}
 .manage-tool-dialog__search { width: 200px; margin-left: auto; }
 .manage-tool-dialog__loading { display: flex; align-items: center; justify-content: center; flex: 1; }
 .manage-tool-dialog__empty { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--td-text-color-placeholder); font-size: 13px; }
@@ -235,7 +237,6 @@ watch(() => props.modelValue, (val) => {
 
 .manage-tool-item { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid rgba(0, 44, 85, 0.08); transition: background 0.15s; }
 .manage-tool-item:last-child { border-bottom: none; }
-.manage-tool-item:hover { background: var(--td-bg-color-container-hover); }
 .manage-tool-item__icon { flex-shrink: 0; width: 40px; }
 .manage-tool-item__icon img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
 .manage-tool-item__icon-fb { width: 40px; height: 40px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: var(--td-bg-color-secondarycontainer); color: var(--td-text-color-placeholder); border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
@@ -244,4 +245,6 @@ watch(() => props.modelValue, (val) => {
 .manage-tool-item__name { font-size: 15px; font-weight: 500; color: var(--td-text-color-primary); line-height: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
 .manage-tool-item__desc { font-size: 13px; color: var(--td-text-color-placeholder); line-height: 20px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .manage-tool-item__actions { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+/* 禁用状态删除按钮 */
+.manage-tool-item__actions :deep(.t-button.t-is-disabled) { opacity: 0.35; cursor: not-allowed; }
 </style>

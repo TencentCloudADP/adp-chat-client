@@ -12,6 +12,7 @@
                 name="basic_bulb_line"
                 size="s"
                 :show-hover-bg="false"
+                :theme="theme"
                 :color="'var(--td-text-color-secondary)'"
             />
             <span class="skills-popover-trigger__text">{{ i18n.skills }}</span>
@@ -39,7 +40,7 @@
                             clearable
                         >
                             <template #prefix-icon>
-                                <t-icon name="search" />
+                                <CustomizedIcon remote name="basic_search_line" size="xs" :show-hover-bg="false" :theme="theme" />
                             </template>
                         </t-input>
                     </div>
@@ -62,7 +63,7 @@
                                     @error="onIconError($event)"
                                 />
                                 <span v-else class="skills-popover__icon-fallback">
-                                    <CustomizedIcon remote name="basic_bulb_line" size="s" :show-hover-bg="false" />
+                                    <CustomizedIcon remote name="basic_bulb_line" size="s" :show-hover-bg="false" :theme="theme" />
                                 </span>
                                 <span class="skills-popover__name">{{ skill.displayName }}</span>
                             </div>
@@ -79,7 +80,7 @@
 
                     <!-- 管理 Skills 入口 -->
                     <div class="skills-popover__manage" @click="onManageClick">
-                        <CustomizedIcon remote name="basic_setting_line" size="s" :show-hover-bg="false" />
+                        <CustomizedIcon remote name="basic_setting_line" size="s" :show-hover-bg="false" :theme="theme" />
                         <span>{{ i18n.manageSkills }}</span>
                     </div>
                 </div>
@@ -90,12 +91,14 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onUnmounted } from 'vue';
-import { Input as TInput, Loading as TLoading, Icon as TIcon } from 'tdesign-vue-next';
+import { Input as TInput, Loading as TLoading } from 'tdesign-vue-next';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import type { NormalizedSkill, SkillsI18n, SkillSelectEvent } from '../../model/skills';
 import { defaultSkillsI18n, defaultSkillsI18nEn } from '../../model/skills';
+import type { ThemeProps } from '../../model/type';
+import { themePropsDefaults } from '../../model/type';
 
-interface Props {
+interface Props extends ThemeProps {
     installedSkills?: NormalizedSkill[];
     loading?: boolean;
     i18n?: Partial<SkillsI18n>;
@@ -103,6 +106,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    ...themePropsDefaults,
     installedSkills: () => [],
     loading: false,
     i18n: () => ({}),

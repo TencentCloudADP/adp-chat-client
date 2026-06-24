@@ -110,8 +110,8 @@ let idCounter = 0;
 interface Props extends ThemeProps {
     /** SVG图标的名称，对应 src/assets/icons 目录下的文件名（不含扩展名） */
     name: string;
-    /** 图标尺寸，可选值：'xs' | 's' | 'm' | 'l' | 'xl' */
-    size?: 'xs' | 's' | 'm' | 'l' | 'xl';
+    /** 图标尺寸，可选值：'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl' */
+    size?: 'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl';
     /** 是否使用原生图标样式（不应用主题滤镜），适用于彩色图标 */
     nativeIcon?: boolean;
     /** hover是否显示背景色 */
@@ -137,12 +137,32 @@ const props = withDefaults(defineProps<Props>(), {
 // 本地 SVG sprite 文件路径
 const ICONFONT_SVG_URL = new URL('../assets/icons/remote/iconfont.svg', import.meta.url).href;
 
-// 计算内联样式（仅非 nativeIcon 时应用 color）
+/*
+ * 计算外层 span 的内联样式
+ * - nativeIcon: 不应用 color
+ * - 显式传入 color: 直接使用原始值（CSS color 属性原生支持 var() 解析）
+ */
 const iconStyle = computed(() => {
     if (props.color && !props.nativeIcon) {
         return { color: props.color };
     }
     return {};
+});
+
+/*
+ * 计算内层 svg 的内联样式
+ * 关键设计：
+ * 1. 同时设置 fill 和 color，确保 sprite 中 path fill="currentColor" 能正确取值
+ * 2. CSS 形式的 fill 属性原生支持 var()，无需运行时解析
+ * 3. inline style 优先级高于祖先 t-button 等元素的 color 继承链
+ */
+const svgStyle = computed(() => {
+    if (props.nativeIcon) return {};
+    if (!props.color) return { fill: 'currentColor' };
+    return {
+        fill: props.color,
+        color: props.color,
+    };
 });
 
 // 为每个组件实例生成唯一 id
@@ -247,7 +267,7 @@ function processSvg(content: string, isNative: boolean): string {
         :style="iconStyle"
         aria-hidden="true"
     >
-        <svg class="svg-inner" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+        <svg class="svg-inner" xmlns="http://www.w3.org/2000/svg" :style="svgStyle">
             <use :href="remoteHref" />
         </svg>
     </span>
@@ -268,6 +288,12 @@ function processSvg(content: string, isNative: boolean): string {
 /* 亮色模式默认颜色 */
 .customeized-icon.normal:not(.svg-dark-mode) {
     color: rgba(0, 0, 0, 0.6);
+}
+
+/* 尺寸样式 - xxs: 极小 */
+.customeized-icon.size-xxs {
+    width: 14px;
+    height: 14px;
 }
 
 /* 尺寸样式 - xs: 超小 */

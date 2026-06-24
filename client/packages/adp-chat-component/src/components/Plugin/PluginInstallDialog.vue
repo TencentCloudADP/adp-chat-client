@@ -3,31 +3,16 @@
         v-model:visible="visible"
         header="添加工具"
         :footer="false"
-        width="800px"
         :close-on-overlay-click="false"
+        width="min(900px, calc(100vw - 40px))"
     >
         <div class="plugin-dialog">
-            <!-- Tabs + 筛选栏 -->
+            <!-- Tab 切换栏（分割线样式） -->
             <div class="plugin-dialog__header">
-                <t-tabs v-model="activeTab" class="plugin-dialog__tabs" @change="onTabChange">
-                    <t-tab-panel value="inner" label="工具" />
-                    <t-tab-panel value="custom" label="自定义工具" />
-                </t-tabs>
+                <DividerTabs v-model="activeTab" :options="tabOptions" @update:model-value="onTabChange" />
                 <div class="plugin-dialog__actions">
-                    <t-popup trigger="click" placement="bottom-right">
-                        <span class="plugin-dialog__sort-btn" :title="sortLabel">
-                            <t-icon :name="sortIcon" />
-                        </span>
-                        <template #content>
-                            <div class="plugin-dialog__sort-menu">
-                                <div v-for="opt in sortOptions" :key="opt.value"
-                                    :class="['plugin-dialog__sort-item', { 'is-selected': selectedSort === opt.value }]"
-                                    @click="selectedSort = opt.value; doReset()">
-                                    <span>{{ opt.label }}</span>
-                                </div>
-                            </div>
-                        </template>
-                    </t-popup>
+                    <t-checkbox v-model="filterFavorite" @change="doReset">收藏</t-checkbox>
+                    
                     <t-popup v-if="activeTab === 'inner' || activeTab === 'custom'" v-model:visible="filterVisible" trigger="click" placement="bottom-right">
                         <span class="plugin-dialog__filter-trigger">{{ filterLabel }}</span>
                         <template #content>
@@ -42,16 +27,49 @@
                         </template>
                     </t-popup>
                     <t-input v-model="searchKeyword" placeholder="搜索工具"  clearable class="plugin-dialog__search" @change="onSearch">
-                        <template #prefix-icon><t-icon name="search" /></template>
+                        <template #prefix-icon><CustomizedIcon  remote name="basic_search_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                     </t-input>
+                    <t-popup trigger="click" placement="bottom-right">
+                        <span class="plugin-dialog__sort-btn" :title="sortLabel">
+                            <CustomizedIcon remote :name="sortIcon" size="s" :show-hover-bg="false" :theme="theme" />
+                        </span>
+                        <template #content>
+                            <div class="plugin-dialog__sort-menu">
+                                <t-tag v-for="opt in sortOptions" :key="opt.value"
+                                    :variant="selectedSort === opt.value ? 'dark' : 'light'"
+                                    :theme="selectedSort === opt.value ? 'primary' : 'default'"
+                                    class="plugin-dialog__sort-item"
+                                    shape="square"
+                                    @click="selectedSort = opt.value; doReset()">
+                                    {{ opt.label }}
+                                </t-tag>
+                            </div>
+                        </template>
+                    </t-popup>
                 </div>
             </div>
 
             <!-- 分类标签栏 -->
-            <div v-if="activeTab === 'inner'" class="plugin-dialog__cat-bar">
-                <span v-for="cat in categories" :key="cat.value"
-                    :class="['plugin-dialog__cat-tag', { 'is-active': activeCategory === cat.value }]"
-                    @click="activeCategory = cat.value">{{ cat.label }}</span>
+            <div v-if="activeTab === 'inner'" class="plugin-dialog__categories-wrapper">
+                <div ref="categoriesRef" class="plugin-dialog__categories" @scroll="updateScrollState">
+                    <span v-for="cat in categories" :key="cat.value"
+                        :class="['plugin-dialog__cat-tag', { 'is-active': activeCategory === cat.value }]"
+                        @click="activeCategory = cat.value">{{ cat.label }}</span>
+                </div>
+                <div class="plugin-dialog__scroll-btns">
+                    <span
+                        :class="['plugin-dialog__scroll-btn', { 'is-disabled': !canScrollLeft }]"
+                        @click="scrollCategories(-1)"
+                    >
+                        <CustomizedIcon remote name="arrow_left_small_line" size="xs" :show-hover-bg="false" :theme="theme" />
+                    </span>
+                    <span
+                        :class="['plugin-dialog__scroll-btn', { 'is-disabled': !canScrollRight }]"
+                        @click="scrollCategories(1)"
+                    >
+                        <CustomizedIcon remote name="arrow_right_small_line" size="xs" :show-hover-bg="false" :theme="theme" />
+                    </span>
+                </div>
             </div>
 
             <!-- 卡片列表 -->
@@ -65,15 +83,15 @@
                     <div class="plugin-card__main" @click="onExpand(item)">
                         <div class="plugin-card__icon-area">
                             <img v-if="itemIcon(item)" :src="itemIcon(item)" class="plugin-card__icon" @error="onIconError" />
-                            <span v-else class="plugin-card__icon-fb"><t-icon name="tools" /></span>
+                            <span v-else class="plugin-card__icon-fb"><CustomizedIcon remote name="basic_plugin_line" size="s" :show-hover-bg="false" :theme="theme" /></span>
                         </div>
                         <div class="plugin-card__info">
                             <div class="plugin-card__title-row">
                                 <span class="plugin-card__name" :title="itemName(item)">{{ itemName(item) }}</span>
-                                <t-tag v-if="itemFinanceType(item) === 3" color="orange" >公测</t-tag>
-                                <t-tag v-if="itemFinanceType(item) === 2" color="purple" >付费</t-tag>
-                                <t-tag v-if="getCreateTypeLabel(item)" color="gray" >{{ getCreateTypeLabel(item) }}</t-tag>
-                                <t-tag v-if="itemCategory(item)" color="gray" >{{ itemCategory(item) }}</t-tag>
+                                <TagWithColor v-if="itemFinanceType(item) === 3" color="orange" :theme="theme">公测</TagWithColor>
+                                <TagWithColor v-if="itemFinanceType(item) === 2" color="purple" icon="basic_vip_line" :theme="theme">官方收费</TagWithColor>
+                                <TagWithColor v-if="getCreateTypeLabel(item)" color="gray" :theme="theme">{{ getCreateTypeLabel(item) }}</TagWithColor>
+                                <TagWithColor v-if="itemCategory(item)" color="gray" :theme="theme">{{ itemCategory(item) }}</TagWithColor>
                                 <span v-if="itemStatus(item) === 2" class="plugin-card__error-dot">不可用</span>
                             </div>
                             <div class="plugin-card__desc" :title="itemDesc(item)">{{ itemDesc(item) }}</div>
@@ -83,33 +101,34 @@
                                 <span class="plugin-card__tool-count">含{{ itemToolCount(item) }}个工具</span>
                                 <span class="plugin-card__sep">|</span>
                                 <span class="plugin-card__fav">
-                                    <t-icon :name="item.IsFavorite || item.is_favorite ? 'star-filled' : 'star'" :style="{ color: (item.IsFavorite || item.is_favorite) ? '#f8c544' : 'var(--td-text-color-placeholder)', fontSize: '14px' }" />
+                                    <CustomizedIcon remote :name="item.IsFavorite || item.is_favorite ? 'basic_star_fill' : 'basic_star_line'" size="xxs" :show-hover-bg="false" :theme="theme" :color="(item.IsFavorite || item.is_favorite) ? 'var(--td-warning-color)' : 'var(--td-text-color-placeholder)'" />
                                     {{ (item.IsFavorite || item.is_favorite) ? '已收藏' : '收藏' }}
                                 </span>
                                 <template v-if="getCreateType(item) === 2">
                                     <span class="plugin-card__sep">|</span>
                                     <span class="plugin-card__refresh" :class="{ 'is-loading': item._toolsLoading }" @click.stop="onUpdatePlugin(item)">
-                                        <t-icon name="refresh" :style="{ fontSize: '14px' }" />
+                                        <CustomizedIcon remote name="basic_refresh_line" size="xxs" :show-hover-bg="false" :theme="theme" />
                                         更新
                                     </span>
                                 </template>
+                                <template v-if="itemStatus(item) !== 2">
+                                    <span v-if="checkIsAllAdd(item)" class="plugin-card__added-text">已全部添加</span>
+                                    <span v-else class="plugin-card__sep">|</span>
+                                    <t-button v-if="!checkIsAllAdd(item)" variant="text" theme="primary" size="small"
+                                        :loading="addingKey === `plugin-${itemId(item)}`"
+                                        :disabled="!!addingKey && addingKey !== `plugin-${itemId(item)}`"
+                                        @click.stop="onAddAll(item)">
+                                        全部添加
+                                    </t-button>
+                                </template>
                             </div>
                         </div>
-                        <div class="plugin-card__right">
-                            <template v-if="itemStatus(item) !== 2">
-                                <span v-if="checkIsAllAdd(item)" class="plugin-card__added-text">已全部添加</span>
-                                <t-button v-else  variant="text" theme="primary"
-                                    :loading="addingKey === `plugin-${itemId(item)}`"
-                                    :disabled="!!addingKey && addingKey !== `plugin-${itemId(item)}`"
-                                    @click.stop="onAddAll(item)">全部添加</t-button>
-                            </template>
-                        </div>
                         <div class="plugin-card__expand-arrow">
-                            <t-icon :class="['plugin-card__arrow-icon', { 'is-expanded': expandedId === itemId(item) }]" name="chevron-down" />
+                            <CustomizedIcon remote :class="['plugin-card__arrow-icon', { 'is-expanded': expandedId === itemId(item) }]" name="arrow_down_line" size="xxs" :show-hover-bg="false" :theme="theme" />
                         </div>
                         <!-- 精选标记 -->
                         <div v-if="item.IsFeatured" class="plugin-card__featured">
-                            <t-icon name="verified" :style="{ fontSize: '14px', color: 'var(--td-brand-color)' }" />
+                            <CustomizedIcon remote name="basic_official_account_line" size="xxs" :show-hover-bg="false" :theme="theme" color="var(--td-stack-color, #9b6ef9)" />
                             精选
                         </div>
                     </div>
@@ -122,40 +141,37 @@
                                 <div class="plugin-card__tool-content">
                                     <div class="plugin-card__tool-title-row">
                                         <span class="plugin-card__tool-name">{{ getToolName(tool) }}</span>
-                                        <t-tag v-if="getToolFinanceType(tool) === 3" color="orange" >公测</t-tag>
-                                        <t-tag v-if="getToolFinanceType(tool) === 2" color="purple" >付费</t-tag>
+                                        <TagWithColor v-if="getToolFinanceType(tool) === 3" color="orange" :theme="theme">公测</TagWithColor>
+                                        <TagWithColor v-if="getToolFinanceType(tool) === 2" color="purple" icon="basic_vip_line" :theme="theme">官方收费</TagWithColor>
                                     </div>
                                     <div class="plugin-card__tool-desc" :title="getToolDesc(tool)">{{ getToolDesc(tool) }}</div>
                                     <div v-if="getToolTags(tool).length > 0" class="plugin-card__tool-tags">
-                                        <t-tag v-for="(tag, idx) in getToolTags(tool)" :key="idx"  variant="light">{{ tag }}</t-tag>
+                                        <TagWithColor v-for="(tag, idx) in getToolTags(tool)" :key="idx" color="gray" :theme="theme">{{ tag }}</TagWithColor>
                                     </div>
                                 </div>
                                 <div class="plugin-card__tool-action">
-                                    <template v-if="isToolAdded(tool)">
-                                        <t-button  variant="outline" theme="default" disabled>已添加</t-button>
-                                        <t-button  variant="text" theme="danger"
-                                            :loading="addingKey === `del-${getToolId(tool)}`"
-                                            :disabled="!!addingKey && addingKey !== `del-${getToolId(tool)}`"
-                                            @click.stop="onDeleteTool(item, tool)">删除</t-button>
-                                    </template>
-                                    <t-button v-else  variant="outline" theme="primary"
+                                    <t-button v-if="isToolAdded(tool)" variant="outline" theme="default" size="small" disabled>已添加</t-button>
+                                    <t-button v-else  theme="primary" size="small"
                                         :loading="addingKey === `tool-${getToolId(tool)}`"
                                         :disabled="!!addingKey && addingKey !== `tool-${getToolId(tool)}`"
-                                        @click.stop="onAddSingle(item, tool)">添加</t-button>
+                                        @click.stop="onAddSingle(item, tool)">
+                                        <template #icon><CustomizedIcon color="var(--td-font-white-1)" remote name="basic_new_line" size="xxs" :show-hover-bg="false" :theme="theme" /></template>
+                                        添加
+                                    </t-button>
                                 </div>
                             </div>
                             <div v-if="getItemTools(item).length === 0" class="plugin-card__tool-empty">暂无工具信息</div>
                         </div>
                         <!-- 不可用状态 -->
                         <div v-else class="plugin-card__expand plugin-card__expand--error">
-                            <t-icon name="error-circle-filled" :style="{ color: 'var(--td-error-color)', fontSize: '16px' }" />
+                            <CustomizedIcon remote name="basic_error_fill" size="xxs" :show-hover-bg="false" :theme="theme" color="var(--td-error-color)" />
                             <span>该 server 已失效，无法拉取到相应内容</span>
                         </div>
                     </template>
                 </div>
             </div>
 
-            <t-pagination v-if="total > pageSize" v-model="pageNumber" :total="total" :page-size="pageSize"  class="plugin-dialog__pagination" @change="fetchList" />
+            <t-pagination size="small" v-if="total > pageSize" v-model="pageNumber" :total="total" :page-size="pageSize"  class="plugin-dialog__pagination" @change="fetchList" />
         </div>
 
         <!-- MCP 字段填写弹窗 -->
@@ -170,19 +186,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import {
-    Dialog as TDialog, Button as TButton, Tag as TTag, Loading as TLoading, Icon as TIcon,
-    Tabs as TTabs, TabPanel as TTabPanel, Input as TInput, Checkbox as TCheckbox,
+    Dialog as TDialog, Button as TButton, Tag as TTag, Loading as TLoading,
+    Input as TInput, Checkbox as TCheckbox,
     Pagination as TPagination, Popup as TPopup, MessagePlugin,
 } from 'tdesign-vue-next';
+import CustomizedIcon from '../CustomizedIcon.vue';
+import TagWithColor from '../Common/TagWithColor.vue';
 import {
     fetchPluginList, fetchPluginCategories, PluginClassEnum,
-    bindAgentTool, unbindAgentTool, buildToolConfig, buildPluginConfig,
+    bindAgentTool, buildToolConfig, buildPluginConfig,
 } from '../../service/connectorPluginApi';
 import McpFieldDialog from './McpFieldDialog.vue';
+import DividerTabs from '../Common/DividerTabs.vue';
+import type { ThemeProps } from '../../model/type';
+import { themePropsDefaults } from '../../model/type';
 
-interface Props {
+interface Props extends ThemeProps {
     modelValue: boolean;
     applicationId?: string;
     /** Agent ID（从 useAgentStore 获取） */
@@ -190,7 +211,7 @@ interface Props {
     /** 已安装的工具 ID 列表，用于判断"已添加"状态 */
     installedToolIds?: string[];
 }
-const props = withDefaults(defineProps<Props>(), { modelValue: false, applicationId: '', agentId: '', installedToolIds: () => [] });
+const props = withDefaults(defineProps<Props>(), { ...themePropsDefaults, modelValue: false, applicationId: '', agentId: '', installedToolIds: () => [] });
 const emit = defineEmits<{
     (e: 'update:modelValue', v: boolean): void;
     /** 全部添加（整个插件）— 接口调用完毕后 emit */
@@ -203,22 +224,27 @@ const emit = defineEmits<{
 
 const visible = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) });
 const activeTab = ref('inner');
+const tabOptions = [{ label: '工具', value: 'inner' }, { label: '自定义工具', value: 'custom' }];
 const activeCategory = ref('all');
 const filterVisible = ref(false);
+const filterFavorite = ref(false);
 const searchKeyword = ref('');
+const canScrollLeft = ref(false);
+const canScrollRight = ref(false);
+const categoriesRef = ref<HTMLDivElement | null>(null);
 const selectedSort = ref(3);
 const loading = ref(false);
 const cardList = ref<Record<string, unknown>[]>([]);
 /** 过滤掉需要填写 MCP Header/Query 字段的插件 */
 const filteredCardList = computed(() => cardList.value.filter(item => !checkNeedFillFields(item)));
 const pageNumber = ref(1);
-const pageSize = 12;
+const pageSize = 15;
 const total = ref(0);
 const expandedId = ref('');
 const categories = ref<Array<{ label: string; value: string }>>([{ label: '全部', value: 'all' }]);
 const sortOptions = [{ label: '默认排序', value: 3 }, { label: '按热门排序', value: 4 }, { label: '按更新时间排序', value: 2 }];
 const sortLabel = computed(() => sortOptions.find(o => o.value === selectedSort.value)?.label || '默认排序');
-const sortIcon = computed(() => { if (selectedSort.value === 4) return 'chart-bubble'; if (selectedSort.value === 2) return 'time'; return 'swap'; });
+const sortIcon = computed(() => { if (selectedSort.value === 4) return 'basic_hot_line'; if (selectedSort.value === 2) return 'basic_time_line'; return 'basic_move_v_line'; });
 
 /** 本次会话中已添加的 toolId（乐观更新留痕） */
 const localAddedToolIds = ref<Set<string>>(new Set());
@@ -294,6 +320,24 @@ async function fetchCategories() {
     } catch (e) { console.error(e); }
 }
 
+function updateScrollState() {
+    const el = categoriesRef.value;
+    if (!el) return;
+    nextTick(() => {
+        canScrollLeft.value = el.scrollLeft > 0;
+        canScrollRight.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+    });
+}
+function scrollCategories(dir: number) {
+    const el = categoriesRef.value;
+    if (!el) return;
+    el.scrollBy({ left: el.clientWidth * 0.6 * dir, behavior: 'smooth' });
+}
+
+onMounted(() => {
+    nextTick(() => updateScrollState());
+});
+
 async function fetchList() {
     if (!props.applicationId) return;
     loading.value = true;
@@ -303,18 +347,25 @@ async function fetchList() {
             query: searchKeyword.value || undefined, pageNumber: pageNumber.value, pageSize,
             sortType: selectedSort.value,
             categoryKeys: activeCategory.value !== 'all' ? [activeCategory.value] : [],
+            favoriteOnly: filterFavorite.value || undefined,
             pluginTypes: activeTab.value === 'custom' ? [0] : (filterValue.value.plugintypes || []).length > 0 ? filterValue.value.plugintypes! : [1, 2],
             financeTypeList: activeTab.value === 'custom' ? undefined : (filterValue.value.financetypes || []).length > 0 ? filterValue.value.financetypes : undefined,
             createTypes: activeTab.value === 'custom' ? undefined : (filterValue.value.createtypes || []).length > 0 ? filterValue.value.createtypes : undefined,
         });
-        cardList.value = result.plugins; total.value = result.total;
+        // 归一化收藏字段，筛选收藏时强制标记
+        cardList.value = result.plugins.map((p: Record<string, unknown>) => ({
+            ...p,
+            is_favorite: filterFavorite.value ? true : !!(p.IsFavorite || p.is_favorite),
+            IsFavorite: filterFavorite.value ? true : !!(p.IsFavorite || p.is_favorite),
+        }));
+        total.value = result.total;
     } catch (e) { console.error(e); } finally { loading.value = false; }
 }
 
 /* ===== 事件处理 ===== */
 function doReset() { pageNumber.value = 1; fetchList(); }
 function onSearch() { if (searchTimer) clearTimeout(searchTimer); searchTimer = setTimeout(doReset, 300); }
-function onTabChange() { activeCategory.value = 'all'; filterValue.value = { plugintypes: [1, 2], financetypes: [2, 3, 0], createtypes: [2, 0, 1, 3] }; searchKeyword.value = ''; selectedSort.value = 3; doReset(); }
+function onTabChange() { activeCategory.value = 'all'; filterFavorite.value = false; filterValue.value = { plugintypes: [1, 2], financetypes: [2, 3, 0], createtypes: [2, 0, 1, 3] }; searchKeyword.value = ''; selectedSort.value = 3; doReset(); }
 function onExpand(item: Record<string, unknown>) { const id = itemId(item); expandedId.value = expandedId.value === id ? '' : id; }
 
 /** 正在执行绑定的按钮 key */
@@ -469,35 +520,6 @@ async function onAddSingle(plugin: Record<string, unknown>, tool: Record<string,
     doAddSingleAfterFields(plugin, tool);
 }
 
-async function onDeleteTool(plugin: Record<string, unknown>, tool: Record<string, unknown>) {
-    const tid = getToolId(tool);
-    const key = `del-${tid}`;
-    if (addingKey.value) return;
-    addingKey.value = key;
-    try {
-        if (!props.applicationId || !props.agentId) {
-            MessagePlugin.warning('缺少应用 ID 或 Agent ID，无法删除工具');
-            return;
-        }
-        const pluginId = (plugin.PluginId || plugin.plugin_id || '') as string;
-        await unbindAgentTool({
-            applicationId: props.applicationId,
-            appId: props.applicationId,
-            agentId: props.agentId,
-            pluginId,
-            toolId: tid,
-        });
-        localAddedToolIds.value.delete(tid);
-        emit('installed');
-        MessagePlugin.success('已删除');
-    } catch (e) {
-        console.error('[UnbindAgentTool] 解绑失败:', e);
-        MessagePlugin.error('工具删除失败');
-    } finally {
-        addingKey.value = '';
-    }
-}
-
 async function onUpdatePlugin(item: Record<string, unknown>) {
     if (item._toolsLoading) return;
     item._toolsLoading = true;
@@ -517,6 +539,7 @@ watch(() => props.modelValue, (val) => {
     if (val) {
         activeTab.value = 'inner';
         activeCategory.value = 'all';
+        filterFavorite.value = false;
         filterValue.value = { plugintypes: [1, 2], financetypes: [2, 3, 0], createtypes: [2, 0, 1, 3] };
         searchKeyword.value = '';
         selectedSort.value = 3;
@@ -532,26 +555,28 @@ watch(() => props.modelValue, (val) => {
 <style scoped>
 .plugin-dialog { display: flex; flex-direction: column; gap: 12px; height: 560px; overflow: hidden; }
 .plugin-dialog__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.plugin-dialog__tabs { flex-shrink: 0; }
 .plugin-dialog__actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.plugin-dialog__sort-btn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; transition: background 0.15s; color: var(--td-text-color-secondary); }
+.plugin-dialog__sort-btn { border: 1px solid var(--td-border-level-1-color);width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; transition: background 0.15s; color: var(--td-text-color-secondary); }
 .plugin-dialog__sort-btn:hover { background: var(--td-bg-color-container-active); }
-.plugin-dialog__sort-menu { padding: 4px; min-width: 140px; }
-.plugin-dialog__sort-item { padding: 6px 12px; font-size: 13px; cursor: pointer; border-radius: 4px; }
-.plugin-dialog__sort-item:hover { background: var(--td-bg-color-container-active); }
-.plugin-dialog__sort-item.is-selected { color: var(--td-brand-color); font-weight: 500; }
-.plugin-dialog__filter-trigger { display: inline-flex; align-items: center; height: 28px; padding: 0 8px; font-size: 12px; color: var(--td-text-color-secondary); border: 1px solid var(--td-component-border); border-radius: 4px; cursor: pointer; white-space: nowrap; background: var(--td-bg-color-container); min-width: 100px; }
+.plugin-dialog__sort-menu { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px; min-width: 140px; }
+.plugin-dialog__sort-item { cursor: pointer; }
+.plugin-dialog__filter-trigger { display: inline-flex; align-items: center; height: 32px; padding: 0 8px; font-size: 14px; color: var(--td-text-color-secondary); border: 1px solid var(--td-component-border); border-radius: var(--td-radius-default); cursor: pointer; white-space: nowrap; background: var(--td-bg-color-container); min-width: 70px; box-sizing: border-box; }
 .plugin-dialog__filter-trigger:hover { border-color: var(--td-brand-color); }
 .plugin-dialog__filter-panel { padding: 8px; min-width: 200px; max-height: 300px; overflow-y: auto; }
 .plugin-dialog__filter-group { margin-bottom: 8px; }
 .plugin-dialog__filter-group-title { font-size: 12px; font-weight: 500; color: var(--td-text-color-secondary); padding: 4px 0; }
 .plugin-dialog__filter-option { padding: 2px 0; }
 .plugin-dialog__search { width: 160px; }
-.plugin-dialog__cat-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; flex-shrink: 0; }
-.plugin-dialog__cat-bar::-webkit-scrollbar { display: none; }
-.plugin-dialog__cat-tag { flex-shrink: 0; padding: 4px 12px; font-size: 12px; border-radius: 16px; cursor: pointer; color: var(--td-text-color-secondary); background: var(--td-bg-color-secondarycontainer); white-space: nowrap; transition: all 0.2s; }
+.plugin-dialog__categories-wrapper { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.plugin-dialog__categories { display: flex; gap: 8px; flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; -ms-overflow-style: none; }
+.plugin-dialog__categories::-webkit-scrollbar { display: none; }
+.plugin-dialog__cat-tag { display: inline-flex; align-items: center; justify-content: center; height: 32px; padding: 0 12px; border-radius: 3px; font-size: 13px; cursor: pointer; color: var(--td-text-color-secondary); background: var(--td-bg-color-secondarycontainer); white-space: nowrap; transition: all 0.2s; }
 .plugin-dialog__cat-tag:hover { color: var(--td-brand-color); background: var(--td-brand-color-light); }
-.plugin-dialog__cat-tag.is-active { color: #fff; background: var(--td-brand-color); font-weight: 500; }
+.plugin-dialog__cat-tag.is-active { color: var(--td-brand-color); background: var(--td-brand-color-light); }
+.plugin-dialog__scroll-btns { display: flex; align-items: center; flex-shrink: 0; overflow: hidden; }
+.plugin-dialog__scroll-btn { flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; color: var(--td-text-color-placeholder); transition: color 0.2s; }
+.plugin-dialog__scroll-btn:hover { color: var(--td-text-color-primary); }
+.plugin-dialog__scroll-btn.is-disabled { opacity: 0.3; cursor: not-allowed; }
 .plugin-dialog__loading { display: flex; justify-content: center; padding: 48px 0; }
 .plugin-dialog__empty { text-align: center; padding: 48px 0; color: var(--td-text-color-placeholder); font-size: 14px; }
 .plugin-dialog__list { display: flex; flex-direction: column; flex: 1; overflow-y: auto; min-height: 0; gap: 12px; padding-right: 4px; }
@@ -572,24 +597,21 @@ watch(() => props.modelValue, (val) => {
 .plugin-card__name { font-size: 14px; font-weight: 500; color: var(--td-text-color-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
 .plugin-card__error-dot { font-size: 12px; color: var(--td-error-color); padding-left: 12px; position: relative; }
 .plugin-card__error-dot::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 8px; height: 8px; border-radius: 50%; background: var(--td-error-color); }
-.plugin-card__desc { font-size: 12px; color: var(--td-text-color-placeholder); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plugin-card__desc { font-size: 12px; color: var(--td-text-color-placeholder); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 12px; }
 .plugin-card__footer { display: flex; align-items: center; gap: 6px; width: 100%; font-size: 12px; color: var(--td-text-color-placeholder); flex-wrap: wrap; }
-.plugin-card__author { color: var(--td-text-color-secondary); }
 .plugin-card__sep { color: var(--td-component-border); }
-.plugin-card__tool-count { color: var(--td-brand-color); }
 .plugin-card__fav { display: inline-flex; align-items: center; gap: 2px; }
 .plugin-card__refresh { cursor: pointer; display: inline-flex; align-items: center; gap: 2px; transition: color 0.15s; }
 .plugin-card__refresh:hover { color: var(--td-brand-color); }
 .plugin-card__refresh.is-loading { opacity: 0.5; pointer-events: none; }
-.plugin-card__right { flex-shrink: 0; display: flex; align-items: center; padding-top: 8px; }
 .plugin-card__added-text { font-size: 12px; color: var(--td-text-color-placeholder); white-space: nowrap; }
 .plugin-card__expand-arrow { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); }
 .plugin-card__arrow-icon { transition: transform 0.3s; color: var(--td-text-color-placeholder); font-size: 12px; }
 .plugin-card__arrow-icon.is-expanded { transform: rotate(180deg); }
-.plugin-card__featured { position: absolute; top: 0; right: 0; padding: 2px 8px; font-size: 12px; color: var(--td-brand-color); background: var(--td-brand-color-light); border-radius: 0 var(--td-radius-large) 0 8px; display: flex; align-items: center; gap: 2px; }
+.plugin-card__featured { position: absolute; top: 0; right: 0; padding: 4px 8px; font-size: 12px; line-height: 16px; color: var(--td-stack-color, #9b6ef9); background: var(--td-stack-color-light, #f3edff); border-radius: 0 var(--td-radius-large) 0 8px; display: flex; align-items: center; gap: 2px; }
 
 /* 展开的子工具区域 */
-.plugin-card__expand { border-top: 1px solid var(--td-component-border); padding: 12px 16px 12px 72px; display: flex; flex-direction: column; gap: 8px; background: var(--td-bg-color-secondarycontainer); border-radius: 0 0 var(--td-radius-large) var(--td-radius-large); }
+.plugin-card__expand { border-top: 1px solid var(--td-component-border); padding: 12px 16px 12px 72px; display: flex; flex-direction: column; gap: 8px;  border-radius: 0 0 var(--td-radius-large) var(--td-radius-large); }
 .plugin-card__expand--error { flex-direction: row; align-items: center; gap: 8px; color: var(--td-error-color); font-size: 13px; }
 .plugin-card__tool-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--td-component-border); }
 .plugin-card__tool-item:last-child { border-bottom: none; }

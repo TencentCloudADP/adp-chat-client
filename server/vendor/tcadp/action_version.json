@@ -57,8 +57,8 @@
         "payload.UserId": "{{ACCOUNT_ID}}"
     },
     "BindAgentTool": {
-        "service": "adp",
-        "headers.X-TC-Version": "2026-05-20",
+        "service": "lke",
+        "headers.X-TC-Version": "2025-11-12",
         "headers.X-TC-Canary": "toe-test-4030-clawapi"
     },
     "UnbindAgentTool": {

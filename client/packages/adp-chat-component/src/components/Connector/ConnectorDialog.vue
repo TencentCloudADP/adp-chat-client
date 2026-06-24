@@ -3,8 +3,8 @@
         v-model:visible="visible"
         header="管理连接器"
         :footer="false"
-        width="720px"
         :close-on-overlay-click="false"
+        width="min(900px, calc(100vw - 40px))"
     >
         <div class="connector-manage">
             <!-- 顶部筛选栏 -->
@@ -16,7 +16,7 @@
                     class="connector-manage__search"
                     @change="onSearchChange"
                 >
-                    <template #prefix-icon><t-icon name="search" /></template>
+                    <template #prefix-icon><CustomizedIcon remote name="basic_search_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                 </t-input>
                 <t-checkbox v-model="enabledOnly" @change="onEnabledOnlyChange">已启用</t-checkbox>
             </div>
@@ -32,7 +32,7 @@
                 <div v-for="item in displayList" :key="item.pluginId" class="connector-item">
                     <div class="connector-item__icon">
                         <img v-if="item.iconUrl" :src="item.iconUrl" @error="onIconError" />
-                        <span v-else class="connector-item__icon-fb"><t-icon name="link" /></span>
+                        <span v-else class="connector-item__icon-fb"><CustomizedIcon remote name="basic_link_line" size="s" :show-hover-bg="false" :theme="theme" /></span>
                     </div>
                     <div class="connector-item__info">
                         <div class="connector-item__title">
@@ -103,22 +103,26 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import {
-    Dialog as TDialog, Button as TButton, Tag as TTag, Loading as TLoading, Icon as TIcon,
+    Dialog as TDialog, Button as TButton, Tag as TTag, Loading as TLoading,
     Input as TInput, Checkbox as TCheckbox, Switch as TSwitch, Pagination as TPagination, MessagePlugin,
 } from 'tdesign-vue-next';
+import CustomizedIcon from '../CustomizedIcon.vue';
 import {
     fetchPluginList, bindAgentTool, unbindAgentTool, buildPluginConfig, PluginClassEnum,
 } from '../../service/connectorPluginApi';
 import { fetchGlobalAgent } from '../../service/skillsApi';
 import ConnectorConnectDialog from './ConnectorConnectDialog.vue';
+import type { ThemeProps } from '../../model/type';
+import { themePropsDefaults } from '../../model/type';
 
-interface Props {
+interface Props extends ThemeProps {
     modelValue: boolean;
     applicationId?: string;
     agentId?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
+    ...themePropsDefaults,
     modelValue: false,
     applicationId: '',
     agentId: '',

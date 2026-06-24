@@ -1065,8 +1065,23 @@ defineExpose({
         </div>
 
         <!-- 底部工具栏 -->
-        <div class="sender-toolbar">
-            <div class="sender-toolbar__left">
+        <div class="sender-toolbar" :class="{ 'is-mobile': isMobile }">
+            <!-- 移动端首行：模型选择器（v-if 按模式渲染，保证 DOM 顺序正确） -->
+            <div v-if="isMobile" class="sender-toolbar__primary">
+                <ModelSelector
+                    v-if="showModelSelector"
+                    class="sender-model-selector"
+                    :selected="selectedModel"
+                    :options="modelOptions"
+                    :application-id="currentApplicationId"
+                    :theme="theme"
+                    is-button-mode
+                    @update:selected="(model: ModelOption) => { emit('update:selectedModel', model); emit('modelChange', model); }"
+                />
+            </div>
+
+            <!-- 次行（isMobile 时换行）：麦克风、上传文件 → PC 端模型选择器 → Skills、连接器、工具 -->
+            <div class="sender-toolbar__extras">
                 <TTooltip v-if="enableVoiceInput && !recording" :content="i18n.startRecord">
                     <span class="recording-icon" :class="{ isMobile: isMobile }" @click="handleStartRecord">
                         <CustomizedIcon name="voice_input" :theme="theme" :showHoverBg="!isMobile"/>
@@ -1101,13 +1116,14 @@ defineExpose({
                     <input ref="fileInputRef" type="file" :accept="fileAccept" multiple hidden @change="handleFileInputChange" />
                 </div>
 
-                <!-- 模型选择器（按钮模式） -->
+                <!-- PC 端：模型选择器置于上传之后、Skills 之前 -->
                 <ModelSelector
-                    v-if="showModelSelector"
+                    v-if="!isMobile && showModelSelector"
                     class="sender-model-selector"
                     :selected="selectedModel"
                     :options="modelOptions"
                     :application-id="currentApplicationId"
+                    :theme="theme"
                     is-button-mode
                     @update:selected="(model: ModelOption) => { emit('update:selectedModel', model); emit('modelChange', model); }"
                 />
@@ -1120,6 +1136,7 @@ defineExpose({
                     :loading="skillsRefreshing"
                     :i18n="skillsI18n"
                     :language="language"
+                    :theme="theme"
                     @select="onSkillsPopoverSelect"
                     @manage="onSkillsManage"
                     @visible-change="onSkillsVisibleChange"
@@ -1127,13 +1144,13 @@ defineExpose({
 
                 <!-- 连接器按钮 -->
                 <div v-if="mode === 'claw'"  class="toolbar-pill-btn" @click="showConnector = true">
-                    <CustomizedIcon remote name="basic_api_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" />
+                    <CustomizedIcon remote name="basic_api_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" :theme="theme"/>
                     <span class="toolbar-pill-btn__text">{{ skillsI18n.connector }}</span>
                 </div>
 
                 <!-- 工具按钮 -->
                 <div v-if="mode === 'claw'" class="toolbar-pill-btn" @click="showPluginManage = true">
-                    <CustomizedIcon remote name="basic_plugin_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" />
+                    <CustomizedIcon remote name="basic_plugin_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" :theme="theme"/>
                     <span class="toolbar-pill-btn__text">{{ skillsI18n.tools }}</span>
                 </div>
             </div>
@@ -1153,6 +1170,7 @@ defineExpose({
             :loading="skillsRefreshing"
             :i18n="skillsI18n"
             :language="language"
+            :theme="theme"
             @add="showSkillsInstall = true"
             @delete="onSkillDeleted"
         />
@@ -1168,6 +1186,7 @@ defineExpose({
             :space-id="spaceId"
             :i18n="skillsI18n"
             :language="language"
+            :theme="theme"
             @skill-installed="onSkillInstalled"
         />
 
@@ -1177,6 +1196,7 @@ defineExpose({
             v-model="showConnector"
             :application-id="skillsApplicationId"
             :agent-id="currentAgentId"
+            :theme="theme"
             @change="refreshSkills"
         />
 
@@ -1186,6 +1206,7 @@ defineExpose({
             v-model="showPluginManage"
             :application-id="skillsApplicationId"
             :agent-id="currentAgentId"
+            :theme="theme"
             @change="refreshSkills"
         />
 
@@ -1196,6 +1217,7 @@ defineExpose({
             :application-id="skillsApplicationId"
             :agent-id="currentAgentId"
             :installed-tool-ids="currentInstalledToolIds"
+            :theme="theme"
             @installed="refreshSkills"
         />
 
@@ -1261,14 +1283,41 @@ defineExpose({
     cursor: default;
 }
 
-.sender-toolbar__left {
+.sender-toolbar__primary {
     display: flex;
     align-items: center;
+}
+
+.sender-toolbar__extras {
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .sender-toolbar__right {
     display: flex;
     align-items: center;
+    margin-left: auto;
+}
+
+/* 移动端：extras 换行到第二排 */
+.sender-toolbar.is-mobile {
+    flex-wrap: wrap;
+}
+
+.sender-toolbar.is-mobile .sender-toolbar__extras {
+    order: 3;
+    width: 100%;
+    margin-top: 6px;
+}
+
+.sender-toolbar.is-mobile .sender-toolbar__right {
+    order: 2;
+}
+
+.sender-toolbar.is-mobile .sender-toolbar__primary {
+    order: 1;
+    flex: 1;
 }
 
 /* 加号菜单 */
@@ -1406,6 +1455,12 @@ defineExpose({
 }
 .toolbar-pill-btn__text {
     white-space: nowrap;
+}
+
+/* 移动端隐藏 Skills、工具、连接器的文字 */
+.sender-toolbar.is-mobile .toolbar-pill-btn__text,
+.sender-toolbar.is-mobile :deep(.skills-popover-trigger__text) {
+    display: none;
 }
 
 /* @Mention overlay */
