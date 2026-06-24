@@ -124,7 +124,7 @@ export async function createOAuthUrl(params: {
         {
             PluginId: params.pluginId,
             AppBizId: params.appBizId || params.applicationId,
-            AuthMode: 2, 
+            AuthMode: 1, 
         },
     );
     return { oauthUrl: (data.UserAuthorizationUrl || data.OAuthUrl || data.oauth_url || '') as string };

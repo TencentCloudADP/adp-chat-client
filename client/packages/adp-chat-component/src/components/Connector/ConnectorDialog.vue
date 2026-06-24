@@ -55,15 +55,25 @@
                         </div>
                     </div>
                     <div class="connector-item__actions">
-                        <!-- 连接按钮：需要鉴权的连接器始终可见，文案随连接状态切换 -->
+                        <!-- 连接按钮：需要鉴权且未连接时展示 -->
                         <t-button
-                            v-if="item.needAuth"
+                            v-if="item.needAuth && !item.connected"
                             variant="outline"
                             theme="primary"
                             size="small"
                             @click="onConnect(item)"
                         >
-                            {{ item.connected ? '重新连接' : '连接' }}
+                            连接
+                        </t-button>
+                        <!-- 重新连接按钮：仅 OAuth(authType===3) 或还有可编辑 header/query 字段时展示 -->
+                        <t-button
+                            v-else-if="item.needAuth && item.connected && (item.authType === 3 || item.hasEditableFields)"
+                            variant="outline"
+                            theme="primary"
+                            size="small"
+                            @click="onConnect(item)"
+                        >
+                            重新连接
                         </t-button>
                         <!-- 启用开关 -->
                         <t-switch
@@ -151,8 +161,20 @@ interface ConnectorItem {
     connected: boolean;
     /** 是否需要鉴权（AuthMode !== 0） */
     needAuth: boolean;
+    /** 鉴权类型（0=无鉴权 / 2=CAM / 3=OAuth），用于判断是否展示“重新连接” */
+    authType: number;
+    /** 是否存在可编辑的 header/query 字段（非 GlobalHidden） */
+    hasEditableFields: boolean;
     /** 原始数据，用于传给连接弹窗 */
     raw: Record<string, unknown>;
+}
+
+/** 过滤出可编辑（非 GlobalHidden）的 header/query 字段数量 */
+function countEditableFields(p: Record<string, unknown>): number {
+    const headers = (p.HeaderParameterList || p.header_parameter_list || []) as Record<string, unknown>[];
+    const query = (p.QueryParameterList || p.query_parameter_list || []) as Record<string, unknown>[];
+    const isHidden = (it: Record<string, unknown>) => !!(it.GlobalHidden || it.global_hidden || it.IsGlobalHidden || it.is_global_hidden);
+    return headers.filter((h) => !isHidden(h)).length + query.filter((q) => !isHidden(q)).length;
 }
 
 const loading = ref(false);
@@ -239,6 +261,8 @@ function buildItemFromInstalled(p: Record<string, unknown>): ConnectorItem {
         isInner: Number(p.PluginType || p.plugin_type || 0) === 1,
         enabled: true,
         needAuth: authType !== 0,
+        authType,
+        hasEditableFields: countEditableFields(p) > 0,
         connected: [...headers, ...query].some(hasParamValue),
         raw: p,
     };
@@ -257,6 +281,8 @@ function buildItemFromList(p: Record<string, unknown>): ConnectorItem {
         isInner: Number(p.PluginType || p.plugin_type || 0) === 1,
         enabled,
         needAuth: authType !== 0,
+        authType,
+        hasEditableFields: countEditableFields(p) > 0,
         connected: connectedIdSet.value.has(pluginId),
         raw: p,
     };

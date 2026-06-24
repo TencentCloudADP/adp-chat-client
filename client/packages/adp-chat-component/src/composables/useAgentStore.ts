@@ -244,7 +244,8 @@ export function useAgentStore() {
         try {
             agentDetailLoadingMap.value = { ...agentDetailLoadingMap.value, [applicationId]: true };
 
-            const result = await fetchGlobalAgent({ applicationId });
+            const agentId = await getAgentIdByAppId(applicationId);
+            const result = await fetchGlobalAgent({ applicationId, agentId });
 
             const detail: AgentDetail = {
                 skills: result.skills,
@@ -397,11 +398,7 @@ export function useAgentStore() {
      * 同时从 DescribeAgentDetail 返回值中同步更新 agentIdMap。
      */
     const refreshAgentCache = async (applicationId: string): Promise<AgentDetail | null> => {
-        const detail = await fetchAgentDetail(applicationId, { force: true });
-        if (detail?.agentId) {
-            // 同步更新 agentIdMap，确保 getAgentIdByAppId 返回最新值
-            agentIdMap.value = { ...agentIdMap.value, [applicationId]: detail.agentId };
-        }
+        const detail = await fetchAgentDetail(applicationId, { force: true });      
         return detail;
     };
 

@@ -94,6 +94,7 @@ export interface AgentModelInfo {
 export async function fetchGlobalAgent(params: {
     applicationId: string;
     spaceId?: string;
+    agentId: string;
     projectPath?: string;
 }, apiPath?: string): Promise<{
     skills: Record<string, unknown>[];
@@ -107,6 +108,7 @@ export async function fetchGlobalAgent(params: {
         params.applicationId,
         {
             AppId: params.applicationId,
+            AgentId: params.agentId,
             AdpDomain: 1,
             ProjectPath: params.projectPath || '',
         },

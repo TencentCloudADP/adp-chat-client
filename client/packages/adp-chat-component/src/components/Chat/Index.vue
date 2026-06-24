@@ -138,6 +138,7 @@ import { Checkbox, Loading as TLoading, Card as TCard, Checkbox as TCheckbox, Di
 import type { Record } from '../../model/chat-v2'
 import type { NormalizedSkill, AgentSkillInfo } from '../../model/skills'
 import { normalizeSkill } from '../../composables/useSkills'
+import { useAgentStore } from '../../composables/useAgentStore'
 import { fetchGlobalAgent } from '../../service/skillsApi'
 import { ScoreValue } from '../../model/chat-v2'
 import type { FileProps } from '../../model/file';
@@ -253,6 +254,8 @@ const skillsAppId = computed(() => {
     return val;
 });
 
+const { getAgentIdByAppId } = useAgentStore();
+
 // 调试：持续打印 currentApplicationId 变化
 watch(() => props.currentApplicationId, (v) => {
     console.log('[Chat/Index] currentApplicationId prop changed:', v, 'skillsAppId:', skillsAppId.value);
@@ -307,7 +310,8 @@ async function refreshMentionLists() {
     const appId = skillsAppId.value;
     if (!appId) return;
     try {
-        const result = await fetchGlobalAgent({ applicationId: appId });
+        const agentId = await getAgentIdByAppId(appId);
+        const result = await fetchGlobalAgent({ applicationId: appId, agentId });
         // skills
         mentionSkills.value = ((result.skills || []) as AgentSkillInfo[])
             .filter((s) => !!(s.skill_display_name || s.SkillDisplayName))

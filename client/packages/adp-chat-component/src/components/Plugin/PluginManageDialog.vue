@@ -132,7 +132,7 @@ async function fetchInstalledTools() {
     if (!props.applicationId) return;
     loading.value = true;
     try {
-        const result = await fetchGlobalAgent({ applicationId: props.applicationId });
+        const result = await fetchGlobalAgent({ applicationId: props.applicationId, agentId: props.agentId || '' });
         const plugins = (result.plugins || []) as Record<string, unknown>[];
         const tools = (result.tools || []) as Record<string, unknown>[];
 
