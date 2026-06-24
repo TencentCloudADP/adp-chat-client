@@ -244,19 +244,25 @@ defineExpose({ show, hide });
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 8px;
-    border-radius: 16px;
-    font-size: 12px;
-    line-height: 16px;
-    color: var(--td-text-color-primary);
+    padding: 0 var(--td-size-4);
+    height: var(--td-comp-size-m);
+    border-radius: var(--td-radius-default);
+    font-size: var(--td-font-size-body-small);
+    line-height: 1;
+    color: var(--td-text-color-secondary);
     background: transparent;
     cursor: pointer;
     white-space: nowrap;
     transition: background-color 0.2s;
 
-    &:hover,
+    &:hover {
+        background: var(--td-bg-color-container-active);
+    }
     &.is-active {
         background: var(--td-bg-color-container-active);
+    }
+    &:active {
+        background: var(--td-bg-color-component-active);
     }
 
     &__text {

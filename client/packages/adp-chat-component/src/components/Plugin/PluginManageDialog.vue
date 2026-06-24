@@ -30,11 +30,11 @@
                     </div>
                     <div class="manage-tool-item__info">
                         <div class="manage-tool-item__title">
-                            <span class="manage-tool-item__name" :title="item.displayName">{{ item.displayName }}</span>
+                            <t-tooltip :content="item.displayName" placement="top"><span class="manage-tool-item__name">{{ item.displayName }}</span></t-tooltip>
                             <t-tag v-if="item.isInner"  variant="light-outline">预置</t-tag>
                             <t-tag v-if="item.createTypeLabel"  variant="light">{{ item.createTypeLabel }}</t-tag>
                         </div>
-                        <div class="manage-tool-item__desc" :title="item.desc">{{ item.desc || item.pluginName }}</div>
+                        <t-tooltip :content="item.desc || item.pluginName" placement="top"><div class="manage-tool-item__desc">{{ item.desc || item.pluginName }}</div></t-tooltip>
                     </div>
                     <div class="manage-tool-item__actions">
                         <t-button

@@ -100,7 +100,7 @@
                                 </span>
                                 <div class="skill-card__info">
                                     <div class="skill-card__header">
-                                        <span class="skill-card__name">{{ skillName(skill) }}</span>
+                                        <t-tooltip :content="skillName(skill)" placement="top"><span class="skill-card__name">{{ skillName(skill) }}</span></t-tooltip>
                                         <!-- 安全 / 疑似风险 tag -->
                                         <t-tooltip
                                             v-if="showSafetyTag(skill)"
@@ -142,12 +142,12 @@
                                             <TagWithColor color="purple" icon="basic_vip_line" :theme="theme">官方收费</TagWithColor>
                                         </t-tooltip>
                                     </div>
-                                    <div v-if="skillDesc(skill)" class="skill-card__desc" :title="skillDesc(skill)">{{ skillDesc(skill) }}</div>
-                                    <div v-if="skillAuthor(skill) || skillVersion(skill)" class="skill-card__meta">
+                                    <t-tooltip v-if="skillDesc(skill)" :content="skillDesc(skill)" placement="top"><div class="skill-card__desc">{{ skillDesc(skill) }}</div></t-tooltip>
+                                    <t-tooltip v-if="skillAuthor(skill) || skillVersion(skill)" :content="(skillAuthor(skill) ? '@' + skillAuthor(skill) : '') + (skillVersion(skill) ? (skillAuthor(skill) ? ' | ' : '') + 'v' + skillVersion(skill) : '')" placement="top"><div class="skill-card__meta">
                                         <span v-if="skillAuthor(skill)" class="skill-card__author">@{{ skillAuthor(skill) }}</span>
                                         <span v-if="skillAuthor(skill) && skillVersion(skill)" class="skill-card__meta-divider">|</span>
                                         <span v-if="skillVersion(skill)" class="skill-card__version">v{{ skillVersion(skill) }}</span>
-                                    </div>
+                                    </div></t-tooltip>
                                 </div>
                                 <div class="skill-card__actions">
                                     <t-button
@@ -404,6 +404,7 @@ async function fetchCategories() {
                 value: c.category_key,
             })),
         ];
+        nextTick(() => updateScrollState());
     } catch (e) {
         console.error('[SkillsInstallDialog] fetchCategories error:', e);
     }
@@ -614,7 +615,7 @@ function onClose() {
     flex-direction: column;
     gap: 12px;
     max-height: 560px;
-    overflow: hidden;
+    overflow-y: auto;
 }
 .skills-install__tabs {
     flex-shrink: 0;
@@ -688,5 +689,50 @@ function onClose() {
 }
 .skill-card__author:hover {
     color: var(--td-brand-color);
+}
+
+/* ── 移动端适配 ── */
+@media (max-width: 600px) {
+    .skills-install {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+    /* 筛选行：分类 + 搜索分别占满宽 */
+    .skills-install__filter-row {
+        flex-wrap: wrap;
+    }
+    .skills-install__categories-wrapper {
+        width: 100%;
+        order: 1;
+    }
+    .skills-install__filter-actions {
+        width: 100%;
+        order: 2;
+    }
+    .skills-install__search {
+        width: 100%;
+        flex: 1;
+    }
+    /* 卡片：紧凑布局 */
+    .skill-card__body {
+        padding: var(--td-size-4);
+        gap: var(--td-size-4);
+        flex-wrap: wrap;
+    }
+    .skill-card__icon,
+    .skill-card__icon-fallback {
+        width: 48px;
+        height: 48px;
+    }
+    .skill-card__info {
+        flex-basis: calc(100% - 60px);
+    }
+    .skill-card__name {
+        font-size: var(--td-font-size-body-medium);
+    }
+    .skill-card__actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
 }
 </style>

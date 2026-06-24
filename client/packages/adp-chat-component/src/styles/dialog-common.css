@@ -99,7 +99,7 @@
 .plugin-dialog__list {
     flex: 1;
     overflow-y: auto;
-    min-height: 0;
+    min-height: 100px;
 }
 .skills-install__list::-webkit-scrollbar,
 .plugin-dialog__list::-webkit-scrollbar {
@@ -116,7 +116,9 @@
 .plugin-dialog__loading {
     display: flex;
     justify-content: center;
+    align-items: center;
     padding: var(--td-size-13) 0;
+    min-height: 120px;
 }
 .skills-install__empty,
 .plugin-dialog__empty {

@@ -67,11 +67,11 @@
                     </div>
                     <div class="skills-manage__item-info">
                         <div class="skills-manage__item-title">
-                            <span class="skills-manage__item-name" :title="item.name">{{ item.name }}</span>
+                            <t-tooltip :content="item.name" placement="top"><span class="skills-manage__item-name">{{ item.name }}</span></t-tooltip>
                             <t-tag v-if="isPreset(item)"  variant="light">预置</t-tag>
                             <t-tag v-if="item.version"  variant="outline">{{ item.version }}</t-tag>
                         </div>
-                        <div v-if="item.desc" class="skills-manage__item-desc" :title="item.desc">{{ item.desc }}</div>
+                        <t-tooltip v-if="item.desc" :content="item.desc" placement="top"><div class="skills-manage__item-desc">{{ item.desc }}</div></t-tooltip>
                     </div>
                     <div class="skills-manage__item-actions">
                         <t-tooltip v-if="isPreset(item)" content="预置 Skill 无法删除" placement="top">

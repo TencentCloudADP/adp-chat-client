@@ -1144,7 +1144,7 @@ defineExpose({
 
                 <!-- 连接器按钮 -->
                 <div v-if="mode === 'claw'"  class="toolbar-pill-btn" @click="showConnector = true">
-                    <CustomizedIcon remote name="basic_api_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" :theme="theme"/>
+                    <CustomizedIcon remote name="basic_connector_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" :theme="theme"/>
                     <span class="toolbar-pill-btn__text">{{ skillsI18n.connector }}</span>
                 </div>
 
@@ -1341,6 +1341,9 @@ defineExpose({
 .plus-btn:hover {
     background-color: var(--td-bg-color-container-active);
 }
+.plus-btn:active {
+    background-color: var(--td-bg-color-component-active);
+}
 
 .plus-btn.disabled {
     opacity: 0.4;
@@ -1408,10 +1411,6 @@ defineExpose({
     margin-right: var(--td-comp-paddingLR-xs);
 }
 
-.recording-icon.isMobile {
-    margin-right: var(--td-comp-paddingLR-m);
-}
-
 /* 发送按钮 */
 .send-icon {
     padding: 0 !important;
@@ -1441,17 +1440,21 @@ defineExpose({
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 8px;
-    border-radius: 16px;
-    font-size: 12px;
-    line-height: 16px;
-    color: var(--td-text-color-primary);
+    padding: 0 var(--td-size-4);
+    height: var(--td-comp-size-m);
+    border-radius: var(--td-radius-default);
+    font-size: var(--td-font-size-body-small);
+    line-height: 1;
+    color: var(--td-text-color-secondary);
     cursor: pointer;
     white-space: nowrap;
     transition: background-color 0.2s;
 }
 .toolbar-pill-btn:hover {
     background: var(--td-bg-color-container-active);
+}
+.toolbar-pill-btn:active {
+    background: var(--td-bg-color-component-active);
 }
 .toolbar-pill-btn__text {
     white-space: nowrap;

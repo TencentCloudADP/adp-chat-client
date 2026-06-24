@@ -30,9 +30,9 @@
                         <template #prefix-icon><CustomizedIcon  remote name="basic_search_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                     </t-input>
                     <t-popup trigger="click" placement="bottom-right">
-                        <span class="plugin-dialog__sort-btn" :title="sortLabel">
+                        <t-tooltip :content="sortLabel" placement="top"><span class="plugin-dialog__sort-btn">
                             <CustomizedIcon remote :name="sortIcon" size="s" :show-hover-bg="false" :theme="theme" />
-                        </span>
+                        </span></t-tooltip>
                         <template #content>
                             <div class="plugin-dialog__sort-menu">
                                 <t-tag v-for="opt in sortOptions" :key="opt.value"
@@ -87,14 +87,14 @@
                         </div>
                         <div class="plugin-card__info">
                             <div class="plugin-card__title-row">
-                                <span class="plugin-card__name" :title="itemName(item)">{{ itemName(item) }}</span>
+                                <t-tooltip :content="itemName(item)" placement="top"><span class="plugin-card__name">{{ itemName(item) }}</span></t-tooltip>
                                 <TagWithColor v-if="itemFinanceType(item) === 3" color="orange" :theme="theme">公测</TagWithColor>
                                 <TagWithColor v-if="itemFinanceType(item) === 2" color="purple" icon="basic_vip_line" :theme="theme">官方收费</TagWithColor>
                                 <TagWithColor v-if="getCreateTypeLabel(item)" color="gray" :theme="theme">{{ getCreateTypeLabel(item) }}</TagWithColor>
                                 <TagWithColor v-if="itemCategory(item)" color="gray" :theme="theme">{{ itemCategory(item) }}</TagWithColor>
                                 <span v-if="itemStatus(item) === 2" class="plugin-card__error-dot">不可用</span>
                             </div>
-                            <div class="plugin-card__desc" :title="itemDesc(item)">{{ itemDesc(item) }}</div>
+                            <t-tooltip :content="itemDesc(item)" placement="top"><div class="plugin-card__desc">{{ itemDesc(item) }}</div></t-tooltip>
                             <div class="plugin-card__footer">
                                 <span v-if="itemCreator(item)" class="plugin-card__author">@{{ itemCreator(item) }}</span>
                                 <span v-if="itemCreator(item)" class="plugin-card__sep">|</span>
@@ -140,11 +140,11 @@
                             <div v-for="tool in getItemTools(item)" :key="getToolId(tool)" class="plugin-card__tool-item">
                                 <div class="plugin-card__tool-content">
                                     <div class="plugin-card__tool-title-row">
-                                        <span class="plugin-card__tool-name">{{ getToolName(tool) }}</span>
+                                        <t-tooltip :content="getToolName(tool)" placement="top"><span class="plugin-card__tool-name">{{ getToolName(tool) }}</span></t-tooltip>
                                         <TagWithColor v-if="getToolFinanceType(tool) === 3" color="orange" :theme="theme">公测</TagWithColor>
                                         <TagWithColor v-if="getToolFinanceType(tool) === 2" color="purple" icon="basic_vip_line" :theme="theme">官方收费</TagWithColor>
                                     </div>
-                                    <div class="plugin-card__tool-desc" :title="getToolDesc(tool)">{{ getToolDesc(tool) }}</div>
+                                    <t-tooltip :content="getToolDesc(tool)" placement="top"><div class="plugin-card__tool-desc">{{ getToolDesc(tool) }}</div></t-tooltip>
                                     <div v-if="getToolTags(tool).length > 0" class="plugin-card__tool-tags">
                                         <TagWithColor v-for="(tag, idx) in getToolTags(tool)" :key="idx" color="gray" :theme="theme">{{ tag }}</TagWithColor>
                                     </div>
@@ -190,7 +190,7 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import {
     Dialog as TDialog, Button as TButton, Tag as TTag, Loading as TLoading,
     Input as TInput, Checkbox as TCheckbox,
-    Pagination as TPagination, Popup as TPopup, MessagePlugin,
+    Pagination as TPagination, Popup as TPopup, Tooltip as TTooltip, MessagePlugin,
 } from 'tdesign-vue-next';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import TagWithColor from '../Common/TagWithColor.vue';
@@ -325,6 +325,7 @@ async function fetchCategories() {
         result.categories.forEach(c => { map[c.category_key] = c.category_name; });
         categoryMap.value = map;
         categories.value = [{ label: '全部', value: 'all' }, ...result.categories.map(c => ({ label: c.category_name, value: c.category_key }))];
+        nextTick(() => updateScrollState());
     } catch (e) { console.error(e); }
 }
 
@@ -563,7 +564,7 @@ watch(() => props.modelValue, (val) => {
 <style scoped>
 @import url('../../styles/dialog-common.css');
 
-.plugin-dialog { display: flex; flex-direction: column; gap: var(--td-comp-paddingTB-m); height: 560px; overflow: hidden; }
+.plugin-dialog { display: flex; flex-direction: column; gap: var(--td-comp-paddingTB-m); height: 560px; overflow-y: auto; }
 .plugin-dialog__header { display: flex; align-items: center; justify-content: space-between; gap: var(--td-comp-paddingTB-m); }
 .plugin-dialog__actions { display: flex; align-items: center; gap: var(--td-size-4); flex-shrink: 0; }
 .plugin-dialog__sort-btn { border: 1px solid var(--td-border-level-1-color); width: var(--td-comp-size-m); height: var(--td-comp-size-m); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border-radius: var(--td-size-2); transition: background 0.15s; color: var(--td-text-color-secondary); }
@@ -610,4 +611,66 @@ watch(() => props.modelValue, (val) => {
 .plugin-card__tool-desc { font-size: var(--td-font-size-body-small); color: var(--td-text-color-placeholder); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .plugin-card__tool-tags { display: flex; gap: var(--td-size-2); flex-wrap: wrap; }
 .plugin-card__tool-empty { font-size: var(--td-font-size-body-small); color: var(--td-text-color-placeholder); text-align: center; padding: var(--td-size-4) 0; }
+
+/* ── 移动端适配 ── */
+@media (max-width: 600px) {
+    .plugin-dialog {
+        height: 60vh;
+        overflow-y: auto;
+        gap: var(--td-size-4);
+    }
+    /* 头部分两行：Tab 一行，筛选项一行 */
+    .plugin-dialog__header {
+        flex-wrap: wrap;
+        gap: var(--td-size-4);
+    }
+    .plugin-dialog__actions {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: var(--td-size-2);
+    }
+    .plugin-dialog__search {
+        flex: 1;
+        min-width: 0;
+    }
+    .plugin-dialog__filter-trigger {
+        min-width: auto;
+        flex-shrink: 0;
+    }
+    .plugin-dialog__sort-btn {
+        flex-shrink: 0;
+    }
+    /* 卡片：紧凑布局 */
+    .plugin-card__main {
+        flex-wrap: wrap;
+        padding: var(--td-size-4);
+        gap: var(--td-size-4);
+    }
+    .plugin-card__icon-area {
+        padding-top: 0;
+    }
+    .plugin-card__icon,
+    .plugin-card__icon-fb {
+        width: var(--td-comp-size-m);
+        height: var(--td-comp-size-m);
+    }
+    .plugin-card__info {
+        flex-basis: calc(100% - 60px);
+    }
+    .plugin-card__name {
+        max-width: 160px;
+    }
+    /* 展开箭头防止换行 */
+    .plugin-card__expand-arrow {
+        right: var(--td-size-4);
+    }
+    /* footer 紧凑 */
+    .plugin-card__footer {
+        gap: var(--td-size-1);
+    }
+    /* 展开区域缩小左内边距 */
+    .plugin-card__expand {
+        padding-left: var(--td-size-6);
+    }
+}
 </style>
