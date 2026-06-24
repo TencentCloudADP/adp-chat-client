@@ -212,6 +212,7 @@ import CustomizedIcon from '../CustomizedIcon.vue';
 import TagWithColor from '../Common/TagWithColor.vue';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
+import useAgentStore from '../../composables/useAgentStore';
 
 interface Props extends ThemeProps {
     modelValue: boolean;
@@ -219,7 +220,6 @@ interface Props extends ThemeProps {
     /** 已安装 skill 的完整原始数据列表，用于 ModifyAgent 时合并构造完整 skill_list */
     installedSkills?: Record<string, unknown>[];
     applicationId?: string;
-    agentId?: string;
     spaceId?: string;
     i18n?: Partial<SkillsI18n>;
     language?: string;
@@ -231,11 +231,12 @@ const props = withDefaults(defineProps<Props>(), {
     installedSkillIds: () => [],
     installedSkills: () => [],
     applicationId: '',
-    agentId: '',
     spaceId: '',
     i18n: () => ({}),
     language: 'zh-CN',
 });
+
+const { getAgentIdByAppId } = useAgentStore();
 
 const emit = defineEmits<{
     (e: 'update:modelValue', val: boolean): void;
@@ -540,7 +541,8 @@ async function onInstallSkill(skill: Record<string, unknown>) {
         MessagePlugin.warning('已达到最大安装数量');
         return;
     }
-    if (!props.agentId) {
+    const agentId = await getAgentIdByAppId(props.applicationId);
+    if (!agentId) {
         // 无 agentId 时仅 emit，由宿主自行处理接口调用
         emit('skill-installed', skill);
         return;
@@ -561,7 +563,7 @@ async function onInstallSkill(skill: Record<string, unknown>) {
         ];
         await modifyAgentSkillList({
             applicationId: props.applicationId,
-            agentId: props.agentId,
+            agentId,
             skills: mergedSkills,
         });
         emit('skill-installed', skill);

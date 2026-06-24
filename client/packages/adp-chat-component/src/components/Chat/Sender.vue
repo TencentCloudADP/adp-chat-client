@@ -100,10 +100,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 /** Agent 全局 store */
 const {
-    agentIdMap,
     refreshAgentCache,
     modifySkillList,
-    getAgentIdFromCacheByAppId,
     agentDetailMap,
 } = useAgentStore();
 
@@ -188,11 +186,7 @@ const installedToolsRaw = computed<Record<string, unknown>[]>(() =>
     agentDetailMap.value[props.skillsApplicationId]?.tools || []
 );
 /** 当前 Agent ID（优先缓存，回退 store agentIdMap） */
-const currentAgentId = computed<string>(() =>
-    getAgentIdFromCacheByAppId(props.skillsApplicationId)
-    || agentIdMap.value[props.skillsApplicationId]
-    || ''
-);
+
 /** 正在刷新 */
 const skillsRefreshing = ref(false);
 
@@ -1183,7 +1177,6 @@ defineExpose({
             :installed-skill-ids="Array.from(skillsInstalledIds)"
             :installed-skills="skillListForInstall"
             :application-id="skillsApplicationId"
-            :agent-id="currentAgentId"
             :space-id="spaceId"
             :i18n="skillsI18n"
             :language="language"
@@ -1196,7 +1189,6 @@ defineExpose({
             v-if="skillsEnabled"
             v-model="showConnector"
             :application-id="skillsApplicationId"
-            :agent-id="currentAgentId"
             :theme="theme"
             @change="refreshSkills"
         />
@@ -1206,7 +1198,6 @@ defineExpose({
             v-if="skillsEnabled"
             v-model="showPluginManage"
             :application-id="skillsApplicationId"
-            :agent-id="currentAgentId"
             :theme="theme"
             @change="refreshSkills"
         />
@@ -1216,7 +1207,6 @@ defineExpose({
             v-if="skillsEnabled"
             v-model="showPlugin"
             :application-id="skillsApplicationId"
-            :agent-id="currentAgentId"
             :installed-tool-ids="currentInstalledToolIds"
             :theme="theme"
             @installed="refreshSkills"

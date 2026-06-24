@@ -20,7 +20,7 @@
  * }
  */
 
-import { Boot, SlateTransforms, SlateNode } from '@wangeditor/editor'
+import { Boot, SlateTransforms, SlateNode, SlateElement } from '@wangeditor/editor'
 import type { IDomEditor } from '@wangeditor/editor'
 import { h, type VNode } from 'snabbdom'
 
@@ -152,7 +152,7 @@ const mentionToHtmlConf = {
 /**
  * 从 HTML DOM 元素解析出 mention Slate 节点
  */
-function parseMentionHtml($elem: Element): MentionElement {
+function parseMentionHtml($elem: Element, _children: SlateNode[], _editor: IDomEditor): SlateElement {
     const mentionType = $elem.getAttribute('data-mention-type') || 'skills'
     const mentionId = decodeURIComponent($elem.getAttribute('data-mention-id') || '')
     const mentionName = decodeURIComponent($elem.getAttribute('data-mention-name') || '')
@@ -167,16 +167,12 @@ function parseMentionHtml($elem: Element): MentionElement {
         mentionDisplayName,
         displayLabel,
         children: [{ text: '' }],
-    }
+    } as unknown as SlateElement
 }
 
 const parseMentionHtmlConf = {
     selector: 'span[data-w-e-type="mention"]',
-    parseElemHtml: parseMentionHtml as unknown as (
-        $elem: Element,
-        children: SlateNode[],
-        editor: IDomEditor
-    ) => SlateNode,
+    parseElemHtml: parseMentionHtml,
 }
 
 // ======================== 编辑器插件（inline + void）========================

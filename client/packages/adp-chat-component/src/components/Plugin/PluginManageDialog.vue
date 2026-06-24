@@ -62,7 +62,7 @@
         <PluginInstallDialog
             v-model="showInstall"
             :application-id="applicationId"
-            :agent-id="agentId"
+            :theme="theme"
             :installed-tool-ids="installedToolIds"
             @installed="onInstalled"
         />
@@ -81,13 +81,14 @@ import { unbindAgentTool } from '../../service/connectorPluginApi';
 import PluginInstallDialog from './PluginInstallDialog.vue';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
+import useAgentStore from '../../composables/useAgentStore';
 
 interface Props extends ThemeProps {
     modelValue: boolean;
     applicationId?: string;
-    agentId?: string;
 }
-const props = withDefaults(defineProps<Props>(), { ...themePropsDefaults, modelValue: false, applicationId: '', agentId: '' });
+const props = withDefaults(defineProps<Props>(), { ...themePropsDefaults, modelValue: false, applicationId: '' });
+const { getAgentIdByAppId } = useAgentStore();
 const emit = defineEmits<{
     (e: 'update:modelValue', v: boolean): void;
     /** 数据变更后通知父组件刷新 */
@@ -183,14 +184,15 @@ async function onDelete(item: ManageToolItem) {
     if (deletingId.value) return;
     deletingId.value = item.toolId;
     try {
-        if (!props.applicationId || !props.agentId) {
+        const agentId = await getAgentIdByAppId(props.applicationId);
+        if (!props.applicationId || !agentId) {
             MessagePlugin.warning('缺少应用 ID 或 Agent ID');
             return;
         }
         await unbindAgentTool({
             applicationId: props.applicationId,
             appId: props.applicationId,
-            agentId: props.agentId,
+            agentId,
             pluginId: item.pluginId,
             toolId: item.pluginClass === 1 ? '' : item.toolId,
         });

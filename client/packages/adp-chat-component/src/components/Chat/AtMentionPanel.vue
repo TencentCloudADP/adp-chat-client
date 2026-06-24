@@ -180,7 +180,7 @@ defineExpose({ handleKeydown, resetNavigation });
     box-shadow: var(--td-shadow-2);
     overflow: hidden;
     width: 320px;
-    max-height: 280px;
+    height: 280px;
 }
 
 .at-mention-panel__categories {

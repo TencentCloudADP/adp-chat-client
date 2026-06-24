@@ -202,16 +202,16 @@ import McpFieldDialog from './McpFieldDialog.vue';
 import DividerTabs from '../Common/DividerTabs.vue';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
+import useAgentStore from '../../composables/useAgentStore';
 
 interface Props extends ThemeProps {
     modelValue: boolean;
     applicationId?: string;
-    /** Agent ID（从 useAgentStore 获取） */
-    agentId?: string;
     /** 已安装的工具 ID 列表，用于判断"已添加"状态 */
     installedToolIds?: string[];
 }
-const props = withDefaults(defineProps<Props>(), { ...themePropsDefaults, modelValue: false, applicationId: '', agentId: '', installedToolIds: () => [] });
+const props = withDefaults(defineProps<Props>(), { ...themePropsDefaults, modelValue: false, applicationId: '', installedToolIds: () => [] });
+const { getAgentIdByAppId } = useAgentStore();
 const emit = defineEmits<{
     (e: 'update:modelValue', v: boolean): void;
     /** 全部添加（整个插件）— 接口调用完毕后 emit */
@@ -381,9 +381,9 @@ function onExpand(item: Record<string, unknown>) { const id = itemId(item); expa
 const addingKey = ref('');
 
 async function doBindAgentTool(pluginItem: Record<string, unknown>, toolItems: Record<string, unknown>[]) {
-    if (!props.applicationId || !props.agentId) {
-        throw new Error('缺少应用 ID 或 Agent ID，无法绑定工具');
-    }
+    if (!props.applicationId) throw new Error('缺少应用 ID，无法绑定工具');
+    const agentId = await getAgentIdByAppId(props.applicationId);
+    if (!agentId) throw new Error('缺少 Agent ID，无法绑定工具');
     const pluginId = (pluginItem.PluginId || pluginItem.plugin_id || '') as string;
     const pluginClass = Number(pluginItem.PluginClass || pluginItem.plugin_class || 0);
     const isConnector = pluginClass === 1;
@@ -393,7 +393,7 @@ async function doBindAgentTool(pluginItem: Record<string, unknown>, toolItems: R
     await bindAgentTool({
         applicationId: props.applicationId,
         appId: props.applicationId,
-        agentId: props.agentId,
+        agentId,
         pluginId,
         toolSource: Number(toolItems[0]?.ToolSource || toolItems[0]?.tool_source || 0),
         toolList,

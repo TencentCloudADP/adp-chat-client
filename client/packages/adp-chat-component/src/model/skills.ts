@@ -2,17 +2,18 @@
  * Skills 数据模型和类型定义
  */
 
-/** Skill 类型枚举 */
-export enum AgentSkillType {
+/** Skill 类型常量 */
+export const AgentSkillType = {
     /** 技能广场官方/第三方 */
-    HUB_OFFICIAL = 1,
+    HUB_OFFICIAL: 1,
     /** 技能广场自定义 */
-    HUB_CUSTOM = 2,
+    HUB_CUSTOM: 2,
     /** 从技能广场内置（只读，不可手动安装/卸载） */
-    HUB_PRESET = 3,
+    HUB_PRESET: 3,
     /** 自定义安装在沙箱（无 SkillId，不上报） */
-    SANDBOX_CUSTOM = 4,
-}
+    SANDBOX_CUSTOM: 4,
+} as const;
+export type AgentSkillType = (typeof AgentSkillType)[keyof typeof AgentSkillType];
 
 /** Service 端返回的 Agent Skill 信息 */
 export interface AgentSkillInfo {

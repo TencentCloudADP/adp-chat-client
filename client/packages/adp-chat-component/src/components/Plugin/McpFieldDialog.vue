@@ -8,7 +8,8 @@
         width="min(440px, calc(100vw - 40px))"
     >
         <div class="mcp-field-dialog">
-            <t-form ref="formRef" :data="formData" layout="vertical" label-align="top" @submit="onSubmit">
+            <!-- <t-form ref="formRef" :data="formData" layout="vertical" label-align="top" @submit="onSubmit"> -->
+            <t-form ref="formRef" :data="formData" layout="vertical" label-align="top">
                 <template v-if="headers.length > 0">
                     <div class="mcp-field-dialog__section-title">Headers</div>
                     <t-form-item

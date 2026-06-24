@@ -21,11 +21,12 @@ export const defaultConnectorPluginApiConfig: ConnectorPluginApiConfig = {
     unbindAgentToolApi: '/adp/UnbindAgentTool',
 };
 
-/** Plugin 类型枚举 */
-export enum PluginClassEnum {
-    NORMAL = 0,
-    CONNECTOR = 1,
-}
+/** Plugin 类型常量 */
+export const PluginClassEnum = {
+    NORMAL: 0,
+    CONNECTOR: 1,
+} as const;
+export type PluginClassEnum = (typeof PluginClassEnum)[keyof typeof PluginClassEnum];
 
 async function forwardRequest(
     url: string,
@@ -201,7 +202,7 @@ export function buildToolConfig(
     });
 
     return {
-        config: {
+        Config: {
             PluginId: pluginId,
             ToolId: toolId,
             Description: toolDesc,

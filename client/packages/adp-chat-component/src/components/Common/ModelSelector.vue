@@ -53,6 +53,8 @@ export interface ModelOption {
     provider_ailas_name?: string;
     /** 是否为限时免费 */
     is_free?: boolean;
+    /** 是否为分组头部（动态标记，由 addSourceHeadFlag 注入） */
+    sourceHead?: boolean;
 }
 
 /** 选中模型（与 ModelOption 兼容） */
@@ -263,7 +265,7 @@ function addSourceHeadFlag(list: ModelOption[]): ModelOption[] {
         const isFirstInGroup = currentProvider !== lastProvider;
         lastProvider = currentProvider;
         return isFirstInGroup ? { ...model, sourceHead: true } : { ...model };
-    }) as ModelOption[];
+    });
 }
 
 /** 是否第三方受限模型（需企业版） */
@@ -341,7 +343,7 @@ function tagTheme(theme?: string): 'primary' | 'warning' | 'danger' | 'success' 
 function highlightText(text?: string, keyword?: string): string {
     const raw = text || '';
     const kw = (keyword || '').trim();
-    const escaped = raw.replace(/[&<>"']/g, (c) => {
+    const escaped = raw.replace(/[&<>"']/g, (c: string) => {
         const m: Record<string, string> = {
             '&': '&amp;',
             '<': '&lt;',
@@ -349,7 +351,7 @@ function highlightText(text?: string, keyword?: string): string {
             '"': '&quot;',
             "'": '&#39;',
         };
-        return m[c];
+        return m[c] || c;
     });
     if (!kw) return escaped;
     const safeKw = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -706,7 +708,6 @@ watch(popupVisible, (v) => {
 /* 按钮模式触发器 */
 .model-selector__trigger-btn {
     padding: 4px 8px;
-    border-radius: 16px;
     outline: none;
 }
 
