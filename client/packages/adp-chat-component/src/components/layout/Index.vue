@@ -627,7 +627,7 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
         return;
     }
 
-    const agentId = getAgentIdByAppId(applicationId);
+    const agentId = await getAgentIdByAppId(applicationId);
 
     // 如果存在 agentId 且没有 conversationId，则先调用 CreateConversation 获取
     if (agentId && !conversationId) {

@@ -95,8 +95,8 @@ export function useSkills(options: UseSkillsOptions = {}) {
 
     // 从 useAgentStore 获取共享数据源和操作方法
     const {
+        agentIdMap,
         agentDetailMap,
-        getAgentIdByAppId,
         refreshAgentCache,
         modifySkillList,
     } = useAgentStore();
@@ -109,7 +109,7 @@ export function useSkills(options: UseSkillsOptions = {}) {
     const error = ref<string | null>(null);
     /** 当前 agentId（从 store 缓存派生） */
     const agentId = computed<string>(() =>
-        agentDetailMap.value[applicationId.value]?.agentId || getAgentIdByAppId(applicationId.value)
+        agentDetailMap.value[applicationId.value]?.agentId || agentIdMap.value[applicationId.value] || ''
     );
 
     const normalizedSkills = computed<NormalizedSkill[]>(() => {

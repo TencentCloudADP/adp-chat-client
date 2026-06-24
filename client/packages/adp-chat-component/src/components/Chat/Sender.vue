@@ -100,7 +100,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 /** Agent 全局 store */
 const {
-    getAgentIdByAppId,
+    agentIdMap,
     refreshAgentCache,
     modifySkillList,
     getAgentIdFromCacheByAppId,
@@ -190,7 +190,8 @@ const installedToolsRaw = computed<Record<string, unknown>[]>(() =>
 /** 当前 Agent ID（优先缓存，回退 store agentIdMap） */
 const currentAgentId = computed<string>(() =>
     getAgentIdFromCacheByAppId(props.skillsApplicationId)
-    || getAgentIdByAppId(props.skillsApplicationId)
+    || agentIdMap.value[props.skillsApplicationId]
+    || ''
 );
 /** 正在刷新 */
 const skillsRefreshing = ref(false);

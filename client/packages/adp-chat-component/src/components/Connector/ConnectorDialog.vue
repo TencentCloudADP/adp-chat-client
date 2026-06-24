@@ -23,12 +23,12 @@
 
             <!-- 列表区 -->
             <div v-if="loading" class="connector-manage__loading">
-                <t-loading size="large" text="加载中..." />
+                <t-loading size="small"  text="加载中..." />
             </div>
             <div v-else-if="displayList.length === 0" class="connector-manage__empty">
                 <span>{{ enabledOnly ? '暂无已启用的连接器' : '暂无连接器' }}</span>
             </div>
-            <div v-else class="connector-manage__list">
+        <div v-else class="connector-manage__list">
                 <div v-for="item in displayList" :key="item.pluginId" class="connector-item">
                     <div class="connector-item__icon">
                         <img v-if="item.iconUrl" :src="item.iconUrl" @error="onIconError" />
@@ -94,7 +94,7 @@
             v-model="showConnect"
             :connector="connectingConnector"
             :application-id="applicationId"
-            :agent-id="agentId"
+            :agent-id="agentIdMap[applicationId] || ''"
             @connected="onConnected"
         />
     </t-dialog>
@@ -110,7 +110,7 @@ import CustomizedIcon from '../CustomizedIcon.vue';
 import {
     fetchPluginList, bindAgentTool, unbindAgentTool, buildPluginConfig, PluginClassEnum,
 } from '../../service/connectorPluginApi';
-import { fetchGlobalAgent } from '../../service/skillsApi';
+import useAgentStore from '../../composables/useAgentStore';
 import ConnectorConnectDialog from './ConnectorConnectDialog.vue';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
@@ -118,15 +118,15 @@ import { themePropsDefaults } from '../../model/type';
 interface Props extends ThemeProps {
     modelValue: boolean;
     applicationId?: string;
-    agentId?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     ...themePropsDefaults,
     modelValue: false,
     applicationId: '',
-    agentId: '',
 });
+
+const { agentIdMap, getAgentIdByAppId, getAgentDetailByAppId, resetAgentStore } = useAgentStore();
 
 const emit = defineEmits<{
     (e: 'update:modelValue', v: boolean): void;
@@ -216,7 +216,13 @@ const displayList = computed<ConnectorItem[]>(() => {
             .map((p) => buildItemFromInstalled(p))
             .filter((it) => !kw || it.name.toLowerCase().includes(kw) || it.desc.toLowerCase().includes(kw));
     }
-    return cardList.value;
+    // cardList 中的 enabled/connected 是构建时的静态快照，
+    // 需要依赖最新的 installedIdSet / connectedIdSet 动态派生状态
+    return cardList.value.map((item) => ({
+        ...item,
+        enabled: installedIdSet.value.has(item.pluginId),
+        connected: connectedIdSet.value.has(item.pluginId),
+    }));
 });
 
 function buildItemFromInstalled(p: Record<string, unknown>): ConnectorItem {
@@ -276,15 +282,17 @@ function onEnabledOnlyChange() {
     }
 }
 
-/** 从 fetchGlobalAgent 拉取已启用的连接器列表 */
-async function fetchInstalled() {
+/** 拉取已启用的连接器列表，可选是否先清除缓存 */
+async function fetchInstalled(clearCache = false) {
     if (!props.applicationId) return;
     try {
-        const result = await fetchGlobalAgent({ applicationId: props.applicationId });
-        const plugins = (result.plugins || []) as Record<string, unknown>[];
-        installedConnectors.value = plugins.filter(
-            (p) => Number(p.PluginClass || p.plugin_class || 0) === PluginClassEnum.CONNECTOR,
-        );
+        if (clearCache) {
+            resetAgentStore(props.applicationId);
+        }
+        const detail = await getAgentDetailByAppId(props.applicationId);
+        // DescribeAgentDetail 返回的 plugins 中 PluginClass 字段可能未正确赋值（为0），
+        // 因此不再依赖该字段过滤，直接使用全部 plugins 作为已绑定集合
+        installedConnectors.value = (detail?.plugins || []) as Record<string, unknown>[];
     } catch (e) {
         console.error('[ConnectorDialog] fetchInstalled error:', e);
     }
@@ -316,7 +324,8 @@ async function fetchList() {
 /** 切换启用状态 */
 async function onToggleEnabled(item: ConnectorItem, val: boolean) {
     if (togglingId.value) return;
-    if (!props.applicationId || !props.agentId) {
+    const agentId = await getAgentIdByAppId(props.applicationId);
+    if (!props.applicationId || !agentId) {
         MessagePlugin.warning('缺少应用 ID 或 Agent ID');
         return;
     }
@@ -327,7 +336,7 @@ async function onToggleEnabled(item: ConnectorItem, val: boolean) {
             await bindAgentTool({
                 applicationId: props.applicationId,
                 appId: props.applicationId,
-                agentId: props.agentId,
+                agentId,
                 pluginId: item.pluginId,
                 toolSource: 0,
                 plugin: buildPluginConfig(item.raw),
@@ -338,15 +347,15 @@ async function onToggleEnabled(item: ConnectorItem, val: boolean) {
             await unbindAgentTool({
                 applicationId: props.applicationId,
                 appId: props.applicationId,
-                agentId: props.agentId,
+                agentId,
                 pluginId: item.pluginId,
                 toolId: '',
             });
             MessagePlugin.success('已关闭');
         }
-        // 刷新已启用列表，列表项状态由 computed 派生
-        await fetchInstalled();
-        emit('change');
+        // 刷新已启用列表，清除缓存确保拿到最新数据
+        await fetchInstalled(true);
+        // emit('change');
     } catch (e) {
         console.error('[ConnectorDialog] toggle error:', e);
         MessagePlugin.error(val ? '开启失败' : '关闭失败');
@@ -364,7 +373,7 @@ function onConnect(item: ConnectorItem) {
 }
 
 async function onConnected() {
-    await fetchInstalled();
+    await fetchInstalled(true);
     emit('change');
 }
 

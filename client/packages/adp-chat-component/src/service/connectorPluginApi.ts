@@ -34,9 +34,12 @@ async function forwardRequest(
 ): Promise<Record<string, unknown>> {
     const response = await httpService.post(url, { ApplicationId: applicationId, Payload: payload });
     const data = (response?.Response || response || {}) as Record<string, unknown>;
-    const err = data.Error as Record<string, unknown> | undefined;
-    if (err && (err.Code || err.code)) {
-        throw new Error((err.Message || err.message || String(err.Code || err.code)) as string);
+    // 检查接口返回的业务错误
+    if (data.Error && typeof data.Error === 'object') {
+        const err = data.Error as Record<string, unknown>;
+        const code = (err.Code || '') as string;
+        const message = (err.Message || '请求失败') as string;
+        throw new Error(`[${code}] ${message}`);
     }
     return data;
 }
@@ -120,10 +123,10 @@ export async function createOAuthUrl(params: {
         {
             PluginId: params.pluginId,
             AppBizId: params.appBizId || params.applicationId,
-            AuthMode: 1, // WORKSPACE
+            AuthMode: 2, 
         },
     );
-    return { oauthUrl: (data.OAuthUrl || data.oauth_url || '') as string };
+    return { oauthUrl: (data.UserAuthorizationUrl || data.OAuthUrl || data.oauth_url || '') as string };
 }
 
 /* ===== BindAgentTool ===== */
@@ -151,10 +154,10 @@ export interface AgentToolParameter {
 
 /** 插件参数（headers/query） */
 export interface AgentPluginParameter {
-    ParamName: string;
-    ParamValue: string;
+    ParameterName: string;
+    IsGlobalHidden: boolean;
+    IsRequired: boolean;
     Input?: Record<string, unknown>;
-    GlobalHidden?: boolean;
 }
 
 /** BindAgentTool 的 plugin 配置 */
@@ -191,14 +194,14 @@ export function buildToolConfig(
     });
 
     const mapPluginParam = (p: Record<string, unknown>): AgentPluginParameter => ({
-        ParamName: (p.ParamName || p.param_name || p.Name || p.name || '') as string,
-        ParamValue: (p.ParamValue || p.param_value || p.DefaultValue || p.default_value || '') as string,
+        ParameterName: (p.ParameterName || p.ParamName || p.param_name || p.Name || p.name || '') as string,
+        IsGlobalHidden: !!(p.IsGlobalHidden || p.GlobalHidden || p.global_hidden),
+        IsRequired: !!(p.IsRequired || p.is_required),
         Input: (p.Input || p.input || undefined) as Record<string, unknown> | undefined,
-        GlobalHidden: !!(p.GlobalHidden || p.global_hidden),
     });
 
     return {
-        Config: {
+        config: {
             PluginId: pluginId,
             ToolId: toolId,
             Description: toolDesc,
@@ -219,10 +222,10 @@ export function buildPluginConfig(pluginItem: Record<string, unknown>): AgentPlu
     const query = (pluginItem.Query || pluginItem.query || []) as Record<string, unknown>[];
 
     const mapPluginParam = (p: Record<string, unknown>): AgentPluginParameter => ({
-        ParamName: (p.ParamName || p.param_name || p.Name || p.name || '') as string,
-        ParamValue: (p.ParamValue || p.param_value || p.DefaultValue || p.default_value || '') as string,
+        ParameterName: (p.ParameterName || p.ParamName || p.param_name || p.Name || p.name || '') as string,
+        IsGlobalHidden: !!(p.IsGlobalHidden || p.GlobalHidden || p.global_hidden),
+        IsRequired: !!(p.IsRequired || p.is_required),
         Input: (p.Input || p.input || undefined) as Record<string, unknown> | undefined,
-        GlobalHidden: !!(p.GlobalHidden || p.global_hidden),
     });
 
     return {
@@ -282,7 +285,7 @@ export async function unbindAgentTool(params: {
             AppId: params.appId,
             AgentId: params.agentId,
             PluginId: params.pluginId,
-            ...(params.toolId ? { ToolId: params.toolId } : {}),
+            ToolId: params.toolId || '',
         },
     );
 }

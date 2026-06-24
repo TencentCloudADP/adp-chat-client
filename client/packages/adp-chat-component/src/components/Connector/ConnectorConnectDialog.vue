@@ -227,12 +227,16 @@ async function handleConfirm() {
     const baseConfig = buildPluginConfig(props.connector);
     formItems.value.forEach((item) => {
         const list = item.loc === 'header' ? baseConfig.HeaderParameterList : baseConfig.QueryParameterList;
-        const exist = list.find((p) => p.ParamName === item.paramName);
+        const exist = list.find((p) => p.ParameterName === item.paramName);
         const value = formValues.value[item.key] || '';
+        const inputValue: Record<string, unknown> = {
+            input_type: 1,
+            user_input_value: { value_list: [value] },
+        };
         if (exist) {
-            exist.ParamValue = value;
+            exist.Input = inputValue;
         } else {
-            list.push({ ParamName: item.paramName, ParamValue: value });
+            list.push({ ParameterName: item.paramName, IsGlobalHidden: false, IsRequired: true, Input: inputValue });
         }
     });
 

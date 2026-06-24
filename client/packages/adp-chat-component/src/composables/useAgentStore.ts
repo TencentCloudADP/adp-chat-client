@@ -163,12 +163,17 @@ export function useAgentStore() {
     };
 
     /**
-     * 根据 applicationId 获取已绑定的 agent_id（同步快照值）。
-     * 返回的是 CopyAgentFromApp 之后的新 agentId。
+     * 根据 applicationId 获取已绑定的 agent_id。
+     * 如果缓存中已有值则直接返回，否则等待 fetchAndSetAgentId 请求完成后返回。
      */
-    const getAgentIdByAppId = (applicationId: string): string => {
+    const getAgentIdByAppId = async (applicationId: string): Promise<string> => {
         if (!applicationId) return '';
-        return agentIdMap.value[applicationId] || '';
+        // 缓存命中直接返回
+        if (agentIdMap.value[applicationId]) {
+            return agentIdMap.value[applicationId];
+        }
+        // 缓存未命中，触发请求并等待结果
+        return fetchAndSetAgentId({ applicationId });
     };
 
     
@@ -198,17 +203,17 @@ export function useAgentStore() {
      */
     const resetAgentStore = (applicationId?: string) => {
         if (applicationId) {
-            const nextIdMap = { ...agentIdMap.value };
             const nextLoadingMap = { ...loadingMap.value };
-            delete nextIdMap[applicationId];
+            const nextDetailMap = { ...agentDetailMap.value };
             delete nextLoadingMap[applicationId];
-            agentIdMap.value = nextIdMap;
+            delete nextDetailMap[applicationId];
             loadingMap.value = nextLoadingMap;
-            inflightMap.delete(applicationId);
+            agentDetailMap.value = nextDetailMap;
+            detailInflightMap.delete(applicationId);
         } else {
-            agentIdMap.value = {};
             loadingMap.value = {};
-            inflightMap.clear();
+            agentDetailMap.value = {};
+            detailInflightMap.clear();
         }
     };
 
@@ -373,7 +378,7 @@ export function useAgentStore() {
         applicationId: string,
         skills: Array<{ skillId: string }>,
     ): Promise<void> => {
-        const agentId = getAgentIdByAppId(applicationId);
+        const agentId = await getAgentIdByAppId(applicationId);
         if (!applicationId || !agentId) {
             console.warn('[useAgentStore] applicationId 或 agentId 为空，跳过 modifySkillList');
             return;
@@ -431,7 +436,7 @@ export function useAgentStore() {
         agentDetailLoadingMap: readonly(agentDetailLoadingMap) as Readonly<Ref<Record<string, boolean>>>,
         /** 异步调用 CopyAgentFromApp 并按 applicationId 绑定 agentId */
         fetchAndSetAgentId,
-        /** 按 applicationId 同步获取 agentId（CopyAgentFromApp 返回的 ParentAgentId） */
+        /** 按 applicationId 异步获取 agentId（缓存有值直接返回，否则等待 fetchAndSetAgentId） */
         getAgentIdByAppId,
         /** 按 applicationId 获取响应式 agentId ComputedRef */
         useAgentIdRef,
