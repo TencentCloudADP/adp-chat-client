@@ -226,13 +226,13 @@ async function handleConfirm() {
     // 构造 plugin 配置，写入用户填写的 header/query 值
     const baseConfig = buildPluginConfig(props.connector);
     formItems.value.forEach((item) => {
-        const list = item.loc === 'header' ? baseConfig.header_parameter_list : baseConfig.query_parameter_list;
-        const exist = list.find((p) => p.param_name === item.paramName);
+        const list = item.loc === 'header' ? baseConfig.HeaderParameterList : baseConfig.QueryParameterList;
+        const exist = list.find((p) => p.ParamName === item.paramName);
         const value = formValues.value[item.key] || '';
         if (exist) {
-            exist.param_value = value;
+            exist.ParamValue = value;
         } else {
-            list.push({ param_name: item.paramName, param_value: value });
+            list.push({ ParamName: item.paramName, ParamValue: value });
         }
     });
 

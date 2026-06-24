@@ -56,8 +56,12 @@ async function forwardRequest(
     if (version) body.Version = version;
 
     const response = await httpService.post(url, body);
-    // 解析 Response 层
-    return (response?.Response || response || {}) as Record<string, unknown>;
+    const data = (response?.Response || response || {}) as Record<string, unknown>;
+    const err = data.Error as Record<string, unknown> | undefined;
+    if (err && (err.Code || err.code)) {
+        throw new Error((err.Message || err.message || String(err.Code || err.code)) as string);
+    }
+    return data;
 }
 
 /**
@@ -221,11 +225,13 @@ export async function fetchSkillDetail(params: {
     skill_id: string;
     space_id: string;
 }, apiPath?: string): Promise<{ skill_detail: Record<string, unknown> }> {
-    const { applicationId, ...payload } = params;
     const data = await forwardRequest(
         apiPath || defaultSkillsApiConfig.skillDetailApi!,
-        applicationId,
-        payload as Record<string, unknown>,
+        params.applicationId,
+        {
+            SkillId: params.skill_id,
+            SpaceId: params.space_id,
+        },
     );
     return { skill_detail: (data.skill_detail || data.SkillDetail || {}) as Record<string, unknown> };
 }

@@ -55,5 +55,15 @@
         "headers.X-TC-Canary": "toe-test-4030-clawapi",
         "payload.AppKey": "{{APP_KEY}}",
         "payload.UserId": "{{ACCOUNT_ID}}"
+    },
+    "BindAgentTool": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Canary": "toe-test-4030-clawapi"
+    },
+    "UnbindAgentTool": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Canary": "toe-test-4030-clawapi"
     }
 }
