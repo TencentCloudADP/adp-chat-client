@@ -67,28 +67,33 @@ async function forwardRequest(
 /**
  * 获取 Agent 详情（含已安装 Skills/Plugins/Tools 列表）
  * 通过 DescribeAgentDetail 接口，service/version 由服务端 action_version.json 处理
- * 请求 Payload：{ AppId, AdpDomain: 1, ProjectPath: '' }
- * 响应：res.Agent.SkillList / PluginList / ToolList（兼容 snake_case）
+ * 请求 Payload：{ AppId, Domain, AgentId }
+ * 响应结构（PascalCase，与 proto json_name 一致）：
+ *   Agent.SkillList[] — AgentSkill { SkillId, Name, DisplayName, DisplayDescription, IconUrl, ... }
+ *   Agent.PluginList[] — AgentPlugin
+ *   Agent.ToolList[]   — AgentTool
+ *   Agent.Model        — AgentModelConfig { ModelId, Alias, ContextWordsLimit, InstructionsWordsLimit, ModelParameters }
  */
-/** Agent 模型信息（DescribeAgentDetail 中 Agent.Model 字段） */
+
+/** Agent 模型信息（对应 proto AgentModelConfig） */
 export interface AgentModelInfo {
-    /** 模型别名（展示名） */
-    ModelAliasName: string;
-    /** 模型名称（唯一标识） */
-    ModelName: string;
-    /** 上下文 token 限制描述 */
-    ModelContextWordsLimit: string;
-    /** 指令 token 限制 */
+    /** 模型唯一 id（proto: ModelId） */
+    ModelId: string;
+    /** 模型别名（proto: Alias） */
+    Alias: string;
+    /** 上下文长度字符限制（proto: ContextWordsLimit） */
+    ContextWordsLimit: number;
+    /** 指令长度字符限制（proto: InstructionsWordsLimit） */
     InstructionsWordsLimit: number;
-    /** 模型参数 */
+    /** 模型超参（proto: ModelParameters -> ModelParams） */
     ModelParameters: {
         Temperature: number;
         DeepThinking: string;
         MaxTokens: number;
         ReasoningEffort: string;
         ReplyFormat: string;
-        StopSequences: string[];
-    };
+        StopSequenceList: string[];
+    } | null;
 }
 
 export async function fetchGlobalAgent(params: {
@@ -109,50 +114,52 @@ export async function fetchGlobalAgent(params: {
         {
             AppId: params.applicationId,
             AgentId: params.agentId,
-            AdpDomain: 1,
-            ProjectPath: params.projectPath || '',
+            Domain: 2,
         },
     );
-    // DescribeAgentDetail 返回 { Agent: { SkillList, PluginList, ToolList, AgentId, Model } } 或 snake_case
-    const agent = (data.Agent || data.agent || {}) as Record<string, unknown>;
-    const rawSkills = (agent.SkillList || agent.skill_list || []) as Array<Record<string, unknown>>;
-    // 归一化 skill 字段（兼容 name → skill_name）
+    // DescribeAgentDetail 返回 { Agent: AgentDetail }，字段均为 PascalCase
+    const agent = (data.Agent ?? {}) as Record<string, unknown>;
+    const rawSkills = (agent.SkillList ?? []) as Array<Record<string, unknown>>;
+
+    // 归一化 skill 字段，对齐 proto AgentSkill json_name
     const skills = rawSkills.map((s) => ({
         ...s,
-        skill_id: s.skill_id || s.SkillId || '',
-        skill_name: s.skill_name || s.SkillName || s.name || (s.profile as Record<string, unknown>)?.name || '',
-        skill_display_name: s.skill_display_name || s.SkillDisplayName || s.skill_name || s.name || '',
-        skill_display_desc: s.skill_display_description || s.skill_display_desc || s.SkillDisplayDescription || s.SkillDisplayDesc || '',
-        icon_url: s.icon_url || s.skill_icon || s.IconUrl || '',
+        SkillId: s.SkillId ?? '',
+        Name: s.Name ?? '',
+        DisplayName: s.DisplayName ?? '',
+        DisplayDescription: s.DisplayDescription ?? '',
+        IconUrl: s.IconUrl ?? '',
     }));
 
-    // 解析模型信息
-    const rawModel = (agent.Model || agent.model || null) as Record<string, unknown> | null;
+    // 解析模型信息，对齐 proto AgentModelConfig
+    const rawModel = (agent.Model ?? null) as Record<string, unknown> | null;
     const model: AgentModelInfo | null = rawModel
         ? {
-            ModelAliasName: (rawModel.ModelAliasName || rawModel.model_alias_name || '') as string,
-            ModelName: (rawModel.ModelName || rawModel.model_name || '') as string,
-            ModelContextWordsLimit: (rawModel.ModelContextWordsLimit || rawModel.model_context_words_limit || '') as string,
-            InstructionsWordsLimit: (rawModel.InstructionsWordsLimit || rawModel.instructions_words_limit || 0) as number,
-            ModelParameters: (() => {
-                const p = (rawModel.ModelParameters || rawModel.model_parameters || {}) as Record<string, unknown>;
-                return {
-                    Temperature: (p.Temperature ?? p.temperature ?? 1) as number,
-                    DeepThinking: (p.DeepThinking || p.deep_thinking || '') as string,
-                    MaxTokens: (p.MaxTokens || p.max_tokens || 0) as number,
-                    ReasoningEffort: (p.ReasoningEffort || p.reasoning_effort || '') as string,
-                    ReplyFormat: (p.ReplyFormat || p.reply_format || '') as string,
-                    StopSequences: (p.StopSequences || p.stop_sequences || []) as string[],
-                };
-            })(),
+            ModelId: (rawModel.ModelId ?? '') as string,
+            Alias: (rawModel.Alias ?? '') as string,
+            ContextWordsLimit: (rawModel.ContextWordsLimit ?? 0) as number,
+            InstructionsWordsLimit: (rawModel.InstructionsWordsLimit ?? 0) as number,
+            ModelParameters: rawModel.ModelParameters
+                ? (() => {
+                    const p = rawModel.ModelParameters as Record<string, unknown>;
+                    return {
+                        Temperature: (p.Temperature ?? 1) as number,
+                        DeepThinking: (p.DeepThinking ?? '') as string,
+                        MaxTokens: (p.MaxTokens ?? 0) as number,
+                        ReasoningEffort: (p.ReasoningEffort ?? '') as string,
+                        ReplyFormat: (p.ReplyFormat ?? '') as string,
+                        StopSequenceList: (p.StopSequenceList ?? []) as string[],
+                    };
+                })()
+                : null,
         }
         : null;
 
     return {
         skills,
-        plugins: (agent.PluginList || agent.plugin_list || []) as Record<string, unknown>[],
-        tools: (agent.ToolList || agent.tool_list || []) as Record<string, unknown>[],
-        agentId: (agent.AgentId || agent.agent_id || '') as string,
+        plugins: (agent.PluginList ?? []) as Record<string, unknown>[],
+        tools: (agent.ToolList ?? []) as Record<string, unknown>[],
+        agentId: (agent.AgentId ?? '') as string,
         model,
     };
 }
@@ -326,7 +333,7 @@ export interface ModifyAgentPayload {
     /** 更新后的 Agent 可编辑配置 */
     Agent: Record<string, unknown>;
     /** 需要更新的字段路径，如 ["profile.name", "instructions", "model", "tool_list"] */
-    UpdateMask: string[];
+    UpdateMask: { Paths: string[] };
 }
 
 /**
@@ -352,7 +359,7 @@ export async function modifyAgent(
             AppId: params.applicationId,
             AgentId: params.agentId,
             Agent: params.agent,
-            UpdateMask: params.updateMask,
+            UpdateMask: { Paths: params.updateMask },
         },
     );
 }

@@ -193,10 +193,10 @@ const skillsRefreshing = ref(false);
 /** 浮层用的标准化列表 */
 const normalizedSkills = computed<NormalizedSkill[]>(() => {
     return skillList.value
-        .filter((s) => !!(s.skill_display_name || s.SkillDisplayName))
+        .filter((s) => !!s.DisplayName)
         .sort((a, b) => {
-            const aType = a.skill_type ?? a.SkillType ?? 0;
-            const bType = b.skill_type ?? b.SkillType ?? 0;
+            const aType = a.SourceType ?? 0;
+            const bType = b.SourceType ?? 0;
             return (aType === AgentSkillType.HUB_PRESET ? 1 : 0) - (bType === AgentSkillType.HUB_PRESET ? 1 : 0);
         })
         .map(normalizeSkill);
@@ -205,10 +205,10 @@ const normalizedSkills = computed<NormalizedSkill[]>(() => {
 /** 管理弹窗用的列表 */
 const manageItems = computed<ManageSkillItem[]>(() => {
     return skillList.value
-        .filter((s) => !!(s.skill_display_name || s.SkillDisplayName))
+        .filter((s) => !!s.DisplayName)
         .sort((a, b) => {
-            const aType = a.skill_type ?? a.SkillType ?? 0;
-            const bType = b.skill_type ?? b.SkillType ?? 0;
+            const aType = a.SourceType ?? 0;
+            const bType = b.SourceType ?? 0;
             return (aType === AgentSkillType.HUB_PRESET ? 1 : 0) - (bType === AgentSkillType.HUB_PRESET ? 1 : 0);
         })
         .map(normalizeManageItem);
@@ -302,7 +302,7 @@ const mentionTools = computed<NormalizedSkill[]>(() => {
 
 /** 已安装 Skill ID 集合 */
 const skillsInstalledIds = computed(() => {
-    return [...new Set(skillList.value.map((s) => (s.skill_id || s.SkillId || '')).filter(Boolean))];
+    return [...new Set(skillList.value.map((s) => s.SkillId || '').filter(Boolean))];
 });
 
 /** 已安装工具 ID 集合（传递给 PluginInstallDialog 用于判断已添加状态） */
@@ -356,9 +356,9 @@ async function removeSkillById(skillId: string) {
     if (!appId) return;
     try {
         const remainingSkills = skillList.value
-            .filter((s) => (s.skill_id || s.SkillId) !== skillId)
+            .filter((s) => s.SkillId !== skillId)
             .map((s) => ({
-                skillId: (s.skill_id || s.SkillId || '') as string,
+                skillId: s.SkillId || '',
             }));
         await modifySkillList(appId, remainingSkills);
         MessagePlugin.success('已移除');

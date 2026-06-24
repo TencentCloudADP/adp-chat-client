@@ -15,41 +15,31 @@ export const AgentSkillType = {
 } as const;
 export type AgentSkillType = (typeof AgentSkillType)[keyof typeof AgentSkillType];
 
-/** Service 端返回的 Agent Skill 信息 */
+/** Service 端返回的 Agent Skill 信息（对应 proto AgentSkill，字段为 PascalCase json_name） */
 export interface AgentSkillInfo {
-    skill_id?: string;
+    /** SkillID */
     SkillId?: string;
-    skill_name?: string;
-    SkillName?: string;
-    skill_display_name?: string;
-    SkillDisplayName?: string;
-    skill_display_desc?: string;
-    SkillDisplayDesc?: string;
-    skill_display_description?: string;
-    SkillDisplayDescription?: string;
-    skill_desc?: string;
-    SkillDesc?: string;
-    skill_location?: string;
-    SkillLocation?: string;
-    icon_url?: string;
+    /** Skill 英文标识 */
+    Name?: string;
+    /** Skill 描述 */
+    Description?: string;
+    /** Skill 展示名称 */
+    DisplayName?: string;
+    /** Skill 展示描述 */
+    DisplayDescription?: string;
+    /** SKILL.md 在沙箱内绝对路径 */
+    Location?: string;
+    /** Skill 图标 url */
     IconUrl?: string;
-    /** 1=官方 2=自定义 3=内置 4=沙箱 */
-    skill_type?: number;
-    SkillType?: number;
-    /** 计费类型 */
-    billing_type?: number;
-    BillingType?: number;
-    /** 技能来源 */
-    skill_source?: string;
-    SkillSource?: string;
+    /** Skill 来源类型：1=官方 2=自定义 3=内置 4=沙箱 */
+    SourceType?: number;
     /** 当前版本 */
-    current_version?: string;
     CurrentVersion?: string;
+    /** 计费类型 */
+    BillingType?: number;
     /** 是否受删除保护 */
-    is_delete_protected?: boolean;
     IsDeleteProtected?: boolean;
     /** 分类名称 */
-    category_name?: string;
     CategoryName?: string;
 }
 

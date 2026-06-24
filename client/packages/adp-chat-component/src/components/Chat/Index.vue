@@ -314,7 +314,7 @@ async function refreshMentionLists() {
         const result = await fetchGlobalAgent({ applicationId: appId, agentId });
         // skills
         mentionSkills.value = ((result.skills || []) as AgentSkillInfo[])
-            .filter((s) => !!(s.skill_display_name || s.SkillDisplayName))
+            .filter((s) => !!s.DisplayName)
             .map(normalizeSkill);
         // tools / connectors（Sender.vue と同様の解析ロジック）
         const plugins = result.plugins || [];

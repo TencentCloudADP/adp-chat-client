@@ -85,7 +85,7 @@
                     <div v-if="skillList.length > 0" class="skills-install__items">
                         <div
                             v-for="skill in skillList"
-                            :key="(skill.skill_id as string)"
+                            :key="(skill.SkillId as string)"
                             class="skills-install__card"
                         >
                             <div class="skill-card__body">
@@ -163,7 +163,7 @@
                                         
                                         theme="primary"
                                         size="small"
-                                        :loading="busyId === (skill.skill_id as string)"
+                                        :loading="busyId === (skill.SkillId as string)"
                                         :disabled="isLimitReached && !busyId"
                                         @click="onInstallSkill(skill)"
                                     >{{ i18n.install }}</t-button>
@@ -550,12 +550,9 @@ async function onInstallSkill(skill: Record<string, unknown>) {
     busyId.value = sid;
     try {
         const existingSkills = props.installedSkills
-            .filter((s) => {
-                const id = (s.skill_id || s.SkillId || '') as string;
-                return !!id;
-            })
+            .filter((s) => !!s.SkillId)
             .map((s) => ({
-                skillId: (s.skill_id || s.SkillId || '') as string,
+                skillId: s.SkillId as string,
             }));
         const mergedSkills = [
             ...existingSkills,

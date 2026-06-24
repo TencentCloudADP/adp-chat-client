@@ -38,43 +38,12 @@
                         <div class="connector-item__title">
                             <span class="connector-item__name" :title="item.name">{{ item.name }}</span>
                             <t-tag v-if="item.isInner" variant="light">预置</t-tag>
-                            <!-- 连接状态指示点：需要鉴权的连接器始终显示，反映"已连接/未连接" -->
-                            <span
-                                v-if="item.needAuth"
-                                class="connector-item__status"
-                                :class="item.connected ? 'is-success' : 'is-warning'"
-                            >
-                                <span class="connector-item__status-dot"></span>
-                                <span class="connector-item__status-label">
-                                    {{ item.connected ? '已连接' : '未连接' }}
-                                </span>
-                            </span>
                         </div>
                         <div class="connector-item__desc" :title="item.desc">
                             {{ item.desc || '暂无描述' }}
                         </div>
                     </div>
                     <div class="connector-item__actions">
-                        <!-- 连接按钮：需要鉴权且未连接时展示 -->
-                        <t-button
-                            v-if="item.needAuth && !item.connected"
-                            variant="outline"
-                            theme="primary"
-                            size="small"
-                            @click="onConnect(item)"
-                        >
-                            连接
-                        </t-button>
-                        <!-- 重新连接按钮：仅 OAuth(authType===3) 或还有可编辑 header/query 字段时展示 -->
-                        <t-button
-                            v-else-if="item.needAuth && item.connected && (item.authType === 3 || item.hasEditableFields)"
-                            variant="outline"
-                            theme="primary"
-                            size="small"
-                            @click="onConnect(item)"
-                        >
-                            重新连接
-                        </t-button>
                         <!-- 启用开关 -->
                         <t-switch
                             :model-value="item.enabled"
@@ -99,29 +68,20 @@
             />
         </div>
 
-        <!-- 连接表单子弹窗 -->
-        <ConnectorConnectDialog
-            v-model="showConnect"
-            :connector="connectingConnector"
-            :application-id="applicationId"
-            :agent-id="agentIdMap[applicationId] || ''"
-            @connected="onConnected"
-        />
     </t-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import {
-    Dialog as TDialog, Button as TButton, Tag as TTag, Loading as TLoading,
+    Dialog as TDialog, Tag as TTag, Loading as TLoading,
     Input as TInput, Checkbox as TCheckbox, Switch as TSwitch, Pagination as TPagination, MessagePlugin,
 } from 'tdesign-vue-next';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import {
-    fetchPluginList, bindAgentTool, unbindAgentTool, buildPluginConfig, PluginClassEnum,
+    fetchPluginList, PluginClassEnum,
 } from '../../service/connectorPluginApi';
 import useAgentStore from '../../composables/useAgentStore';
-import ConnectorConnectDialog from './ConnectorConnectDialog.vue';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
 
@@ -136,7 +96,7 @@ const props = withDefaults(defineProps<Props>(), {
     applicationId: '',
 });
 
-const { agentIdMap, getAgentIdByAppId, getAgentDetailByAppId, resetAgentStore } = useAgentStore();
+const { getAgentIdByAppId, getAgentDetailByAppId, resetAgentStore, modifyAgent } = useAgentStore();
 
 const emit = defineEmits<{
     (e: 'update:modelValue', v: boolean): void;
@@ -157,24 +117,8 @@ interface ConnectorItem {
     isInner: boolean;
     /** 是否已启用（已绑定到当前 Agent） */
     enabled: boolean;
-    /** 是否已连接（鉴权信息已填） */
-    connected: boolean;
-    /** 是否需要鉴权（AuthMode !== 0） */
-    needAuth: boolean;
-    /** 鉴权类型（0=无鉴权 / 2=CAM / 3=OAuth），用于判断是否展示“重新连接” */
-    authType: number;
-    /** 是否存在可编辑的 header/query 字段（非 GlobalHidden） */
-    hasEditableFields: boolean;
-    /** 原始数据，用于传给连接弹窗 */
+    /** 原始数据 */
     raw: Record<string, unknown>;
-}
-
-/** 过滤出可编辑（非 GlobalHidden）的 header/query 字段数量 */
-function countEditableFields(p: Record<string, unknown>): number {
-    const headers = (p.HeaderParameterList || p.header_parameter_list || []) as Record<string, unknown>[];
-    const query = (p.QueryParameterList || p.query_parameter_list || []) as Record<string, unknown>[];
-    const isHidden = (it: Record<string, unknown>) => !!(it.GlobalHidden || it.global_hidden || it.IsGlobalHidden || it.is_global_hidden);
-    return headers.filter((h) => !isHidden(h)).length + query.filter((q) => !isHidden(q)).length;
 }
 
 const loading = ref(false);
@@ -188,44 +132,24 @@ const togglingId = ref('');
 
 /** 已启用的连接器集合（来自 fetchGlobalAgent 的 plugins 中 PluginClass===1 的项） */
 const installedConnectors = ref<Record<string, unknown>[]>([]);
+
+/**
+ * 从 AgentPlugin 结构中提取 PluginId。
+ * DescribeAgentDetail 返回的 PluginList 每项为 AgentPlugin { Config: AgentPluginConfig, Name, ... }，
+ * PluginId 位于 Config 子对象中，需要兼容顶层和 Config 嵌套两种情况。
+ */
+function extractPluginId(p: Record<string, unknown>): string {
+    const directId = (p.PluginId || p.plugin_id || '') as string;
+    if (directId) return directId;
+    const config = (p.Config || p.config) as Record<string, unknown> | undefined;
+    return config ? ((config.PluginId || config.plugin_id || '') as string) : '';
+}
+
 const installedIdSet = computed(() => {
     const s = new Set<string>();
     installedConnectors.value.forEach((p) => {
-        const id = (p.PluginId || p.plugin_id || '') as string;
+        const id = extractPluginId(p);
         if (id) s.add(id);
-    });
-    return s;
-});
-
-/**
- * 判断 plugin 参数项是否已被填值（用于"已连接"状态推导）
- * 兼容三种结构：
- * 1. 旧 PascalCase：{ ParamValue }
- * 2. 旧 snake_case：{ param_value }
- * 3. 新 snake_case 协议：{ parameter_name, input: { input_type, user_input_value: { value_list, values } | system_variable | custom_var_id | env_var_id | app_var_id } }
- */
-function hasParamValue(it: Record<string, unknown>): boolean {
-    if (it.ParamValue || it.param_value) return true;
-    const input = (it.input || it.Input || null) as Record<string, unknown> | null;
-    if (!input) return false;
-    const userVal = input.user_input_value as Record<string, unknown> | undefined;
-    if (userVal) {
-        const list = (userVal.value_list || userVal.values) as unknown[] | undefined;
-        if (Array.isArray(list) && list.length > 0) return true;
-    }
-    if (input.system_variable || input.custom_var_id || input.env_var_id || input.app_var_id) return true;
-    return false;
-}
-
-/** 已连接（鉴权信息已填）：plugin 中 header_parameter_list/query_parameter_list 任一项有取值 */
-const connectedIdSet = computed(() => {
-    const s = new Set<string>();
-    installedConnectors.value.forEach((p) => {
-        const id = (p.PluginId || p.plugin_id || '') as string;
-        if (!id) return;
-        const headers = (p.HeaderParameterList || p.header_parameter_list || []) as Record<string, unknown>[];
-        const query = (p.QueryParameterList || p.query_parameter_list || []) as Record<string, unknown>[];
-        if ([...headers, ...query].some(hasParamValue)) s.add(id);
     });
     return s;
 });
@@ -238,21 +162,15 @@ const displayList = computed<ConnectorItem[]>(() => {
             .map((p) => buildItemFromInstalled(p))
             .filter((it) => !kw || it.name.toLowerCase().includes(kw) || it.desc.toLowerCase().includes(kw));
     }
-    // cardList 中的 enabled/connected 是构建时的静态快照，
-    // 需要依赖最新的 installedIdSet / connectedIdSet 动态派生状态
+    // cardList 中的 enabled 是构建时的静态快照，需要依赖最新的 installedIdSet 动态派生
     return cardList.value.map((item) => ({
         ...item,
         enabled: installedIdSet.value.has(item.pluginId),
-        connected: connectedIdSet.value.has(item.pluginId),
     }));
 });
 
 function buildItemFromInstalled(p: Record<string, unknown>): ConnectorItem {
-    const pluginId = (p.PluginId || p.plugin_id || '') as string;
-    // 已绑定接口：鉴权类型字段名为 auth_type（0=无鉴权 / 2=CAM / 3=OAuth）
-    const authType = Number(p.AuthType || p.auth_type || 0);
-    const headers = (p.HeaderParameterList || p.header_parameter_list || []) as Record<string, unknown>[];
-    const query = (p.QueryParameterList || p.query_parameter_list || []) as Record<string, unknown>[];
+    const pluginId = extractPluginId(p);
     return {
         pluginId,
         name: (p.Name || p.PluginName || p.plugin_name || '') as string,
@@ -260,30 +178,19 @@ function buildItemFromInstalled(p: Record<string, unknown>): ConnectorItem {
         iconUrl: (p.IconUrl || p.icon_url || '') as string,
         isInner: Number(p.PluginType || p.plugin_type || 0) === 1,
         enabled: true,
-        needAuth: authType !== 0,
-        authType,
-        hasEditableFields: countEditableFields(p) > 0,
-        connected: [...headers, ...query].some(hasParamValue),
         raw: p,
     };
 }
 
 function buildItemFromList(p: Record<string, unknown>): ConnectorItem {
-    const pluginId = (p.PluginId || p.plugin_id || '') as string;
-    // 列表接口：鉴权类型字段名为 AuthType（PascalCase）；AuthMode 是 OAuth 授权范围，非鉴权类型
-    const authType = Number(p.AuthType || p.auth_type || 0);
-    const enabled = installedIdSet.value.has(pluginId);
+    const pluginId = extractPluginId(p);
     return {
         pluginId,
         name: (p.Name || p.PluginName || p.plugin_name || '') as string,
         desc: (p.Desc || p.PluginDesc || p.plugin_desc || p.Introduction || '') as string,
         iconUrl: (p.IconUrl || p.icon_url || '') as string,
         isInner: Number(p.PluginType || p.plugin_type || 0) === 1,
-        enabled,
-        needAuth: authType !== 0,
-        authType,
-        hasEditableFields: countEditableFields(p) > 0,
-        connected: connectedIdSet.value.has(pluginId),
+        enabled: installedIdSet.value.has(pluginId),
         raw: p,
     };
 }
@@ -347,7 +254,55 @@ async function fetchList() {
     }
 }
 
-/** 切换启用状态 */
+/**
+ * 将 ListPlugins 返回的 PluginHeader/PluginQuery（{ParamName, ParamValue, GlobalHidden, IsRequired}）
+ * 转换为 ModifyAgent 所需的 AgentPluginParameter（{Name, IsGlobalHidden, IsRequired, Input}）格式。
+ */
+function convertPluginParams(params: Record<string, unknown>[]): Record<string, unknown>[] {
+    return params.map((h) => ({
+        Name: h.ParamName ?? h.Name ?? '',
+        IsGlobalHidden: h.GlobalHidden ?? h.IsGlobalHidden ?? false,
+        IsRequired: h.IsRequired ?? false,
+        Input: h.Input ?? (h.ParamValue ? { Type: 0, Value: h.ParamValue } : null),
+    }));
+}
+
+/**
+ * 从 AgentPlugin 或 PluginInfo 中提取字段，组装 AgentPluginConfig 并设置 OAuthConsent=1。
+ *
+ * 兼容两种数据源：
+ * - DescribeAgentDetail 返回的 AgentPlugin：{ Config: { PluginId, HeaderParameterList, ... }, ... }
+ * - ListPlugins 返回的 PluginInfo：{ PluginId, Headers, Query, AuthType, ... }
+ */
+function buildPluginConfigFromAgent(p: Record<string, unknown>) {
+    const config = (p.Config ?? p) as Record<string, unknown>;
+    const pluginId = (config.PluginId ?? p.PluginId ?? '') as string;
+
+    // 优先取 AgentPlugin.Config 中的 HeaderParameterList/QueryParameterList（DescribeAgentDetail 数据源）
+    // 若不存在则从 PluginInfo 的 Headers/Query 转换（ListPlugins 数据源）
+    let headerList = config.HeaderParameterList as Record<string, unknown>[] | undefined;
+    if (!headerList || !Array.isArray(headerList) || headerList.length === 0) {
+        const rawHeaders = (p.Headers ?? p.headers) as Record<string, unknown>[] | undefined;
+        headerList = rawHeaders && Array.isArray(rawHeaders) ? convertPluginParams(rawHeaders) : [];
+    }
+
+    let queryList = config.QueryParameterList as Record<string, unknown>[] | undefined;
+    if (!queryList || !Array.isArray(queryList) || queryList.length === 0) {
+        const rawQuery = (p.Query ?? p.query) as Record<string, unknown>[] | undefined;
+        queryList = rawQuery && Array.isArray(rawQuery) ? convertPluginParams(rawQuery) : [];
+    }
+
+    return {
+        PluginId: pluginId,
+        HeaderParameterList: headerList,
+        QueryParameterList: queryList,
+        EnableCamRoleAuth: config.EnableCamRoleAuth ?? p.EnableCamRoleAuth ?? false,
+        OAuthConsent: 1, // 强制设为使用者授权
+        AuthType: config.AuthType ?? p.AuthType ?? 0,
+    };
+}
+
+/** 切换启用状态：直接通过 ModifyAgent 更新 plugin_list */
 async function onToggleEnabled(item: ConnectorItem, val: boolean) {
     if (togglingId.value) return;
     const agentId = await getAgentIdByAppId(props.applicationId);
@@ -357,50 +312,42 @@ async function onToggleEnabled(item: ConnectorItem, val: boolean) {
     }
     togglingId.value = item.pluginId;
     try {
+        // 获取当前 Agent 配置中的 plugin_list
+        const detail = await getAgentDetailByAppId(props.applicationId);
+        const currentPlugins = detail?.plugins || [];
+
+        let pluginList;
         if (val) {
-            // 开启：BindAgentTool（连接器仅 plugin 维度）
-            await bindAgentTool({
-                applicationId: props.applicationId,
-                appId: props.applicationId,
-                agentId,
-                pluginId: item.pluginId,
-                toolSource: 0,
-                plugin: buildPluginConfig(item.raw),
-            });
-            MessagePlugin.success('已开启');
+            // 开启：在现有 plugin_list 基础上追加当前 item（避免重复）
+            const existingList = currentPlugins
+                .filter((p) => extractPluginId(p) !== item.pluginId)
+                .map(buildPluginConfigFromAgent);
+            // 从 item.raw（DescribeAgentDetail 返回的 AgentPlugin）中回填 Config 字段
+            existingList.push(buildPluginConfigFromAgent(item.raw));
+            pluginList = existingList;
         } else {
-            // 关闭：UnbindAgentTool（连接器整体卸载，tool_id 省略）
-            await unbindAgentTool({
-                applicationId: props.applicationId,
-                appId: props.applicationId,
-                agentId,
-                pluginId: item.pluginId,
-                toolId: '',
-            });
-            MessagePlugin.success('已关闭');
+            // 关闭：从 plugin_list 中删除对应 item
+            pluginList = currentPlugins
+                .filter((p) => extractPluginId(p) !== item.pluginId)
+                .map(buildPluginConfigFromAgent);
         }
+
+        await modifyAgent(
+            props.applicationId,
+            agentId,
+            { PluginList: pluginList },
+            ['plugin_list'],
+        );
+
+        MessagePlugin.success(val ? '已开启' : '已关闭');
         // 刷新已启用列表，清除缓存确保拿到最新数据
-        await fetchInstalled(true);
-        // emit('change');
+        await fetchInstalled();
     } catch (e) {
         console.error('[ConnectorDialog] toggle error:', e);
         MessagePlugin.error(val ? '开启失败' : '关闭失败');
     } finally {
         togglingId.value = '';
     }
-}
-
-const showConnect = ref(false);
-const connectingConnector = ref<Record<string, unknown> | null>(null);
-
-function onConnect(item: ConnectorItem) {
-    connectingConnector.value = item.raw;
-    showConnect.value = true;
-}
-
-async function onConnected() {
-    await fetchInstalled(true);
-    emit('change');
 }
 
 watch(() => props.modelValue, (val) => {
@@ -435,9 +382,5 @@ watch(() => props.modelValue, (val) => {
 .connector-item__title { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
 .connector-item__name { font-size: 15px; font-weight: 500; color: var(--td-text-color-primary); line-height: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 360px; }
 .connector-item__desc { font-size: 13px; color: var(--td-text-color-placeholder); line-height: 20px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.connector-item__status { display: inline-flex; align-items: center; gap: 4px; padding: 0 6px; height: 20px; font-size: 12px; border-radius: 10px; }
-.connector-item__status.is-success { color: var(--td-success-color, #00a870); background: rgba(0, 168, 112, 0.08); }
-.connector-item__status.is-warning { color: var(--td-warning-color, #ed7b2f); background: rgba(237, 123, 47, 0.08); }
-.connector-item__status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .connector-item__actions { flex-shrink: 0; display: flex; align-items: center; gap: 12px; }
 </style>

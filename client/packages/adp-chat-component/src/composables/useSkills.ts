@@ -36,27 +36,26 @@ export interface UseSkillsOptions {
     };
 }
 
-/** 兼容两种字段命名，取 skill_id */
 function getSkillId(s: AgentSkillInfo): string {
-    return (s.skill_id || s.SkillId || '') as string;
+    return s.SkillId ?? '';
 }
 
-/** 中文展示名：优先 display_name，缺失时回退技术名 / id */
+/** 中文展示名：优先 DisplayName，缺失时回退 Name / SkillId */
 function getSkillDisplayName(s: AgentSkillInfo): string {
-    return (s.skill_display_name || s.SkillDisplayName || s.skill_name || s.SkillName || getSkillId(s) || '') as string;
+    return s.DisplayName || s.Name || getSkillId(s) || '';
 }
 
 /** 技术名（英文 name）：用于发送给大模型的 @skill:name 序列化 */
 function getSkillTechnicalName(s: AgentSkillInfo): string {
-    return (s.skill_name || s.SkillName || s.skill_display_name || s.SkillDisplayName || getSkillId(s) || '') as string;
+    return s.Name || s.DisplayName || getSkillId(s) || '';
 }
 
 function getSkillIconUrl(s: AgentSkillInfo): string {
-    return (s.icon_url || s.IconUrl || '') as string;
+    return s.IconUrl ?? '';
 }
 
 function getSkillType(s: AgentSkillInfo): number {
-    return (s.skill_type ?? s.SkillType ?? 0) as number;
+    return s.SourceType ?? 0;
 }
 
 export function normalizeSkill(item: AgentSkillInfo): NormalizedSkill {
@@ -68,7 +67,7 @@ export function normalizeSkill(item: AgentSkillInfo): NormalizedSkill {
         iconUrl: getSkillIconUrl(item),
         skillType: getSkillType(item),
         isPreset: getSkillType(item) === AgentSkillType.HUB_PRESET,
-        notDeleteProtected: !!(item.is_delete_protected || item.IsDeleteProtected),
+        notDeleteProtected: !!item.IsDeleteProtected,
     };
 }
 
@@ -76,12 +75,12 @@ export function normalizeManageItem(item: AgentSkillInfo): ManageSkillItem {
     return {
         id: getSkillId(item),
         name: getSkillDisplayName(item),
-        desc: (item.skill_display_desc || item.SkillDisplayDescription || item.SkillDisplayDesc || item.skill_display_description || '') as string,
+        desc: item.DisplayDescription ?? '',
         icon: getSkillIconUrl(item),
-        version: (item.current_version || item.CurrentVersion || '') as string,
-        category: (item.category_name || item.CategoryName || '') as string,
-        billingType: (item.billing_type || item.BillingType) as number,
-        notDeleteProtected: !!(item.is_delete_protected || item.IsDeleteProtected),
+        version: item.CurrentVersion ?? '',
+        category: item.CategoryName ?? '',
+        billingType: item.BillingType as number,
+        notDeleteProtected: !!item.IsDeleteProtected,
         skillType: getSkillType(item),
     };
 }

@@ -212,7 +212,7 @@ async function syncSelectedModelFromAgent(applicationId: string) {
     const agentModel = detail.model;
     // 在已加载的模型列表中查找对应项
     const allOptions = effectiveOptions.value;
-    const matched = allOptions.find((opt) => opt.value === agentModel.ModelName);
+    const matched = allOptions.find((opt) => opt.value === agentModel.ModelId);
     if (matched) {
         // 使用列表中完整的 ModelOption（含 icon / tags 等完整信息）
         innerSelected.value = matched;
@@ -221,9 +221,9 @@ async function syncSelectedModelFromAgent(applicationId: string) {
     } else {
         // 列表中未找到：构造一个基本 ModelOption 作为选中态
         const fallback: ModelOption = {
-            value: agentModel.ModelName,
-            name: agentModel.ModelName,
-            text: agentModel.ModelAliasName || agentModel.ModelName,
+            value: agentModel.ModelId,
+            name: agentModel.ModelId,
+            text: agentModel.Alias || agentModel.ModelId,
         };
         innerSelected.value = fallback;
         emit('update:selected', fallback);
