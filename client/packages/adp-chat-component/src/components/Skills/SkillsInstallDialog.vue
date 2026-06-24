@@ -607,6 +607,8 @@ function onClose() {
 </script>
 
 <style scoped>
+@import url('../../styles/dialog-common.css');
+
 .skills-install {
     display: flex;
     flex-direction: column;
@@ -623,128 +625,30 @@ function onClose() {
 .skills-install__filter-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--td-comp-paddingTB-m);
 }
 .skills-install__filter-row--simple {
     flex-wrap: wrap;
 }
-.skills-install__categories-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex: 1;
-    min-width: 0;
-}
 .skills-install__filter-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--td-size-4);
     flex-shrink: 0;
-}
-.skills-install__categories {
-    display: flex;
-    gap: 8px;
-    flex: 1;
-    min-width: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-.skills-install__categories::-webkit-scrollbar {
-    display: none;
-}
-.skills-install__category {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    height: 32px;
-    padding: 0 12px;
-    border-radius: 3px;
-    font-size: 13px;
-    color: var(--td-text-color-secondary);
-    background: var(--td-bg-color-secondarycontainer);
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-}
-.skills-install__category:hover {
-    color: var(--td-brand-color);
-    background: var(--td-brand-color-light);
-}
-.skills-install__category.is-active {
-    color: var(--td-brand-color);
-    background: var(--td-brand-color-light);
-}
-
-/* 滚动箭头按钮 */
-.skills-install__scroll-btns {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-    overflow: hidden;
-}
-.skills-install__scroll-btn {
-    flex-shrink: 0;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    color: var(--td-text-color-placeholder);
-    transition: color 0.2s;
-}
-.skills-install__scroll-btn:hover {
-    color: var(--td-text-color-primary);
-}
-.skills-install__scroll-btn.is-disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-}
-.skills-install__filter-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
     flex-wrap: wrap;
 }
-.skills-install__search {
-    width: 160px;
-    flex-shrink: 0;
-}
 .skills-install__list {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
     max-height: 380px;
 }
-.skills-install__list::-webkit-scrollbar {
-    width: 4px;
-}
-.skills-install__list::-webkit-scrollbar-thumb {
-    border-radius: 2px;
-    background: rgba(17, 32, 70, 0.13);
-}
-.skills-install__loading {
-    display: flex;
-    justify-content: center;
-    padding: 48px 0;
-}
 .skills-install__loading-more {
-    padding: 16px 0;
+    padding: var(--td-size-6) 0;
 }
 .skills-install__items {
     display: flex;
     flex-direction: column;
 }
-.skills-install__empty {
-    text-align: center;
-    padding: 48px 0;
-    color: var(--td-text-color-placeholder);
-    font-size: 14px;
-}
 
-/* Skill 卡片 */
+/* Skill 卡片特有 */
 .skills-install__card {
     border-bottom: 1px solid rgba(18, 42, 79, 0.08);
     transition: background 0.2s;
@@ -752,20 +656,14 @@ function onClose() {
 .skills-install__card:last-child {
     border-bottom: none;
 }
-.skill-card__body {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px;
-}
 .skill-card__icon,
 .skill-card__icon-fallback {
     width: 60px;
     height: 60px;
-    border-radius: 6px;
+    border-radius: var(--td-radius-medium);
     flex-shrink: 0;
     object-fit: cover;
-    background: var(--td-brand-color-light, #f1f6ff);
+    background: var(--td-brand-color-light);
 }
 .skill-card__icon-fallback {
     display: inline-flex;
@@ -773,87 +671,16 @@ function onClose() {
     justify-content: center;
     color: var(--td-text-color-secondary);
 }
-.skill-card__info {
-    flex: 1;
-    min-width: 0;
-}
-.skill-card__header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-.skill-card__name {
-    font-size: 16px;
-    font-weight: 500;
-    color: var(--td-text-color-primary);
-    line-height: 24px;
-}
-.skill-card__tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-    height: 20px;
-    padding: 0 6px;
-    border-radius: 3px;
-    font-size: 12px;
-    line-height: 1;
-    white-space: nowrap;
-    border: 1px solid transparent;
-}
-.skill-card__tag--green {
-    color: var(--td-success-color, #00A870);
-    background: var(--td-success-color-light, #E8F8F2);
-    border-color: var(--td-success-color-light-active, #C5EBD9);
-}
-.skill-card__tag--orange {
-    color: var(--td-warning-color, #ED7B2F);
-    background: var(--td-warning-color-light, #FFF3E8);
-    border-color: var(--td-warning-color-light-active, #FFD9B7);
-}
-.skill-card__tag--blue {
-    color: var(--td-brand-color, #0052D9);
-    background: var(--td-brand-color-light, #F1F6FF);
-    border-color: var(--td-brand-color-light-active, #D9E5FF);
-}
-.skill-card__tag--purple {
-    color: #6649D9;
-    background: #F1ECFF;
-    border-color: #DCD0FF;
-}
 .skill-card__tag-suffix {
-    color: var(--td-text-color-placeholder, rgba(1, 11, 50, 0.41));
+    color: var(--td-text-color-placeholder);
     cursor: pointer;
-    margin-left: 2px;
+    margin-left: var(--td-size-1);
 }
 .skill-card__tag-suffix:hover {
     color: var(--td-brand-color);
 }
-.skill-card__desc {
-    font-size: 13px;
-    color: var(--td-text-color-placeholder, rgba(1, 11, 50, 0.41));
-    line-height: 20px;
-    margin-top: 8px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
-}
-.skill-card__meta {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 13px;
-    line-height: 20px;
-    margin-top: 8px;
-    color: var(--td-text-color-placeholder, rgba(1, 11, 50, 0.41));
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100%;
-}
 .skill-card__meta-divider {
-    margin: 0 2px;
+    margin: 0 var(--td-size-1);
 }
 .skill-card__author {
     cursor: pointer;
@@ -861,17 +688,5 @@ function onClose() {
 }
 .skill-card__author:hover {
     color: var(--td-brand-color);
-}
-.skill-card__actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-}
-.skill-card__favorite {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px;
-    border-radius: 4px;
 }
 </style>

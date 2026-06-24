@@ -1,0 +1,254 @@
+/* ============================================================
+ * Skills / Plugin dialog 公共样式
+ * 两个组件同步维护，修改需两边验证
+ * ============================================================ */
+
+/* ── 分类标签区域 ── */
+.skills-install__categories-wrapper,
+.plugin-dialog__categories-wrapper {
+    display: flex;
+    align-items: center;
+    gap: var(--td-size-2);
+    min-width: 0;
+}
+.skills-install__categories-wrapper {
+    flex: 1;
+}
+
+.skills-install__categories,
+.plugin-dialog__categories {
+    display: flex;
+    gap: var(--td-size-4);
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.skills-install__categories::-webkit-scrollbar,
+.plugin-dialog__categories::-webkit-scrollbar {
+    display: none;
+}
+
+.skills-install__category,
+.plugin-dialog__cat-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--td-comp-size-m);
+    padding: 0 var(--td-comp-paddingTB-m);
+    border-radius: var(--td-radius-default);
+    font-size: var(--td-font-size-body-small);
+    color: var(--td-text-color-secondary);
+    background: var(--td-bg-color-secondarycontainer);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.skills-install__category:hover,
+.plugin-dialog__cat-tag:hover {
+    color: var(--td-brand-color);
+    background: var(--td-brand-color-light);
+}
+.skills-install__category.is-active,
+.plugin-dialog__cat-tag.is-active {
+    color: var(--td-brand-color);
+    background: var(--td-brand-color-light);
+}
+
+/* ── 滚动箭头按钮 ── */
+.skills-install__scroll-btns,
+.plugin-dialog__scroll-btns {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+.skills-install__scroll-btn,
+.plugin-dialog__scroll-btn {
+    flex-shrink: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    color: var(--td-text-color-placeholder);
+    transition: color 0.2s;
+}
+.skills-install__scroll-btn:hover,
+.plugin-dialog__scroll-btn:hover {
+    color: var(--td-text-color-primary);
+}
+.skills-install__scroll-btn.is-disabled,
+.plugin-dialog__scroll-btn.is-disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* ── 搜索框 ── */
+.skills-install__search,
+.plugin-dialog__search {
+    width: 160px;
+    flex-shrink: 0;
+}
+
+/* ── 列表区域 ── */
+.skills-install__list,
+.plugin-dialog__list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+.skills-install__list::-webkit-scrollbar,
+.plugin-dialog__list::-webkit-scrollbar {
+    width: 4px;
+}
+.skills-install__list::-webkit-scrollbar-thumb,
+.plugin-dialog__list::-webkit-scrollbar-thumb {
+    border-radius: 2px;
+    background: rgba(17, 32, 70, 0.13);
+}
+
+/* ── 加载 / 空状态 ── */
+.skills-install__loading,
+.plugin-dialog__loading {
+    display: flex;
+    justify-content: center;
+    padding: var(--td-size-13) 0;
+}
+.skills-install__empty,
+.plugin-dialog__empty {
+    text-align: center;
+    padding: var(--td-size-13) 0;
+    color: var(--td-text-color-placeholder);
+    font-size: var(--td-font-size-body-medium);
+}
+
+/* ── 卡片列表项基础 ── */
+.skill-card__body,
+.plugin-card__main {
+    display: flex;
+    align-items: center;
+    gap: var(--td-size-6);
+    padding: var(--td-size-6);
+}
+.skill-card__icon,
+.skill-card__icon-fallback,
+.plugin-card__icon,
+.plugin-card__icon-fb {
+    flex-shrink: 0;
+    object-fit: cover;
+}
+.skill-card__icon,
+.skill-card__icon-fallback {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--td-radius-medium);
+}
+.plugin-card__icon,
+.plugin-card__icon-fb {
+    width: var(--td-comp-size-xl);
+    height: var(--td-comp-size-xl);
+    border-radius: var(--td-radius-large);
+    border: 1px solid var(--td-component-border);
+    box-sizing: border-box;
+}
+.plugin-card__icon-fb {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--td-text-color-secondary);
+    background: var(--td-bg-color-secondarycontainer);
+}
+.skill-card__icon-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--td-text-color-secondary);
+    background: var(--td-brand-color-light);
+}
+
+/* ── 卡片信息区 ── */
+.skill-card__info,
+.plugin-card__info {
+    flex: 1;
+    min-width: 0;
+}
+.skill-card__header,
+.plugin-card__title-row {
+    display: flex;
+    align-items: center;
+    gap: var(--td-size-4);
+    flex-wrap: wrap;
+}
+.skill-card__name,
+.plugin-card__name {
+    font-weight: 500;
+    color: var(--td-text-color-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.skill-card__name {
+    font-size: var(--td-font-size-body-large);
+    line-height: var(--td-size-8);
+}
+.plugin-card__name {
+    font-size: var(--td-font-size-body-medium);
+    max-width: 300px;
+}
+.skill-card__desc,
+.plugin-card__desc {
+    font-size: var(--td-font-size-body-small);
+    color: var(--td-text-color-placeholder);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.skill-card__desc {
+    line-height: var(--td-size-7);
+    margin-top: var(--td-size-4);
+}
+.plugin-card__desc {
+    margin-right: var(--td-comp-paddingTB-m);
+}
+
+/* ── 卡片 meta / footer ── */
+.skill-card__meta {
+    display: flex;
+    align-items: center;
+    gap: var(--td-size-2);
+    font-size: var(--td-font-size-body-small);
+    line-height: var(--td-size-7);
+    margin-top: var(--td-size-4);
+    color: var(--td-text-color-placeholder);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.plugin-card__footer {
+    display: flex;
+    align-items: center;
+    gap: var(--td-size-3);
+    width: 100%;
+    font-size: var(--td-font-size-body-small);
+    color: var(--td-text-color-placeholder);
+    flex-wrap: wrap;
+}
+
+/* ── 卡片操作区 ── */
+.skill-card__actions,
+.plugin-card__tool-action {
+    display: flex;
+    align-items: center;
+    gap: var(--td-size-2);
+    flex-shrink: 0;
+}
+.skill-card__favorite {
+    display: inline-flex;
+    align-items: center;
+    padding: var(--td-size-2);
+    border-radius: var(--td-size-2);
+}

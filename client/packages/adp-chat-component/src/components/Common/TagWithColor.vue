@@ -30,16 +30,16 @@ withDefaults(defineProps<Props>(), {
 .tag-with-color {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    height: 20px;
-    padding: 0 6px;
-    border-radius: 3px;
-    font-size: 12px;
+    gap: var(--td-size-1);
+    height: var(--td-size-7);
+    padding: 0 var(--td-size-3);
+    border-radius: var(--td-radius-default);
+    font-size: var(--td-font-size-body-small);
     line-height: 1;
     white-space: nowrap;
     border: 1px solid transparent;
 }
-/* 紫色 - 官方收费 */
+/* 紫色 - 官方收费（无 TDesign 变量，保留硬编码） */
 .tag-with-color--purple {
     color: #6649D9;
     background: #F1ECFF;
@@ -47,21 +47,21 @@ withDefaults(defineProps<Props>(), {
 }
 /* 绿色 - 安全 */
 .tag-with-color--green {
-    color: #00A870;
-    background: #E8F8F2;
-    border-color: #C5EBD9;
+    color: var(--td-success-color);
+    background: var(--td-success-color-light);
+    border-color: var(--td-success-color-2);
 }
 /* 橙色 - 疑似风险 / 公测 */
 .tag-with-color--orange {
-    color: #ED7B2F;
-    background: #FFF3E8;
-    border-color: #FFD9B7;
+    color: var(--td-warning-color);
+    background: var(--td-warning-color-light);
+    border-color: var(--td-warning-color-2);
 }
 /* 蓝色 - 企业共享 */
 .tag-with-color--blue {
-    color: #0052D9;
-    background: #F1F6FF;
-    border-color: #D9E5FF;
+    color: var(--td-brand-color);
+    background: var(--td-brand-color-light);
+    border-color: var(--td-brand-color-2);
 }
 /* 灰色 - 通用标签（类型/分类等） */
 .tag-with-color--gray {
