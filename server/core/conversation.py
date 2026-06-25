@@ -35,6 +35,17 @@ class CoreConversation:
         return conversation.ApplicationId
 
     @staticmethod
+    async def exists(db: AsyncSession, account_id: str, conversation_id: str) -> bool:
+        """判断指定账号下是否存在某个 conversation_id 的会话记录（用于跨设备/重置场景下补写本地记录）。"""
+        if not account_id or not conversation_id:
+            return False
+        row = (await db.execute(select(ChatConversation.Id).where(
+            ChatConversation.AccountId == account_id,
+            ChatConversation.Id == conversation_id,
+        ).limit(1))).first()
+        return row is not None
+
+    @staticmethod
     async def create(
         db: AsyncSession,
         account_id: str,
