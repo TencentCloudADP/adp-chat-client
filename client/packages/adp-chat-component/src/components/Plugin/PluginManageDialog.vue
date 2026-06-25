@@ -150,9 +150,12 @@ async function fetchInstalledTools() {
             const toolId = (cfg.tool_id || cfg.ToolId || '') as string;
             const plugin = pluginMap.get(pluginId) || {};
 
-            const rawName = (t.tool_name || t.ToolName || t.name || t.Name || cfg.description || '') as string;
-            const slashIdx = rawName.lastIndexOf('/');
-            const displayName = slashIdx > 0 ? rawName.substring(0, slashIdx) : rawName;
+            // 插件中文名（v3 proto AgentPlugin.Name）
+            const pluginName = (plugin.Name || plugin.name || plugin.PluginName || plugin.plugin_name || '') as string;
+            // 工具名（v3 proto AgentTool.Name，通常为英文技术名）
+            const toolName = (t.Name || t.name || t.tool_name || t.ToolName || '') as string;
+            // 拼接显示名：插件中文名 / 工具英文名（对齐 webim _buildToolManageList）
+            const displayName = pluginName && toolName ? `${pluginName}/${toolName}` : (toolName || toolId);
 
             const createType = Number(plugin.CreateType || plugin.create_type || 0);
             let createTypeLabel = '';
@@ -166,8 +169,8 @@ async function fetchInstalledTools() {
             return {
                 toolId,
                 pluginId,
-                pluginName: (plugin.Name || plugin.PluginName || plugin.plugin_name || '') as string,
-                displayName: displayName || toolId,
+                pluginName,
+                displayName,
                 desc: (cfg.description || cfg.Description || '') as string,
                 iconUrl: (t.IconUrl || t.icon_url || plugin.IconUrl || plugin.icon_url || '') as string,
                 isInner: !!(t.IsInner || t.is_inner),

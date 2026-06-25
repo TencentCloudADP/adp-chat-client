@@ -239,7 +239,7 @@ function getPluginId(t: Record<string, unknown>): string {
 function parseToolRaw(t: Record<string, unknown>): { displayName: string; name: string } {
     const cfg = (t.Config || t.config || {}) as Record<string, unknown>;
     const raw = String(
-        t.tool_name || t.ToolName || t.name || t.Name || cfg.description || cfg.Description || '',
+        t.Name || t.name || t.tool_name || t.ToolName || cfg.description || cfg.Description || cfg.Description || '',
     );
     const idx = raw.lastIndexOf('/');
     if (idx > -1) {
@@ -248,8 +248,19 @@ function parseToolRaw(t: Record<string, unknown>): { displayName: string; name: 
     return { displayName: raw, name: raw };
 }
 
-/** 所属插件名称，用于无中文别名时拼接展示 */
+/** 所属插件名称（从 plugin_name 或 PluginList 交叉获取） */
 function toolPluginName(t: Record<string, unknown>): string {
+    const cfg = (t.Config || t.config || {}) as Record<string, unknown>;
+    const pid = (cfg.PluginId || cfg.plugin_id || '') as string;
+    if (pid) {
+        const plugin = installedPlugins.value.find(
+            (p: any) => {
+                const pc = (p.Config || p.config || {});
+                return (pc.PluginId || pc.plugin_id || p.PluginId || p.plugin_id || '') === pid;
+            }
+        );
+        if (plugin) return ((plugin as any).Name || (plugin as any).name || '') as string;
+    }
     return String(t.plugin_name || t.PluginName || t.PluginDisplayName || t.plugin_display_name || '');
 }
 
@@ -283,10 +294,11 @@ const mentionConnectors = computed<NormalizedSkill[]>(() => {
         .map((p) => {
             const cfg = (p.Config || p.config || {}) as Record<string, unknown>;
             const pid = (cfg.PluginId || cfg.plugin_id || p.PluginId || p.plugin_id || '') as string;
+            const pluginName = (p.Name || p.name || p.Description || p.description || '') as string;
             return {
                 id: pid,
                 name: (p.Name || p.name || '') as string,
-                displayName: (p.Name || p.name || '') as string,
+                displayName: pluginName,
                 iconUrl: (p.IconUrl || p.icon_url || p.Icon || p.icon || '') as string,
             };
         });
