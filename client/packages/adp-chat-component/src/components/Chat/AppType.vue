@@ -4,9 +4,10 @@
  * 功能：展示当前智能体的欢迎语和推荐问题
  */
 import { ref, toRefs } from 'vue';
-import { Space as TSpace, CheckTag as TCheckTag, Avatar as TAvatar } from 'tdesign-vue-next';
+import { Space as TSpace, CheckTag as TCheckTag } from 'tdesign-vue-next';
+import AnimatedIcon from '../AnimatedIcon/index.vue';
 
-// TSpace, TCheckTag, TAvatar 已导入，模板中使用对应组件
+// TSpace, TCheckTag 已导入，AnimatedIcon 为动效图标组件
 import type { MobileProps } from '../../model/type';
 import { mobilePropsDefaults } from '../../model/type';
 interface Props extends MobileProps {
@@ -64,19 +65,15 @@ const handleChooseQuestion = (value: string) => {
 
 <template>
   <div class="greeting-panel" :class="{ isMobile: isMobile }">
-    <TAvatar 
-      hideOnLoadFailed 
-      v-if="currentApplicationAvatar && !isOverlay" 
-      class="greet-avatar" 
-      size="64px" 
-      shape="round" 
-      :image="currentApplicationAvatar"
-      :imageProps="{
-        lazy: true,
-        loading: ''
-      }"
-    ></TAvatar>
-    <span v-if="currentApplicationName && !isOverlay" class="greet-name">{{ currentApplicationName }}</span>
+    <div class="welcome-header-content" v-if="!isOverlay">
+      <div class="welcome-title-row">
+        <AnimatedIcon class="welcome-robot-icon" :width="46" :height="36" />
+        <div class="welcome-title">描述需求，开启智能工作方式</div>
+      </div>
+      <div class="welcome-description">
+        一站式智能工作台，连接企业知识库与技能工具，替你从规划到执行完成每一项任务。
+      </div>
+    </div>
     <div class="greet-desc" v-if="currentApplicationGreeting">
         {{ currentApplicationGreeting }}
     </div>
@@ -100,12 +97,6 @@ const handleChooseQuestion = (value: string) => {
   justify-content: center;
   text-align: center;
 }
-.greet-name{
-  color: var(--td-text-color-primary);
-  font-size: var(--td-font-size-title-large);
-  font-weight: 500;
-  margin-top: var(--td-comp-margin-l);
-}
 .greeting-panel {
   display: flex;
   height: 100%;
@@ -113,8 +104,35 @@ const handleChooseQuestion = (value: string) => {
   align-items: center;
   justify-content: center;
 }
-.greet-avatar{
-  border-radius: var(--td-radius-large);
+.welcome-header-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 48px;
+}
+.welcome-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.welcome-robot-icon {
+  width: 46px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.welcome-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--td-text-color-primary, rgba(0, 0, 0, 0.9));
+  line-height: 36px;
+}
+.welcome-description {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--td-text-color-secondary, rgba(3, 10, 38, 0.65));
+  text-align: center;
+  max-width: 500px;
 }
 .isMobile .greet-desc{
   background-color: transparent;
