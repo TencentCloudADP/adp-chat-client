@@ -3,11 +3,9 @@
  * 管理已安装 Skills 列表的拉取、刷新、增删
  */
 import { ref, computed, watch, type MaybeRefOrGetter, toValue } from 'vue';
-import { MessagePlugin } from 'tdesign-vue-next';
 import {
     fetchSkillCategories,
     fetchSkillSummaryList,
-    fetchSkillDetail,
 } from '../service/skillsApi';
 import { useAgentStore } from './useAgentStore';
 import type {
@@ -32,7 +30,6 @@ export interface UseSkillsOptions {
         globalAgentApi?: string;
         skillCategoriesApi?: string;
         skillSummaryListApi?: string;
-        skillDetailApi?: string;
     };
 }
 
@@ -97,7 +94,6 @@ export function useSkills(options: UseSkillsOptions = {}) {
         agentIdMap,
         agentDetailMap,
         refreshAgentCache,
-        modifySkillList,
     } = useAgentStore();
 
     /** 已安装 Skills（从 store 缓存派生，全局共享） */
@@ -221,58 +217,6 @@ export function useSkills(options: UseSkillsOptions = {}) {
         }
     }
 
-    async function getDetail(skillId: string) {
-        if (!applicationId.value) throw new Error('applicationId is required');
-        return fetchSkillDetail(
-            { applicationId: applicationId.value, skill_id: skillId, space_id: spaceId.value },
-            apiPaths.skillDetailApi
-        );
-    }
-
-    async function addSkill(skillConfig: {
-        source: number;
-        skill_id?: string;
-        version_id?: string;
-        name?: string;
-        file_url?: string;
-    }) {
-        if (!applicationId.value) throw new Error('applicationId is required');
-        if (!agentId.value) throw new Error('agentId is required');
-        try {
-            const existingSkills = installedSkills.value
-                .filter((s) => !!getSkillId(s))
-                .map((s) => ({ skillId: getSkillId(s) }));
-            const mergedSkills = [
-                ...existingSkills,
-                { skillId: skillConfig.skill_id || '' },
-            ];
-            await modifySkillList(applicationId.value, mergedSkills.filter((s) => s.skillId));
-            MessagePlugin.success('添加成功');
-        } catch (e) {
-            console.error('[useSkills] addSkill error:', e);
-            MessagePlugin.error('添加失败');
-            throw e;
-        }
-    }
-
-    async function removeSkill(skillId: string) {
-        if (!applicationId.value) throw new Error('applicationId is required');
-        if (!agentId.value) throw new Error('agentId is required');
-        try {
-            const remainingSkills = installedSkills.value
-                .filter((s) => getSkillId(s) !== skillId)
-                .filter((s) => !!getSkillId(s))
-                .map((s) => ({ skillId: getSkillId(s) }));
-            await modifySkillList(applicationId.value, remainingSkills);
-            MessagePlugin.success('已移除');
-        } catch (e) {
-            console.error('[useSkills] removeSkill error:', e);
-            MessagePlugin.error('移除失败');
-            await refreshSkills();
-            throw e;
-        }
-    }
-
     return {
         applicationId,
         spaceId,
@@ -289,8 +233,5 @@ export function useSkills(options: UseSkillsOptions = {}) {
         refreshSkills,
         getCategories,
         getSummaryList,
-        getDetail,
-        addSkill,
-        removeSkill,
     };
 }

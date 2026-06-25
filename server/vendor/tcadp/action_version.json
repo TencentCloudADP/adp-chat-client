@@ -56,6 +56,10 @@
         "payload.AppKey": "{{APP_KEY}}",
         "payload.UserId": "{{ACCOUNT_ID}}"
     },
+    "DescribeSkillCategoryList": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20"
+    },
     "BindAgentTool": {
         "service": "lke",
         "headers.X-TC-Version": "2025-11-12",

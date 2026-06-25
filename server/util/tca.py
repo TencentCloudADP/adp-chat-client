@@ -244,7 +244,11 @@ async def tc_request(
     payload = json.dumps(payload)
     headers, url = tc_request_prepare(config, action, payload, service, version)
     full_url = f'{url}/'
-    logging.info(f'[tc_request] POST {full_url} action={action} service={service} version={headers.get("X-TC-Version")} host={headers.get("Host")} payload={payload}')
+    logging.info(
+        '[tc_request] POST %s action=%s service=%s version=%s host=%s payload=%s',
+        full_url, action, service,
+        headers.get('X-TC-Version'), headers.get('Host'), payload,
+    )
     async with aiohttp.ClientSession() as session:
         async with session.post(full_url, headers=headers, data=payload) as resp:
             return await resp.json()

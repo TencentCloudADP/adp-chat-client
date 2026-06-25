@@ -12,12 +12,6 @@ export interface SkillsApiConfig {
     skillCategoriesApi?: string;
     /** Skill 摘要列表（技能广场） */
     skillSummaryListApi?: string;
-    /** Skill 详情 */
-    skillDetailApi?: string;
-    /** @deprecated 已改用 ModifyAgent 直接管理 skill_list */
-    createSkillApi?: string;
-    /** @deprecated 已改用 ModifyAgent 直接管理 skill_list */
-    deleteSkillApi?: string;
     /** 修改 Agent */
     modifyAgentApi?: string;
 }
@@ -27,9 +21,6 @@ export const defaultSkillsApiConfig: SkillsApiConfig = {
     globalAgentApi: '/adp/DescribeAgentDetail',
     skillCategoriesApi: '/adp/DescribeSkillCategoryList',
     skillSummaryListApi: '/adp/DescribeSkillSummaryList',
-    skillDetailApi: '/adp/DescribeSkillDetail',
-    createSkillApi: '/adp/CreateSkill',
-    deleteSkillApi: '/adp/DeleteSkill',
     modifyAgentApi: '/adp/ModifyAgent',
 };
 
@@ -227,59 +218,8 @@ export async function fetchSkillSummaryList(params: {
 }
 
 /**
- * 查询 Skill 详情
- */
-export async function fetchSkillDetail(params: {
-    applicationId: string;
-    skill_id: string;
-    space_id: string;
-}, apiPath?: string): Promise<{ skill_detail: Record<string, unknown> }> {
-    const data = await forwardRequest(
-        apiPath || defaultSkillsApiConfig.skillDetailApi!,
-        params.applicationId,
-        {
-            SkillId: params.skill_id,
-            SpaceId: params.space_id,
-        },
-    );
-    return { skill_detail: (data.skill_detail || data.SkillDetail || {}) as Record<string, unknown> };
-}
-
-/**
- * 安装 Skill（从 SkillHub，source=2）
- * @deprecated 已改用 modifyAgentSkillList 通过 ModifyAgent 统一管理 skill_list
- */
-export async function installSkill(params: {
-    applicationId: string;
-    space_id: string;
-    source: number;
-    skill_id?: string;
-    version_id?: string;
-    name?: string;
-    file_url?: string;
-}, apiPath?: string): Promise<{ skill_id: string; version_id: string }> {
-    const { applicationId, ...rest } = params;
-    const data = await forwardRequest(
-        apiPath || defaultSkillsApiConfig.createSkillApi!,
-        applicationId,
-        {
-            SpaceId: rest.space_id || '',
-            Source: rest.source,
-            SkillId: rest.skill_id || '',
-            VersionId: rest.version_id || '',
-            Name: rest.name || '',
-            FileUrl: rest.file_url || '',
-        },
-    );
-    return {
-        skill_id: (data.SkillId || data.skill_id || '') as string,
-        version_id: (data.VersionId || data.version_id || '') as string,
-    };
-}
-
-/**
  * 通过 ModifyAgent 更新 Agent 的 skill_list
- * 对应 v3 AgentSpec.skill_list，update_mask.paths = ["skill_list"]
+ * Skill 安装/卸载统一入口，update_mask.paths = ["skill_list"]
  */
 export async function modifyAgentSkillList(params: {
     applicationId: string;
@@ -305,23 +245,6 @@ export async function modifyAgentSkillList(params: {
     if (error && error.Code) {
         throw new Error((error.Message as string) || String(error.Code));
     }
-}
-
-/**
- * 卸载 Skill
- * @deprecated 已改用 modifyAgentSkillList 通过 ModifyAgent 统一管理 skill_list
- */
-export async function uninstallSkill(params: {
-    applicationId: string;
-    skill_id: string;
-    space_id: string;
-}, apiPath?: string): Promise<void> {
-    const { applicationId, ...rest } = params;
-    await forwardRequest(
-        apiPath || defaultSkillsApiConfig.deleteSkillApi!,
-        applicationId,
-        { SkillId: rest.skill_id, SpaceId: rest.space_id },
-    );
 }
 
 /** ModifyAgent 请求参数 */

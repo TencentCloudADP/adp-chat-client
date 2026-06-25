@@ -102,12 +102,6 @@ export interface SkillVersionInfo {
 }
 
 /** Skill 详情 */
-export interface SkillDetail {
-    skill_id: string;
-    skill_detail?: Record<string, unknown>;
-    versions?: SkillVersion[];
-}
-
 /** Skill 分类 */
 export interface SkillCategory {
     category_key: string;

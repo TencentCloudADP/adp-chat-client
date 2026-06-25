@@ -99,7 +99,6 @@ export type { ApiConfig, ApiDetailConfig } from './service/api'
 export type {
     AgentSkillInfo,
     SkillSummary,
-    SkillDetail,
     SkillCategory,
     NormalizedSkill,
     ManageSkillItem,
@@ -153,9 +152,6 @@ export {
     fetchGlobalAgent,
     fetchSkillCategories,
     fetchSkillSummaryList,
-    fetchSkillDetail,
-    installSkill,
-    uninstallSkill,
 } from './service/skillsApi'
 export type { SkillsApiConfig } from './service/skillsApi'
 
