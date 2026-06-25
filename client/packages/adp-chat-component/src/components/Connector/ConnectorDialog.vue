@@ -748,25 +748,87 @@ watch(() => props.modelValue, (val) => {
 </script>
 
 <style scoped>
-.connector-manage { display: flex; flex-direction: column; gap: 12px; height: 540px; overflow: hidden; }
-.connector-manage__filter-bar { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+@import url('../../styles/dialog-common.css');
+
+.connector-manage {
+    display: flex;
+    flex-direction: column;
+    gap: var(--td-comp-paddingTB-m);
+    height: 540px;
+    overflow: hidden;
+}
+.connector-manage__filter-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--td-comp-paddingTB-m);
+    flex-shrink: 0;
+}
 .connector-manage__search { width: 240px; }
-.connector-manage__loading { display: flex; align-items: center; justify-content: center; flex: 1; }
-.connector-manage__empty { display: flex; align-items: center; justify-content: center; flex: 1; color: var(--td-text-color-placeholder); font-size: 13px; }
-.connector-manage__list { flex: 1; overflow-y: auto; min-height: 0; display: flex; flex-direction: column; padding-right: 8px; }
-.connector-manage__list::-webkit-scrollbar { width: 4px; }
-.connector-manage__list::-webkit-scrollbar-thumb { border-radius: 2px; background: rgba(17, 32, 70, 0.13); }
 .connector-manage__pagination { display: flex; justify-content: center; flex-shrink: 0; }
 
-.connector-item { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid rgba(0, 44, 85, 0.08); transition: background 0.15s; }
+/* 连接器列表项 */
+.connector-item {
+    display: flex;
+    align-items: center;
+    gap: var(--td-size-6);
+    padding: var(--td-size-5) 0;
+    border-bottom: 1px solid rgba(18, 42, 79, 0.08);
+    transition: background 0.15s;
+}
 .connector-item:last-child { border-bottom: none; }
 .connector-item:hover { background: var(--td-bg-color-container-hover); }
-.connector-item__icon { flex-shrink: 0; width: 40px; }
-.connector-item__icon img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
-.connector-item__icon-fb { width: 40px; height: 40px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: var(--td-bg-color-secondarycontainer); color: var(--td-text-color-placeholder); border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
+.connector-item__icon { flex-shrink: 0; width: var(--td-comp-size-xl); }
+.connector-item__icon img {
+    width: var(--td-comp-size-xl);
+    height: var(--td-comp-size-xl);
+    border-radius: var(--td-radius-large);
+    object-fit: cover;
+    border: 1px solid var(--td-component-border);
+    box-sizing: border-box;
+}
+.connector-item__icon-fb {
+    width: var(--td-comp-size-xl);
+    height: var(--td-comp-size-xl);
+    border-radius: var(--td-radius-large);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--td-bg-color-secondarycontainer);
+    color: var(--td-text-color-placeholder);
+    border: 1px solid var(--td-component-border);
+    box-sizing: border-box;
+}
 .connector-item__info { flex: 1; min-width: 0; overflow: hidden; }
-.connector-item__title { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
-.connector-item__name { font-size: 15px; font-weight: 500; color: var(--td-text-color-primary); line-height: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 360px; }
-.connector-item__desc { font-size: 13px; color: var(--td-text-color-placeholder); line-height: 20px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.connector-item__actions { flex-shrink: 0; display: flex; align-items: center; gap: 12px; }
+.connector-item__title {
+    display: flex;
+    align-items: center;
+    gap: var(--td-size-3);
+    flex-wrap: nowrap;
+    overflow: hidden;
+}
+.connector-item__name {
+    font-size: var(--td-font-size-body-large);
+    font-weight: 500;
+    color: var(--td-text-color-primary);
+    line-height: var(--td-size-8);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 360px;
+}
+.connector-item__desc {
+    font-size: var(--td-font-size-body-small);
+    color: var(--td-text-color-placeholder);
+    line-height: var(--td-size-7);
+    margin-top: var(--td-size-2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.connector-item__actions {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--td-comp-paddingTB-m);
+}
 </style>

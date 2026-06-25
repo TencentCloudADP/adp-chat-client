@@ -96,24 +96,29 @@
 
 /* ── 列表区域 ── */
 .skills-install__list,
-.plugin-dialog__list {
+.plugin-dialog__list,
+.connector-manage__list {
     flex: 1;
     overflow-y: auto;
     min-height: 100px;
+    padding-right: var(--td-size-4);
 }
 .skills-install__list::-webkit-scrollbar,
-.plugin-dialog__list::-webkit-scrollbar {
+.plugin-dialog__list::-webkit-scrollbar,
+.connector-manage__list::-webkit-scrollbar {
     width: 4px;
 }
 .skills-install__list::-webkit-scrollbar-thumb,
-.plugin-dialog__list::-webkit-scrollbar-thumb {
+.plugin-dialog__list::-webkit-scrollbar-thumb,
+.connector-manage__list::-webkit-scrollbar-thumb {
     border-radius: 2px;
     background: rgba(17, 32, 70, 0.13);
 }
 
 /* ── 加载 / 空状态 ── */
 .skills-install__loading,
-.plugin-dialog__loading {
+.plugin-dialog__loading,
+.connector-manage__loading {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -121,7 +126,8 @@
     min-height: 120px;
 }
 .skills-install__empty,
-.plugin-dialog__empty {
+.plugin-dialog__empty,
+.connector-manage__empty {
     text-align: center;
     padding: var(--td-size-13) 0;
     color: var(--td-text-color-placeholder);

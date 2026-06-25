@@ -1488,10 +1488,12 @@ defineExpose({
 .toolbar-pill-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 0 var(--td-size-4);
+    justify-content: center;
+    gap: 4px;
+    width: var(--td-comp-size-m);
     height: var(--td-comp-size-m);
     border-radius: var(--td-radius-default);
+    overflow: hidden;
     font-size: var(--td-font-size-body-small);
     line-height: 1;
     color: var(--td-text-color-secondary);
@@ -1509,9 +1511,11 @@ defineExpose({
     white-space: nowrap;
 }
 
-/* 移动端隐藏 Skills、工具、连接器的文字 */
+/* 移动端/正方形按钮：隐藏 Skills、工具、连接器的文字 */
 .sender-toolbar.is-mobile .toolbar-pill-btn__text,
-.sender-toolbar.is-mobile :deep(.skills-popover-trigger__text) {
+.sender-toolbar.is-mobile :deep(.skills-popover-trigger__text),
+.toolbar-pill-btn__text,
+:deep(.skills-popover-trigger__text) {
     display: none;
 }
 
