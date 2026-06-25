@@ -31,14 +31,15 @@
   },
   "dependencies": {
     "@tdesign-vue-next/chat": "^0.4.5",
-    "monaco-editor": "^0.52.2",
     "@wangeditor/editor": "^5.1.23",
     "adp-widget": "*",
     "axios": "^1.13.2",
     "dompurify": "^3.3.1",
     "katex": "^0.16.22",
+    "lodash.set": "^4.3.2",
     "markdown-it": "^14.1.0",
     "markdown-it-highlightjs": "^4.2.0",
+    "monaco-editor": "^0.52.2",
     "tdesign-vue-next": "^1.17.7",
     "vite-plugin-svg-icons": "^2.0.1"
   },
@@ -47,6 +48,7 @@
   },
   "devDependencies": {
     "@mdit/plugin-katex": "^0.16.3",
+    "@types/lodash.set": "^4.3.9",
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^24.6.0",
     "@vitejs/plugin-vue": "^6.0.1",

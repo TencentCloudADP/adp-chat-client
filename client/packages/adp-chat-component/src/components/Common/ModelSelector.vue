@@ -7,7 +7,8 @@ import {
     Tag as TTag,
     Tooltip as TTooltip,
     Button as TButton,
-   
+    Loading as TLoading,
+    MessagePlugin,
 } from 'tdesign-vue-next';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import { fetchModelList, type ListModelRawItem } from '../../service/api';
@@ -202,8 +203,10 @@ function refresh(): Promise<ModelOption[]> {
 
 defineExpose({ refresh });
 
-/** 通过 AgentDetail 获取当前 Agent 绑定的模型，设置为默认选中 */
-const { getAgentDetailByAppId } = useAgentStore();
+/** Agent store：用于读取当前 Agent 绑定模型 / 提交模型变更 */
+const { getAgentDetailByAppId, modifyAgentByPath } = useAgentStore();
+/** 模型切换提交状态（提交期间禁止重复选择） */
+const switchingModel = ref(false);
 
 async function syncSelectedModelFromAgent(applicationId: string) {
     if (!applicationId) return;
@@ -358,13 +361,53 @@ function highlightText(text?: string, keyword?: string): string {
     return escaped.replace(new RegExp(safeKw, 'gi'), (match) => `<em class="model-selector__highlight">${match}</em>`);
 }
 
-/** 选中模型 */
-function handlePick(model: ModelOption) {
+/** 选中模型：采用乐观更新策略 —— 立即关闭弹层并切换 UI，
+ *  后台异步提交 ModifyAgent；失败时回滚到原选中态并提示。
+ *  这样模型名称处会显示 loading 图标，而不会卡在选择列表上。
+ */
+async function handlePick(model: ModelOption) {
     if (!model || isDisabledModel(model)) return;
+    if (switchingModel.value) return;
+
+    // 同模型重复点击：仅关闭弹层，不发请求
+    if (currentSelected.value?.value === model.value) {
+        popupVisible.value = false;
+        return;
+    }
+
+    // 1) 乐观更新：立即关闭弹层 + 切换本地选中态
+    const prevSelected = innerSelected.value;
     innerSelected.value = model;
     emit('update:selected', model);
     emit('change', model);
     popupVisible.value = false;
+
+    // 2) 无 applicationId 时跳过持久化（保持纯展示组件的可用性）
+    if (!props.applicationId) return;
+
+    // 3) 后台异步提交（触发器上的 loading 图标由 switchingModel 驱动）
+    switchingModel.value = true;
+    try {
+        // 仅传 ModelId / Alias 两个必要字段，其它由后端从模型元信息推断
+        // 对齐 v3 AgentModelConfig.json_name：ModelId / Alias
+        await modifyAgentByPath(props.applicationId, {
+            model: {
+                ModelId: model.value,
+                Alias: model.text || '',
+            },
+        });
+    } catch (err) {
+        console.error('[ModelSelector] ModifyAgent 切换模型失败:', err);
+        MessagePlugin.error('切换模型失败');
+        // 4) 失败回滚：恢复到提交前的选中态
+        innerSelected.value = prevSelected;
+        if (prevSelected) {
+            emit('update:selected', prevSelected);
+            emit('change', prevSelected);
+        }
+    } finally {
+        switchingModel.value = false;
+    }
 }
 
 /** 阻止分组标题点击冒泡导致选中 */
@@ -422,6 +465,8 @@ watch(popupVisible, (v) => {
                         <span class="model-selector__trigger-text" :title="currentSelected && currentSelected.text">
                             {{ (currentSelected && currentSelected.text) || placeholder }}
                         </span>
+                        <!-- 模型切换中：在模型名称右侧显示 loading 图标，提示后台保存中 -->
+                        <t-loading v-if="switchingModel" size="14px" class="model-selector__switching" />
                         <t-tooltip
                             v-for="(uiTag, idx) in selectedUiTags"
                             :key="`sel-ui-tag-btn-${idx}`"
@@ -449,6 +494,8 @@ watch(popupVisible, (v) => {
                         <span class="model-selector__trigger-text" :title="currentSelected && currentSelected.text">
                             {{ (currentSelected && currentSelected.text) || placeholder }}
                         </span>
+                        <!-- 模型切换中：在模型名称右侧显示 loading 图标 -->
+                        <t-loading v-if="switchingModel" size="14px" class="model-selector__switching" />
                         <t-tooltip
                             v-for="(uiTag, idx) in selectedUiTags"
                             :key="`sel-ui-tag-${idx}`"
@@ -533,7 +580,7 @@ watch(popupVisible, (v) => {
                                 <div
                                     class="model-selector__item"
                                     :class="{
-                                        'is-disabled': isDisabledModel(item),
+                                        'is-disabled': isDisabledModel(item) || switchingModel,
                                         'is-active': currentSelected && currentSelected.value === item.value,
                                     }"
                                     @click="handlePick(item)"
@@ -703,6 +750,14 @@ watch(popupVisible, (v) => {
 .model-selector__warning-icon {
     color: var(--td-error-color, #d54941);
     font-size: 14px;
+}
+
+/* 模型切换中的 loading 图标：紧贴模型名称右侧 */
+.model-selector__switching {
+    display: inline-flex;
+    align-items: center;
+    color: var(--td-brand-color, #0052d9);
+    flex-shrink: 0;
 }
 
 /* 按钮模式触发器 */

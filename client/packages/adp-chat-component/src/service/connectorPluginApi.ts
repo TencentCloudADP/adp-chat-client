@@ -11,6 +11,7 @@ export interface ConnectorPluginApiConfig {
     pluginCategoryListApi?: string;
     bindAgentToolApi?: string;
     unbindAgentToolApi?: string;
+    modifyAgentToolListApi?: string;
 }
 
 export const defaultConnectorPluginApiConfig: ConnectorPluginApiConfig = {
@@ -19,6 +20,7 @@ export const defaultConnectorPluginApiConfig: ConnectorPluginApiConfig = {
     pluginCategoryListApi: '/adp/DescribePluginCategoryList',
     bindAgentToolApi: '/adp/BindAgentTool',
     unbindAgentToolApi: '/adp/UnbindAgentTool',
+    modifyAgentToolListApi: '/adp/ModifyAgentToolList',
 };
 
 /** Plugin 类型常量 */
@@ -287,6 +289,38 @@ export async function unbindAgentTool(params: {
             AgentId: params.agentId,
             PluginId: params.pluginId,
             ToolId: params.toolId || '',
+        },
+    );
+}
+
+/**
+ * 修改 Agent 工具列表（ModifyAgentToolList）
+ * 只需传入当前修改的 plugin/tool，不需要传全量已有数据。
+ *
+ * @param params.pluginIdList 当前修改涉及的插件 ID 列表
+ * @param params.toolIdList 当前修改涉及的工具 ID 列表
+ * @param params.pluginList 当前修改的插件配置列表（AgentPluginConfig）
+ * @param params.toolList 当前修改的工具配置列表（AgentToolSpec）
+ */
+export async function modifyAgentToolList(params: {
+    applicationId: string;
+    appId: string;
+    agentId: string;
+    pluginIdList: string[];
+    toolIdList: string[];
+    pluginList: Record<string, unknown>[];
+    toolList: Record<string, unknown>[];
+}, apiPath?: string): Promise<void> {
+    await forwardRequest(
+        apiPath || defaultConnectorPluginApiConfig.modifyAgentToolListApi!,
+        params.applicationId,
+        {
+            AppId: params.appId,
+            AgentId: params.agentId,
+            PluginIdList: params.pluginIdList,
+            ToolIdList: params.toolIdList,
+            PluginList: params.pluginList,
+            ToolList: params.toolList,
         },
     );
 }

@@ -80,6 +80,9 @@ import {
 import CustomizedIcon from '../CustomizedIcon.vue';
 import {
     fetchPluginList, PluginClassEnum,
+    bindAgentTool,
+    unbindAgentTool,
+    modifyAgentToolList,
 } from '../../service/connectorPluginApi';
 import useAgentStore from '../../composables/useAgentStore';
 import type { ThemeProps } from '../../model/type';
@@ -96,7 +99,7 @@ const props = withDefaults(defineProps<Props>(), {
     applicationId: '',
 });
 
-const { getAgentIdByAppId, getAgentDetailByAppId, resetAgentStore, modifyAgent } = useAgentStore();
+const { getAgentIdByAppId, getAgentDetailByAppId, resetAgentStore, fetchAgentDetail } = useAgentStore();
 
 const emit = defineEmits<{
     (e: 'update:modelValue', v: boolean): void;
@@ -255,54 +258,234 @@ async function fetchList() {
 }
 
 /**
- * 将 ListPlugins 返回的 PluginHeader/PluginQuery（{ParamName, ParamValue, GlobalHidden, IsRequired}）
- * 转换为 ModifyAgent 所需的 AgentPluginParameter（{Name, IsGlobalHidden, IsRequired, Input}）格式。
+ * 从 ListPlugins 返回的 PluginInfo 中提取子工具列表。
+ * ListPlugins 可能在 tools / Tools / ToolList 字段中返回工具数组。
  */
-function convertPluginParams(params: Record<string, unknown>[]): Record<string, unknown>[] {
-    return params.map((h) => ({
-        Name: h.ParamName ?? h.Name ?? '',
-        IsGlobalHidden: h.GlobalHidden ?? h.IsGlobalHidden ?? false,
-        IsRequired: h.IsRequired ?? false,
-        Input: h.Input ?? (h.ParamValue ? { Type: 0, Value: h.ParamValue } : null),
-    }));
+function getItemTools(p: Record<string, unknown>): Record<string, unknown>[] {
+    return ((p.tools || p.Tools || p.ToolList) as Record<string, unknown>[] | undefined) || [];
 }
 
 /**
- * 从 AgentPlugin 或 PluginInfo 中提取字段，组装 AgentPluginConfig 并设置 OAuthConsent=1。
+ * ============================================================
+ * ModifyAgent 协议白名单 Sanitizer
+ * ============================================================
+ * 后端 ModifyAgent 严格校验 proto 字段，任何未定义字段都会报 UnknownParameter。
+ * DescribeAgentDetail 返回的数据带有额外展示字段（RenderMode, IsRequired in OutputList 等）。
+ * 以下函数全部基于「白名单」模式，只保留后端实际接受的字段。
  *
- * 兼容两种数据源：
- * - DescribeAgentDetail 返回的 AgentPlugin：{ Config: { PluginId, HeaderParameterList, ... }, ... }
- * - ListPlugins 返回的 PluginInfo：{ PluginId, Headers, Query, AuthType, ... }
+ * 字段对照（来自 proto + mock 实测）：
+ *
+ * AgentToolSpec:
+ *   - Config (AgentToolConfig)
+ *   - ToolAdvancedConfig
+ *
+ * AgentToolConfig:
+ *   - PluginId, ToolId, Description, InputList, OutputList,
+ *     HeaderParameterList, QueryParameterList, ToolSource, IsDisabled
+ *
+ * AgentToolInputParameter:
+ *   - Name, Description, Type, IsRequired, SubParameterList,
+ *     IsHidden (proto json_name=IsAgentHidden, 但后端 mock 实际用 IsHidden),
+ *     OneOfList, AnyOfList, Input (不能为 null)
+ *
+ * AgentToolOutputParameter:
+ *   - Name, Description, Type, SubParameterList
+ *   （不含 IsRequired/IsHidden/Input/OneOfList/AnyOfList/AnalysisMethod/RenderMode）
+ *
+ * AgentPluginConfig (v2):
+ *   - PluginId, HeaderParameterList, QueryParameterList,
+ *     IsRoleAuth, AuthMode, AuthType
+ *   （ModifyAgentToolList 使用 v2 proto，字段名以 v2 json_name 为准）
+ *
+ * AgentPluginParameter (v2):
+ *   - ParameterName (v2 proto json_name), IsGlobalHidden, IsRequired, Input (不能为 null)
+ *   （ModifyAgentToolList 接口使用 v2 proto，字段名为 ParameterName）
+ * ============================================================
  */
-function buildPluginConfigFromAgent(p: Record<string, unknown>) {
-    const config = (p.Config ?? p) as Record<string, unknown>;
-    const pluginId = (config.PluginId ?? p.PluginId ?? '') as string;
 
-    // 优先取 AgentPlugin.Config 中的 HeaderParameterList/QueryParameterList（DescribeAgentDetail 数据源）
-    // 若不存在则从 PluginInfo 的 Headers/Query 转换（ListPlugins 数据源）
-    let headerList = config.HeaderParameterList as Record<string, unknown>[] | undefined;
-    if (!headerList || !Array.isArray(headerList) || headerList.length === 0) {
-        const rawHeaders = (p.Headers ?? p.headers) as Record<string, unknown>[] | undefined;
-        headerList = rawHeaders && Array.isArray(rawHeaders) ? convertPluginParams(rawHeaders) : [];
-    }
-
-    let queryList = config.QueryParameterList as Record<string, unknown>[] | undefined;
-    if (!queryList || !Array.isArray(queryList) || queryList.length === 0) {
-        const rawQuery = (p.Query ?? p.query) as Record<string, unknown>[] | undefined;
-        queryList = rawQuery && Array.isArray(rawQuery) ? convertPluginParams(rawQuery) : [];
-    }
-
+/**
+ * 从 ListPlugins 返回的 ParamValue 构造 v2 proto Input 对象。
+ * ParamValue 是用户填入的鉴权值（如 API Key），应包装成 USER_INPUT 类型的 Input。
+ * InputSourceEnum.USER_INPUT = 1
+ * 空字符串/undefined 返回 undefined，避免传空 Input 给后端。
+ */
+function buildInputFromParamValue(paramValue: unknown): Record<string, unknown> | undefined {
+    const value = typeof paramValue === 'string' ? paramValue : '';
+    if (!value) return undefined;
     return {
-        PluginId: pluginId,
-        HeaderParameterList: headerList,
-        QueryParameterList: queryList,
-        EnableCamRoleAuth: config.EnableCamRoleAuth ?? p.EnableCamRoleAuth ?? false,
-        OAuthConsent: 1, // 强制设为使用者授权
-        AuthType: config.AuthType ?? p.AuthType ?? 0,
+        InputType: 1, // USER_INPUT
+        UserInputValue: {
+            ValueList: [value],
+        },
     };
 }
 
-/** 切换启用状态：直接通过 ModifyAgent 更新 plugin_list */
+/**
+ * 清理 AgentPluginParameter（用于 HeaderParameterList / QueryParameterList）。
+ * 白名单：ParameterName, IsGlobalHidden, IsRequired, Input (非 null 时)。
+ * 注意：ModifyAgentToolList 接口使用 v2 proto，AgentPluginParameter 的 json_name 是 "ParameterName"。
+ */
+function sanitizePluginParam(param: Record<string, unknown>): Record<string, unknown> {
+    const result: Record<string, unknown> = {
+        ParameterName: param.ParameterName || param.Name || param.ParamName || param.name || '',
+        IsGlobalHidden: !!(param.IsGlobalHidden),
+        IsRequired: !!(param.IsRequired),
+    };
+    if (param.Input !== null && param.Input !== undefined) {
+        result.Input = param.Input;
+    }
+    return result;
+}
+
+/**
+ * 递归清理 AgentToolInputParameter（v2 proto）。
+ * 白名单：Name, Description, Type, IsRequired, IsAgentHidden, SubParameterList, OneOfList, AnyOfList, Input (非 null)。
+ * 注意：ListPlugins 返回的字段名（Desc, GlobalHidden, SubParams, OneOf, AnyOf）与 proto 不同，需做映射。
+ */
+function sanitizeInputParamList(params: Record<string, unknown>[]): Record<string, unknown>[] {
+    return params.map((p) => {
+        const subParams = (p.SubParameterList || p.SubParams || p.sub_parameter_list) as Record<string, unknown>[] | undefined;
+        const oneOfList = (p.OneOfList || p.OneOf || p.one_of_list) as Record<string, unknown>[] | undefined;
+        const anyOfList = (p.AnyOfList || p.AnyOf || p.any_of_list) as Record<string, unknown>[] | undefined;
+        const result: Record<string, unknown> = {
+            Name: p.Name || p.name || '',
+            Description: p.Description || p.Desc || p.desc || '',
+            Type: p.Type ?? 0,
+            IsRequired: !!(p.IsRequired),
+            IsAgentHidden: !!(p.IsAgentHidden || p.IsHidden || p.GlobalHidden || p.global_hidden),
+            SubParameterList: Array.isArray(subParams) ? sanitizeInputParamList(subParams) : [],
+            OneOfList: Array.isArray(oneOfList) ? sanitizeInputParamList(oneOfList) : [],
+            AnyOfList: Array.isArray(anyOfList) ? sanitizeInputParamList(anyOfList) : [],
+        };
+        if (p.Input !== null && p.Input !== undefined) {
+            result.Input = p.Input;
+        }
+        return result;
+    });
+}
+
+/**
+ * 递归清理 AgentToolOutputParameter。
+ * 白名单：Name, Description, Type, SubParameterList。
+ * 注意：没有 IsRequired/IsHidden/Input/OneOfList/AnyOfList/AnalysisMethod/RenderMode。
+ * ListPlugins 返回的字段名（Desc, SubParams）与 proto 不同，需做映射。
+ */
+function sanitizeOutputParamList(params: Record<string, unknown>[]): Record<string, unknown>[] {
+    return params.map((p) => {
+        const subParams = (p.SubParameterList || p.SubParams || p.sub_parameter_list) as Record<string, unknown>[] | undefined;
+        const result: Record<string, unknown> = {
+            Name: p.Name || p.name || '',
+            Description: p.Description || p.Desc || p.desc || '',
+            Type: p.Type ?? 0,
+            SubParameterList: Array.isArray(subParams) ? sanitizeOutputParamList(subParams) : [],
+        };
+        return result;
+    });
+}
+
+/**
+ * 清理 AgentToolConfig。
+ * 白名单：PluginId, ToolId, Description, InputList, OutputList,
+ *          HeaderParameterList, QueryParameterList, ToolSource, IsDisabled。
+ */
+function sanitizeToolConfig(config: Record<string, unknown>): Record<string, unknown> {
+    const result: Record<string, unknown> = {
+        PluginId: config.PluginId || '',
+        ToolId: config.ToolId || '',
+        Description: config.Description || '',
+        InputList: Array.isArray(config.InputList) ? sanitizeInputParamList(config.InputList as Record<string, unknown>[]) : [],
+        OutputList: Array.isArray(config.OutputList) ? sanitizeOutputParamList(config.OutputList as Record<string, unknown>[]) : [],
+        HeaderParameterList: Array.isArray(config.HeaderParameterList)
+            ? (config.HeaderParameterList as Record<string, unknown>[]).map(sanitizePluginParam)
+            : [],
+        QueryParameterList: Array.isArray(config.QueryParameterList)
+            ? (config.QueryParameterList as Record<string, unknown>[]).map(sanitizePluginParam)
+            : [],
+    };
+    if (config.ToolSource !== undefined) result.ToolSource = config.ToolSource;
+    if (config.IsDisabled !== undefined) result.IsDisabled = config.IsDisabled;
+    return result;
+}
+
+/**
+ * 从 ListPlugins 返回的 PluginInfo 构建 AgentPluginConfig（用于新增绑定）。
+ * 使用 v2 proto 字段名：PluginId, HeaderParameterList, QueryParameterList,
+ *                       IsRoleAuth, AuthMode, AuthType, PluginClass。
+ * 设置 AuthMode: 1（使用者授权），确保连接器绑定后鉴权模式正确。
+ */
+function buildNewPluginConfig(pluginItem: Record<string, unknown>): Record<string, unknown> {
+    const headers = (pluginItem.Headers || pluginItem.headers || []) as Record<string, unknown>[];
+    const query = (pluginItem.Query || pluginItem.query || []) as Record<string, unknown>[];
+
+    return {
+        PluginId: (pluginItem.PluginId || pluginItem.plugin_id || '') as string,
+        HeaderParameterList: headers.map((p) => sanitizePluginParam({
+            ParameterName: p.Name || p.ParameterName || p.ParamName || p.param_name || p.name || '',
+            IsGlobalHidden: !!(p.IsGlobalHidden || p.GlobalHidden || p.global_hidden),
+            IsRequired: !!(p.IsRequired || p.is_required),
+            // ListPlugins 返回的 ParamValue 需包装成 Input；若原始已含 Input 优先使用
+            Input: (p.Input as Record<string, unknown>) || (p.input as Record<string, unknown>) || buildInputFromParamValue(p.ParamValue || p.param_value),
+        })),
+        QueryParameterList: query.map((p) => sanitizePluginParam({
+            ParameterName: p.Name || p.ParameterName || p.ParamName || p.param_name || p.name || '',
+            IsGlobalHidden: !!(p.IsGlobalHidden || p.GlobalHidden || p.global_hidden),
+            IsRequired: !!(p.IsRequired || p.is_required),
+            Input: (p.Input as Record<string, unknown>) || (p.input as Record<string, unknown>) || buildInputFromParamValue(p.ParamValue || p.param_value),
+        })),
+        IsRoleAuth: !!(pluginItem.IsRoleAuth || pluginItem.is_role_auth || pluginItem.EnableRoleAuth || pluginItem.enable_role_auth || pluginItem.EnableCamRoleAuth),
+        AuthMode: 1, // 强制设为使用者授权
+        AuthType: Number(pluginItem.AuthType || pluginItem.auth_type || 0),
+        PluginClass: Number(pluginItem.PluginClass || pluginItem.plugin_class || 0),
+    };
+}
+
+/**
+ * 从 ListPlugins 返回的 tool 对象构建 AgentToolSpec（用于 ModifyAgent 的 ToolList）。
+ * 直接使用 sanitizeToolConfig 确保字段白名单一致。
+ */
+function buildNewToolSpec(pluginItem: Record<string, unknown>, toolItem: Record<string, unknown>): Record<string, unknown> {
+    const pluginId = (pluginItem.PluginId || pluginItem.plugin_id || '') as string;
+    const toolId = (toolItem.ToolId || toolItem.tool_id || toolItem.id || '') as string;
+    const toolDesc = (toolItem.Desc || toolItem.tool_desc || toolItem.description || toolItem.Description || '') as string;
+    const inputs = (toolItem.Inputs || toolItem.inputs || toolItem.InputList || []) as Record<string, unknown>[];
+    const outputs = (toolItem.Outputs || toolItem.outputs || toolItem.OutputList || []) as Record<string, unknown>[];
+    const headers = (pluginItem.Headers || pluginItem.headers || []) as Record<string, unknown>[];
+    const query = (pluginItem.Query || pluginItem.query || []) as Record<string, unknown>[];
+    const toolSource = Number(toolItem.ToolSource || toolItem.tool_source || 0);
+
+    // 构建原始 Config 对象，然后通过 sanitizeToolConfig 做白名单过滤
+    const rawConfig: Record<string, unknown> = {
+        PluginId: pluginId,
+        ToolId: toolId,
+        Description: toolDesc,
+        InputList: inputs,
+        OutputList: outputs,
+        HeaderParameterList: headers.map((p) => ({
+            ParameterName: p.Name || p.ParameterName || p.ParamName || p.param_name || p.name || '',
+            IsGlobalHidden: !!(p.IsGlobalHidden || p.GlobalHidden || p.global_hidden),
+            IsRequired: !!(p.IsRequired || p.is_required),
+            Input: (p.Input as Record<string, unknown>) || (p.input as Record<string, unknown>) || buildInputFromParamValue(p.ParamValue || p.param_value),
+        })),
+        QueryParameterList: query.map((p) => ({
+            ParameterName: p.Name || p.ParameterName || p.ParamName || p.param_name || p.name || '',
+            IsGlobalHidden: !!(p.IsGlobalHidden || p.GlobalHidden || p.global_hidden),
+            IsRequired: !!(p.IsRequired || p.is_required),
+            Input: (p.Input as Record<string, unknown>) || (p.input as Record<string, unknown>) || buildInputFromParamValue(p.ParamValue || p.param_value),
+        })),
+        ToolSource: toolSource,
+    };
+
+    return {
+        Config: sanitizeToolConfig(rawConfig),
+    };
+}
+
+/**
+ * 切换连接器启用状态：
+ * - 开启：先调 BindAgentTool 建立绑定关系（已绑定时忽略 AlreadyExists 错误），
+ *         再调 ModifyAgentToolList 写入插件参数（如 Header 鉴权值）和工具列表。
+ * - 关闭：调用 UnbindAgentTool 接口。
+ */
 async function onToggleEnabled(item: ConnectorItem, val: boolean) {
     if (togglingId.value) return;
     const agentId = await getAgentIdByAppId(props.applicationId);
@@ -312,36 +495,58 @@ async function onToggleEnabled(item: ConnectorItem, val: boolean) {
     }
     togglingId.value = item.pluginId;
     try {
-        // 获取当前 Agent 配置中的 plugin_list
-        const detail = await getAgentDetailByAppId(props.applicationId);
-        const currentPlugins = detail?.plugins || [];
-
-        let pluginList;
         if (val) {
-            // 开启：在现有 plugin_list 基础上追加当前 item（避免重复）
-            const existingList = currentPlugins
-                .filter((p) => extractPluginId(p) !== item.pluginId)
-                .map(buildPluginConfigFromAgent);
-            // 从 item.raw（DescribeAgentDetail 返回的 AgentPlugin）中回填 Config 字段
-            existingList.push(buildPluginConfigFromAgent(item.raw));
-            pluginList = existingList;
+            // 开启：先 BindAgentTool 建立绑定关系，再 ModifyAgentToolList 写入配置
+            const newPluginConfig = buildNewPluginConfig(item.raw);
+            const newTools = getItemTools(item.raw);
+            const newToolSpecs = newTools.map(t => buildNewToolSpec(item.raw, t));
+
+            // 提取当前插件绑定涉及的 tool_id 列表
+            const toolIdList = newTools.map((t) =>
+                ((t as Record<string, unknown>).ToolId || (t as Record<string, unknown>).tool_id || (t as Record<string, unknown>).id || '') as string,
+            ).filter(Boolean);
+
+            // 步骤 1：BindAgentTool — Connector 类插件无显式工具列表，仅需传 PluginId
+            // proto 注释：「已绑定返回 AlreadyExists」，做幂等处理
+            try {
+                await bindAgentTool({
+                    applicationId: props.applicationId,
+                    appId: props.applicationId,
+                    agentId,
+                    pluginId: item.pluginId,
+                    toolSource: 0, // TOOL_SOURCE_PLUGIN
+                });
+            } catch (bindErr) {
+                const msg = (bindErr as { message?: string })?.message || String(bindErr);
+                // AlreadyExists 表示已绑定，可继续走 Modify 流程；其它错误抛出
+                if (!/AlreadyExists/i.test(msg)) {
+                    throw bindErr;
+                }
+                console.warn('[ConnectorDialog] BindAgentTool already exists, continue to modify:', item.pluginId);
+            }
+
+            // 步骤 2：ModifyAgentToolList — 写入插件参数（鉴权值等）和工具配置
+            await modifyAgentToolList({
+                applicationId: props.applicationId,
+                appId: props.applicationId,
+                agentId,
+                pluginIdList: [item.pluginId],
+                toolIdList,
+                pluginList: [newPluginConfig],
+                toolList: newToolSpecs,
+            });
         } else {
-            // 关闭：从 plugin_list 中删除对应 item
-            pluginList = currentPlugins
-                .filter((p) => extractPluginId(p) !== item.pluginId)
-                .map(buildPluginConfigFromAgent);
+            // 关闭：调用 UnbindAgentTool，后端会同时清理 PluginList 和 ToolList 中的关联数据
+            await unbindAgentTool({
+                applicationId: props.applicationId,
+                appId: props.applicationId,
+                agentId,
+                pluginId: item.pluginId,
+            });
         }
 
-        await modifyAgent(
-            props.applicationId,
-            agentId,
-            { PluginList: pluginList },
-            ['plugin_list'],
-        );
-
-        MessagePlugin.success(val ? '已开启' : '已关闭');
-        // 刷新已启用列表，清除缓存确保拿到最新数据
-        await fetchInstalled();
+        MessagePlugin.success(val ? '已开启' : '已关闭');       
+        await fetchInstalled(true);
     } catch (e) {
         console.error('[ConnectorDialog] toggle error:', e);
         MessagePlugin.error(val ? '开启失败' : '关闭失败');
