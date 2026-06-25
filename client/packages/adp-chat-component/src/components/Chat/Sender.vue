@@ -276,22 +276,32 @@ function toolDisplayName(t: Record<string, unknown>): string {
     return displayName || name || ((t.tool_id || t.ToolId || '') as string);
 }
 
+/** 连接器列表：从 PluginList 中取 PluginClass === 1 (= CONNECTOR) 的项 */
 const mentionConnectors = computed<NormalizedSkill[]>(() => {
-    const m = getPluginClassMap();
-    return installedToolsRaw.value
-        .filter((t) => m.get(getPluginId(t)) === 1)
-        .map((t) => ({
-            id: getPluginId(t) || ((t.tool_id || t.ToolId || '') as string),
-            name: toolName(t),
-            displayName: toolDisplayName(t),
-            iconUrl: (t.IconUrl || t.icon_url || '') as string,
-        }));
+    return installedPlugins.value
+        .filter((p) => (p.PluginClass ?? p.plugin_class ?? 0) === 1)
+        .map((p) => {
+            const cfg = (p.Config || p.config || {}) as Record<string, unknown>;
+            const pid = (cfg.PluginId || cfg.plugin_id || p.PluginId || p.plugin_id || '') as string;
+            return {
+                id: pid,
+                name: (p.Name || p.name || '') as string,
+                displayName: (p.Name || p.name || '') as string,
+                iconUrl: (p.IconUrl || p.icon_url || p.Icon || p.icon || '') as string,
+            };
+        });
 });
 
+/** 工具列表：从 ToolList 中取 pluginClass === 0 或无标记的项 */
 const mentionTools = computed<NormalizedSkill[]>(() => {
     const m = getPluginClassMap();
     return installedToolsRaw.value
-        .filter((t) => m.get(getPluginId(t)) === 0)
+        .filter((t) => {
+            const pid = getPluginId(t);
+            const cls = m.get(pid);
+            // pluginClass === 0 或未匹配（兜底归入工具）
+            return cls === 0 || cls === undefined;
+        })
         .map((t) => ({
             id: getPluginId(t) || ((t.tool_id || t.ToolId || '') as string),
             name: toolName(t),
@@ -451,17 +461,28 @@ function _onEditorKeydown(e: KeyboardEvent) {
         _hideMention();
         return;
     }
-    // @ 触发：@ 正常进入编辑器，随后弹出面板
+    // @ 触发：先弹面板（用缓存数据），后台异步刷新
     if (e.key === '@' && skillsEnabled.value) {
-        requestAnimationFrame(() => {
-            const pos = _getCaretPosition();
-            if (pos) {
-                atMentionStyle.value = { top: `${pos.top - 290}px`, left: `${pos.left}px` };
-                mentionSearchStr.value = '';
-                atMentionVisible.value = true;
-                mentionPanelRef.value?.resetNavigation();
-            }
-        });
+        const appId = props.skillsApplicationId;
+        // 缓存有数据则立即弹面板，没有则等刷新完成
+        const hasData = appId && (agentDetailMap.value[appId]?.skills?.length || 0) > 0;
+        const showPanel = () => {
+            requestAnimationFrame(() => {
+                const pos = _getCaretPosition();
+                if (pos) {
+                    atMentionStyle.value = { top: `${pos.top - 290}px`, left: `${pos.left}px` };
+                    mentionSearchStr.value = '';
+                    atMentionVisible.value = true;
+                    mentionPanelRef.value?.resetNavigation();
+                }
+            });
+        };
+        if (hasData) {
+            showPanel();
+            refreshSkills(); // 后台异步刷新，计算属性自动更新面板
+        } else {
+            refreshSkills().finally(showPanel);
+        }
     }
 }
 

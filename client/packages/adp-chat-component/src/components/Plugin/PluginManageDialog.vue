@@ -17,7 +17,7 @@
 
             <!-- 列表区域 -->
             <div v-if="loading" class="manage-tool-dialog__loading">
-                <t-loading size="large" text="加载中..." />
+                <t-loading size="small" text="加载中..." />
             </div>
             <div v-else-if="filteredList.length === 0" class="manage-tool-dialog__empty">
                 <span>暂无已安装工具</span>
@@ -132,7 +132,9 @@ async function fetchInstalledTools() {
     if (!props.applicationId) return;
     loading.value = true;
     try {
-        const result = await fetchGlobalAgent({ applicationId: props.applicationId, agentId: props.agentId || '' });
+        const agentId = await getAgentIdByAppId(props.applicationId);
+        if (!agentId) { loading.value = false; return; }
+        const result = await fetchGlobalAgent({ applicationId: props.applicationId, agentId });
         const plugins = (result.plugins || []) as Record<string, unknown>[];
         const tools = (result.tools || []) as Record<string, unknown>[];
 

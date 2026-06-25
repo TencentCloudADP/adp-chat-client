@@ -47,7 +47,7 @@
 
                     <!-- Skill 列表 -->
                     <div class="skills-popover__list">
-                        <t-loading v-if="loading"  class="skills-popover__loading" />
+                        <t-loading v-if="loading" size="small" text="加载中..." class="skills-popover__loading" />
                         <template v-else>
                             <div
                                 v-for="skill in filteredSkills"

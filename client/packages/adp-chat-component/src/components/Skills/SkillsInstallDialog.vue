@@ -80,7 +80,7 @@
 
             <!-- Skill 列表（触底加载更多） -->
             <div class="skills-install__list" @scroll="onListScroll">
-                <t-loading v-if="loading"  class="skills-install__loading" />
+                <t-loading v-if="loading" size="small" text="加载中..." class="skills-install__loading" />
                 <template v-else>
                     <div v-if="skillList.length > 0" class="skills-install__items">
                         <div
@@ -185,7 +185,7 @@
                     </div>
                     <div v-else class="skills-install__empty">暂无数据</div>
                 </template>
-                <t-loading v-if="loadingMore"  class="skills-install__loading-more" />
+                <t-loading v-if="loadingMore" size="small" text="加载中..." class="skills-install__loading-more" />
             </div>
         </div>
     </t-dialog>

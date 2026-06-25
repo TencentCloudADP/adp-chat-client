@@ -513,7 +513,7 @@ watch(popupVisible, (v) => {
                                     <span>资源不可用</span>
                                 </slot>
                             </template>
-                            <CustomizedIcon remote class="model-selector__warning-icon" name="basic_error_line" size="s" :show-hover-bg="false" :theme="theme" />
+                            <CustomizedIcon remote class="model-selector__warning-icon" name="basic_warning_line" size="s" :show-hover-bg="false" :theme="theme" color="var(--td-error-color)" />
                         </t-tooltip>
                     </div>
                     <CustomizedIcon remote class="model-selector__arrow" name="arrow_down_line" size="s" :show-hover-bg="false" :theme="theme" />
@@ -643,10 +643,11 @@ watch(popupVisible, (v) => {
                                                 <CustomizedIcon
                                                     remote
                                                     class="model-selector__warning-icon"
-                                                    name="basic_error_line"
+                                                    name="basic_warning_line"
                                                     size="s"
                                                     :show-hover-bg="false"
                                                     :theme="theme"
+                                                    color="var(--td-error-color)"
                                                 />
                                             </t-tooltip>
                                         </div>

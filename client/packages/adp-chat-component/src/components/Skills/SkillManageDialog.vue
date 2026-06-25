@@ -39,7 +39,7 @@
 
             <!-- 加载中 -->
             <div v-if="loading" class="skills-manage__loading">
-                <t-loading  />
+                <t-loading size="small" text="加载中..." />
             </div>
 
             <!-- 空状态 -->

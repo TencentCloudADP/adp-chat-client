@@ -73,7 +73,7 @@
             </div>
 
             <!-- 卡片列表 -->
-            <div v-if="loading" class="plugin-dialog__loading"><t-loading size="large" text="加载中..." /></div>
+            <div v-if="loading" class="plugin-dialog__loading"><t-loading size="small" text="加载中..." /></div>
             <div v-else-if="filteredCardList.length === 0" class="plugin-dialog__empty">暂无数据</div>
             <div v-else class="plugin-dialog__list">
                 <div v-for="item in filteredCardList" :key="itemId(item)"
