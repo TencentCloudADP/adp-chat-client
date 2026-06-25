@@ -1,5 +1,12 @@
 /// <reference types="vite/client" />
 
+// Vue 单文件组件声明
+declare module '*.vue' {
+  import type { DefineComponent } from 'vue'
+  const component: DefineComponent<object, object, any>
+  export default component
+}
+
 // vue-infinite-loading 模块声明
 declare module 'vue-infinite-loading' {
   import { DefineComponent } from 'vue'
