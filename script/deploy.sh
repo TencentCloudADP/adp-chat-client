@@ -154,7 +154,11 @@ run_dev_with_db() {
     validate_dev_db_env
     ensure_dev_db_data_dir
 
-    docker rm "$DEV_DB_CONTAINER" >/dev/null 2>&1 || true
+    # 如果容器已存在（包括运行中状态）则强制清理；--rm 启动 + 持久化卷保证数据不丢失
+    if docker ps -a --format '{{.Names}}' | grep -qx "$DEV_DB_CONTAINER"; then
+        echo "Removing existing container $DEV_DB_CONTAINER ..."
+        docker rm -f "$DEV_DB_CONTAINER" >/dev/null 2>&1 || true
+    fi
 
     echo "Starting PostgreSQL in $DEV_DB_CONTAINER on localhost:$PGSQL_PORT"
     docker run --name "$DEV_DB_CONTAINER" --rm \

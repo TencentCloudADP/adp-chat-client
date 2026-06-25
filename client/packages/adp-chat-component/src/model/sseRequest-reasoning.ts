@@ -3,18 +3,18 @@
  * @module sseRequest-reasoning
  * @description 处理SSE(Server-Sent Events)流式请求的通用逻辑
  */
-import type { SseEvent } from './chat-v2'
+import type { SseEvent, ErrorEvent } from './chat-v2'
 
 /**
  * SSE请求选项配置接口
  * @interface FetchSSEOptions
  * @property {Function} success - 成功回调函数，接收解析后的数据
- * @property {Function} [fail] - 失败回调函数，可选，接收错误信息
+ * @property {Function} [fail] - 失败回调函数，可选，接收错误信息或完整 ErrorEvent
  * @property {Function} [complete] - 完成回调函数，可选，接收操作状态和可选信息
  */
 interface FetchSSEOptions {
   success: (event: SseEvent) => void
-  fail?: (msg?: string | null | undefined | unknown) => void
+  fail?: (msg?: string | null | undefined | unknown, errorEvent?: ErrorEvent) => void
   complete?: (isOk: boolean, msg?: string) => void
 }
 /**
@@ -64,7 +64,7 @@ export const fetchSSE = async (fetchFn: FetchFn, options: FetchSSEOptions): Prom
       }
       if (event.Type === 'error') {
         const errorMsg = event.Error?.Message
-        fail?.(errorMsg)
+        fail?.(errorMsg, event)
         complete?.(false, errorMsg)
         return
       }

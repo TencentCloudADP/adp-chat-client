@@ -68,16 +68,24 @@
             />
         </div>
 
+        <!-- ADP 浏览器助手扩展安装引导弹窗（仅在用户启用浏览器助手连接器但扩展未就绪时弹出） -->
+        <BrowserExtensionInstallDialog
+            v-model="showExtensionInstallDialog"
+            :theme="theme"
+            @confirm="handleExtensionDialogClose"
+            @cancel="handleExtensionDialogClose"
+        />
     </t-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import {
     Dialog as TDialog, Tag as TTag, Loading as TLoading,
     Input as TInput, Checkbox as TCheckbox, Switch as TSwitch, Pagination as TPagination, MessagePlugin,
 } from 'tdesign-vue-next';
 import CustomizedIcon from '../CustomizedIcon.vue';
+import BrowserExtensionInstallDialog from './BrowserExtensionInstallDialog.vue';
 import {
     fetchPluginList, PluginClassEnum,
     bindAgentTool,
@@ -85,6 +93,13 @@ import {
     modifyAgentToolList,
 } from '../../service/connectorPluginApi';
 import useAgentStore from '../../composables/useAgentStore';
+import {
+    detectExtension,
+    isBrowserAssistantConnector,
+    isChromeBrowser,
+    findTokenHeaderIndex,
+} from '../../utils/adp-browser-extension';
+import type { DetectExtensionResult, DetectExtensionFailReason } from '../../utils/adp-browser-extension';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
 
@@ -136,6 +151,14 @@ const togglingId = ref('');
 /** 已启用的连接器集合（来自 fetchGlobalAgent 的 plugins 中 PluginClass===1 的项） */
 const installedConnectors = ref<Record<string, unknown>[]>([]);
 
+// ====== ADP 浏览器助手扩展检测相关 ======
+/** 扩展安装引导弹窗显隐 */
+const showExtensionInstallDialog = ref(false);
+/** 待自动启用的浏览器助手 item（用户点开关但扩展未就绪时入队，扩展就绪后自动出队启用） */
+const extensionPendingItem = ref<ConnectorItem | null>(null);
+/** 扩展状态轮询定时器：仅在 extensionPendingItem 存在时启动 */
+let extensionPollTimer: ReturnType<typeof setInterval> | null = null;
+
 /**
  * 从 AgentPlugin 结构中提取 PluginId。
  * DescribeAgentDetail 返回的 PluginList 每项为 AgentPlugin { Config: AgentPluginConfig, Name, ... }，
@@ -163,13 +186,18 @@ const displayList = computed<ConnectorItem[]>(() => {
         const kw = searchKeyword.value.trim().toLowerCase();
         return installedConnectors.value
             .map((p) => buildItemFromInstalled(p))
+            // TODO: 浏览器助手连接器暂时屏蔽（扩展尚未上架 Chrome 商店），后续移除该过滤
+            .filter((it) => !isBrowserAssistantConnector(it.raw))
             .filter((it) => !kw || it.name.toLowerCase().includes(kw) || it.desc.toLowerCase().includes(kw));
     }
     // cardList 中的 enabled 是构建时的静态快照，需要依赖最新的 installedIdSet 动态派生
-    return cardList.value.map((item) => ({
-        ...item,
-        enabled: installedIdSet.value.has(item.pluginId),
-    }));
+    return cardList.value
+        // TODO: 浏览器助手连接器暂时屏蔽（扩展尚未上架 Chrome 商店），后续移除该过滤
+        .filter((item) => !isBrowserAssistantConnector(item.raw))
+        .map((item) => ({
+            ...item,
+            enabled: installedIdSet.value.has(item.pluginId),
+        }));
 });
 
 function buildItemFromInstalled(p: Record<string, unknown>): ConnectorItem {
@@ -248,7 +276,12 @@ async function fetchList() {
             // 不区分 tag / 类型，全量拉
             pluginTypes: [0, 1, 2],
         });
-        cardList.value = result.plugins.map(buildItemFromList);
+        let plugins = result.plugins;
+        // 非 Chrome 环境下隐藏 ADP 浏览器助手连接器（扩展仅支持 Chrome）
+        if (!isChromeBrowser()) {
+            plugins = plugins.filter((p) => !isBrowserAssistantConnector(p as Record<string, unknown>));
+        }
+        cardList.value = plugins.map(buildItemFromList);
         total.value = result.total;
     } catch (e) {
         console.error('[ConnectorDialog] fetchList error:', e);
@@ -481,9 +514,176 @@ function buildNewToolSpec(pluginItem: Record<string, unknown>, toolItem: Record<
 }
 
 /**
+ * 把扩展返回的 token 写入 item.raw.Headers 中的 Authorization 项。
+ * 仅对 ADP 浏览器助手连接器生效；找不到 Authorization header 时静默忽略。
+ */
+function applyExtensionTokenToItem(item: ConnectorItem, token: string): void {
+    if (!token) return;
+    const headers = (item.raw as Record<string, unknown>).Headers as Array<Record<string, unknown>> | undefined;
+    const idx = findTokenHeaderIndex(headers);
+    if (idx < 0 || !headers) return;
+    headers[idx].ParamValue = token;
+    headers[idx].Input = {
+        InputType: 1, // USER_INPUT
+        UserInputValue: { ValueList: [token] },
+    };
+}
+
+/** 启用连接器的核心逻辑：BindAgentTool + ModifyAgentToolList。 */
+async function doEnableConnector(item: ConnectorItem, agentId: string): Promise<void> {
+    const newPluginConfig = buildNewPluginConfig(item.raw);
+    const newTools = getItemTools(item.raw);
+    const newToolSpecs = newTools.map(t => buildNewToolSpec(item.raw, t));
+
+    // 提取当前插件绑定涉及的 tool_id 列表
+    const toolIdList = newTools.map((t) =>
+        ((t as Record<string, unknown>).ToolId || (t as Record<string, unknown>).tool_id || (t as Record<string, unknown>).id || '') as string,
+    ).filter(Boolean);
+
+    // 步骤 1：BindAgentTool — Connector 类插件无显式工具列表，仅需传 PluginId
+    // proto 注释：「已绑定返回 AlreadyExists」，做幂等处理
+    try {
+        await bindAgentTool({
+            applicationId: props.applicationId,
+            appId: props.applicationId,
+            agentId,
+            pluginId: item.pluginId,
+            toolSource: 0, // TOOL_SOURCE_PLUGIN
+        });
+    } catch (bindErr) {
+        const msg = (bindErr as { message?: string })?.message || String(bindErr);
+        if (!/AlreadyExists/i.test(msg)) {
+            throw bindErr;
+        }
+        console.warn('[ConnectorDialog] BindAgentTool already exists, continue to modify:', item.pluginId);
+    }
+
+    // 步骤 2：ModifyAgentToolList — 写入插件参数（鉴权值等）和工具配置
+    await modifyAgentToolList({
+        applicationId: props.applicationId,
+        appId: props.applicationId,
+        agentId,
+        pluginIdList: [item.pluginId],
+        toolIdList,
+        pluginList: [newPluginConfig],
+        toolList: newToolSpecs,
+    });
+}
+
+/** 启动 3 秒一次的扩展状态轮询；扩展就绪后自动出队 + 完成启用。 */
+function startExtensionPollingForEnable(): void {
+    if (extensionPollTimer) return;
+    extensionPollTimer = setInterval(async () => {
+        const pendingItem = extensionPendingItem.value;
+        if (!pendingItem) {
+            stopExtensionPollingForEnable();
+            return;
+        }
+        let result;
+        try {
+            result = await detectExtension();
+        } catch (e) {
+            // 探测异常不停止，继续轮询
+            console.warn('[ConnectorDialog] detectExtension polling error:', e);
+            return;
+        }
+        if (!result || !result.installed) return;
+
+        // 扩展就绪：出队 + 自动启用
+        extensionPendingItem.value = null;
+        stopExtensionPollingForEnable();
+        showExtensionInstallDialog.value = false;
+
+        applyExtensionTokenToItem(pendingItem, result.token || '');
+
+        const agentId = await getAgentIdByAppId(props.applicationId);
+        if (!props.applicationId || !agentId) return;
+        if (togglingId.value) return; // 用户正在操作其他连接器，避免冲突
+
+        togglingId.value = pendingItem.pluginId;
+        try {
+            await doEnableConnector(pendingItem, agentId);
+            MessagePlugin.success('已开启');
+            await fetchInstalled(true);
+        } catch (e) {
+            console.error('[ConnectorDialog] auto enable after extension ready failed:', e);
+            MessagePlugin.error('开启失败');
+        } finally {
+            togglingId.value = '';
+        }
+    }, 3000);
+}
+
+/** 停止扩展状态轮询。 */
+function stopExtensionPollingForEnable(): void {
+    if (extensionPollTimer) {
+        clearInterval(extensionPollTimer);
+        extensionPollTimer = null;
+    }
+}
+
+/** 用户关闭扩展引导弹窗：仅关弹窗，不清队列，让轮询继续在后台感知扩展就绪。 */
+function handleExtensionDialogClose(): void {
+    showExtensionInstallDialog.value = false;
+}
+
+/**
+ * 判断 detectExtension 的失败原因是否表明"扩展确实未安装"。
+ * - no-chrome：非 Chromium 内核（理论上前置已过滤，仍兜底）
+ * - no-runtime：Chrome 内核但页面未注入 chrome.runtime.sendMessage
+ *               （扩展未安装，或扩展未在 externally_connectable.matches 中包含当前站点）
+ * - no-extension-id：未配置扩展 ID
+ * - no-response：扩展 ID 无对应扩展（未安装/被禁用）
+ * - invalid-response：扩展未按协议响应（视为未安装）
+ * 其它如 timeout / error / unknown：扩展可能已安装但通信异常，不弹安装引导，避免误导。
+ */
+function isExtensionMissingReason(reason: DetectExtensionFailReason | undefined): boolean {
+    return reason === 'no-chrome'
+        || reason === 'no-runtime'
+        || reason === 'no-extension-id'
+        || reason === 'no-response'
+        || reason === 'invalid-response';
+}
+
+/**
+ * 启用前的扩展检测：
+ * - 已安装且 token 就绪：写入 Headers 走正常启用流程
+ * - 已安装但通信异常（timeout/error）：直接报错并退出，不弹安装引导
+ * - 未安装：弹出安装引导 + 入队 + 启动轮询
+ */
+async function checkExtensionBeforeEnable(item: ConnectorItem, agentId: string): Promise<void> {
+    let result: DetectExtensionResult;
+    try {
+        result = await detectExtension();
+    } catch (e) {
+        console.error('[ConnectorDialog] detectExtension error:', e);
+        result = { installed: false, token: '', reason: 'error' };
+    }
+
+    if (result.installed) {
+        // 已安装：把 token 写入 Headers 后走正常启用流程
+        applyExtensionTokenToItem(item, result.token || '');
+        await doEnableConnector(item, agentId);
+        return;
+    }
+
+    if (!isExtensionMissingReason(result.reason)) {
+        // 扩展可能已安装但通信异常（超时/异常等），不弹安装引导，提示用户后退出
+        console.warn('[ConnectorDialog] extension detect non-missing failure:', result.reason);
+        throw new Error('浏览器扩展通信异常，请刷新页面或检查扩展状态后重试');
+    }
+
+    // 未安装：入队 + 弹出引导 + 启动轮询；轮询命中安装后会自动完成启用
+    extensionPendingItem.value = item;
+    showExtensionInstallDialog.value = true;
+    startExtensionPollingForEnable();
+}
+
+/**
  * 切换连接器启用状态：
  * - 开启：先调 BindAgentTool 建立绑定关系（已绑定时忽略 AlreadyExists 错误），
  *         再调 ModifyAgentToolList 写入插件参数（如 Header 鉴权值）和工具列表。
+ *         若为 ADP 浏览器助手连接器，启用前先检测 Chrome 扩展是否安装；未安装时引导用户安装。
  * - 关闭：调用 UnbindAgentTool 接口。
  */
 async function onToggleEnabled(item: ConnectorItem, val: boolean) {
@@ -496,45 +696,12 @@ async function onToggleEnabled(item: ConnectorItem, val: boolean) {
     togglingId.value = item.pluginId;
     try {
         if (val) {
-            // 开启：先 BindAgentTool 建立绑定关系，再 ModifyAgentToolList 写入配置
-            const newPluginConfig = buildNewPluginConfig(item.raw);
-            const newTools = getItemTools(item.raw);
-            const newToolSpecs = newTools.map(t => buildNewToolSpec(item.raw, t));
-
-            // 提取当前插件绑定涉及的 tool_id 列表
-            const toolIdList = newTools.map((t) =>
-                ((t as Record<string, unknown>).ToolId || (t as Record<string, unknown>).tool_id || (t as Record<string, unknown>).id || '') as string,
-            ).filter(Boolean);
-
-            // 步骤 1：BindAgentTool — Connector 类插件无显式工具列表，仅需传 PluginId
-            // proto 注释：「已绑定返回 AlreadyExists」，做幂等处理
-            try {
-                await bindAgentTool({
-                    applicationId: props.applicationId,
-                    appId: props.applicationId,
-                    agentId,
-                    pluginId: item.pluginId,
-                    toolSource: 0, // TOOL_SOURCE_PLUGIN
-                });
-            } catch (bindErr) {
-                const msg = (bindErr as { message?: string })?.message || String(bindErr);
-                // AlreadyExists 表示已绑定，可继续走 Modify 流程；其它错误抛出
-                if (!/AlreadyExists/i.test(msg)) {
-                    throw bindErr;
-                }
-                console.warn('[ConnectorDialog] BindAgentTool already exists, continue to modify:', item.pluginId);
+            // ADP 浏览器助手连接器：启用前需先检测扩展程序状态
+            if (isBrowserAssistantConnector(item.raw) && isChromeBrowser()) {
+                await checkExtensionBeforeEnable(item, agentId);
+            } else {
+                await doEnableConnector(item, agentId);
             }
-
-            // 步骤 2：ModifyAgentToolList — 写入插件参数（鉴权值等）和工具配置
-            await modifyAgentToolList({
-                applicationId: props.applicationId,
-                appId: props.applicationId,
-                agentId,
-                pluginIdList: [item.pluginId],
-                toolIdList,
-                pluginList: [newPluginConfig],
-                toolList: newToolSpecs,
-            });
         } else {
             // 关闭：调用 UnbindAgentTool，后端会同时清理 PluginList 和 ToolList 中的关联数据
             await unbindAgentTool({
@@ -545,8 +712,11 @@ async function onToggleEnabled(item: ConnectorItem, val: boolean) {
             });
         }
 
-        MessagePlugin.success(val ? '已开启' : '已关闭');       
-        await fetchInstalled(true);
+        // 仅当不在"等待扩展安装"状态时才提示成功（扩展未安装的场景下成功提示由轮询完成后统一发出）
+        if (extensionPendingItem.value !== item) {
+            MessagePlugin.success(val ? '已开启' : '已关闭');
+            await fetchInstalled(true);
+        }
     } catch (e) {
         console.error('[ConnectorDialog] toggle error:', e);
         MessagePlugin.error(val ? '开启失败' : '关闭失败');
@@ -555,6 +725,12 @@ async function onToggleEnabled(item: ConnectorItem, val: boolean) {
     }
 }
 
+// 组件销毁前兜底清理轮询定时器与待处理队列，避免内存泄漏
+onBeforeUnmount(() => {
+    extensionPendingItem.value = null;
+    stopExtensionPollingForEnable();
+});
+
 watch(() => props.modelValue, (val) => {
     if (val) {
         searchKeyword.value = '';
@@ -562,6 +738,11 @@ watch(() => props.modelValue, (val) => {
         pageNumber.value = 1;
         fetchInstalled();
         fetchList();
+    } else {
+        // 主弹窗关闭时清理浏览器扩展引导相关状态，避免后台残留轮询
+        extensionPendingItem.value = null;
+        stopExtensionPollingForEnable();
+        showExtensionInstallDialog.value = false;
     }
 });
 </script>

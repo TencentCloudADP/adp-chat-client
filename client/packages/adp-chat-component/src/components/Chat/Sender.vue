@@ -1273,12 +1273,37 @@ defineExpose({
     border: 1px solid var(--td-component-border);
     border-radius: var(--td-radius-xl, 16px);
     background: var(--td-bg-color-container, #fff);
-    transition: border-color 0.2s, box-shadow 0.2s;
+    /* 同时过渡 border-color / box-shadow / transform，曲线选用接近 Material 的 standard easing，进出更柔和 */
+    transition:
+        border-color 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: visible;
+    will-change: box-shadow, border-color;
+    margin: 5px;
 }
 
 .sender-container:hover {
-    box-shadow: 0 0 0 2px rgba(0, 82, 217, 0.08);
+    /* 边框略浅染品牌色，配合双层阴影营造自然抬起感（外层柔光 + 内层焦点环） */
+    border-color: var(--td-brand-color, #0052d9);
+    box-shadow:
+        0 4px 16px -4px rgba(0, 82, 217, 0.18),
+        0 0 0 3px rgba(0, 82, 217, 0.08);
+}
+
+/* 输入聚焦时给出更明显但仍克制的强调态 */
+.sender-container:focus-within {
+    border-color: var(--td-brand-color, #0052d9);
+    box-shadow:
+        0 6px 20px -6px rgba(0, 82, 217, 0.22),
+        0 0 0 3px rgba(0, 82, 217, 0.04);
+}
+
+/* 减少动画偏好（系统级 prefers-reduced-motion）时关闭过渡，避免给敏感用户带来不适 */
+@media (prefers-reduced-motion: reduce) {
+    .sender-container {
+        transition: none;
+    }
 }
 
 .sender-container.is-uploading {

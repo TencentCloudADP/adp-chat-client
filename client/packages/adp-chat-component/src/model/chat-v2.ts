@@ -396,6 +396,8 @@ export interface TextDeltaEvent {
 export interface ErrorEvent {
   Type: 'error'
   Error: ErrorInfo
+  Timestamp?: string
+  RecordId?: string
 }
 
 export type SseEvent =

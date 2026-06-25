@@ -253,6 +253,11 @@ const isTerminated = computed(() => {
     return record.value.Status === 'error' || record.value.Status === 'failed';
 });
 
+/** 当前 Record 是否为错误状态 */
+const isError = computed(() => {
+    return record.value.Status === 'error' || record.value.Status === 'failed';
+});
+
 const reasoningContents = computed(() => {
     // claw 模式下，thought 已在折叠组中渲染，不再显示独立的 reasoning 面板
     if (useClawRender.value) return [];
@@ -574,7 +579,7 @@ const referenceDialogTitle = computed(() => {
                     </template>
                 </TLoading>
             </div>
-            <div v-else>
+            <div v-else :class="{ 'chat-item--error': isError && !isFromSelf }">
                 <!-- 普通用户消息 -->
                 <div v-if="isFromSelf" class="user-message">
                     <!-- 图片附件：独立于文字气泡展示（claw 模式下已在文本中渲染） -->
@@ -790,6 +795,19 @@ const referenceDialogTitle = computed(() => {
 </template>
 
 <style scoped>
+/* 错误消息：红色边框 + 浅红背景 */
+.chat-item--error {
+    border: 1px solid var(--td-error-color, #e34d59);    
+    padding: 0 10px;
+    background-color: var(--td-error-color-1, #fff0ed);
+    
+    .md-content-container {
+        background-color: var(--td-error-color-1, #fff0ed);
+        font-size: 12px;
+        color: brown;
+    }
+}
+
 /* Widget action 独立行：在对话区域整行居中 */
 .widget-action-row {
     width: 100%;

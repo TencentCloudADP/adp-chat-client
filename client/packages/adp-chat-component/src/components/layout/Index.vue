@@ -10,7 +10,7 @@ import FilePreviewLayout from './FilePreviewLayout.vue';
 import LogoArea from '../LogoArea.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import type { Application, AppPattern } from '../../model/application';
-import type { ChatConversation, Record, Reference, SseEvent, Content } from '../../model/chat-v2';
+import type { ChatConversation, Record, Reference, SseEvent, Content, ErrorEvent } from '../../model/chat-v2';
 import type { FileProps } from '../../model/file';
 import { ScoreValue } from '../../model/chat-v2';
 import type { ApiConfig } from '../../service/api';
@@ -434,7 +434,45 @@ const isStreamAbortError = (msg: unknown) => {
     );
 };
 
-const handleStreamFailure = (msg: unknown) => {
+/**
+ * 将错误信息写入指定会话的 placeholder-agent Record，使其在消息列表中以气泡形式展示。
+ * 如果写入成功返回 true，否则返回 false（外层可兜底 toast）。
+ */
+const writeErrorToRecords = (conversationKey: string, errorMessage: string, errorEvent?: ErrorEvent): boolean => {
+    const targetState = getConversationRuntimeState(conversationKey);
+    if (!targetState) return false;
+
+    const placeholderIdx = targetState.records.findIndex(
+        (r) => r.RecordId === 'placeholder-agent' || (r.Role === 'assistant' && r.Status === 'processing')
+    );
+    if (placeholderIdx === -1) return false;
+
+    const record = targetState.records[placeholderIdx]!;
+    record.Status = 'error';
+    record.StatusDesc = errorMessage;
+    record.RecordId = errorEvent?.RecordId || record.RecordId;
+    record.Messages = [
+        {
+            Type: 'reply',
+            MessageId: `error-${Date.now()}`,
+            Name: 'error',
+            Title: '',
+            Status: 'error',
+            StatusDesc: '',
+            Contents: [{ Type: 'text', Text: errorMessage }],
+        },
+    ];
+
+    // 滚动到底部以展示错误消息
+    if (currentConversationStateKey.value === conversationKey) {
+        nextTick(() => {
+            mainLayoutRef.value?.getChatRef()?.backToBottom();
+        });
+    }
+    return true;
+};
+
+const handleStreamFailure = (msg: unknown, errorEvent?: ErrorEvent, conversationKey?: string) => {
     if (isStreamAbortError(msg)) {
         return;
     }
@@ -453,7 +491,15 @@ const handleStreamFailure = (msg: unknown) => {
         emit('message', MessageCode.NETWORK_ERROR, networkErrorText);
         return;
     }
+    if (typeof msg === 'string' && conversationKey) {
+        // SSE error 事件：将错误渲染到消息气泡中（支持 Markdown 链接）
+        if (writeErrorToRecords(conversationKey, msg, errorEvent)) {
+            emit('message', MessageCode.SEND_MESSAGE_FAILED, msg);
+            return;
+        }
+    }
     if (typeof msg === 'string') {
+        // 兜底：写入失败则 toast
         MessagePlugin.error(msg);
         emit('message', MessageCode.SEND_MESSAGE_FAILED, msg);
         return;
@@ -643,6 +689,16 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
         } catch (error) {
             console.error('CreateConversation 失败:', error);
             return;
+        }
+
+        // 成功创建后立即同步内部状态 + 通知外部，确保：
+        // 1) currentConversationStateKey 绑定到新 conversationId（与点击侧栏会话的行为一致）
+        // 2) ApplicationId 关联到该 conversation
+        // 3) 向外 emit('conversationChange')，让父组件同步 currentConversationId（更新 URL / 路由等）
+        if (conversationId) {
+            currentConversationStateKey.value = conversationId;
+            setConversationApplicationId(conversationId, applicationId);
+            emit('conversationChange', conversationId);
         }
     }
 
@@ -857,8 +913,8 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
                     });
                 }
             },
-            fail(msg) {
-                handleStreamFailure(msg);
+            fail(msg, errorEvent) {
+                handleStreamFailure(msg, errorEvent, streamConversationKey);
             }
         }
     );
@@ -1205,8 +1261,8 @@ const sendWidgetActionSSE = async (conversationId: string, applicationId: string
                     });
                 }
             },
-            fail(msg) {
-                handleStreamFailure(msg);
+            fail(msg, errorEvent) {
+                handleStreamFailure(msg, errorEvent, streamConversationKey);
             }
         }
     );
