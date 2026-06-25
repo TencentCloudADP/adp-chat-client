@@ -140,7 +140,8 @@ async function fetchInstalledTools() {
 
         const pluginMap = new Map<string, Record<string, unknown>>();
         plugins.forEach(p => {
-            const id = (p.PluginId || p.plugin_id || '') as string;
+            const pc = (p.Config || p.config || {}) as Record<string, unknown>;
+            const id = (pc.PluginId || pc.plugin_id || p.PluginId || p.plugin_id || '') as string;
             if (id) pluginMap.set(id, p);
         });
 

@@ -522,8 +522,10 @@ function applyExtensionTokenToItem(item: ConnectorItem, token: string): void {
     const headers = (item.raw as Record<string, unknown>).Headers as Array<Record<string, unknown>> | undefined;
     const idx = findTokenHeaderIndex(headers);
     if (idx < 0 || !headers) return;
-    headers[idx].ParamValue = token;
-    headers[idx].Input = {
+    const entry = headers[idx];
+    if (!entry) return;
+    entry.ParamValue = token;
+    entry.Input = {
         InputType: 1, // USER_INPUT
         UserInputValue: { ValueList: [token] },
     };

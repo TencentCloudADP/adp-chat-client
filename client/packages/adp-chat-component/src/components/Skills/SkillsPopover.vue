@@ -239,16 +239,14 @@ defineExpose({ show, hide });
     align-items: center;
 }
 
-/* 触发按钮：正方形尺寸，与 plus-btn 一致 */
+/* 触发按钮：与 toolbar-pill-btn 样式一致 */
 .skills-popover-trigger {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
     gap: 4px;
-    width: var(--td-comp-size-m);
+    padding: 0 var(--td-size-4);
     height: var(--td-comp-size-m);
     border-radius: var(--td-radius-default);
-    overflow: hidden;
     font-size: var(--td-font-size-body-small);
     line-height: 1;
     color: var(--td-text-color-secondary);
