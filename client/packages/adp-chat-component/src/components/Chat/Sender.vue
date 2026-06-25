@@ -1232,6 +1232,7 @@ defineExpose({
             v-if="skillsEnabled"
             v-model="showPluginManage"
             :application-id="skillsApplicationId"
+            :space-id="spaceId"
             :theme="theme"
             @change="refreshSkills"
         />
@@ -1241,6 +1242,7 @@ defineExpose({
             v-if="skillsEnabled"
             v-model="showPlugin"
             :application-id="skillsApplicationId"
+            :space-id="spaceId"
             :installed-tool-ids="currentInstalledToolIds"
             :theme="theme"
             @installed="refreshSkills"

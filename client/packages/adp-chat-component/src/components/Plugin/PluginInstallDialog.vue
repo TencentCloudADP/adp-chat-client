@@ -207,10 +207,12 @@ import useAgentStore from '../../composables/useAgentStore';
 interface Props extends ThemeProps {
     modelValue: boolean;
     applicationId?: string;
+    /** 工作空间 ID */
+    spaceId?: string;
     /** 已安装的工具 ID 列表，用于判断"已添加"状态 */
     installedToolIds?: string[];
 }
-const props = withDefaults(defineProps<Props>(), { ...themePropsDefaults, modelValue: false, applicationId: '', installedToolIds: () => [] });
+const props = withDefaults(defineProps<Props>(), { ...themePropsDefaults, modelValue: false, applicationId: '', spaceId: '', installedToolIds: () => [] });
 const { getAgentIdByAppId } = useAgentStore();
 const emit = defineEmits<{
     (e: 'update:modelValue', v: boolean): void;
@@ -360,6 +362,7 @@ async function fetchList() {
             pluginTypes: activeTab.value === 'custom' ? [0] : (filterValue.value.plugintypes || []).length > 0 ? filterValue.value.plugintypes! : [1, 2],
             financeTypeList: activeTab.value === 'custom' ? undefined : (filterValue.value.financetypes || []).length > 0 ? filterValue.value.financetypes : undefined,
             createTypes: activeTab.value === 'custom' ? undefined : (filterValue.value.createtypes || []).length > 0 ? filterValue.value.createtypes : undefined,
+            spaceId: props.spaceId || 'default_space',
         });
         // 归一化收藏字段，筛选收藏时强制标记
         cardList.value = result.plugins.map((p: Record<string, unknown>) => ({

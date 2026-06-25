@@ -62,6 +62,7 @@
         <PluginInstallDialog
             v-model="showInstall"
             :application-id="applicationId"
+            :space-id="spaceId || 'default_space'"
             :theme="theme"
             :installed-tool-ids="installedToolIds"
             @installed="onInstalled"
@@ -86,8 +87,9 @@ import useAgentStore from '../../composables/useAgentStore';
 interface Props extends ThemeProps {
     modelValue: boolean;
     applicationId?: string;
+    spaceId?: string;
 }
-const props = withDefaults(defineProps<Props>(), { ...themePropsDefaults, modelValue: false, applicationId: '' });
+const props = withDefaults(defineProps<Props>(), { ...themePropsDefaults, modelValue: false, applicationId: '', spaceId: '' });
 const { getAgentIdByAppId } = useAgentStore();
 const emit = defineEmits<{
     (e: 'update:modelValue', v: boolean): void;
