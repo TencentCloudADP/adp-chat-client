@@ -212,8 +212,7 @@ const props = withDefaults(defineProps<Props>(), {
     isUploading: false,
     isOverlay: false,
     enableSkills: true,
-    // TODO: skillsSpaceId 后续从实际空间上下文获取，当前使用默认值
-    skillsSpaceId: 'default_space',
+    skillsSpaceId: '',
     skillsApplicationId: '',
 });
 

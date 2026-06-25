@@ -30,5 +30,7 @@ export interface Application {
     EnableWebSearch?: boolean | null;
     /** 是否开启内容审核 */
     EnableAudit?: boolean | null;
+    /** 空间 ID */
+    SpaceId?: string | null;
     [key: string]: unknown;
 }

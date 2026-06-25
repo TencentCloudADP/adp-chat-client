@@ -26,33 +26,27 @@
     },
     "DescribeAgentSummaryList": {
         "service": "adp",
-        "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4030-clawapi"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "CopyAgentFromApp": {
         "service": "adp",
-        "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4030-clawapi"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "ModifyAgent": {
         "service": "adp",
-        "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4030-clawapi"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "DescribeAgentDetail": {
         "service": "adp",
-        "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4030-clawapi"        
+        "headers.X-TC-Version": "2026-05-20"        
     },
     "ListModel": {
         "service": "lke",
-        "headers.X-TC-Version": "2025-11-12",
-        "headers.X-TC-Canary": "toe-test-4030-clawapi"      
+        "headers.X-TC-Version": "2025-11-12"     
     },
     "CreateConversation": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4030-clawapi",
         "payload.AppKey": "{{APP_KEY}}",
         "payload.UserId": "{{ACCOUNT_ID}}"
     },
@@ -62,17 +56,14 @@
     },
     "BindAgentTool": {
         "service": "lke",
-        "headers.X-TC-Version": "2025-11-12",
-        "headers.X-TC-Canary": "toe-test-4030-clawapi"     
+        "headers.X-TC-Version": "2025-11-12"
     },
     "UnbindAgentTool": {
         "service": "lke",
-        "headers.X-TC-Version": "2025-11-12",
-        "headers.X-TC-Canary": "toe-test-4030-clawapi"             
+        "headers.X-TC-Version": "2025-11-12"      
     },
     "ModifyAgentToolList": {
         "service": "lke",
-        "headers.X-TC-Version": "2025-11-12",
-        "headers.X-TC-Canary": "toe-test-4030-clawapi"     
+        "headers.X-TC-Version": "2025-11-12"    
     }
 }

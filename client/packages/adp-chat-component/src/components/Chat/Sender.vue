@@ -1222,6 +1222,7 @@ defineExpose({
             v-if="skillsEnabled"
             v-model="showConnector"
             :application-id="skillsApplicationId"
+            :space-id="spaceId"
             :theme="theme"
             @change="refreshSkills"
         />

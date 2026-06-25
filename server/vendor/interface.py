@@ -40,6 +40,7 @@ class ApplicationInfo(BaseModel):
     InputBox: Optional[InputBoxConfig] = None
     EnableWebSearch: Optional[bool] = None
     EnableAudit: Optional[bool] = None
+    SpaceId: Optional[str] = None
 
 
 # =============================================================================

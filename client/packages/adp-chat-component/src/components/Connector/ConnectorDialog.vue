@@ -106,12 +106,14 @@ import { themePropsDefaults } from '../../model/type';
 interface Props extends ThemeProps {
     modelValue: boolean;
     applicationId?: string;
+    spaceId?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     ...themePropsDefaults,
     modelValue: false,
     applicationId: '',
+    spaceId: '',
 });
 
 const { getAgentIdByAppId, getAgentDetailByAppId, resetAgentStore, fetchAgentDetail } = useAgentStore();
@@ -275,6 +277,7 @@ async function fetchList() {
             pageSize,
             // 不区分 tag / 类型，全量拉
             pluginTypes: [0, 1, 2],
+            spaceId: props.spaceId || 'default_space',
         });
         let plugins = result.plugins;
         // 非 Chrome 环境下隐藏 ADP 浏览器助手连接器（扩展仅支持 Chrome）

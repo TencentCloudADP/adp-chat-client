@@ -63,6 +63,7 @@ export async function fetchPluginList(params: {
     pluginTypes?: number[];
     financeTypeList?: number[];
     createTypes?: number[];
+    spaceId?: string;
 }, apiPath?: string): Promise<{
     plugins: Record<string, unknown>[];
     total: number;
@@ -82,6 +83,7 @@ export async function fetchPluginList(params: {
             FinanceTypeList: params.financeTypeList || undefined,
             CreateTypes: params.createTypes || undefined,
             IsEnabled: params.enabledOnly ? true : undefined,
+            SpaceId: params.spaceId || undefined,
         },
     );
     return {

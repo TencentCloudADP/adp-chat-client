@@ -674,6 +674,7 @@ class TCADP(BaseVendor):
             InputBox=InputBoxConfig(InputBoxButtons=buttons) if buttons else None,
             EnableWebSearch=web_search.get('Enabled', False) or conversation.get('EnableWebSearch', False),
             EnableAudit=False,
+            SpaceId=metadata.get('SpaceId'),
         )
 
     # MessageInterface - V2 Protocol

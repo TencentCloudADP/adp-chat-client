@@ -445,7 +445,6 @@ async function fetchSkillList(append = false) {
 
     const version = ++fetchVersion.value;
     try {
-        // TODO: spaceId 后续从实际空间上下文获取
         const spId = props.spaceId || 'default_space';
         const result = await fetchSkillSummaryList({
             applicationId: props.applicationId,
