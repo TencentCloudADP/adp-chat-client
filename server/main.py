@@ -43,9 +43,11 @@ if __name__ == '__main__':
         app = create_app()
         _, sessionmaker = create_db_engine(app)
         db = sessionmaker()
-        await CoreAccount.create_account(db, email=args.u, password=args.p)
-        await db.commit()
-        await db.close()
+        try:
+            await CoreAccount.create_account(db, email=args.u, password=args.p)
+            await db.commit()
+        finally:
+            await db.close()
 
     def generate_customer_account_url(args):
         import time

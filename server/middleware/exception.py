@@ -23,3 +23,16 @@ def format_exception(exception):
 async def catch_anything(request, exception):
     body, status_code = format_exception(exception)
     return json(body, status=status_code)
+
+
+# CancelledError（客户端断开连接等场景）不继承 Exception，需要单独捕获。
+# 捕获后记录日志，清理 session 由 http.lifecycle.response signal 兜底完成。
+import asyncio
+
+@app.exception(asyncio.CancelledError)
+async def catch_cancelled(request, exception):
+    logging.warning('[catch_cancelled] request cancelled: %s %s', request.method, request.path)
+    return json(
+        {'Error': {'Message': 'Request cancelled', 'Exception': 'CancelledError'}},
+        status=499
+    )

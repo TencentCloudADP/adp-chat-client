@@ -31,21 +31,25 @@ class Migration:
 
     @staticmethod
     async def init_db(app: TAgenticApp):
-        _, sessionmaker = create_db_engine(app, override_db='')
+        engine, sessionmaker = create_db_engine(app, override_db='')
         db = sessionmaker()
-        conn = await db.connection()
+        try:
+            conn = await db.connection()
 
-        steps = [
-            'commit',  # https://stackoverflow.com/questions/6506578/how-to-create-a-new-database-using-sqlalchemy
-            f"CREATE DATABASE {app.config.PGSQL_DB};",
-        ]
-        for query in steps:
-            try:
-                await conn.run_sync(lambda connection: connection.execute(text(query)))
-            except Exception as e:  # pylint: disable=broad-except
-                logging.error(f"[init_db] {e}")
-        await conn.commit()
-        await conn.close()
+            steps = [
+                'commit',  # https://stackoverflow.com/questions/6506578/how-to-create-a-new-database-using-sqlalchemy
+                f"CREATE DATABASE {app.config.PGSQL_DB};",
+            ]
+            for query in steps:
+                try:
+                    await conn.run_sync(lambda connection: connection.execute(text(query)))
+                except Exception as e:  # pylint: disable=broad-except
+                    logging.error(f"[init_db] {e}")
+            await conn.commit()
+            await conn.close()
+        finally:
+            await db.close()
+            await engine.dispose()
 
     @staticmethod
     def tables() -> list[DeclarativeBase]:

@@ -246,6 +246,10 @@ export function useAgentStore() {
             agentDetailLoadingMap.value = { ...agentDetailLoadingMap.value, [applicationId]: true };
 
             const agentId = await getAgentIdByAppId(applicationId);
+            if (!agentId) {
+                console.warn('[useAgentStore] agentId 为空，数据不存在，跳过缓存');
+                return null;
+            }
             const result = await fetchGlobalAgent({ applicationId, agentId });
 
             const detail: AgentDetail = {
