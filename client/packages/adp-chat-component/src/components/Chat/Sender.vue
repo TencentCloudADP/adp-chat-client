@@ -1097,7 +1097,7 @@ defineExpose({
             <!-- 移动端首行：模型选择器（v-if 按模式渲染，保证 DOM 顺序正确） -->
             <div v-if="isMobile" class="sender-toolbar__primary">
                 <ModelSelector
-                    v-if="showModelSelector"
+                    v-if="showModelSelector && mode === 'claw'"
                     class="sender-model-selector"
                     :selected="selectedModel"
                     :options="modelOptions"
@@ -1146,7 +1146,7 @@ defineExpose({
 
                 <!-- PC 端：模型选择器置于上传之后、Skills 之前 -->
                 <ModelSelector
-                    v-if="!isMobile && showModelSelector"
+                    v-if="!isMobile && showModelSelector && mode === 'claw'"
                     class="sender-model-selector"
                     :selected="selectedModel"
                     :options="modelOptions"

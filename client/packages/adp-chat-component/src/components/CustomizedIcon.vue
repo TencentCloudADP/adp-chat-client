@@ -23,18 +23,14 @@
  * <CustomizedIcon name="basic_newchat_line" remote size="16" />
  * <CustomizedIcon name="arrow_down_small_line" remote :rotate="-90" />
  */
-<script setup lang="ts">
-import { computed, ref } from 'vue';
-import type { ThemeProps } from '../model/type';
-import { themePropsDefaults } from '../model/type';
-
-// 记录已注入的 SVG sprite 文件路径，每个文件只注入一次
+<script lang="ts">
+// 模块级单例：确保 SVG sprite 资源只被加载和注入一次，不随组件实例重复创建
 const injectedSprites = new Set<string>();
-// 记录正在注入的 sprite 路径，避免并发重复注入
 const pendingSprites = new Map<string, Promise<void>>();
 
 /**
  * 加载本地 SVG sprite 并注入到 DOM（隐藏 svg），供 <use> 引用
+ * 模块级函数，所有组件实例共享同一份去重状态
  */
 function injectSvgSprite(url: string): Promise<void> {
     if (injectedSprites.has(url)) return Promise.resolve();
@@ -58,6 +54,12 @@ function injectSvgSprite(url: string): Promise<void> {
     pendingSprites.set(url, promise);
     return promise;
 }
+</script>
+
+<script setup lang="ts">
+import { computed, ref } from 'vue';
+import type { ThemeProps } from '../model/type';
+import { themePropsDefaults } from '../model/type';
 
 // 静态导入所有图标（仅保留项目中实际使用的图标）
 import arrow_down_medium from '../assets/icons/arrow_down_medium.svg?raw';
