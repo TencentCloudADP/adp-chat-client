@@ -50,8 +50,7 @@ export interface Props extends ChatRelatedProps {
     isUploading?: boolean;
     /** 当前应用 ID（用于初始化时创建用户 Agent） */
     currentApplicationId?: string;
-    /** 是否显示模型选择器 */
-    showModelSelector?: boolean;
+
     /** 模型选择器：当前选中模型 */
     selectedModel?: SelectedModel;
     /** 模型选择器：候选模型列表（不传则由组件内部拉取） */
@@ -62,6 +61,12 @@ export interface Props extends ChatRelatedProps {
     i18n?: SenderI18n;
     /** 是否启用 Skills 功能 */
     enableSkills?: boolean;
+    /** 是否显示模型选择器 */
+    enableModelSelector?: boolean;
+    /** 是否显示连接器按钮 */
+    enableConnector?: boolean;
+    /** 是否显示工具按钮 */
+    enableTools?: boolean;
     /** 已安装 Skills 列表（标准化后） */
     installedSkills?: NormalizedSkill[];
     /** Skills 数据加载中 */
@@ -84,12 +89,15 @@ const props = withDefaults(defineProps<Props>(), {
     enableVoiceInput: true,
     isUploading: false,
     currentApplicationId: '',
-    showModelSelector: true,
+
     selectedModel: () => ({} as SelectedModel),
     modelOptions: () => [],
     listModelApi: '',
     i18n: () => ({}),
-    enableSkills: true,
+    enableSkills: false,
+    enableModelSelector: false,
+    enableConnector: false,
+    enableTools: false,
     installedSkills: () => [],
     skillsLoading: false,
     installedSkillIds: () => [],
@@ -110,8 +118,7 @@ const i18n = computed(() => {
     return { ...defaults, ...props.i18n };
 });
 
-/** Skills 功能是否启用：显式传 true，或 spaceId 存在时自动启用 */
-const skillsEnabled = computed(() => props.enableSkills || !!props.spaceId);
+
 
 /**
  * 是否禁止发送和上传（上传/解析中或流式加载中）
@@ -474,7 +481,7 @@ function _onEditorKeydown(e: KeyboardEvent) {
         return;
     }
     // @ 触发：先弹面板（用缓存数据），后台异步刷新
-    if (e.key === '@' && skillsEnabled.value) {
+    if (e.key === '@' && props.enableSkills) {
         const appId = props.skillsApplicationId;
         // 缓存有数据则立即弹面板，没有则等刷新完成
         const hasData = appId && (agentDetailMap.value[appId]?.skills?.length || 0) > 0;
@@ -1097,7 +1104,7 @@ defineExpose({
             <!-- 移动端首行：模型选择器（v-if 按模式渲染，保证 DOM 顺序正确） -->
             <div v-if="isMobile" class="sender-toolbar__primary">
                 <ModelSelector
-                    v-if="showModelSelector && mode === 'claw'"
+                    v-if="enableModelSelector && mode === 'claw'"
                     class="sender-model-selector"
                     :selected="selectedModel"
                     :options="modelOptions"
@@ -1146,7 +1153,7 @@ defineExpose({
 
                 <!-- PC 端：模型选择器置于上传之后、Skills 之前 -->
                 <ModelSelector
-                    v-if="!isMobile && showModelSelector && mode === 'claw'"
+                    v-if="enableModelSelector && !isMobile && mode === 'claw'"
                     class="sender-model-selector"
                     :selected="selectedModel"
                     :options="modelOptions"
@@ -1158,7 +1165,7 @@ defineExpose({
 
                 <!-- Skills 按钮 -->
                 <SkillsPopover
-                    v-if="skillsEnabled && mode === 'claw'"
+                    v-if="enableSkills && mode === 'claw'"
                     ref="skillsPopoverRef"
                     :installed-skills="normalizedSkills"
                     :loading="skillsRefreshing"
@@ -1171,13 +1178,13 @@ defineExpose({
                 />
 
                 <!-- 连接器按钮 -->
-                <div v-if="mode === 'claw'"  class="toolbar-pill-btn" @click="showConnector = true">
+                <div v-if="enableConnector && mode === 'claw'"  class="toolbar-pill-btn" @click="showConnector = true">
                     <CustomizedIcon remote name="basic_connector_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" :theme="theme"/>
                     <span class="toolbar-pill-btn__text">{{ skillsI18n.connector }}</span>
                 </div>
 
                 <!-- 工具按钮 -->
-                <div v-if="mode === 'claw'" class="toolbar-pill-btn" @click="showPluginManage = true">
+                <div v-if="enableTools && mode === 'claw'" class="toolbar-pill-btn" @click="showPluginManage = true">
                     <CustomizedIcon remote name="basic_plugin_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" :theme="theme"/>
                     <span class="toolbar-pill-btn__text">{{ skillsI18n.tools }}</span>
                 </div>
@@ -1192,7 +1199,7 @@ defineExpose({
 
         <!-- Skills 管理弹窗 -->
         <SkillManageDialog
-            v-if="skillsEnabled"
+            v-if="enableSkills"
             v-model="showSkillsManage"
             :manage-list="manageItems"
             :loading="skillsRefreshing"
@@ -1205,7 +1212,7 @@ defineExpose({
 
         <!-- Skills 安装弹窗（必须在管理弹窗之后，保证叠加时在上层） -->
         <SkillsInstallDialog
-            v-if="skillsEnabled"
+            v-if="enableSkills"
             v-model="showSkillsInstall"
             :installed-skill-ids="Array.from(skillsInstalledIds)"
             :installed-skills="skillListForInstall"
@@ -1219,7 +1226,7 @@ defineExpose({
 
         <!-- 连接器弹窗 -->
         <ConnectorDialog
-            v-if="skillsEnabled"
+            v-if="enableSkills"
             v-model="showConnector"
             :application-id="skillsApplicationId"
             :space-id="spaceId"
@@ -1229,7 +1236,7 @@ defineExpose({
 
         <!-- 管理工具弹窗（首次打开的入口） -->
         <PluginManageDialog
-            v-if="skillsEnabled"
+            v-if="enableSkills"
             v-model="showPluginManage"
             :application-id="skillsApplicationId"
             :space-id="spaceId"
@@ -1239,7 +1246,7 @@ defineExpose({
 
         <!-- 工具安装弹窗（独立打开时使用） -->
         <PluginInstallDialog
-            v-if="skillsEnabled"
+            v-if="enableSkills"
             v-model="showPlugin"
             :application-id="skillsApplicationId"
             :space-id="spaceId"
@@ -1503,7 +1510,7 @@ defineExpose({
     transition: background-color 0.2s;
 }
 .toolbar-pill-btn:hover {
-    background: var(--td-bg-color-container-active);
+    background: var(--td-bg-color-container-hover);
 }
 .toolbar-pill-btn:active {
     background: var(--td-bg-color-component-active);

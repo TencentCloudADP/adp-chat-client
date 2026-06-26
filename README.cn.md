@@ -30,6 +30,7 @@
   - [部署: 限流](#部署-限流)
   - [部署: CORS](#部署-cors)
   - [部署: Iframe 嵌入白名单](#部署-iframe-嵌入白名单)
+  - [微信小程序接入示例](#微信小程序接入示例)
 
 # 部署
 
@@ -478,3 +479,89 @@ word、excel、ppt 等需要配置启动预览服务。
 3. 左侧菜单中选中 “数据处理” -> “文档处理” -> “开启”；
 4. “数据处理” -> 文件处理 -> “开启”
 
+
+## 微信小程序接入示例
+
+微信小程序可以通过 `<web-view>` 组件嵌入本系统部署的 Web 页面，实现在小程序中使用 AI 对话功能。
+
+### 前置条件
+
+1. 完成本系统的 [部署](#部署) 步骤，确保 Web 服务正常运行
+2. 在 `.env` 中配置 `IFRAME_ORIGINS`，添加小程序的 web-view 业务域名：
+
+```
+IFRAME_ORIGINS=https://your-domain.com
+```
+
+3. 在 `.env` 中配置 `CORS_ORIGINS`，允许跨域请求：
+
+```
+CORS_ORIGINS=https://your-domain.com
+```
+
+4. 确保服务部署在 HTTPS 域名下（小程序要求业务域名必须为 HTTPS）
+
+### 小程序配置
+
+1. 登录 [微信公众平台](https://mp.weixin.qq.com/)，进入小程序管理后台
+2. 在 **开发管理** → **开发设置** → **业务域名** 中，添加本系统部署的域名
+
+### 小程序代码示例
+
+创建一个页面，使用 `<web-view>` 嵌入本系统的对话页面：
+
+```xml
+<!-- pages/chat/chat.wxml -->
+<web-view src="{{chatUrl}}"></web-view>
+```
+
+```javascript
+// pages/chat/chat.js
+Page({
+  data: {
+    chatUrl: ''
+  },
+  onLoad() {
+    // 替换为你实际部署的地址
+    this.setData({
+      chatUrl: 'https://your-domain.com'
+    })
+  }
+})
+```
+
+> 📝 **注意**：
+> 1. `<web-view>` 组件会自动铺满整个小程序页面。
+> 2. 小程序的 `<web-view>` 仅支持 HTTPS 协议的业务域名，调试阶段可在微信开发者工具中勾选 **"不校验合法域名"** 临时使用 `http://localhost:5174/`。
+> 3. 账户体系对接建议使用 [url跳转](#url跳转) 方式，在小程序端获取用户信息后生成登录 URL 传给 web-view。
+> 4. 个人类型的小程序不支持 `<web-view>` 组件，需要使用企业类型的小程序。
+
+### 本地调试
+
+开发阶段可以在微信开发者工具中进行调试：
+
+1. 启动本系统的开发服务：
+
+```bash
+make dev_withdb
+```
+
+2. 前端服务启动后，访问地址为 `http://localhost:5174/`
+3. 在微信开发者工具中，勾选 **"不校验合法域名、web-view(业务域名)、TLS版本以及HTTPS证书"**
+4. 将 `<web-view>` 的 `src` 设置为 `http://localhost:5174/`
+
+```javascript
+// pages/chat/chat.js（本地调试）
+Page({
+  data: {
+    chatUrl: 'http://localhost:5174/'
+  }
+})
+```
+
+## 应用&配置：Claw模式开启用户自定义选择 Skill & 模型 & 连接器功能 
+1. 登录腾讯云 [智能体开发平台](https://adp.cloud.tencent.com/adp)
+2. 应用开发 -> 进入 APP_CONFIGS 配置的 应用
+3. 在高级配置中找到 "允许在对话中动态修改配置"
+![alt text](docs/assets/setting1.png)
+4. 发布应用

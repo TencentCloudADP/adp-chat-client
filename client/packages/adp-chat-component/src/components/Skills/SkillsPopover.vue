@@ -256,7 +256,7 @@ defineExpose({ show, hide });
     transition: background-color 0.2s;
 
     &:hover {
-        background: var(--td-bg-color-container-active);
+        background: var(--td-bg-color-container-hover);
     }
     &.is-active {
         background: var(--td-bg-color-container-active);

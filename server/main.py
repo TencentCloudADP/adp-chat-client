@@ -44,6 +44,7 @@ if __name__ == '__main__':
         _, sessionmaker = create_db_engine(app)
         db = sessionmaker()
         await CoreAccount.create_account(db, email=args.u, password=args.p)
+        await db.commit()
         await db.close()
 
     def generate_customer_account_url(args):

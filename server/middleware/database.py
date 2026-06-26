@@ -1,3 +1,4 @@
+import logging
 from contextvars import ContextVar
 
 from core.migration import Migration
@@ -17,8 +18,18 @@ async def inject_session(request):
 @app.middleware("response")
 async def close_session(request, response):
     if hasattr(request.ctx, "db_ctx_token"):
-        await request.ctx.db.close()
-        _base_model_db_ctx.reset(request.ctx.db_ctx_token)
+        try:
+            # 如果 session 中存在未提交的事务，先回滚以释放数据库锁
+            if request.ctx.db.is_active:
+                await request.ctx.db.rollback()
+        except Exception as e:
+            logging.warning('[close_session] rollback failed: %s', e)
+        finally:
+            try:
+                await request.ctx.db.close()
+            except Exception as e:
+                logging.warning('[close_session] close failed: %s', e)
+            _base_model_db_ctx.reset(request.ctx.db_ctx_token)
 
 
 @app.listener('before_server_start')

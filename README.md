@@ -30,6 +30,7 @@
   - [Deployment: CORS](#deployment-cors)
   - [Deployment: Iframe Embed Origins](#deployment-iframe-embed-origins)
   - [Deployment: File Preview Service](#deployment-file-preview-service)
+  - [WeChat Mini Program Integration](#wechat-mini-program-integration)
 
 # Deployment
 
@@ -478,3 +479,90 @@ To preview files such as Word, Excel, and PPT, you need to enable the preview se
 2. Search for the COS bucket name configured in `.env` as `COS_BUCKET` (default: `chat-client-bucket-${TC_SECRET_APPID}`, note: `${TC_SECRET_APPID}` refers to the `TC_SECRET_APPID` value in your config, e.g. the actual bucket name would be `chat-client-bucket-1322044278`), then click to open the selected bucket.
 3. In the left menu, navigate to **Data Processing** → **Document Processing** → **Enable**.
 4. Navigate to **Data Processing** → **File Processing** → **Enable**.
+
+## WeChat Mini Program Integration
+
+WeChat Mini Programs can embed the web pages deployed by this system via the `<web-view>` component, enabling AI chat functionality within the Mini Program.
+
+### Prerequisites
+
+1. Complete the [Deployment](#deployment) steps and ensure the web service is running properly
+2. Configure `IFRAME_ORIGINS` in `.env` to add the web-view business domain for the Mini Program:
+
+```
+IFRAME_ORIGINS=https://your-domain.com
+```
+
+3. Configure `CORS_ORIGINS` in `.env` to allow cross-origin requests:
+
+```
+CORS_ORIGINS=https://your-domain.com
+```
+
+4. Ensure the service is deployed under an HTTPS domain (Mini Programs require HTTPS for business domains)
+
+### Mini Program Configuration
+
+1. Log in to the [WeChat Official Accounts Platform](https://mp.weixin.qq.com/) and go to the Mini Program admin panel
+2. Navigate to **Development Management** → **Development Settings** → **Business Domain**, and add the domain where this system is deployed
+
+### Mini Program Code Example
+
+Create a page and use the `<web-view>` component to embed the chat page:
+
+```xml
+<!-- pages/chat/chat.wxml -->
+<web-view src="{{chatUrl}}"></web-view>
+```
+
+```javascript
+// pages/chat/chat.js
+Page({
+  data: {
+    chatUrl: ''
+  },
+  onLoad() {
+    // Replace with your actual deployment URL
+    this.setData({
+      chatUrl: 'https://your-domain.com'
+    })
+  }
+})
+```
+
+> 📝 **Note:**
+> 1. The `<web-view>` component automatically fills the entire Mini Program page.
+> 2. The `<web-view>` in Mini Programs only supports HTTPS business domains. During development, you can check **"Do not verify valid domain names"** in WeChat DevTools to temporarily use `http://localhost:5174/`.
+> 3. For account integration, the [URL Redirection](#url-redirection) method is recommended. Obtain user info on the Mini Program side, generate a login URL, and pass it to the web-view.
+> 4. Personal-type Mini Programs do not support the `<web-view>` component. An enterprise-type Mini Program is required.
+
+### Local Debugging
+
+You can debug in WeChat DevTools during development:
+
+1. Start the development server:
+
+```bash
+make dev_withdb
+```
+
+2. Once the frontend service is running, access it at `http://localhost:5174/`
+3. In WeChat DevTools, check **"Do not verify valid domain names, web-view (business domain), TLS version, and HTTPS certificate"**
+4. Set the `src` of `<web-view>` to `http://localhost:5174/`
+
+```javascript
+// pages/chat/chat.js (local debugging)
+Page({
+  data: {
+    chatUrl: 'http://localhost:5174/'
+  }
+})
+```
+
+## App & Configuration: Enable User Custom Selection of Skills & Model & Connector in Claw Mode
+
+1. Log in to the Tencent Cloud [Agent Development Platform](https://adp.tencentcloud.com/)
+2. Go to App Development → Enter the application configured in APP_CONFIGS
+3. In the advanced settings, find "Allow dynamic configuration changes during conversation"
+![alt text](docs/assets/setting1.png)
+4. Publish the application

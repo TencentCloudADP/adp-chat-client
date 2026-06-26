@@ -163,7 +163,7 @@ class CoreAccount:
             account.PasswordSalt = hex_salt
 
         db.add(account)
-        await db.commit()
+        await db.flush()
 
         account.Password = None
         account.PasswordSalt = None

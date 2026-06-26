@@ -561,7 +561,7 @@ const currentApplicationName = computed(() => actualCurrentApplication.value?.Na
 // Skills 的 ApplicationId 优先用显式配置，否则回退到当前应用 ID
 const skillsAppId = computed(() => props.skillsApplicationId || currentApplicationId.value);
 // Skills 空间 ID：优先从当前应用接口返回的 SpaceId 获取，否则回退到显式 props
-const resolvedSpaceId = computed(() => actualCurrentApplication.value?.SpaceId || props.skillsSpaceId || '');
+const resolvedSpaceId = computed(() => actualCurrentApplication.value?.SpaceId || props.skillsSpaceId || 'default_space');
 const currentApplicationGreeting = computed(() => actualCurrentApplication.value?.Greeting || '');
 const currentApplicationOpeningQuestions = computed(() => actualCurrentApplication.value?.OpeningQuestions || []);
 const currentConversationId = computed(() => props.currentConversationId || actualCurrentConversation.value?.Id || '');

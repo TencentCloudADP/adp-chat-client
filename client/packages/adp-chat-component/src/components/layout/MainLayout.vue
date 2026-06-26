@@ -58,6 +58,12 @@ export interface Props extends ChatRelatedProps {
     isOverlay?: boolean;
     /** 是否启用 Skills 功能 */
     enableSkills?: boolean;
+    /** 是否显示模型选择器 */
+    enableModelSelector?: boolean;
+    /** 是否显示连接器按钮 */
+    enableConnector?: boolean;
+    /** 是否显示工具按钮 */
+    enableTools?: boolean;
     /** Skills 空间 ID */
     skillsSpaceId?: string;
     /** Skills 应用 ID */
@@ -81,6 +87,9 @@ const props = withDefaults(defineProps<Props>(), {
     enableVoiceInput: true,
     isOverlay: false,
     enableSkills: true,
+    enableModelSelector: true,
+    enableConnector: true,
+    enableTools: true,
     skillsSpaceId: '',
     skillsApplicationId: '',
 });
@@ -232,6 +241,9 @@ defineExpose({
                 :isUploading="isUploading"
                 :isOverlay="isOverlay"
                 :enableSkills="enableSkills"
+                :enableModelSelector="enableModelSelector"
+                :enableConnector="enableConnector"
+                :enableTools="enableTools"
                 :skillsSpaceId="skillsSpaceId"
                 :skillsApplicationId="skillsApplicationId"
                 @send="(query: string, fileList: FileProps[], conversationId: string, applicationId: string) => emit('send', query, fileList, conversationId, applicationId)"

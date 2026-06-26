@@ -28,7 +28,7 @@
             <div v-else-if="displayList.length === 0" class="connector-manage__empty">
                 <span>{{ enabledOnly ? '暂无已启用的连接器' : '暂无连接器' }}</span>
             </div>
-        <div v-else class="connector-manage__list">
+            <div v-else class="connector-manage__list">
                 <div v-for="item in displayList" :key="item.pluginId" class="connector-item">
                     <div class="connector-item__icon">
                         <img v-if="item.iconUrl" :src="item.iconUrl" @error="onIconError" />
@@ -167,10 +167,10 @@ let extensionPollTimer: ReturnType<typeof setInterval> | null = null;
  * PluginId 位于 Config 子对象中，需要兼容顶层和 Config 嵌套两种情况。
  */
 function extractPluginId(p: Record<string, unknown>): string {
-    const directId = (p.PluginId || p.plugin_id || '') as string;
+    const directId = (p.PluginId || '') as string;
     if (directId) return directId;
-    const config = (p.Config || p.config) as Record<string, unknown> | undefined;
-    return config ? ((config.PluginId || config.plugin_id || '') as string) : '';
+    const config = p.Config as Record<string, unknown> | undefined;
+    return config ? ((config.PluginId || '') as string) : '';
 }
 
 const installedIdSet = computed(() => {
@@ -206,10 +206,10 @@ function buildItemFromInstalled(p: Record<string, unknown>): ConnectorItem {
     const pluginId = extractPluginId(p);
     return {
         pluginId,
-        name: (p.Name || p.PluginName || p.plugin_name || '') as string,
-        desc: (p.Desc || p.PluginDesc || p.plugin_desc || p.Introduction || '') as string,
-        iconUrl: (p.IconUrl || p.icon_url || '') as string,
-        isInner: Number(p.PluginType || p.plugin_type || 0) === 1,
+        name: (p.Name || p.PluginName || '') as string,
+        desc: (p.Desc || p.PluginDesc || p.Introduction || '') as string,
+        iconUrl: (p.IconUrl || '') as string,
+        isInner: Number(p.PluginType || 0) === 1,
         enabled: true,
         raw: p,
     };
@@ -219,10 +219,10 @@ function buildItemFromList(p: Record<string, unknown>): ConnectorItem {
     const pluginId = extractPluginId(p);
     return {
         pluginId,
-        name: (p.Name || p.PluginName || p.plugin_name || '') as string,
-        desc: (p.Desc || p.PluginDesc || p.plugin_desc || p.Introduction || '') as string,
-        iconUrl: (p.IconUrl || p.icon_url || '') as string,
-        isInner: Number(p.PluginType || p.plugin_type || 0) === 1,
+        name: (p.Name || p.PluginName || '') as string,
+        desc: (p.Desc || p.PluginDesc || p.Introduction || '') as string,
+        iconUrl: (p.IconUrl || '') as string,
+        isInner: Number(p.PluginType || 0) === 1,
         enabled: installedIdSet.value.has(pluginId),
         raw: p,
     };
@@ -298,7 +298,7 @@ async function fetchList() {
  * ListPlugins 可能在 tools / Tools / ToolList 字段中返回工具数组。
  */
 function getItemTools(p: Record<string, unknown>): Record<string, unknown>[] {
-    return ((p.tools || p.Tools || p.ToolList) as Record<string, unknown>[] | undefined) || [];
+    return ((p.Tools || p.ToolList) as Record<string, unknown>[] | undefined) || [];
 }
 
 /**
@@ -363,7 +363,7 @@ function buildInputFromParamValue(paramValue: unknown): Record<string, unknown> 
  */
 function sanitizePluginParam(param: Record<string, unknown>): Record<string, unknown> {
     const result: Record<string, unknown> = {
-        ParameterName: param.ParameterName || param.Name || param.ParamName || param.name || '',
+        ParameterName: param.ParameterName || param.Name || param.ParamName || '',
         IsGlobalHidden: !!(param.IsGlobalHidden),
         IsRequired: !!(param.IsRequired),
     };
@@ -380,15 +380,15 @@ function sanitizePluginParam(param: Record<string, unknown>): Record<string, unk
  */
 function sanitizeInputParamList(params: Record<string, unknown>[]): Record<string, unknown>[] {
     return params.map((p) => {
-        const subParams = (p.SubParameterList || p.SubParams || p.sub_parameter_list) as Record<string, unknown>[] | undefined;
-        const oneOfList = (p.OneOfList || p.OneOf || p.one_of_list) as Record<string, unknown>[] | undefined;
-        const anyOfList = (p.AnyOfList || p.AnyOf || p.any_of_list) as Record<string, unknown>[] | undefined;
+        const subParams = (p.SubParameterList || p.SubParams) as Record<string, unknown>[] | undefined;
+        const oneOfList = (p.OneOfList || p.OneOf) as Record<string, unknown>[] | undefined;
+        const anyOfList = (p.AnyOfList || p.AnyOf) as Record<string, unknown>[] | undefined;
         const result: Record<string, unknown> = {
-            Name: p.Name || p.name || '',
-            Description: p.Description || p.Desc || p.desc || '',
+            Name: p.Name || '',
+            Description: p.Description || p.Desc || '',
             Type: p.Type ?? 0,
             IsRequired: !!(p.IsRequired),
-            IsAgentHidden: !!(p.IsAgentHidden || p.IsHidden || p.GlobalHidden || p.global_hidden),
+            IsAgentHidden: !!(p.IsAgentHidden || p.IsHidden || p.GlobalHidden),
             SubParameterList: Array.isArray(subParams) ? sanitizeInputParamList(subParams) : [],
             OneOfList: Array.isArray(oneOfList) ? sanitizeInputParamList(oneOfList) : [],
             AnyOfList: Array.isArray(anyOfList) ? sanitizeInputParamList(anyOfList) : [],
@@ -408,10 +408,10 @@ function sanitizeInputParamList(params: Record<string, unknown>[]): Record<strin
  */
 function sanitizeOutputParamList(params: Record<string, unknown>[]): Record<string, unknown>[] {
     return params.map((p) => {
-        const subParams = (p.SubParameterList || p.SubParams || p.sub_parameter_list) as Record<string, unknown>[] | undefined;
+        const subParams = (p.SubParameterList || p.SubParams) as Record<string, unknown>[] | undefined;
         const result: Record<string, unknown> = {
-            Name: p.Name || p.name || '',
-            Description: p.Description || p.Desc || p.desc || '',
+            Name: p.Name || '',
+            Description: p.Description || p.Desc || '',
             Type: p.Type ?? 0,
             SubParameterList: Array.isArray(subParams) ? sanitizeOutputParamList(subParams) : [],
         };
@@ -450,28 +450,28 @@ function sanitizeToolConfig(config: Record<string, unknown>): Record<string, unk
  * 设置 AuthMode: 1（使用者授权），确保连接器绑定后鉴权模式正确。
  */
 function buildNewPluginConfig(pluginItem: Record<string, unknown>): Record<string, unknown> {
-    const headers = (pluginItem.Headers || pluginItem.headers || []) as Record<string, unknown>[];
-    const query = (pluginItem.Query || pluginItem.query || []) as Record<string, unknown>[];
+    const headers = (pluginItem.Headers || []) as Record<string, unknown>[];
+    const query = (pluginItem.Query || []) as Record<string, unknown>[];
 
     return {
-        PluginId: (pluginItem.PluginId || pluginItem.plugin_id || '') as string,
+        PluginId: (pluginItem.PluginId || '') as string,
         HeaderParameterList: headers.map((p) => sanitizePluginParam({
-            ParameterName: p.Name || p.ParameterName || p.ParamName || p.param_name || p.name || '',
-            IsGlobalHidden: !!(p.IsGlobalHidden || p.GlobalHidden || p.global_hidden),
-            IsRequired: !!(p.IsRequired || p.is_required),
+            ParameterName: p.Name || p.ParameterName || p.ParamName || '',
+            IsGlobalHidden: !!(p.IsGlobalHidden || p.GlobalHidden),
+            IsRequired: !!(p.IsRequired),
             // ListPlugins 返回的 ParamValue 需包装成 Input；若原始已含 Input 优先使用
-            Input: (p.Input as Record<string, unknown>) || (p.input as Record<string, unknown>) || buildInputFromParamValue(p.ParamValue || p.param_value),
+            Input: (p.Input as Record<string, unknown>) || buildInputFromParamValue(p.ParamValue),
         })),
         QueryParameterList: query.map((p) => sanitizePluginParam({
-            ParameterName: p.Name || p.ParameterName || p.ParamName || p.param_name || p.name || '',
-            IsGlobalHidden: !!(p.IsGlobalHidden || p.GlobalHidden || p.global_hidden),
-            IsRequired: !!(p.IsRequired || p.is_required),
-            Input: (p.Input as Record<string, unknown>) || (p.input as Record<string, unknown>) || buildInputFromParamValue(p.ParamValue || p.param_value),
+            ParameterName: p.Name || p.ParameterName || p.ParamName || '',
+            IsGlobalHidden: !!(p.IsGlobalHidden || p.GlobalHidden),
+            IsRequired: !!(p.IsRequired),
+            Input: (p.Input as Record<string, unknown>) || buildInputFromParamValue(p.ParamValue),
         })),
-        IsRoleAuth: !!(pluginItem.IsRoleAuth || pluginItem.is_role_auth || pluginItem.EnableRoleAuth || pluginItem.enable_role_auth || pluginItem.EnableCamRoleAuth),
+        IsRoleAuth: !!(pluginItem.IsRoleAuth || pluginItem.EnableRoleAuth || pluginItem.EnableCamRoleAuth),
         AuthMode: 1, // 强制设为使用者授权
-        AuthType: Number(pluginItem.AuthType || pluginItem.auth_type || 0),
-        PluginClass: Number(pluginItem.PluginClass || pluginItem.plugin_class || 0),
+        AuthType: Number(pluginItem.AuthType || 0),
+        PluginClass: Number(pluginItem.PluginClass || 0),
     };
 }
 
@@ -480,14 +480,14 @@ function buildNewPluginConfig(pluginItem: Record<string, unknown>): Record<strin
  * 直接使用 sanitizeToolConfig 确保字段白名单一致。
  */
 function buildNewToolSpec(pluginItem: Record<string, unknown>, toolItem: Record<string, unknown>): Record<string, unknown> {
-    const pluginId = (pluginItem.PluginId || pluginItem.plugin_id || '') as string;
-    const toolId = (toolItem.ToolId || toolItem.tool_id || toolItem.id || '') as string;
-    const toolDesc = (toolItem.Desc || toolItem.tool_desc || toolItem.description || toolItem.Description || '') as string;
-    const inputs = (toolItem.Inputs || toolItem.inputs || toolItem.InputList || []) as Record<string, unknown>[];
-    const outputs = (toolItem.Outputs || toolItem.outputs || toolItem.OutputList || []) as Record<string, unknown>[];
-    const headers = (pluginItem.Headers || pluginItem.headers || []) as Record<string, unknown>[];
-    const query = (pluginItem.Query || pluginItem.query || []) as Record<string, unknown>[];
-    const toolSource = Number(toolItem.ToolSource || toolItem.tool_source || 0);
+    const pluginId = (pluginItem.PluginId || '') as string;
+    const toolId = (toolItem.ToolId || '') as string;
+    const toolDesc = (toolItem.Desc || toolItem.Description || '') as string;
+    const inputs = (toolItem.Inputs || toolItem.InputList || []) as Record<string, unknown>[];
+    const outputs = (toolItem.Outputs || toolItem.OutputList || []) as Record<string, unknown>[];
+    const headers = (pluginItem.Headers || []) as Record<string, unknown>[];
+    const query = (pluginItem.Query || []) as Record<string, unknown>[];
+    const toolSource = Number(toolItem.ToolSource || 0);
 
     // 构建原始 Config 对象，然后通过 sanitizeToolConfig 做白名单过滤
     const rawConfig: Record<string, unknown> = {
@@ -497,16 +497,16 @@ function buildNewToolSpec(pluginItem: Record<string, unknown>, toolItem: Record<
         InputList: inputs,
         OutputList: outputs,
         HeaderParameterList: headers.map((p) => ({
-            ParameterName: p.Name || p.ParameterName || p.ParamName || p.param_name || p.name || '',
-            IsGlobalHidden: !!(p.IsGlobalHidden || p.GlobalHidden || p.global_hidden),
-            IsRequired: !!(p.IsRequired || p.is_required),
-            Input: (p.Input as Record<string, unknown>) || (p.input as Record<string, unknown>) || buildInputFromParamValue(p.ParamValue || p.param_value),
+            ParameterName: p.Name || p.ParameterName || p.ParamName || '',
+            IsGlobalHidden: !!(p.IsGlobalHidden || p.GlobalHidden),
+            IsRequired: !!(p.IsRequired),
+            Input: (p.Input as Record<string, unknown>) || buildInputFromParamValue(p.ParamValue),
         })),
         QueryParameterList: query.map((p) => ({
-            ParameterName: p.Name || p.ParameterName || p.ParamName || p.param_name || p.name || '',
-            IsGlobalHidden: !!(p.IsGlobalHidden || p.GlobalHidden || p.global_hidden),
-            IsRequired: !!(p.IsRequired || p.is_required),
-            Input: (p.Input as Record<string, unknown>) || (p.input as Record<string, unknown>) || buildInputFromParamValue(p.ParamValue || p.param_value),
+            ParameterName: p.Name || p.ParameterName || p.ParamName || '',
+            IsGlobalHidden: !!(p.IsGlobalHidden || p.GlobalHidden),
+            IsRequired: !!(p.IsRequired),
+            Input: (p.Input as Record<string, unknown>) || buildInputFromParamValue(p.ParamValue),
         })),
         ToolSource: toolSource,
     };
@@ -540,9 +540,9 @@ async function doEnableConnector(item: ConnectorItem, agentId: string): Promise<
     const newTools = getItemTools(item.raw);
     const newToolSpecs = newTools.map(t => buildNewToolSpec(item.raw, t));
 
-    // 提取当前插件绑定涉及的 tool_id 列表
+    // 提取当前插件绑定涉及的 ToolId 列表
     const toolIdList = newTools.map((t) =>
-        ((t as Record<string, unknown>).ToolId || (t as Record<string, unknown>).tool_id || (t as Record<string, unknown>).id || '') as string,
+        ((t as Record<string, unknown>).ToolId || '') as string,
     ).filter(Boolean);
 
     // 步骤 1：BindAgentTool — Connector 类插件无显式工具列表，仅需传 PluginId

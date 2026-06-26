@@ -114,7 +114,10 @@
                     :enableVoiceInput="props.enableVoiceInput"
                     :isUploading="props.isUploading"
                     :currentApplicationId="props.currentApplicationId"
-                    :enableSkills="props.enableSkills"
+                    :enableSkills="props.enableSkills && agentDetailAvailable"
+                    :enableModelSelector="props.enableModelSelector && agentDetailAvailable"
+                    :enableConnector="props.enableConnector && agentDetailAvailable"
+                    :enableTools="props.enableTools && agentDetailAvailable"
                     :spaceId="props.skillsSpaceId"
                     :skillsApplicationId="skillsAppId"
                     @stop="onStop"
@@ -187,6 +190,12 @@ export interface Props extends ChatRelatedProps {
     isOverlay?: boolean;
     /** 是否启用 Skills 功能 */
     enableSkills?: boolean;
+    /** 是否显示模型选择器 */
+    enableModelSelector?: boolean;
+    /** 是否显示连接器按钮 */
+    enableConnector?: boolean;
+    /** 是否显示工具按钮 */
+    enableTools?: boolean;
     /** Skills 空间 ID */
     skillsSpaceId?: string;
     /** Skills 应用 ID（/adp/ 转发需要） */
@@ -211,7 +220,10 @@ const props = withDefaults(defineProps<Props>(), {
     enableVoiceInput: true,
     isUploading: false,
     isOverlay: false,
-    enableSkills: true,
+    enableSkills: false,
+    enableModelSelector: false,
+    enableConnector: false,
+    enableTools: false,
     skillsSpaceId: '',
     skillsApplicationId: '',
 });
@@ -254,6 +266,9 @@ const skillsAppId = computed(() => {
 });
 
 const { getAgentDetailByAppId } = useAgentStore();
+
+/** 标记 getAgentDetailByAppId 是否返回了有效数据，用于和外部传入的 enable* props 做 AND 运算 */
+const agentDetailAvailable = ref(false);
 
 // 调试：持续打印 currentApplicationId 变化
 watch(() => props.currentApplicationId, (v) => {
@@ -310,7 +325,13 @@ async function refreshMentionLists() {
     if (!appId) return;
     try {
         const result = await getAgentDetailByAppId(appId);
-        if (!result) return;
+        // 请求返回后，如果应用 ID 已经变化，丢弃过期结果
+        if (skillsAppId.value !== appId) return;
+        if (!result) {
+            agentDetailAvailable.value = false;
+            return;
+        }
+        agentDetailAvailable.value = true;
         // skills
         mentionSkills.value = ((result.skills || []) as AgentSkillInfo[])
             .filter((s) => !!s.DisplayName)
@@ -363,6 +384,7 @@ async function refreshMentionLists() {
             .filter((t) => pluginClassMap.get(getPluginId(t)) === 0)
             .map(buildItem);
     } catch (e) {
+        agentDetailAvailable.value = false;
         // eslint-disable-next-line no-console
         console.warn('[Chat/Index] refreshMentionLists failed:', e);
     }

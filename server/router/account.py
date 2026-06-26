@@ -20,6 +20,7 @@ class CreateAccountApi(HTTPMethodView):
         args = parser.parse_args(request)
 
         account = await CoreAccount.create_account(request.ctx.db, email=args["Email"], password=args["Password"])
+        await request.ctx.db.commit()
 
         account.Password = None
         account.PasswordSalt = None
