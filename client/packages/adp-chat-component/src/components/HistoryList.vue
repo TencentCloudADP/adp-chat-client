@@ -98,44 +98,52 @@ const handleClick = (detail: ChatConversation) => {
 <style scoped>
 .history-list {
     width: 100%;
+    padding: 0 4px;
 }
 
 .history-header {
-    font-size: var(--td-font-size-mark-small);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
     height: var(--td-comp-size-s);
     line-height: var(--td-comp-size-s);
-    color: var(--td-text-color-primary);
+    color: var(--td-text-color-placeholder);
     padding-left: var(--td-comp-paddingLR-s);
     display: flex;
     align-items: center;
-    margin-bottom: var(--td-comp-margin-s);
+    margin-bottom: var(--td-comp-margin-xs);
 }
 
 .history-header__title {
     color: var(--td-text-color-placeholder);
-    font-size: var(--td-font-size-mark-small);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
 }
 
 .history-item {
-    height: var(--td-comp-size-m);
-    line-height: var(--td-comp-size-m);
+    min-height: 36px;
+    line-height: 20px;
     cursor: pointer;
-    padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-s);
+    padding: 8px 10px;
     border-radius: var(--td-radius-medium);
-    transition: background 0.2s;
+    transition: background 0.15s ease, color 0.15s ease;
     color: var(--td-text-color-primary);
     display: flex;
     justify-content: space-between;
     align-items: center;
     font-size: var(--td-font-size-body-medium);
+    margin-bottom: 2px;
 }
 
 .history-item.active {
     background: var(--td-bg-color-container-active);
+    font-weight: 500;
 }
 
-.history-item:hover {
-    background: var(--td-bg-color-container-active);
+.history-item:hover:not(.active) {
+    background: var(--td-bg-color-container-hover);
 }
 
 .history-title {
@@ -149,7 +157,14 @@ const handleClick = (detail: ChatConversation) => {
 .history-time {
     flex-shrink: 0;
     margin-left: 8px;
-    font-size: var(--td-font-size-link-small);
+    font-size: 11px;
     color: var(--td-text-color-placeholder);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.history-item:hover .history-time,
+.history-item.active .history-time {
+    opacity: 1;
 }
 </style>

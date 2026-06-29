@@ -1275,6 +1275,7 @@ defineExpose({
 </template>
 
 <style scoped>
+/* ── 主容器 ── */
 .sender-container {
     width: 100%;
     max-width: 800px;
@@ -1309,37 +1310,53 @@ defineExpose({
         0 0 0 3px rgba(0, 82, 217, 0.04);
 }
 
-/* 减少动画偏好（系统级 prefers-reduced-motion）时关闭过渡，避免给敏感用户带来不适 */
 @media (prefers-reduced-motion: reduce) {
-    .sender-container {
-        transition: none;
+    .sender-container,
+    .sender-container * {
+        transition: none !important;
     }
 }
 
 .sender-container.is-uploading {
-    opacity: 0.7;
+    opacity: 0.65;
     pointer-events: auto;
 }
 
-/* 文件区域 */
+/* ── 文件预览区域 ── */
 .sender-files {
-    padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-m) 0;
+    padding: 10px 14px 0;
 }
 
-/* 编辑器区域 */
+/* ── 编辑器区域 ── */
 .sender-editor-area {
     max-height: 200px;
     overflow-y: auto;
     overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--td-scrollbar-color, rgba(0,0,0,.12)) transparent;
 }
 
-/* 底部工具栏 */
+.sender-editor-area::-webkit-scrollbar {
+    width: 5px;
+}
+
+.sender-editor-area::-webkit-scrollbar-thumb {
+    background: var(--td-scrollbar-color, rgba(0,0,0,.12));
+    border-radius: 4px;
+}
+
+.sender-editor-area::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* ── 底部工具栏 ── */
 .sender-toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--td-comp-paddingTB-xxs) var(--td-comp-paddingLR-s) var(--td-comp-paddingTB-s);
+    padding: 2px 10px 8px;
     cursor: default;
+    gap: 4px;
 }
 
 .sender-toolbar__primary {
@@ -1350,16 +1367,17 @@ defineExpose({
 .sender-toolbar__extras {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
 }
 
 .sender-toolbar__right {
     display: flex;
     align-items: center;
     margin-left: auto;
+    flex-shrink: 0;
 }
 
-/* 移动端：extras 换行到第二排 */
+/* ── 移动端布局 ── */
 .sender-toolbar.is-mobile {
     flex-wrap: wrap;
 }
@@ -1368,6 +1386,7 @@ defineExpose({
     order: 3;
     width: 100%;
     margin-top: 6px;
+    gap: 4px;
 }
 
 .sender-toolbar.is-mobile .sender-toolbar__right {
@@ -1379,7 +1398,7 @@ defineExpose({
     flex: 1;
 }
 
-/* 加号菜单 */
+/* ── 加号菜单 ── */
 .plus-menu-wrapper {
     position: relative;
     display: inline-flex;
@@ -1387,62 +1406,72 @@ defineExpose({
 }
 
 .plus-btn {
-    width: var(--td-comp-size-m);
-    height: var(--td-comp-size-m);
+    width: 32px;
+    height: 32px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    border-radius: var(--td-radius-default);
-    transition: background 0.2s, transform 0.2s;
+    border-radius: var(--td-radius-medium);
+    transition: background 0.15s ease;
 }
 
 .plus-btn:hover {
+    background-color: var(--td-bg-color-container-hover);
+}
+
+.plus-btn:active {
     background-color: var(--td-bg-color-container-active);
 }
-.plus-btn:active {
-    background-color: var(--td-bg-color-component-active);
+
+.plus-btn.active {
+    background-color: var(--td-bg-color-container-hover);
 }
 
 .plus-btn.disabled {
-    opacity: 0.4;
+    opacity: 0.3;
     cursor: not-allowed;
     pointer-events: none;
 }
 
 .plus-menu-popover {
     position: absolute;
-    bottom: calc(100% + 8px);
+    bottom: calc(100% + 6px);
     left: 0;
-    width: 140px;
-    padding: var(--td-pop-padding-m);
-    border-radius: var(--td-radius-large);
+    min-width: 148px;
+    padding: 5px;
+    border-radius: 12px;
     background: var(--td-bg-color-container);
-    box-shadow: var(--td-shadow-2);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 8px 32px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--td-component-stroke);
     z-index: 2000;
 }
 
 .plus-menu-item {
     display: flex;
     align-items: center;
-    gap: var(--td-comp-margin-s);
-    padding: var(--td-comp-paddingTB-s);
-    border-radius: var(--td-radius-medium);
-    font-size: var(--td-font-size-body-small);
-    line-height: var(--td-line-height-body-small);
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 20px;
     color: var(--td-text-color-primary);
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.12s ease;
 }
 
 .plus-menu-item:hover {
-   background-color: var(--td-bg-color-container-active);
+    background-color: var(--td-bg-color-container-hover);
 }
 
-/* 菜单出入动画 */
+.plus-menu-item:active {
+    background-color: var(--td-bg-color-container-active);
+}
+
+/* ── 菜单出入动画 ── */
 .fade-up-enter-active,
 .fade-up-leave-active {
-    transition: opacity 0.15s, transform 0.15s;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .fade-up-enter-from,
@@ -1451,84 +1480,111 @@ defineExpose({
     transform: translateY(4px);
 }
 
-/* 模型选择器 */
+/* ── 模型选择器 ── */
 .sender-model-selector {
     display: inline-flex;
     align-items: center;
 }
 
-/* 录音按钮 */
-.recording-icon:hover {
-    cursor: pointer;
-    color: var(--td-brand-color);
-}
-
+/* ── 录音按钮 ── */
 .recording-icon {
-    height: var(--td-comp-size-m);
+    height: 32px;
     display: inline-flex;
     align-items: center;
-    margin-right: var(--td-comp-paddingLR-xs);
+    margin-right: 2px;
+    cursor: pointer;
+    border-radius: var(--td-radius-medium);
+    transition: color 0.15s ease, background 0.15s ease;
 }
 
-/* 发送按钮 */
+.recording-icon:hover {
+    color: var(--td-brand-color);
+    background: var(--td-bg-color-container-hover);
+}
+
+.recording-icon .stop-icon {
+    color: var(--td-error-color);
+}
+
+/* ── 发送按钮 ── */
 .send-icon {
     padding: 0 !important;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    transition: opacity 0.15s ease, transform 0.12s ease;
+}
+
+.send-icon:active {
+    transform: scale(0.94);
 }
 
 .send-icon.disabled {
-    opacity: 0.4;
+    opacity: 0.25;
     cursor: not-allowed;
     pointer-events: none;
 }
 
-/* Skills 添加按钮 */
+.send-icon.stop {
+    color: var(--td-text-color-secondary);
+}
+
+.send-icon.stop:hover {
+    color: var(--td-text-color-primary);
+}
+
+/* ── Skills 添加按钮 ── */
 .skills-add-btn {
-    height: var(--td-comp-size-m);
+    height: 32px;
     display: inline-flex;
     align-items: center;
     cursor: pointer;
     margin-left: 2px;
 }
 
-/* 工具栏 pill 按钮（连接器、工具） */
+/* ── 工具栏 pill 按钮 ── */
 .toolbar-pill-btn {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 0 var(--td-size-4);
-    height: var(--td-comp-size-m);
+    padding: 0 8px;
+    height: 28px;
     border-radius: var(--td-radius-default);
-    font-size: var(--td-font-size-body-small);
+    font-size: 12px;
     line-height: 1;
     color: var(--td-text-color-secondary);
     cursor: pointer;
     white-space: nowrap;
-    transition: background-color 0.2s;
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
+
 .toolbar-pill-btn:hover {
     background: var(--td-bg-color-container-hover);
+    color: var(--td-text-color-primary);
 }
+
 .toolbar-pill-btn:active {
-    background: var(--td-bg-color-component-active);
+    background: var(--td-bg-color-container-active);
 }
+
 .toolbar-pill-btn__text {
     white-space: nowrap;
 }
 
-/* 移动端隐藏 Skills、工具、连接器的文字 */
+/* ── 移动端隐藏文字 ── */
 .sender-toolbar.is-mobile .toolbar-pill-btn__text,
 .sender-toolbar.is-mobile :deep(.skills-popover-trigger__text) {
     display: none;
 }
 
-/* @Mention overlay */
+/* ── @Mention overlay ── */
 .at-mention-overlay {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: 5600;
 }
 </style>
@@ -1539,18 +1595,23 @@ defineExpose({
     display: inline-flex;
     align-items: center;
     height: 20px;
-    padding: 0 4px;
+    padding: 0 5px;
     margin: 0 2px;
-    background: #F1F6FF;
-    border: 1px solid #DBE8FF;
-    border-radius: 3px;
+    background: var(--td-brand-color-light, #F1F6FF);
+    border: 1px solid var(--td-brand-color-light-hover, #DBE8FF);
+    border-radius: 4px;
     font-size: 12px;
     line-height: 16px;
-    color: #4A70FF;
+    color: var(--td-brand-color, #4A70FF);
     cursor: default;
     user-select: none;
     vertical-align: middle;
     white-space: nowrap;
+    transition: background 0.12s ease;
+}
+
+.at-mention-tag:hover {
+    background: var(--td-brand-color-light-hover, #E4EDFF);
 }
 
 .at-mention-tag__icon {
@@ -1574,8 +1635,8 @@ defineExpose({
 }
 
 .at-mention-tag__text {
-    margin-left: 2px;
-    font-family: 'PingFang SC', sans-serif;
+    margin-left: 3px;
+    font-family: 'PingFang SC', -apple-system, sans-serif;
     font-weight: 400;
     max-width: 160px;
     overflow: hidden;
@@ -1584,15 +1645,17 @@ defineExpose({
 }
 
 .at-mention-tag__close {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     margin-left: 2px;
     cursor: pointer;
     border-radius: 50%;
-    transition: background 0.15s;
-    background-size: 12px 12px;
+    transition: background 0.12s ease;
+    background-size: 10px 10px;
     background-repeat: no-repeat;
     background-position: center;
     background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M2.82542 9.67801C2.87136 9.65898 2.91255 9.6178 2.99492 9.53543L6.00011 6.53023L9.0053 9.53541C9.08766 9.61778 9.12885 9.65897 9.17479 9.678C9.23605 9.70337 9.30488 9.70337 9.36613 9.678C9.41208 9.65897 9.45326 9.61778 9.53563 9.53541C9.61799 9.45305 9.65918 9.41186 9.67821 9.36592C9.70358 9.30466 9.70358 9.23584 9.67821 9.17458C9.65918 9.12864 9.61799 9.08745 9.53563 9.00508L6.53044 5.9999L9.53565 2.99469C9.61802 2.91232 9.65921 2.87114 9.67824 2.8252C9.70361 2.76394 9.70361 2.69511 9.67824 2.63386C9.65921 2.58791 9.61802 2.54673 9.53565 2.46436C9.45329 2.38199 9.4121 2.34081 9.36616 2.32178C9.3049 2.29641 9.23608 2.29641 9.17482 2.32178C9.12888 2.34081 9.08769 2.38199 9.00532 2.46436L6.00011 5.46957L2.99489 2.46435C2.91252 2.38198 2.87134 2.34079 2.8254 2.32176C2.76414 2.29639 2.69531 2.29639 2.63405 2.32176C2.58811 2.34079 2.54693 2.38198 2.46456 2.46434C2.38219 2.54671 2.34101 2.5879 2.32198 2.63384C2.2966 2.6951 2.2966 2.76392 2.32198 2.82518C2.34101 2.87112 2.38219 2.91231 2.46456 2.99468L5.46978 5.9999L2.46459 9.0051C2.38222 9.08747 2.34103 9.12865 2.322 9.17459C2.29663 9.23585 2.29663 9.30468 2.322 9.36593C2.34103 9.41188 2.38222 9.45306 2.46459 9.53543C2.54695 9.6178 2.58814 9.65898 2.63408 9.67801C2.69534 9.70338 2.76416 9.70338 2.82542 9.67801Z' fill='%234A70FF'/%3E%3C/svg%3E");
@@ -1601,5 +1664,4 @@ defineExpose({
 .at-mention-tag__close:hover {
     background-color: rgba(74, 112, 255, 0.15);
 }
-
 </style>

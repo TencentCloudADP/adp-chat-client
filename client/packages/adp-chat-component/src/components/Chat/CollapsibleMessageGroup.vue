@@ -249,20 +249,22 @@ function extractText(msg: Message): string {
 </template>
 
 <style scoped>
+/* ── 折叠组容器 ── */
 .collapsible-group {
     width: 100%;
-    border-radius: var(--td-radius-medium);
+    border-radius: 8px;
 }
 
+/* ── 标题栏 ── */
 .collapsible-group__header {
     display: flex;
     align-items: center;
     gap: var(--td-comp-margin-xs);
     user-select: none;
-    padding: var(--td-comp-paddingTB-xxs);
+    padding: var(--td-comp-paddingTB-xxs) 4px;
     border-radius: var(--td-radius-default);
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.15s ease;
 }
 
 .collapsible-group__header:hover {
@@ -283,13 +285,15 @@ function extractText(msg: Message): string {
     width: var(--td-size-6);
     height: var(--td-size-6);
     transition: transform 0.2s ease;
-     transform: rotate(90deg);
+    transform: rotate(90deg);
+    flex-shrink: 0;
 }
 
 .collapsible-group__arrow--expanded {
     transform: rotate(180deg);
 }
 
+/* ── 展开内容 ── */
 .collapsible-group__content {
     margin-top: var(--td-comp-margin-xs);
     padding-left: var(--td-comp-paddingLR-l);
@@ -298,13 +302,7 @@ function extractText(msg: Message): string {
     gap: var(--td-comp-margin-xxs);
 }
 
-.collapsible-group__tool-item {
-}
-
-/* thought 折叠项：与外层深度思考样式一致 */
-.collapsible-group__thought {
-}
-
+/* ── 思考折叠项 ── */
 .collapsible-group__thought-header {
     color: var(--td-text-color-placeholder);
     display: flex;
@@ -316,7 +314,7 @@ function extractText(msg: Message): string {
     font-size: var(--td-font-size-link-small);
     line-height: 18px;
     font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-    transition: background 0.2s ease;
+    transition: background 0.15s ease;
 }
 
 .collapsible-group__thought-header:hover {
@@ -343,6 +341,7 @@ function extractText(msg: Message): string {
     font-size: var(--td-font-size-link-small);
 }
 
+/* ── Loading dot ── */
 .collapsible-group__loading-dot {
     display: inline-block;
     width: var(--td-size-3);
@@ -350,11 +349,22 @@ function extractText(msg: Message): string {
     border-radius: 50%;
     background: var(--td-brand-color);
     margin-left: var(--td-comp-margin-xs);
-    animation: pulse-dot 1.2s ease-in-out infinite;
+    animation: pulse-dot 1.4s ease-in-out infinite;
 }
 
 @keyframes pulse-dot {
-    0%, 100% { opacity: 0.3; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1.2); }
+    0%, 100% { opacity: 0.25; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.15); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .collapsible-group__loading-dot {
+        animation: none;
+        opacity: 0.6;
+    }
+    .collapsible-group__arrow,
+    .collapsible-group__thought-arrow {
+        transition: none;
+    }
 }
 </style>

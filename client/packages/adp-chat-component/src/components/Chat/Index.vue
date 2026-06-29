@@ -800,11 +800,13 @@ defineExpose({
 </script>
 
 <style scoped>
-.upload-loading{
-    position: absolute; 
-    bottom: var(--td-comp-margin-m); 
-    z-index:2
+/* ── 主容器 ── */
+.upload-loading {
+    position: absolute;
+    bottom: 12px;
+    z-index: 2;
 }
+
 .chat-box {
     height: 100%;
     position: relative;
@@ -816,12 +818,13 @@ defineExpose({
     align-items: self-start;
 }
 
+/* ── 分享设置浮层 ── */
 .share-setting-container {
     z-index: 10;
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    top: calc((var(--td-size-4) + var(--td-size-1)) * -1);
+    top: -6px;
     translate: 0 -100%;
     width: max-content;
 }
@@ -830,19 +833,31 @@ defineExpose({
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: var(--td-font-size-link-medium);
+    font-size: 13px;
+    gap: 4px;
 }
 
 .icon__share-copy {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 4px;
     background: var(--td-bg-color-container-hover);
-    border-radius: var(--td-radius-default);
-    padding: var(--td-comp-paddingLR-xs) var(--td-comp-paddingLR-xl);
-    margin-left: var(--td-comp-paddingLR-l);
-    margin-right: var(--td-comp-paddingLR-xs);
+    border-radius: var(--td-radius-medium);
+    padding: 5px 14px;
+    margin-left: 10px;
+    margin-right: 4px;
     cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.icon__share-copy:hover {
+    background: var(--td-bg-color-container-active);
+}
+
+.icon__share-copy:active {
+    background: var(--td-bg-color-container-active);
+    opacity: 0.85;
 }
 
 .share-text {
@@ -852,23 +867,33 @@ defineExpose({
 
 .icon__share-copy.disabled {
     cursor: not-allowed;
-    opacity: 0.4;
+    opacity: 0.25;
+    pointer-events: none;
 }
 
 .icon__share-copy span:nth-child(1) {
-    margin-right: var(--td-pop-padding-s);
+    margin-right: 4px;
 }
 
 .icon__share-close {
     cursor: pointer;
-    margin-left: var(--td-comp-margin-m);
-    padding-left: var(--td-comp-paddingLR-xxs);
+    margin-left: 10px;
+    padding: 2px 4px;
+    color: var(--td-text-color-secondary);
+    border-radius: var(--td-radius-default);
+    transition: color 0.15s ease, background 0.15s ease;
 }
 
-.thinking-text {
+.icon__share-close:hover {
     color: var(--td-text-color-primary);
-    font-size: var(--td-font-size-link-medium);
-    margin-left: var(--td-comp-margin-xs)
+    background: var(--td-bg-color-container-hover);
+}
+
+/* ── 加载状态 ── */
+.thinking-text {
+    color: var(--td-text-color-secondary);
+    font-size: 14px;
+    margin-left: 4px;
 }
 
 .thinking-icon {
@@ -878,6 +903,7 @@ defineExpose({
     padding: 0;
 }
 
+/* ── 内容区 ── */
 .content.isFull,
 .content.isFull .infinite-loading-container,
 .content.isFull .infinite-status-prompt {
@@ -891,24 +917,42 @@ defineExpose({
     justify-content: center;
 }
 
+/* ── Footer 区域 ── */
 :deep(.t-chat__footer) {
     display: flex;
     justify-content: center;
-    padding: 0 var(--td-comp-paddingLR-m);
+    padding: 0 16px;
 }
 
+/* ── 消息列表间距 ── */
 :deep(.content .chat-item__content) {
-    padding-bottom: var(--td-comp-paddingLR-l);
+    padding-bottom: 16px;
     margin-left: var(--td-size-4);
 }
 
 :deep(.content .chat-item__content:last-child) {
-    padding-bottom: var(--td-comp-paddingLR-xl);
+    padding-bottom: 24px;
 }
 
+/* ── 聊天列表容器 ── */
 :deep(.t-chat__list) {
-    padding: 0 calc(var(--td-comp-paddingLR-xl) - var(--td-size-4));
+    padding: 0 20px;
     overflow-y: scroll;
+    scrollbar-width: thin;
+    scrollbar-color: var(--td-scrollbar-color, rgba(0,0,0,.12)) transparent;
+}
+
+:deep(.t-chat__list::-webkit-scrollbar) {
+    width: 5px;
+}
+
+:deep(.t-chat__list::-webkit-scrollbar-thumb) {
+    background: var(--td-scrollbar-color, rgba(0,0,0,.12));
+    border-radius: 4px;
+}
+
+:deep(.t-chat__list::-webkit-scrollbar-track) {
+    background: transparent;
 }
 
 /* 确保 AppType 组件容器有足够高度实现垂直居中 */
@@ -918,53 +962,62 @@ defineExpose({
 
 :deep(.t-chat__list .content) {
     width: 100%;
-    max-width: calc(800px + var(--td-size-4));
+    max-width: 820px;
     margin: 0 auto;
 }
 
+/* ── 分享卡片覆盖 ── */
 :deep(.share-setting-content .t-card__body) {
-    padding: var(--td-comp-paddingLR-l) var(--td-size-10) var(--td-comp-paddingLR-l) var(--td-comp-paddingLR-xl);
+    padding: 10px 20px 10px 16px;
 }
 
 :deep(.share-setting-card) {
     box-sizing: border-box;
-    box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 18px rgba(18, 19, 25, 0.08), 0px 16px 64px rgba(18, 19, 25, 0.16);
-    border-radius: var(--td-radius-medium);
-    padding: var(--td-comp-paddingLR-s) var(--td-size-10) var(--td-comp-paddingLR-s) var(--td-comp-paddingLR-xl) !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 8px 32px rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
+    border: 1px solid var(--td-component-stroke);
+    padding: 8px 20px 8px 16px !important;
 }
 
 :deep(.share-setting-container) {
     border: none;
     box-sizing: border-box;
-    box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 18px rgba(18, 19, 25, 0.08), 0px 16px 64px rgba(18, 19, 25, 0.16);
-    border-radius: var(--td-radius-medium);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 8px 32px rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
 }
 
+/* ── 移动端分享面板 ── */
 .share-setting-content.isMobile {
-    font-size: var(--td-font-size-link-small);
+    font-size: 12px;
 }
 
 .share-setting-content.isMobile .icon__share-copy {
-    padding: var(--td-comp-paddingLR-xxs) var(--td-comp-paddingLR-s);
-    margin-left: var(--td-comp-paddingLR-s);
-    margin-right: var(--td-comp-paddingLR-xxs);
+    padding: 3px 10px;
+    margin-left: 8px;
+    margin-right: 3px;
 }
 
 .share-setting-content.isMobile .icon__share-copy :deep(svg) {
-    width: var(--td-font-size-body-medium);
-    height: var(--td-font-size-body-medium);
+    width: 14px;
+    height: 14px;
 }
 
 .share-setting-content.isMobile .icon__share-close {
-    margin-left: var(--td-comp-paddingLR-s);
+    margin-left: 8px;
     padding-left: 0;
 }
 
 :deep(.share-setting-container.isMobile .share-setting-card) {
-    padding: var(--td-comp-paddingLR-xs) var(--td-comp-paddingLR-s);
+    padding: 6px 10px;
 }
 
 :deep(.share-setting-container.isMobile) {
-    box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.06), 0px 0px 8px rgba(18, 19, 25, 0.06), 0px 8px 32px rgba(18, 19, 25, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .thinking-icon {
+        animation: none;
+    }
 }
 </style>

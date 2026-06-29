@@ -795,20 +795,21 @@ const referenceDialogTitle = computed(() => {
 </template>
 
 <style scoped>
-/* 错误消息：红色边框 + 浅红背景 */
+/* ── 错误消息 ── */
 .chat-item--error {
-    border: 1px solid var(--td-error-color, #e34d59);    
-    padding: 0 10px;
+    border: 1px solid var(--td-error-color-2, #ffd8d4);
+    padding: 0 12px;
     background-color: var(--td-error-color-1, #fff0ed);
-    
-    .md-content-container {
-        background-color: var(--td-error-color-1, #fff0ed);
-        font-size: 12px;
-        color: brown;
-    }
+    border-radius: 8px;
 }
 
-/* Widget action 独立行：在对话区域整行居中 */
+.chat-item--error :deep(.md-content-container) {
+    background-color: transparent;
+    font-size: 13px;
+    color: var(--td-error-color-6, #da4449);
+}
+
+/* ── Widget action 独立行 ── */
 .widget-action-row {
     width: 100%;
     display: flex;
@@ -817,20 +818,15 @@ const referenceDialogTitle = computed(() => {
     margin-bottom: var(--td-comp-margin-l);
 }
 
-/* claw 模式分组渲染容器 */
+/* ── Claw 模式分组渲染 ── */
 .claw-render {
     display: flex;
     flex-direction: column;
-    gap: var(--td-comp-margin-s);
+    gap: 6px;
     width: 100%;
 }
 
-.flex {
-    display: flex;
-    align-items: center;
-}
-
-/* 用户消息的复制和分享图标样式 */
+/* ── 用户消息 ── */
 .user-message {
     display: flex;
     flex-direction: column;
@@ -840,178 +836,223 @@ const referenceDialogTitle = computed(() => {
 .user-message .copy-icon,
 .user-message .share-icon {
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.15s ease;
     cursor: pointer;
 }
 
-.check-circle {
-    color: var(--td-success-color-5);
-    font-size: var(--td-font-size-title-large);
-    margin-right: var(--td-comp-margin-s);
-}
-.control-icon{
-    padding:var(--td-comp-paddingLR-xxs); 
-    margin-right: var(--td-comp-margin-s); 
-}
-.copy-icon{
-    padding-left: 0;
-}
-.icon.disabled {
-    opacity: 0.25;
-    cursor: not-allowed;
-}
-.icon.not-allowed {
-    cursor: not-allowed;
-}
-
-/* 用户消息图标悬停效果 */
 .user-message:hover .copy-icon,
 .user-message:hover .share-icon {
     opacity: 1;
 }
 
-/* 操作按钮容器样式 */
+/* ── 操作按钮 ── */
+.control-icon {
+    padding: 3px;
+    margin-right: 4px;
+    border-radius: var(--td-radius-default);
+    transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.control-icon:hover {
+    background-color: var(--td-bg-color-container-hover);
+}
+
+.copy-icon {
+    padding-left: 0;
+}
+
+.icon.disabled {
+    opacity: 0.2;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.icon.not-allowed {
+    cursor: not-allowed;
+}
+
+/* ── 操作按钮容器 ── */
 .actions-container {
     display: flex;
     align-items: center;
     list-style: none;
-    padding: var(--td-pop-padding-s);
+    padding: 4px 0;
     overflow: hidden;
     position: relative;
-    padding-left: 0;
+    gap: 0;
 }
+
 .actions-divider {
     width: 1px;
-    height: var(--td-comp-paddingTB-m);
-    background: var(--td-border-level-2-color);
-    margin-left: var(--td-comp-margin-xs);
+    height: 14px;
+    background: var(--td-component-stroke);
+    margin: 0 6px;
+    flex-shrink: 0;
 }
+
 .actions-time {
-    font-size: var(--td-font-size-link-small);
+    font-size: 11px;
     color: var(--td-text-color-placeholder);
     line-height: var(--td-line-height-body-small);
-    margin-left: var(--td-comp-margin-m);
+    margin-left: 4px;
     white-space: nowrap;
+    opacity: 0.65;
 }
-.collapsed-thinking-text{
+
+/* ── 深度思考折叠 ── */
+.collapsed-thinking-text {
     color: var(--td-text-color-placeholder);
     display: flex;
     align-items: center;
-    gap: var(--td-comp-margin-xs);
+    gap: 4px;
     width: 100%;
-    padding: var(--td-comp-paddingTB-xxs) var(--td-comp-paddingLR-s);
+    padding: 3px 8px;
     border-radius: var(--td-radius-default);
     cursor: pointer;
-    font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
-    font-size: var(--td-font-size-link-small);
+    font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
+    font-size: 12px;
     font-weight: 400;
-    line-height: var(--td-line-height-link-small);
+    line-height: 18px;
+    transition: background 0.15s ease;
 }
+
 .collapsed-thinking-text:hover {
     background: var(--td-bg-color-container-hover);
 }
-/* 去掉 collapse panel header 的默认 padding，让深度思考 hover 撑满全宽 */
+
 :deep(.t-collapse-panel__header) {
     padding: 0 !important;
 }
-/* 隐藏 TDesign collapse 自带的下拉图标 */
+
 :deep(.t-collapse-panel__icon) {
     display: none;
 }
+
 .thinking-arrow-icon {
     transform: rotate(180deg);
     transition: transform 0.2s ease;
     flex-shrink: 0;
 }
+
 .thinking-arrow--expanded {
     transform: rotate(90deg);
 }
+
+/* ── 加载状态 ── */
 .loading-container {
     padding: 0;
 }
 
-.thinking-text{
-    color: var(--td-text-color-primary);
-    font-size: var(--td-font-size-link-medium);
-    margin-left: var(--td-comp-margin-xs)
+.thinking-text {
+    color: var(--td-text-color-secondary);
+    font-size: 14px;
+    margin-left: 4px;
 }
-.thinking-icon{
+
+.thinking-icon {
     animation: rotate 2s linear infinite;
     width: var(--td-comp-size-xs);
     height: var(--td-comp-size-xs);
     padding: 0;
 }
 
+/* ── 引用来源 ── */
 .references-container {
-    margin: 0px var(--td-comp-margin-l) var(--td-comp-margin-xl) var(--td-comp-margin-l);
+    margin: 8px 16px 16px 16px;
+    padding: 12px 14px;
+    background: var(--td-bg-color-container-hover);
+    border-radius: 8px;
 }
 
 .references-container .title {
-    color: var(--td-text-color-secondary);
+    color: var(--td-text-color-placeholder);
     display: inline-block;
-    margin-bottom: var(--td-comp-margin-s);
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 500;
 }
 
 .reference-list {
     margin: 0;
-    padding-left: var(--td-comp-margin-l);
+    padding-left: 16px;
 }
 
 .reference-list__item + .reference-list__item {
-    margin-top: var(--td-comp-margin-s);
+    margin-top: 6px;
 }
 
 .reference-slice__trigger {
     width: 100%;
     display: block;
     text-align: left;
-    padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-m);
-    border: 1px solid var(--td-component-border);
-    border-radius: var(--td-radius-medium);
-    background: var(--td-bg-color-container-hover);
+    padding: 8px 12px;
+    border: 1px solid var(--td-component-stroke);
+    border-radius: 8px;
+    background: var(--td-bg-color-container);
     cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .reference-slice__trigger:hover {
-    background: var(--td-bg-color-container-select);
+    border-color: var(--td-brand-color-3);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 .reference-slice__header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--td-comp-margin-s);
+    gap: 8px;
 }
 
 .reference-slice__name {
     color: var(--td-text-color-primary);
     font-weight: 600;
+    font-size: 13px;
 }
 
 .reference-slice__meta,
 .reference-link__meta {
     color: var(--td-text-color-placeholder);
-    font-size: var(--td-font-size-body-small);
-    margin-top: var(--td-comp-margin-xxs);
+    font-size: 11px;
+    margin-top: 2px;
 }
 
 .reference-slice__preview {
     color: var(--td-text-color-secondary);
-    margin-top: var(--td-comp-margin-xs);
+    font-size: 12px;
+    margin-top: 4px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     word-break: break-word;
+    line-height: 1.5;
 }
 
 .reference-link {
     word-break: break-word;
 }
 
+/* ── 引用详情弹窗 ── */
 .reference-dialog {
     max-height: min(70vh, 720px);
     overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--td-scrollbar-color, rgba(0,0,0,.12)) transparent;
+}
+
+.reference-dialog::-webkit-scrollbar {
+    width: 5px;
+}
+
+.reference-dialog::-webkit-scrollbar-thumb {
+    background: var(--td-scrollbar-color, rgba(0,0,0,.12));
+    border-radius: 4px;
+}
+
+.reference-dialog::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 .reference-dialog__meta {
@@ -1030,52 +1071,66 @@ const referenceDialogTitle = computed(() => {
     line-height: 1.7;
 }
 
-.loading-container {
-    padding: 0;
-}
-:deep(.t-chat__actions-margin){
+/* ── 布局覆盖 ── */
+:deep(.t-chat__actions-margin) {
     width: 100%;
     padding: 0;
     margin-left: 0;
 }
-.isMobile .share-icon{
+
+/* ── 移动端 ── */
+.isMobile .share-icon {
     position: absolute;
     right: 0;
     margin-right: 0;
 }
-.isMobile .control-icon{
-    border: 1px solid var(--td-component-border);
+
+.isMobile .control-icon {
+    border: 1px solid var(--td-component-stroke);
     border-radius: var(--td-radius-medium);
     padding: calc(var(--td-pop-padding-m) - 1px);
 }
-.chat-item__container.loading{
+
+.chat-item__container.loading {
     padding-bottom: var(--td-comp-paddingTB-xxl);
 }
 
+/* ── 附件 ── */
 .file-attachments {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--td-comp-margin-s);
-    margin: var(--td-comp-margin-s) 0;
+    gap: 8px;
+    margin: 8px 0;
 }
 
 .image-attachments {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--td-comp-margin-s);
-    margin: var(--td-comp-margin-s) 0 ;
+    gap: 8px;
+    margin: 8px 0;
 }
 
 .msg-inline-image {
     max-width: 200px;
     max-height: 200px;
-    border-radius: var(--td-radius-large);
+    border-radius: 10px;
     object-fit: contain;
     cursor: pointer;
     display: block;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .msg-inline-image:hover {
-    opacity: 0.9;
+    opacity: 0.88;
+    transform: scale(1.02);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .thinking-icon {
+        animation: none;
+    }
+    .msg-inline-image {
+        transition: none;
+    }
 }
 </style>

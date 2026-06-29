@@ -19,6 +19,9 @@ withDefaults(defineProps<Props>(), {
 .ai-warning {
     text-align: center;
     color: var(--td-text-color-placeholder);
-    font-size: var(--td-font-size-body-small);
+    font-size: 11px;
+    opacity: 0.7;
+    letter-spacing: 0.01em;
+    padding: 2px 0;
 }
 </style>

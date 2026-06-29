@@ -5,9 +5,291 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ADP Chat Client</title>
+    <style id="loading-style">
+      /* 首屏加载动画 - 会在 Vue 挂载后移除 */
+      #app-loading {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        background: #fff;
+        z-index: 99999;
+        transition: opacity 0.3s ease-out;
+      }
+      #app-loading.fade-out {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #app-loading .loading-text {
+        margin-top: 20px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 14px;
+        color: #666;
+        letter-spacing: 0.5px;
+        animation: loadingTextPulse 2s ease-in-out infinite;
+      }
+      #app-loading .animated-icon {
+        width: 64px;
+        height: 52px;
+      }
+      #app-loading .animated-icon svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+      /* 闲置浮动动画 */
+      .animated-icon__eye-left,
+      .animated-icon__eye-right {
+        transition: transform 0.06s ease-out;
+        animation: animatedIconEyeIdle 4s ease-in-out infinite;
+      }
+      .animated-icon__eye-left { transform-origin: 19.6px 15.8px; }
+      .animated-icon__eye-right { transform-origin: 30px 15.6px; }
+      .animated-icon__hex-outer {
+        transition: transform 0.15s ease-out;
+        transform-origin: 23.75px 18.5px;
+        animation: animatedIconHexIdle 5s ease-in-out infinite;
+      }
+      .animated-icon__hex-inner {
+        transition: transform 0.12s ease-out;
+        transform-origin: 23.75px 18.5px;
+        animation: animatedIconHexIdle 4.5s ease-in-out infinite;
+        animation-delay: 0.3s;
+      }
+      .animated-icon__hex-corner {
+        transition: transform 0.18s ease-out;
+        transform-origin: 41px 8px;
+        animation: animatedIconHexIdle 5.5s ease-in-out infinite;
+        animation-delay: 0.6s;
+      }
+      @keyframes animatedIconEyeIdle {
+        0%, 100% { transform: translate(0px, 0px); }
+        20% { transform: translate(0.6px, -0.3px); }
+        40% { transform: translate(1px, 0.2px); }
+        60% { transform: translate(0.3px, 0.5px); }
+        80% { transform: translate(-0.4px, 0.1px); }
+      }
+      @keyframes animatedIconHexIdle {
+        0%, 100% { transform: rotate(0deg) translate(0px, 0px); }
+        25% { transform: rotate(0.3deg) translate(0.2px, -0.1px); }
+        50% { transform: rotate(-0.2deg) translate(-0.1px, 0.15px); }
+        75% { transform: rotate(0.15deg) translate(0.1px, 0.1px); }
+      }
+      @keyframes loadingTextPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .animated-icon__eye-left,
+        .animated-icon__eye-right,
+        .animated-icon__hex-outer,
+        .animated-icon__hex-inner,
+        .animated-icon__hex-corner {
+          animation: none !important;
+        }
+        #app-loading .loading-text {
+          animation: none !important;
+        }
+      }
+    </style>
   </head>
   <body>
+    <!-- 首屏加载动画骨架屏 -->
+    <div id="app-loading">
+      <div class="animated-icon">
+        <svg width="49" height="40" viewBox="0 0 49 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g class="animated-icon__hex-outer">
+            <path d="M22.0045 2.04865C23.0877 1.42331 24.4221 1.42331 25.5052 2.04865L37.1629 8.77923C38.246 9.40457 38.9133 10.5602 38.9133 11.8109V25.2721C38.9133 26.5228 38.246 27.6784 37.1629 28.3038L25.5052 35.0344C24.4221 35.6597 23.0877 35.6597 22.0045 35.0344L10.3468 28.3038C9.2637 27.6784 8.59648 26.5228 8.59648 25.2721V11.8109C8.59648 10.5602 9.2637 9.40457 10.3468 8.77923L22.0045 2.04865Z" fill="black"/>
+            <path d="M20.7543 2.21173C21.8374 1.5864 23.1719 1.5864 24.255 2.21173L35.9127 8.94232C36.9958 9.56765 37.663 10.7233 37.663 11.974V25.4352C37.663 26.6858 36.9958 27.8415 35.9127 28.4669L24.255 35.1974C23.1719 35.8228 21.8374 35.8228 20.7543 35.1974L9.09657 28.4669C8.01346 27.8415 7.34623 26.6858 7.34623 25.4352V11.974C7.34623 10.7233 8.01346 9.56765 9.09657 8.94232L20.7543 2.21173Z" fill="black"/>
+            <path d="M19.5043 3.46271C20.5874 2.83737 21.9219 2.83737 23.005 3.46271L34.6627 10.1933C35.7458 10.8186 36.413 11.9743 36.413 13.225V26.6861C36.413 27.9368 35.7458 29.0925 34.6627 29.7178L23.005 36.4484C21.9219 37.0737 20.5874 37.0737 19.5043 36.4484L7.84657 29.7178C6.76346 29.0925 6.09623 27.9368 6.09623 26.6861V13.225C6.09623 11.9743 6.76346 10.8186 7.84657 10.1933L19.5043 3.46271Z" fill="black"/>
+            <path d="M18.2538 3.62677C19.3369 3.00143 20.6714 3.00143 21.7545 3.62677L33.4122 10.3574C34.4953 10.9827 35.1625 12.1384 35.1625 13.389V26.8502C35.1625 28.1009 34.4953 29.2566 33.4122 29.8819L21.7545 36.6125C20.6714 37.2378 19.3369 37.2378 18.2538 36.6125L6.59609 29.8819C5.51297 29.2566 4.84575 28.1009 4.84575 26.8502V13.389C4.84575 12.1384 5.51297 10.9827 6.59609 10.3574L18.2538 3.62677Z" fill="black"/>
+            <path d="M17.0033 4.87677C18.0864 4.25143 19.4209 4.25143 20.504 4.87677L32.1617 11.6074C33.2448 12.2327 33.9121 13.3884 33.9121 14.639V28.1002C33.9121 29.3509 33.2448 30.5066 32.1617 31.1319L20.504 37.8625C19.4209 38.4878 18.0864 38.4878 17.0033 37.8625L5.3456 31.1319C4.26248 30.5066 3.59526 29.3509 3.59526 28.1002V14.639C3.59526 13.3884 4.26248 12.2327 5.3456 11.6074L17.0033 4.87677Z" fill="black"/>
+            <path d="M15.7531 5.04181C16.8362 4.41647 18.1706 4.41647 19.2538 5.04181L30.9115 11.7724C31.9946 12.3977 32.6618 13.5534 32.6618 14.8041V28.2652C32.6618 29.5159 31.9946 30.6716 30.9115 31.2969L19.2538 38.0275C18.1706 38.6529 16.8362 38.6529 15.7531 38.0275L4.09535 31.2969C3.01224 30.6716 2.34501 29.5159 2.34501 28.2652V14.8041C2.34501 13.5534 3.01224 12.3977 4.09535 11.7724L15.7531 5.04181Z" fill="black"/>
+          </g>
+          <g class="animated-icon__hex-inner">
+            <path d="M22.7547 4.11555C23.3736 3.75821 24.1361 3.75821 24.7551 4.11555L35.7476 10.4621C36.3665 10.8194 36.7478 11.4798 36.7478 12.1945V24.8875C36.7478 25.6022 36.3665 26.2626 35.7476 26.6199L24.7551 32.9665C24.1361 33.3238 23.3736 33.3238 22.7547 32.9665L11.7622 26.6199C11.1432 26.2626 10.762 25.6022 10.762 24.8875V12.1945C10.762 11.4798 11.1432 10.8194 11.7622 10.4621L22.7547 4.11555Z" fill="white"/>
+          </g>
+          <g class="animated-icon__eye-right" id="loading-eye-right">
+            <path d="M32.506 17.9111L27.5962 16.137L32.0685 13.3243" stroke="black" stroke-width="2.0673" stroke-miterlimit="2.61313" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+          <g class="animated-icon__eye-left" id="loading-eye-left">
+            <path d="M20.761 13.3126C20.815 13.3352 20.8693 13.3572 20.9242 13.3775C20.9242 13.3989 20.9242 13.4203 20.9242 13.4424C20.978 13.4531 21.0319 13.4638 21.0874 13.4749C21.0874 13.4963 21.0874 13.5177 21.0874 13.5398C21.1099 13.5466 21.1324 13.5534 21.1555 13.5604C21.2801 13.6185 21.3657 13.6997 21.4647 13.7934C21.4831 13.8103 21.5015 13.8272 21.5204 13.8447C21.6253 13.9424 21.7182 14.0424 21.8052 14.1565C21.8308 14.1887 21.8564 14.2208 21.8828 14.2539C22.0036 14.4234 22.0817 14.6158 22.1642 14.8057C22.1751 14.8296 22.186 14.8535 22.1972 14.8781C22.3223 15.1725 22.3007 15.5143 22.3008 15.8282C22.3012 15.8623 22.3016 15.8964 22.3021 15.9315C22.3026 16.2158 22.3021 16.5137 22.1316 16.7533C22.0936 16.8282 22.0562 16.9031 22.0194 16.9785C21.7748 17.4788 21.4219 17.8198 20.9568 18.1166C20.9356 18.1336 20.9144 18.1505 20.8926 18.168C20.8046 18.2291 20.7151 18.2611 20.6142 18.2972C20.5775 18.3106 20.5408 18.3241 20.503 18.3379C20.1903 18.4356 19.8731 18.4516 19.5475 18.4493C19.5113 18.4496 19.4751 18.4499 19.4377 18.4501C19.1302 18.4494 18.8881 18.4036 18.6073 18.2789C18.5591 18.2645 18.5109 18.2503 18.4625 18.2363C18.3232 18.1917 18.2235 18.1231 18.1102 18.0323C18.0509 17.9832 18.0509 17.9832 17.971 17.9401C17.518 17.6585 17.185 17.1518 17.0165 16.6559C17.0017 16.6145 17.0017 16.6145 16.9866 16.5722C16.8846 16.2783 16.8732 16.0067 16.8758 15.6984C16.876 15.6655 16.8761 15.6326 16.8763 15.5987C16.8766 15.5183 16.8772 15.4379 16.8779 15.3575C16.8994 15.3575 16.9209 15.3575 16.9431 15.3575C16.944 15.3308 16.9448 15.3041 16.9457 15.2766C16.9721 14.7595 17.2022 14.3431 17.5594 13.97C17.6301 13.8972 17.6301 13.8972 17.6936 13.8138C17.853 13.6202 18.0508 13.5015 18.281 13.4099C18.3014 13.3871 18.3014 13.3871 18.3222 13.3638C18.4492 13.2491 18.6441 13.2183 18.8064 13.1692C18.8591 13.1531 18.9114 13.1358 18.9636 13.1182C19.5061 12.9539 20.2795 12.9938 20.761 13.3126Z" fill="#1D1D1A"/>
+          </g>
+          <g class="animated-icon__hex-corner">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M38.6943 0.211332C39.1823 -0.0705001 39.7834 -0.0703882 40.2715 0.211332L47.2949 4.26797C47.7829 4.54984 48.0839 5.07047 48.084 5.63418V13.7475C48.0839 14.3112 47.7829 14.8318 47.2949 15.1137L42.5645 17.8461V8.78164C42.5645 8.21791 42.2643 7.69643 41.7764 7.41446L34 2.92227L38.6943 0.211332Z" fill="#4A70FF"/>
+          </g>
+        </svg>
+      </div>
+      <div class="loading-text">加载中…</div>
+    </div>
+
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
+
+    <!-- 首屏加载动画：鼠标跟随 + 眨眼 + Vue 挂载后自动移除 -->
+    <script>
+      (function() {
+        var eyeLeft = document.getElementById('loading-eye-left');
+        var eyeRight = document.getElementById('loading-eye-right');
+        var hexOuter = document.querySelector('.animated-icon__hex-outer');
+        var hexInner = document.querySelector('.animated-icon__hex-inner');
+        var hexCorner = document.querySelector('.animated-icon__hex-corner');
+        var svgEl = document.querySelector('#app-loading .animated-icon svg');
+        var blinkTimer = null;
+        var rafId = null;
+        var isMouseTracking = false;
+
+        // ---------- 配置 ----------
+        var CONFIG = {
+          maxMove: 3,
+          maxMoveDownMultiplier: 4,
+          hexMaxRotate: 2.5,
+          hexMaxMove: 2,
+          hexMaxMoveDownMultiplier: 2.5,
+          hexMaxMoveUpMultiplier: 1.5,
+          maxDistance: 300
+        };
+
+        // ---------- 鼠标跟随 ----------
+        function removeIdleAnimations() {
+          var els = [eyeLeft, eyeRight, hexOuter, hexInner, hexCorner];
+          for (var i = 0; i < els.length; i++) {
+            if (els[i]) els[i].style.animation = 'none';
+          }
+          isMouseTracking = true;
+        }
+
+        function restoreIdleAnimations() {
+          if (eyeLeft) eyeLeft.style.animation = '';
+          if (eyeRight) eyeRight.style.animation = '';
+          if (hexOuter) hexOuter.style.animation = '';
+          if (hexInner) hexInner.style.animation = '';
+          if (hexCorner) hexCorner.style.animation = '';
+          // 清除 inline transform
+          var els = [eyeLeft, eyeRight, hexOuter, hexInner, hexCorner];
+          for (var i = 0; i < els.length; i++) {
+            if (els[i]) els[i].style.transform = '';
+          }
+          isMouseTracking = false;
+        }
+
+        function applyMouseMove(e) {
+          if (!svgEl) return;
+          var rect = svgEl.getBoundingClientRect();
+          var svgCenterX = rect.left + rect.width / 2;
+          var svgCenterY = rect.top + rect.height / 2;
+          var dx = e.clientX - svgCenterX;
+          var dy = e.clientY - svgCenterY;
+          var distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < 2) return;
+
+          var ratio = Math.min(Math.pow(distance / CONFIG.maxDistance, 0.5), 1);
+
+          // 眼睛移动
+          var eyeMaxMoveX = dx < 0 ? 5 : CONFIG.maxMove;
+          var moveX = (dx / distance) * eyeMaxMoveX * ratio;
+          var maxMoveY = dy > 0
+            ? CONFIG.maxMove * CONFIG.maxMoveDownMultiplier
+            : CONFIG.maxMove;
+          var moveY = (dy / distance) * maxMoveY * ratio;
+
+          // 六边形视差
+          var hexRotate = (dx / Math.max(distance, 1)) * CONFIG.hexMaxRotate * ratio;
+          var hexMoveX = (dx / distance) * CONFIG.hexMaxMove * ratio;
+          var hexMaxMoveY = dy > 0
+            ? CONFIG.hexMaxMove * CONFIG.hexMaxMoveDownMultiplier
+            : CONFIG.hexMaxMove * CONFIG.hexMaxMoveUpMultiplier;
+          var hexMoveY = (dy / distance) * hexMaxMoveY * ratio;
+
+          if (!isMouseTracking) removeIdleAnimations();
+
+          if (eyeLeft) eyeLeft.style.transform = 'translate(' + moveX + 'px, ' + moveY + 'px)';
+          if (eyeRight) eyeRight.style.transform = 'translate(' + moveX + 'px, ' + moveY + 'px)';
+          if (hexOuter) hexOuter.style.transform = 'rotate(' + (hexRotate * 0.7) + 'deg) translate(' + (hexMoveX * 0.8) + 'px, ' + (hexMoveY * 0.8) + 'px)';
+          if (hexInner) hexInner.style.transform = 'rotate(' + (hexRotate * 0.9) + 'deg) translate(' + hexMoveX + 'px, ' + hexMoveY + 'px)';
+          if (hexCorner) hexCorner.style.transform = 'rotate(' + (hexRotate * 1.2) + 'deg) translate(' + (hexMoveX * 1.2) + 'px, ' + (hexMoveY * 0.9) + 'px)';
+        }
+
+        function onMouseMove(e) {
+          if (rafId) return;
+          rafId = requestAnimationFrame(function() {
+            rafId = null;
+            applyMouseMove(e);
+          });
+        }
+
+        function onMouseLeave() {
+          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+          restoreIdleAnimations();
+        }
+
+        document.addEventListener('mousemove', onMouseMove, { passive: true });
+        document.addEventListener('mouseleave', onMouseLeave);
+
+        // ---------- 随机眨眼 ----------
+        function doBlink() {
+          if (!eyeLeft || !eyeRight) return;
+          var lp = eyeLeft.querySelector('path');
+          var rp = eyeRight.querySelector('path');
+          if (!lp || !rp) return;
+
+          lp.style.transformOrigin = '19.6px 15.8px';
+          lp.style.transition = 'transform 0.08s ease-in-out';
+          lp.style.transform = 'scaleY(0.1)';
+          rp.style.transformOrigin = '30px 15.6px';
+          rp.style.transition = 'transform 0.08s ease-in-out';
+          rp.style.transform = 'scaleY(0.1)';
+
+          setTimeout(function() {
+            lp.style.transition = 'transform 0.1s ease-out';
+            lp.style.transform = 'scaleY(1)';
+            rp.style.transition = 'transform 0.1s ease-out';
+            rp.style.transform = 'scaleY(1)';
+          }, 120);
+        }
+
+        function scheduleBlink() {
+          var delay = 2500 + Math.random() * 3500;
+          blinkTimer = setTimeout(function() {
+            doBlink();
+            scheduleBlink();
+          }, delay);
+        }
+
+        setTimeout(scheduleBlink, 2000);
+
+        // ---------- Vue 挂载后移除 ----------
+        function cleanup() {
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseleave', onMouseLeave);
+          if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+          if (blinkTimer) { clearTimeout(blinkTimer); blinkTimer = null; }
+        }
+
+        var observer = new MutationObserver(function() {
+          var app = document.getElementById('app');
+          if (app && app.children.length > 0) {
+            var loading = document.getElementById('app-loading');
+            if (loading) {
+              loading.classList.add('fade-out');
+              setTimeout(function() {
+                loading.remove();
+                var style = document.getElementById('loading-style');
+                if (style) style.remove();
+              }, 300);
+            }
+            cleanup();
+            observer.disconnect();
+          }
+        });
+
+        var app = document.getElementById('app');
+        if (app) {
+          observer.observe(app, { childList: true, subtree: true });
+        }
+      })();
+    </script>
   </body>
 </html>

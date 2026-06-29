@@ -284,34 +284,43 @@ defineExpose({
     overflow: hidden;
 }
 .isMobile .layout-header{
-    padding: var(--td-pop-padding-xl) var(--td-comp-margin-xl);
+    padding: 10px 16px;
 }
 .layout-header {
     flex-shrink: 0;
     display: flex;
-    padding: var(--td-pop-padding-xl) var(--td-comp-paddingLR-xl);
+    padding: 12px 20px;
     justify-content: space-between;
-    height: var(--td-comp-size-xxxxl);
+    align-items: center;
+    height: 56px;
+    border-bottom: 1px solid var(--td-component-stroke);
 }
 .header-app-settings{
     display: flex;
     align-items: center;
+    gap: 4px;
 }
 
 .layout-header .header-app-settings svg {
     cursor: pointer;
-    margin-left: var(--td-comp-margin-s);
+    opacity: 0.65;
+    transition: opacity 0.15s ease;
+}
+
+.layout-header .header-app-settings svg:hover {
+    opacity: 1;
 }
 
 .layout-header .header-app__avatar{
     border-radius: var(--td-radius-medium);
-    margin-left: var(--td-comp-margin-s);
+    margin-left: 8px;
 }
 .layout-header .header-app__title {
     color: var(--td-text-color-primary);
-    font-size: var(--td-font-size-link-large);
-    font-weight: 500;
-    margin-left: var(--td-comp-margin-s);
+    font-size: 15px;
+    font-weight: 600;
+    margin-left: 10px;
+    letter-spacing: -0.01em;
 }
 
 .layout-content {
@@ -321,7 +330,7 @@ defineExpose({
 
 .layout-footer {
     flex-shrink: 0;
-    padding: var(--td-pop-padding-l);
+    padding: 6px 16px 10px;
 }
 .header-app-driver{
     margin: 0 var(--td-size-6) 0 var(--td-size-4);

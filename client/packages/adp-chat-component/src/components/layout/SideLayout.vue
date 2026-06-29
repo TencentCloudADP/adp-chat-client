@@ -81,7 +81,7 @@ const emit = defineEmits<{
 }>();
 
 const mode = computed(() => props.isSidePanelOverlay  ? 'overlay' : 'push');
-const drawerSize = '240px';
+const drawerSize = '260px';
 
 const handleToggleSidebar = () => {
     emit('toggleSidebar');
@@ -196,16 +196,17 @@ const handleUserClick = () => {
     overflow-x: hidden;
     scrollbar-color: var(--td-scrollbar-color) transparent;
     scrollbar-width: thin;
-    padding-right: var(--td-comp-paddingLR-l);
+    padding-right: 8px;
+    padding-left: 4px;
 }
 
 .drawer-scrollable::-webkit-scrollbar {
-    width: var(--td-size-4);
+    width: 6px;
     background: transparent;
 }
 
 .drawer-scrollable::-webkit-scrollbar-thumb {
-    border: 2px solid transparent;
+    border: 1.5px solid transparent;
     background-clip: content-box;
     background-color: var(--td-scrollbar-color);
     border-radius: var(--td-radius-round);
@@ -219,24 +220,27 @@ const handleUserClick = () => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid var(--td-component-stroke);
 }
 
 .custome-drawer-container{
     position: relative;
-    width: 240px;
+    width: 260px;
     margin-left: 0 !important;
     flex-shrink: 0;
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
 }
 .custome-drawer-container.is-mobile {
     margin-left: 0 !important;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .custome-drawer-container.drawer-open {
     opacity: 1;
     transform: translateX(0);
 }
 .custome-drawer-container.drawer-closed {
-    opacity: 0.7;
+    opacity: 0;
     transform: translateX(-10px);
     width: 0;
     overflow: hidden;
@@ -248,23 +252,27 @@ const handleUserClick = () => {
     height: 100%;
 }
 .custome-drawer-container.is-mobile.drawer-open {
-    width: 240px;
+    width: 260px;
 }
 .custome-drawer-container.is-mobile.drawer-closed {
     width: 0;
 }
 :deep(.custome-drawer .t-drawer__content-wrapper){
     box-shadow: none;
-    background-color: var(--td-bg-color-container);
-    border-right: 1px solid var(--td-bg-color-container-active);
+    background-color: var(--td-bg-color-page);
+    border-right: 1px solid var(--td-component-stroke);
 }
 :deep(.t-drawer__header ){
     border-bottom: none !important;
+    padding-bottom: 4px;
 }
 :deep(.t-drawer__body) {
     padding-right: 0;
 }
 :deep(.t-drawer__content-wrapper){
-width: 100% !important;
+    width: 100% !important;
+}
+:deep(.t-drawer__footer) {
+    background: var(--td-bg-color-page) !important;
 }
 </style>

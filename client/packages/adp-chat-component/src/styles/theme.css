@@ -84,11 +84,11 @@
   --td-gray-color-12: #2c2c2c;
   --td-gray-color-13: #242424;
   --td-gray-color-14: #181818;
-  --td-bg-color-container: #fff;
-  --td-bg-color-container-select: #fff;
-  --td-bg-color-page: var(--td-gray-color-2);
-  --td-bg-color-container-hover: var(--td-gray-color-1);
-  --td-bg-color-container-active: var(--td-gray-color-3);
+  --td-bg-color-container: #ffffff;
+  --td-bg-color-container-select: #ffffff;
+  --td-bg-color-page: #f7f7f8;
+  --td-bg-color-container-hover: #f5f5f7;
+  --td-bg-color-container-active: #ededf0;
   --td-bg-color-secondarycontainer: var(--td-gray-color-1);
   --td-bg-color-secondarycontainer-hover: var(--td-gray-color-2);
   --td-bg-color-secondarycontainer-active: var(--td-gray-color-4);
@@ -128,17 +128,15 @@
   --td-border-level-1-color: var(--td-gray-color-3);
   --td-border-level-2-color: var(--td-gray-color-4);
   --td-shadow-1:
-    0 1px 10px rgba(0, 0, 0, 5%), 0 4px 5px rgba(0, 0, 0, 8%), 0 2px 4px -1px rgba(0, 0, 0, 12%);
+    0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
   --td-shadow-2:
-    0 3px 14px 2px rgba(0, 0, 0, 5%), 0 8px 10px 1px rgba(0, 0, 0, 6%),
-    0 5px 5px -3px rgba(0, 0, 0, 10%);
+    0 4px 12px rgba(0, 0, 0, 0.05), 0 1px 4px rgba(0, 0, 0, 0.08);
   --td-shadow-3:
-    0 6px 30px 5px rgba(0, 0, 0, 5%), 0 16px 24px 2px rgba(0, 0, 0, 4%),
-    0 8px 10px -5px rgba(0, 0, 0, 8%);
-  --td-shadow-inset-top: inset 0 0.5px 0 #dcdcdc;
-  --td-shadow-inset-right: inset 0.5px 0 0 #dcdcdc;
-  --td-shadow-inset-bottom: inset 0 -0.5px 0 #dcdcdc;
-  --td-shadow-inset-left: inset -0.5px 0 0 #dcdcdc;
+    0 8px 30px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --td-shadow-inset-top: inset 0 0.5px 0 rgba(0, 0, 0, 0.06);
+  --td-shadow-inset-right: inset 0.5px 0 0 rgba(0, 0, 0, 0.06);
+  --td-shadow-inset-bottom: inset 0 -0.5px 0 rgba(0, 0, 0, 0.06);
+  --td-shadow-inset-left: inset -0.5px 0 0 rgba(0, 0, 0, 0.06);
   --td-mask-active: rgba(0, 0, 0, 0.6);
   --td-mask-disabled: rgba(255, 255, 255, 0.6);
   --td-sender-bg: rgba(255, 255, 255, 1);
@@ -229,10 +227,10 @@
   --td-gray-color-12: #2c2c2c;
   --td-gray-color-13: #242424;
   --td-gray-color-14: #181818;
-  --td-bg-color-page: var(--td-gray-color-14);
-  --td-bg-color-container: var(--td-gray-color-13);
-  --td-bg-color-container-hover: var(--td-gray-color-12);
-  --td-bg-color-container-active: var(--td-gray-color-10);
+  --td-bg-color-page: #171717;
+  --td-bg-color-container: #1e1e1e;
+  --td-bg-color-container-hover: #2a2a2a;
+  --td-bg-color-container-active: #333333;
   --td-bg-color-container-select: var(--td-gray-color-9);
   --td-bg-color-secondarycontainer: var(--td-gray-color-12);
   --td-bg-color-secondarycontainer-hover: var(--td-gray-color-11);
@@ -259,15 +257,15 @@
   --td-text-color-brand: var(--td-brand-color);
   --td-text-color-link: var(--td-brand-color);
   --td-shadow-1:
-    0 4px 6px rgba(0, 0, 0, 0.06), 0 1px 10px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.12);
+    0 1px 3px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.3);
   --td-shadow-2:
-    0 8px 10px rgba(0, 0, 0, 0.12), 0 3px 14px rgba(0, 0, 0, 0.1), 0 5px 5px rgba(0, 0, 0, 0.16);
+    0 4px 12px rgba(0, 0, 0, 0.25), 0 1px 4px rgba(0, 0, 0, 0.3);
   --td-shadow-3:
-    0 16px 24px rgba(0, 0, 0, 0.14), 0 6px 30px rgba(0, 0, 0, 0.12), 0 8px 10px rgba(0, 0, 0, 0.2);
-  --td-shadow-inset-top: inset 0 0.5px 0 #5e5e5e;
-  --td-shadow-inset-right: inset 0.5px 0 0 #5e5e5e;
-  --td-shadow-inset-bottom: inset 0 -0.5px 0 #5e5e5e;
-  --td-shadow-inset-left: inset -0.5px 0 0 #5e5e5e;
+    0 8px 30px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+  --td-shadow-inset-top: inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
+  --td-shadow-inset-right: inset 0.5px 0 0 rgba(255, 255, 255, 0.06);
+  --td-shadow-inset-bottom: inset 0 -0.5px 0 rgba(255, 255, 255, 0.06);
+  --td-shadow-inset-left: inset -0.5px 0 0 rgba(255, 255, 255, 0.06);
   --td-table-shadow-color: rgba(0, 0, 0, 55%);
   --td-scrollbar-color: rgba(255, 255, 255, 10%);
   --td-scrollbar-hover-color: rgba(255, 255, 255, 30%);
@@ -281,8 +279,8 @@
 }
 
 :root {
-  --td-font-family: pingfang sc, microsoft yahei, arial regular;
-  --td-font-family-medium: pingfang sc, microsoft yahei, arial medium;
+  --td-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --td-font-family-medium: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --td-font-size-link-small: 12px;
   --td-font-size-link-medium: 14px;
   --td-font-size-link-large: 16px;
@@ -347,9 +345,9 @@
     var(--td-line-height-display-medium) var(--td-font-family);
   --td-font-display-large: 600 var(--td-font-size-display-large) /
     var(--td-line-height-display-large) var(--td-font-family);
-  --td-radius-small: 1.5px;
-  --td-radius-default: 3px;
-  --td-radius-medium: 6px;
+  --td-radius-small: 4px;
+  --td-radius-default: 6px;
+  --td-radius-medium: 8px;
   --td-radius-large: 12px;
   --td-radius-xl: 16px;
   --td-radius-extraLarge: 24px;
