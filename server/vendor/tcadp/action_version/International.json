@@ -1,0 +1,109 @@
+{
+    "_comment": "International 场景的接口路由配置。",
+    "DescribeRobotBizIDByAppKey": {
+        "service": "lke",
+        "headers.X-TC-Version": "2023-11-30",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "DescribeApp": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "DescribeStorageCredential": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "CreateWorkspaceCredential": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "DescribeConversation": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-jakarta",
+        "payload.AppKey": "{{APP_KEY}}",
+        "payload.UserId": "{{ACCOUNT_ID}}"
+    },
+    "DescribeConversationMessageList": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-jakarta",
+        "payload.AppKey": "{{APP_KEY}}",
+        "payload.UserId": "{{ACCOUNT_ID}}"
+    },
+    "DescribeAgentSummaryList": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "CopyAgentFromApp": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "ModifyAgent": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "DescribeAgentDetail": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "ListModel": {
+        "service": "lke",
+        "headers.X-TC-Version": "2025-11-12",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "CreateConversation": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-jakarta",
+        "payload.AppKey": "{{APP_KEY}}",
+        "payload.UserId": "{{ACCOUNT_ID}}"
+    },
+    "DescribeSkillCategoryList": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "BindAgentTool": {
+        "service": "lke",
+        "headers.X-TC-Version": "2025-11-12",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "UnbindAgentTool": {
+        "service": "lke",
+        "headers.X-TC-Version": "2025-11-12",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "ModifyAgentToolList": {
+        "service": "lke",
+        "headers.X-TC-Version": "2025-11-12",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "GetMsgRecord": {
+        "service": "lke",
+        "headers.X-TC-Version": "2023-11-30",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "RateMsgRecord": {
+        "service": "lke",
+        "headers.X-TC-Version": "2023-11-30",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "DescribeRefer": {
+        "service": "lke",
+        "headers.X-TC-Version": "2023-11-30",
+        "headers.X-TC-Region": "ap-jakarta"
+    },
+    "ChatCompletions": {
+        "service": "lkeap",
+        "headers.X-TC-Version": "2024-05-22",
+        "headers.X-TC-Region": "ap-jakarta"
+    }
+}

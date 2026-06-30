@@ -1,20 +1,24 @@
 {
-    "_comment": "接口级别的转发配置。'service' 切换目标服务，'headers.xxx' 注入 header，'payload.xxx' 注入 payload 字段。未配置的接口走默认 lke 服务。",
-    "DescribeApp": {
+    "_comment": "ChinaTencentADP 场景的接口路由配置。ADP 场景所有接口走 adp endpoint。",
+    "DescribeRobotBizIDByAppKey": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20"
+    },
+    "DescribeApp": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20"        
     },
     "DescribeStorageCredential": {
         "service": "adp",
-        "headers.X-TC-Version": "2026-05-20"
+        "headers.X-TC-Version": "2026-05-20"        
     },
     "CreateWorkspaceCredential": {
         "service": "adp",
-        "headers.X-TC-Version": "2026-05-20"
+        "headers.X-TC-Version": "2026-05-20"        
     },
     "DescribeConversation": {
         "service": "adp",
-        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Version": "2026-05-20",        
         "payload.AppKey": "{{APP_KEY}}",
         "payload.UserId": "{{ACCOUNT_ID}}"
     },
@@ -38,11 +42,11 @@
     },
     "DescribeAgentDetail": {
         "service": "adp",
-        "headers.X-TC-Version": "2026-05-20"        
+        "headers.X-TC-Version": "2026-05-20"
     },
     "ListModel": {
-        "service": "lke",
-        "headers.X-TC-Version": "2025-11-12"     
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20"
     },
     "CreateConversation": {
         "service": "adp",
@@ -54,6 +58,30 @@
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20"
     },
+    "BindAgentTool": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20"
+    },
+    "UnbindAgentTool": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20"
+    },
+    "ModifyAgentToolList": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20"
+    },
+    "GetMsgRecord": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20"
+    },
+    "RateMsgRecord": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20"
+    },
+    "DescribeRefer": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20"
+    },    
     "DescribePluginSummaryList": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20"
@@ -61,17 +89,5 @@
     "DescribePlugin": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20"
-    },
-    "BindAgentTool": {
-        "service": "lke",
-        "headers.X-TC-Version": "2025-11-12"
-    },
-    "UnbindAgentTool": {
-        "service": "lke",
-        "headers.X-TC-Version": "2025-11-12"      
-    },
-    "ModifyAgentToolList": {
-        "service": "lke",
-        "headers.X-TC-Version": "2025-11-12"    
-    }
+    }    
 }

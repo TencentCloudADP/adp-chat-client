@@ -78,7 +78,15 @@ export default defineConfig(async ({ mode }) => {
     },
     // 优化依赖预构建
     optimizeDeps: {
-      include: ['tdesign-vue-next'],
+      include: [
+        'tdesign-vue-next',
+        '@tdesign-vue-next/chat',
+        'vue',
+        'vue-router',
+        'pinia',
+        'axios',
+        'vue-i18n',
+      ],
       // 排除 workspace 包，让其使用源码
       exclude: ['adp-chat-component', 'adp-widget'],
     },

@@ -7,7 +7,7 @@ from sanic.request.types import Request
 import asyncio
 import aiohttp
 import json
-from util.tca import tc_request
+from util.tca import tc_request, load_action_version_config
 from util.warehouse import AsyncWareHouseS3
 from util.cos import upload, get_presigned_download_url, get_presigned_preview_url
 
@@ -34,6 +34,12 @@ from util.json_format import custom_dumps
 
 
 class TCADP(BaseVendor):
+    def __init__(self, config: dict = {}, application_id: str = ''):
+        super().__init__(config, application_id)
+        # 根据 ServiceVendor 加载对应场景的 action_version 配置
+        vendor_key = config.get('ServiceVendor', 'ChinaTencentCloud')
+        self._action_overrides = load_action_version_config(vendor_key)
+
     @staticmethod
     def _is_v2_record(record_data: dict[str, Any]) -> bool:
         return all(field in record_data for field in ('Role', 'RecordId', 'ConversationId', 'Status'))
@@ -482,17 +488,17 @@ class TCADP(BaseVendor):
         """通用腾讯云 API 转发方法（公开接口）
 
         将请求转发到腾讯云后端接口，统一处理签名、错误检查和响应解析。
-        当前端传入的 Action 名称没有对应的具体实现方法时，可直接通过此方法转发。
+        目标 service 和 version 由 action_version 配置自动决定，无需调用方指定。
 
         Args:
             action: 腾讯云 API Action 名称，如 "GetMsgRecord"、"RateMsgRecord"
             payload: 请求参数字典，为 None 时传空 dict
-            service: 服务名称，默认 "lke"，用于选择签名配置
-            version: API 版本号，为 None 时使用 service 配置中的默认版本
+            service: （已废弃）保留参数以保持接口兼容，建议不传
+            version: （已废弃）保留参数以保持接口兼容，建议不传
             response_key: 如果指定，从 Response 中提取该 key 的值返回；
                          为 None 时返回整个 Response dict
             raise_on_error: 为 True 时遇到 Error 抛异常；为 False 时返回包含 Error 的原始响应
-            variables: 模板变量字典，用于替换 action_version.json 配置中的 {{VAR}} 占位符，
+            variables: 模板变量字典，用于替换 action_version 配置中的 {{VAR}} 占位符，
                       如 {"APP_KEY": "xxx", "ACCOUNT_ID": "yyy"}
 
         Returns:
@@ -504,8 +510,8 @@ class TCADP(BaseVendor):
         if payload is None:
             payload = {}
 
-        logging.info(f'[TCADP.forward_request] action={action}, service={service}, version={version}, payload={payload}')
-        resp = await tc_request(self.tc_config(), action, payload, service, version, variables=variables)
+        logging.info(f'[TCADP.forward_request] action={action}, payload={payload}')
+        resp = await tc_request(self.tc_config(), action, payload, service, version, variables=variables, action_overrides=self._action_overrides)
         response = resp.get('Response', resp)
 
         if 'Error' in response:
@@ -603,7 +609,7 @@ class TCADP(BaseVendor):
         payload = {
             "AppKey": self.config['AppKey'],
         }
-        resp = await tc_request(self.tc_config(), action, payload)
+        resp = await tc_request(self.tc_config(), action, payload, action_overrides=self._action_overrides)
         if 'Error' in resp['Response']:
             logging.error(resp)
             return ApplicationInfo(
@@ -620,7 +626,7 @@ class TCADP(BaseVendor):
             "AppId": app_id,
             "FieldMask": {"Paths": ["AppConfig"]},
         }
-        resp = await tc_request(self.tc_config(), action, payload)
+        resp = await tc_request(self.tc_config(), action, payload, action_overrides=self._action_overrides)
 
         if 'Error' in resp['Response']:
             logging.error(resp)
@@ -695,7 +701,7 @@ class TCADP(BaseVendor):
         }
         if last_record_id is not None:
             payload['LastRecordId'] = last_record_id
-        resp = await tc_request(self.tc_config(), action, payload)
+        resp = await tc_request(self.tc_config(), action, payload, action_overrides=self._action_overrides)
         if 'Error' in resp['Response']:
             raise Exception(resp['Response']['Error'])
 
@@ -738,7 +744,7 @@ class TCADP(BaseVendor):
         if last_record_id:
             payload['RecordId'] = last_record_id
 
-        resp = await tc_request(self.tc_config(), action, payload)
+        resp = await tc_request(self.tc_config(), action, payload, action_overrides=self._action_overrides)
         response = resp.get('Response', resp)
         if 'Error' in response:
             raise Exception(response['Error'])
@@ -896,16 +902,16 @@ class TCADP(BaseVendor):
         # Update conversation
         try:
             summarize = None
-            if is_new_conversation:
-                query_text = extract_text_from_contents(contents).strip()
-                if not query_text:
-                    query_text = "New Chat"
-                prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n请直接输出提炼结果，不要解释。'
-                completion = CoreCompletion(
-                    self.tc_config(),
-                    system_prompt=prompt
-                )
-                summarize = await completion.chat(f'user: {query_text}\n\nassistance: {reply_text[:200]}')
+            # if is_new_conversation:
+            #     query_text = extract_text_from_contents(contents).strip()
+            #     if not query_text:
+            #         query_text = "New Chat"
+            #     prompt = '请从以下对话中提取一个最核心的主题，用于对话列表展示。要求：\n1. 用5-10个汉字概括\n2. 优先选择：最新进展/待解决问题/双方共识\n请直接输出提炼结果，不要解释。'
+            #     completion = CoreCompletion(
+            #         self.tc_config(),
+            #         system_prompt=prompt
+            #     )
+            #     summarize = await completion.chat(f'user: {query_text}\n\nassistance: {reply_text[:200]}')
             conversation = await conversation_cb.update(conversation_id=conversation_id, title=summarize)
             yield to_event(EventType.CONVERSATION, conversation=conversation, is_new_conversation=False)
         except Exception as e:
@@ -1201,7 +1207,7 @@ class TCADP(BaseVendor):
                 "IsPublic": True,
                 "TypeKey": 'realtime',
             }
-            resp = await tc_request(self.tc_config(), action, payload)
+            resp = await tc_request(self.tc_config(), action, payload, action_overrides=self._action_overrides)
         else:
             payload = {
                 "AppId": self.config.get('AppId', ''),
@@ -1209,7 +1215,7 @@ class TCADP(BaseVendor):
                 "IsPublic": True,
                 "TypeKey": 'realtime',
             }
-            resp = await tc_request(self.tc_config(), action, payload)
+            resp = await tc_request(self.tc_config(), action, payload, action_overrides=self._action_overrides)
         resp = resp['Response']
         if 'Error' in resp:
             logging.error(resp)
@@ -1285,7 +1291,7 @@ class TCADP(BaseVendor):
                 "CosUrl": cos_url,
             }
             try:
-                dl_resp = await tc_request(self.tc_config(), action, download_payload)
+                dl_resp = await tc_request(self.tc_config(), action, download_payload, action_overrides=self._action_overrides)
                 dl_resp = dl_resp['Response']
                 # 新协议：路径信息在 StoragePath 子对象中
                 dl_storage = dl_resp.get('StoragePath', {})
@@ -1319,7 +1325,7 @@ class TCADP(BaseVendor):
             "Score": 1 if score == 1 else 2,
             "BotAppKey": self.config['AppKey'],
         }
-        await tc_request(self.tc_config(), action, payload)
+        await tc_request(self.tc_config(), action, payload, action_overrides=self._action_overrides)
 
     async def get_reference_details(
         self,
@@ -1344,7 +1350,7 @@ class TCADP(BaseVendor):
             "BotBizId": self.config.get('AppId', ''),
             "ReferBizIds": unique_reference_ids,
         }
-        resp = await tc_request(self.tc_config(), action, payload)
+        resp = await tc_request(self.tc_config(), action, payload, action_overrides=self._action_overrides)
         response = resp.get('Response', resp)
         if 'Error' in response:
             logging.error(resp)
@@ -1374,28 +1380,39 @@ class TCADP(BaseVendor):
         return config
 
     def tc_config(self):
-        private = self.config.get('Private', False)
-        private_url = self.config.get('PrivateUrl', '')
-        international = self.config.get('International', False)
-        custom = self.config.get('Custom', False)
-        if international:
-            return service_configs['International']
-        if private:
-            config = json.loads(json.dumps(service_configs['Private']))
+        # ServiceVendor: "ChinaTencentCloud" (default) | "ChinaTencentADP" | "International" | "Private"
+        service_config_key = self.config.get('ServiceVendor', 'ChinaTencentCloud')
+        if service_config_key not in service_configs:
+            logging.warning(f'[TCADP.tc_config] Unknown ServiceVendor "{service_config_key}", falling back to "ChinaTencentCloud"')
+            service_config_key = 'ChinaTencentCloud'
+
+        config = json.loads(json.dumps(service_configs[service_config_key]))
+
+        # Private 模式需要替换 {PrivateUrl} 模板变量
+        if service_config_key == 'Private':
+            private_url = self.config.get('PrivateUrl', '')
             config = self.tc_config_private_url(config, private_url)
-            return config
-        if custom:
-            config = json.loads(json.dumps(service_configs['China']))
-            if self.config.get('CustomLkeUrl'):
-                config['lke']['url'] = self.config['CustomLkeUrl']
-            if self.config.get('CustomAdpUrl'):
-                config['adp']['url'] = self.config['CustomAdpUrl']
-            if self.config.get('CustomLkeapUrl'):
-                config['lkeap']['url'] = self.config['CustomLkeapUrl']
-            if self.config.get('CustomSseUrl'):
-                config['sse'] = self.config['CustomSseUrl']
-            return config
-        return service_configs['China']
+
+        # ChinaTencentADP 模式使用独立的 ADP 密钥
+        if service_config_key == 'ChinaTencentADP':
+            from config import tagentic_config
+            adp_secret_id = tagentic_config.ADP_SECRET_ID
+            adp_secret_key = tagentic_config.ADP_SECRET_KEY
+            if adp_secret_id and adp_secret_key:
+                config['secret_id'] = adp_secret_id
+                config['secret_key'] = adp_secret_key
+
+        # 自定义 URL 覆盖：只要配了就直接覆盖，不需要额外开关
+        if self.config.get('CustomLkeUrl') and 'lke' in config:
+            config['lke']['url'] = self.config['CustomLkeUrl']
+        if self.config.get('CustomAdpUrl') and 'adp' in config:
+            config['adp']['url'] = self.config['CustomAdpUrl']
+        if self.config.get('CustomLkeapUrl') and 'lkeap' in config:
+            config['lkeap']['url'] = self.config['CustomLkeapUrl']
+        if self.config.get('CustomSseUrl'):
+            config['sse'] = self.config['CustomSseUrl']
+
+        return config
 
 
 service_configs = {
@@ -1403,17 +1420,14 @@ service_configs = {
         'lke': {
             'url': '{PrivateUrl}',
             'region': 'ap-guangzhou',
-            "version": "2023-11-30"
         },
         'adp': {
             'url': '{PrivateUrl}',
             'region': 'ap-guangzhou',
-            "version": "2026-05-20"
         },
         'lkeap': {
             'url': '{PrivateUrl}',
             'region': 'ap-jakarta',
-            "version": "2024-05-22"
         },
         'cos': {
             'ep': '{PrivateUrl}',
@@ -1426,17 +1440,14 @@ service_configs = {
         'lke': {
             'url': 'https://lke.intl.tencentcloudapi.com',
             'region': 'ap-jakarta',
-            "version": "2023-11-30"
         },
         'adp': {
             'url': 'https://adp.intl.tencentcloudapi.com',
             'region': 'ap-jakarta',
-            "version": "2026-05-20"
         },
         'lkeap': {
             'url': 'https://lkeap.intl.tencentcloudapi.com',
             'region': 'ap-jakarta',
-            "version": "2024-05-22"
         },
         'cos': {
             'ep': 'https://cos.{region}.myqcloud.com',
@@ -1444,22 +1455,30 @@ service_configs = {
         },
         'sse': 'https://wss.lke.tencentcloud.com/adp/v2/chat'
     },
-    'China': {
+    'ChinaTencentCloud': {
         'lke': {
             'url': 'https://lke.tencentcloudapi.com',
             'region': 'ap-guangzhou',
-            "version": "2023-11-30"
         },
         'adp': {
             'url': 'https://adp.tencentcloudapi.com',
             'region': 'ap-guangzhou',
-            "version": "2026-05-20"
         },
         'lkeap': {
             'url': 'https://lkeap.tencentcloudapi.com',
             'region': 'ap-guangzhou',
-            "version": "2024-05-22"
         },
+        'cos': {
+            'ep': 'https://cos.{region}.myqcloud.com',
+            'access': 'https://{bucket}.cos.{region}.myqcloud.com'
+        },
+        'sse': 'https://wss.lke.cloud.tencent.com/adp/v2/chat'
+    },
+    'ChinaTencentADP': {
+        'adp': {
+            'url': 'https://adp.tencent.com',
+            'region': 'ap-guangzhou',
+        },       
         'cos': {
             'ep': 'https://cos.{region}.myqcloud.com',
             'access': 'https://{bucket}.cos.{region}.myqcloud.com'

@@ -14,20 +14,24 @@ class CoreCompletion:
         system_prompt: Optional[str] = None,
         max_history: int = 10,
         timeout: int = 30,
+        action_overrides: dict = None,
     ):
         """
         异步对话接口封装类
 
         参数:
+            service_config: endpoint 配置
             model: 使用的模型名称
             system_prompt: 系统提示语
             max_history: 最大历史对话记录数
             timeout: 请求超时时间(秒)
+            action_overrides: action_version 配置，用于决定 service 路由和 version
         """
         self.service_config = service_config
         self.model = model
         self.timeout = timeout
         self.max_history = max_history
+        self.action_overrides = action_overrides
 
         # 初始化对话历史
         self.conversation_history: List[Dict[str, str]] = []
@@ -73,7 +77,7 @@ class CoreCompletion:
                 "Stream": True,
             }
             assistant_reply = ''
-            async for data in tc_request_sse(self.service_config, action, payload, service = "lkeap"):
+            async for data in tc_request_sse(self.service_config, action, payload, action_overrides=self.action_overrides):
                 try:
                     message = json.loads(data)
                 except Exception as e:  # pylint: disable=broad-except

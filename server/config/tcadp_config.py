@@ -25,6 +25,16 @@ class TCADPConfig(BaseSettings):
         default="",
     )
 
+    ADP_SECRET_ID: str = Field(
+        description="ADP secret id, used when ServiceVendor is ChinaTencentADP. Falls back to TC_SECRET_ID if empty.",
+        default="",
+    )
+
+    ADP_SECRET_KEY: str = Field(
+        description="ADP secret key, used when ServiceVendor is ChinaTencentADP. Falls back to TC_SECRET_KEY if empty.",
+        default="",
+    )
+
     ADP_VISITOR_ID_TYPE: Literal["CUSTOMER_ID", "NAME"] = Field(
         description="VisitorId type for ADP chat requests. Supported values: CUSTOMER_ID, NAME",
         default="NAME",

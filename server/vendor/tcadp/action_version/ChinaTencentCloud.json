@@ -1,0 +1,117 @@
+{
+    "_comment": "ChinaTencentCloud 场景的接口路由配置。每个 action 通过 'service' 指定目标 endpoint，'headers.*' 注入 header，'payload.*' 注入 payload 字段。",
+    "DescribeRobotBizIDByAppKey": {
+        "service": "lke",
+        "headers.X-TC-Version": "2023-11-30",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "DescribeApp": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "DescribeStorageCredential": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "CreateWorkspaceCredential": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "DescribeConversation": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-guangzhou",
+        "payload.AppKey": "{{APP_KEY}}",
+        "payload.UserId": "{{ACCOUNT_ID}}"
+    },
+    "DescribeConversationMessageList": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-guangzhou",
+        "payload.AppKey": "{{APP_KEY}}",
+        "payload.UserId": "{{ACCOUNT_ID}}"
+    },
+    "DescribeAgentSummaryList": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "CopyAgentFromApp": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "ModifyAgent": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "DescribeAgentDetail": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "ListModel": {
+        "service": "lke",
+        "headers.X-TC-Version": "2025-11-12",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "CreateConversation": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-guangzhou",
+        "payload.AppKey": "{{APP_KEY}}",
+        "payload.UserId": "{{ACCOUNT_ID}}"
+    },
+    "DescribeSkillCategoryList": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "BindAgentTool": {
+        "service": "lke",
+        "headers.X-TC-Version": "2025-11-12",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "UnbindAgentTool": {
+        "service": "lke",
+        "headers.X-TC-Version": "2025-11-12",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "ModifyAgentToolList": {
+        "service": "lke",
+        "headers.X-TC-Version": "2025-11-12",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "GetMsgRecord": {
+        "service": "lke",
+        "headers.X-TC-Version": "2023-11-30",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "RateMsgRecord": {
+        "service": "lke",
+        "headers.X-TC-Version": "2023-11-30",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "DescribeRefer": {
+        "service": "lke",
+        "headers.X-TC-Version": "2023-11-30",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "ChatCompletions": {
+        "service": "lkeap",
+        "headers.X-TC-Version": "2024-05-22",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "DescribePluginSummaryList": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20"
+    },
+    "DescribePlugin": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20"
+    }
+}
