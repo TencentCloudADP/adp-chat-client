@@ -342,6 +342,20 @@ const currentInstalledToolIds = computed<string[]>(() => {
     }).filter(Boolean);
 });
 
+/**
+ * 已安装工具的 (pluginId, toolId) 映射，用于在未懒加载工具明细的情况下
+ * 仍能正确显示插件「已全部添加」状态。
+ */
+const currentInstalledTools = computed<Array<{ pluginId: string; toolId: string }>>(() => {
+    return installedToolsRaw.value.map((t) => {
+        const cfg = (t.Config || t.config || {}) as Record<string, unknown>;
+        return {
+            pluginId: (cfg.plugin_id || cfg.PluginId || t.plugin_id || t.PluginId || '') as string,
+            toolId: (cfg.tool_id || cfg.ToolId || t.tool_id || t.ToolId || '') as string,
+        };
+    }).filter((x) => x.pluginId && x.toolId);
+});
+
 /** 刷新 Skills 列表（通过 useAgentStore 统一缓存） */
 async function refreshSkills() {
     const appId = props.skillsApplicationId;
@@ -1231,6 +1245,8 @@ defineExpose({
             :application-id="skillsApplicationId"
             :space-id="spaceId"
             :theme="theme"
+            :language="language"
+            :i18n="skillsI18n"
             @change="refreshSkills"
         />
 
@@ -1241,6 +1257,8 @@ defineExpose({
             :application-id="skillsApplicationId"
             :space-id="spaceId"
             :theme="theme"
+            :language="language"
+            :i18n="skillsI18n"
             @change="refreshSkills"
         />
 
@@ -1251,7 +1269,10 @@ defineExpose({
             :application-id="skillsApplicationId"
             :space-id="spaceId"
             :installed-tool-ids="currentInstalledToolIds"
+            :installed-tools="currentInstalledTools"
             :theme="theme"
+            :language="language"
+            :i18n="skillsI18n"
             @installed="refreshSkills"
         />
 
@@ -1265,6 +1286,8 @@ defineExpose({
                         :installed-connectors="mentionConnectors"
                         :installed-tools="mentionTools"
                         :search-keyword="mentionSearchStr"
+                        :i18n="skillsI18n"
+                        :language="language"
                         @select="onAtMentionSelect"
                         @close="_hideMention"
                     />
@@ -1543,29 +1566,29 @@ defineExpose({
     margin-left: 2px;
 }
 
-/* ── 工具栏 pill 按钮 ── */
+/* ── 工具栏 pill 按钮（尺寸/字号/hover 行为与 SkillsPopover 触发按钮对齐） ── */
 .toolbar-pill-btn {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 0 8px;
-    height: 28px;
+    padding: 0 var(--td-size-4);
+    height: var(--td-comp-size-m);
     border-radius: var(--td-radius-default);
-    font-size: 12px;
+    font-size: var(--td-font-size-body-small);
     line-height: 1;
     color: var(--td-text-color-secondary);
+    background: transparent;
     cursor: pointer;
     white-space: nowrap;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition: background-color 0.2s;
 }
 
 .toolbar-pill-btn:hover {
     background: var(--td-bg-color-container-hover);
-    color: var(--td-text-color-primary);
 }
 
 .toolbar-pill-btn:active {
-    background: var(--td-bg-color-container-active);
+    background: var(--td-bg-color-component-active);
 }
 
 .toolbar-pill-btn__text {

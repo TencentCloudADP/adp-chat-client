@@ -1,7 +1,7 @@
 <template>
     <t-dialog
         v-model:visible="visible"
-        header="添加工具"
+        :header="mergedI18n.addTool"
         :footer="false"
         :close-on-overlay-click="false"
         width="min(900px, calc(100vw - 40px))"
@@ -11,7 +11,7 @@
             <div class="plugin-dialog__header">
                 <DividerTabs v-model="activeTab" :options="tabOptions" @update:model-value="onTabChange" />
                 <div class="plugin-dialog__actions">
-                    <t-checkbox v-model="filterFavorite" @change="doReset">收藏</t-checkbox>
+                    <t-checkbox v-model="filterFavorite" @change="doReset">{{ mergedI18n.favorite }}</t-checkbox>
                     
                     <t-popup v-if="activeTab === 'inner' || activeTab === 'custom'" v-model:visible="filterVisible" trigger="click" placement="bottom-right">
                         <span class="plugin-dialog__filter-trigger">{{ filterLabel }}</span>
@@ -26,7 +26,7 @@
                             </div>
                         </template>
                     </t-popup>
-                    <t-input v-model="searchKeyword" placeholder="搜索工具"  clearable class="plugin-dialog__search" @change="onSearch">
+                    <t-input v-model="searchKeyword" :placeholder="mergedI18n.searchTool"  clearable class="plugin-dialog__search" @change="onSearch">
                         <template #prefix-icon><CustomizedIcon  remote name="basic_search_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                     </t-input>
                     <t-popup trigger="click" placement="bottom-right">
@@ -73,12 +73,12 @@
             </div>
 
             <!-- 卡片列表 -->
-            <div v-if="loading" class="plugin-dialog__loading"><t-loading size="small" text="加载中..." /></div>
-            <div v-else-if="filteredCardList.length === 0" class="plugin-dialog__empty">暂无数据</div>
+            <div v-if="loading" class="plugin-dialog__loading"><t-loading size="small" :text="mergedI18n.loading" /></div>
+            <div v-else-if="filteredCardList.length === 0" class="plugin-dialog__empty">{{ mergedI18n.noData }}</div>
             <div v-else class="plugin-dialog__list">
                 <div v-for="item in filteredCardList" :key="itemId(item)"
                     class="plugin-card"
-                    :class="{ 'is-expanded': expandedId === itemId(item) }">
+                    :class="{ 'is-expanded': isExpanded(itemId(item)) }">
                     <!-- 插件主卡片 -->
                     <div class="plugin-card__main" @click="onExpand(item)">
                         <div class="plugin-card__icon-area">
@@ -88,84 +88,102 @@
                         <div class="plugin-card__info">
                             <div class="plugin-card__title-row">
                                 <t-tooltip :content="itemName(item)" placement="top"><span class="plugin-card__name">{{ itemName(item) }}</span></t-tooltip>
-                                <TagWithColor v-if="itemFinanceType(item) === 3" color="orange" :theme="theme">公测</TagWithColor>
-                                <TagWithColor v-if="itemFinanceType(item) === 2" color="purple" icon="basic_vip_line" :theme="theme">官方收费</TagWithColor>
+                                <TagWithColor v-if="itemFinanceType(item) === 3" color="orange" :theme="theme">{{ mergedI18n.tagBeta }}</TagWithColor>
+                                <TagWithColor v-if="itemFinanceType(item) === 2" color="purple" icon="basic_vip_line" :theme="theme">{{ mergedI18n.tagOfficialPaid }}</TagWithColor>
                                 <TagWithColor v-if="getCreateTypeLabel(item)" color="gray" :theme="theme">{{ getCreateTypeLabel(item) }}</TagWithColor>
                                 <TagWithColor v-if="itemCategory(item)" color="gray" :theme="theme">{{ itemCategory(item) }}</TagWithColor>
-                                <span v-if="itemStatus(item) === 2" class="plugin-card__error-dot">不可用</span>
+                                <span v-if="itemStatus(item) === 2" class="plugin-card__error-dot">{{ mergedI18n.unavailable }}</span>
                             </div>
                             <t-tooltip :content="itemDesc(item)" placement="top"><div class="plugin-card__desc">{{ itemDesc(item) }}</div></t-tooltip>
                             <div class="plugin-card__footer">
                                 <span v-if="itemCreator(item)" class="plugin-card__author">@{{ itemCreator(item) }}</span>
                                 <span v-if="itemCreator(item)" class="plugin-card__sep">|</span>
-                                <span class="plugin-card__tool-count">含{{ itemToolCount(item) }}个工具</span>
+                                <span class="plugin-card__tool-count">{{ formatContainsTools(itemToolCount(item)) }}</span>
                                 <span class="plugin-card__sep">|</span>
                                 <span class="plugin-card__fav">
                                     <CustomizedIcon remote :name="item.IsFavorite || item.is_favorite ? 'basic_star_fill' : 'basic_star_line'" size="xxs" :show-hover-bg="false" :theme="theme" :color="(item.IsFavorite || item.is_favorite) ? 'var(--td-warning-color)' : 'var(--td-text-color-placeholder)'" />
-                                    {{ (item.IsFavorite || item.is_favorite) ? '已收藏' : '收藏' }}
+                                    {{ (item.IsFavorite || item.is_favorite) ? mergedI18n.favorited : mergedI18n.favorite }}
                                 </span>
                                 <template v-if="getCreateType(item) === 2">
                                     <span class="plugin-card__sep">|</span>
-                                    <span class="plugin-card__refresh" :class="{ 'is-loading': item._toolsLoading }" @click.stop="onUpdatePlugin(item)">
+                                    <span class="plugin-card__refresh" :class="{ 'is-loading': isUpdating(itemId(item)) }" @click.stop="onUpdatePlugin(item)">
                                         <CustomizedIcon remote name="basic_refresh_line" size="xxs" :show-hover-bg="false" :theme="theme" />
-                                        更新
+                                        {{ mergedI18n.update }}
                                     </span>
                                 </template>
                                 <template v-if="itemStatus(item) !== 2">
-                                    <span v-if="checkIsAllAdd(item)" class="plugin-card__added-text">已全部添加</span>
+                                    <span v-if="checkIsAllAdd(item)" class="plugin-card__added-text">{{ mergedI18n.installedAll }}</span>
                                     <span v-else class="plugin-card__sep">|</span>
                                     <t-button v-if="!checkIsAllAdd(item)" variant="text" theme="primary" size="small"
                                         :loading="addingKey === `plugin-${itemId(item)}`"
                                         :disabled="!!addingKey && addingKey !== `plugin-${itemId(item)}`"
                                         @click.stop="onAddAll(item)">
-                                        全部添加
+                                        {{ mergedI18n.installAll }}
                                     </t-button>
                                 </template>
                             </div>
                         </div>
                         <div class="plugin-card__expand-arrow">
-                            <CustomizedIcon remote :class="['plugin-card__arrow-icon', { 'is-expanded': expandedId === itemId(item) }]" name="arrow_down_line" size="xxs" :show-hover-bg="false" :theme="theme" />
+                            <CustomizedIcon remote :class="['plugin-card__arrow-icon', { 'is-expanded': isExpanded(itemId(item)) }]" name="arrow_down_line" size="xxs" :show-hover-bg="false" :theme="theme" />
                         </div>
                         <!-- 精选标记 -->
                         <div v-if="item.IsFeatured" class="plugin-card__featured">
                             <CustomizedIcon remote name="basic_official_account_line" size="xxs" :show-hover-bg="false" :theme="theme" color="var(--td-stack-color, #9b6ef9)" />
-                            精选
+                            {{ mergedI18n.featured }}
                         </div>
                     </div>
 
                     <!-- 展开的子工具列表 -->
-                    <template v-if="expandedId === itemId(item)">
+                    <template v-if="isExpanded(itemId(item))">
                         <!-- 正常状态：展示子工具 -->
                         <div v-if="itemStatus(item) !== 2" class="plugin-card__expand">
-                            <div v-for="tool in getItemTools(item)" :key="getToolId(tool)" class="plugin-card__tool-item">
-                                <div class="plugin-card__tool-content">
-                                    <div class="plugin-card__tool-title-row">
-                                        <t-tooltip :content="getToolName(tool)" placement="top"><span class="plugin-card__tool-name">{{ getToolName(tool) }}</span></t-tooltip>
-                                        <TagWithColor v-if="getToolFinanceType(tool) === 3" color="orange" :theme="theme">公测</TagWithColor>
-                                        <TagWithColor v-if="getToolFinanceType(tool) === 2" color="purple" icon="basic_vip_line" :theme="theme">官方收费</TagWithColor>
-                                    </div>
-                                    <t-tooltip :content="getToolDesc(tool)" placement="top"><div class="plugin-card__tool-desc">{{ getToolDesc(tool) }}</div></t-tooltip>
-                                    <div v-if="getToolTags(tool).length > 0" class="plugin-card__tool-tags">
-                                        <TagWithColor v-for="(tag, idx) in getToolTags(tool)" :key="idx" color="gray" :theme="theme">{{ tag }}</TagWithColor>
-                                    </div>
-                                </div>
-                                <div class="plugin-card__tool-action">
-                                    <t-button v-if="isToolAdded(tool)" variant="outline" theme="default" size="small" disabled>已添加</t-button>
-                                    <t-button v-else  theme="primary" size="small"
-                                        :loading="addingKey === `tool-${getToolId(tool)}`"
-                                        :disabled="!!addingKey && addingKey !== `tool-${getToolId(tool)}`"
-                                        @click.stop="onAddSingle(item, tool)">
-                                        <template #icon><CustomizedIcon color="var(--td-font-white-1)" remote name="basic_new_line" size="xxs" :show-hover-bg="false" :theme="theme" /></template>
-                                        添加
-                                    </t-button>
-                                </div>
+                            <!-- 懒加载 loading -->
+                            <div v-if="isExpandLoading(itemId(item))" class="plugin-card__tool-empty">
+                                <t-loading size="small" :text="mergedI18n.loadingTools" />
                             </div>
-                            <div v-if="getItemTools(item).length === 0" class="plugin-card__tool-empty">暂无工具信息</div>
+                            <!-- 懒加载失败 -->
+                            <template v-else-if="isExpandError(itemId(item))">
+                                <div class="plugin-card__tool-empty">
+                                    {{ mergedI18n.loadToolsFailed }}
+                                    <span class="plugin-card__tool-retry" @click.stop="ensurePluginTools(item)">{{ mergedI18n.clickRetry }}</span>
+                                </div>
+                            </template>
+                            <template v-else>
+                                <div v-for="tool in getItemTools(item)" :key="getToolId(tool)" class="plugin-card__tool-item">
+                                    <div class="plugin-card__tool-content">
+                                        <div class="plugin-card__tool-title-row">
+                                            <t-tooltip :content="getToolName(tool)" placement="top"><span class="plugin-card__tool-name">{{ getToolName(tool) }}</span></t-tooltip>
+                                            <TagWithColor v-if="getToolFinanceType(tool) === 3" color="orange" :theme="theme">{{ mergedI18n.tagBeta }}</TagWithColor>
+                                            <TagWithColor v-if="getToolFinanceType(tool) === 2" color="purple" icon="basic_vip_line" :theme="theme">{{ mergedI18n.tagOfficialPaid }}</TagWithColor>
+                                        </div>
+                                        <!-- 用 flex 行容器固定宽度，inline tooltip 只在文字范围内触发 -->
+                                        <div class="plugin-card__tool-desc-row">
+                                            <t-tooltip :content="getToolDesc(tool)" placement="top">
+                                                <span class="plugin-card__tool-desc">{{ getToolDesc(tool) }}</span>
+                                            </t-tooltip>
+                                        </div>
+                                        <div v-if="getToolTags(tool).length > 0" class="plugin-card__tool-tags">
+                                            <TagWithColor v-for="(tag, idx) in getToolTags(tool)" :key="idx" color="gray" :theme="theme">{{ tag }}</TagWithColor>
+                                        </div>
+                                    </div>
+                                    <div class="plugin-card__tool-action">
+                                        <t-button v-if="isToolAdded(tool)" variant="outline" theme="default" size="small" disabled>{{ mergedI18n.toolInstalled }}</t-button>
+                                        <t-button v-else  theme="primary" size="small"
+                                            :loading="addingKey === `tool-${getToolId(tool)}`"
+                                            :disabled="!!addingKey && addingKey !== `tool-${getToolId(tool)}`"
+                                            @click.stop="onAddSingle(item, tool)">
+                                            <template #icon><CustomizedIcon color="var(--td-font-white-1)" remote name="basic_new_line" size="xxs" :show-hover-bg="false" :theme="theme" /></template>
+                                            {{ mergedI18n.addBtn }}
+                                        </t-button>
+                                    </div>
+                                </div>
+                                <div v-if="getItemTools(item).length === 0" class="plugin-card__tool-empty">{{ mergedI18n.noToolInfo }}</div>
+                            </template>
                         </div>
                         <!-- 不可用状态 -->
                         <div v-else class="plugin-card__expand plugin-card__expand--error">
                             <CustomizedIcon remote name="basic_error_fill" size="xxs" :show-hover-bg="false" :theme="theme" color="var(--td-error-color)" />
-                            <span>该 server 已失效，无法拉取到相应内容</span>
+                            <span>{{ mergedI18n.serverInvalidError }}</span>
                         </div>
                     </template>
                 </div>
@@ -179,6 +197,8 @@
             v-model="showFieldDialog"
             :required-headers="fieldDialogHeaders"
             :required-query="fieldDialogQuery"
+            :language="language"
+            :i18n="i18n"
             @confirm="(e: any) => onFieldConfirm(e)"
             @cancel="onFieldCancel"
         />
@@ -195,13 +215,15 @@ import {
 import CustomizedIcon from '../CustomizedIcon.vue';
 import TagWithColor from '../Common/TagWithColor.vue';
 import {
-    fetchPluginList, fetchPluginCategories, PluginClassEnum,
+    fetchPluginList, fetchPluginCategories, fetchPluginDetail, PluginClassEnum,
     bindAgentTool, buildToolConfig, buildPluginConfig,
 } from '../../service/connectorPluginApi';
 import McpFieldDialog from './McpFieldDialog.vue';
 import DividerTabs from '../Common/DividerTabs.vue';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
+import type { SkillsI18n } from '../../model/skills';
+import { defaultSkillsI18n, defaultSkillsI18nEn } from '../../model/skills';
 import useAgentStore from '../../composables/useAgentStore';
 
 interface Props extends ThemeProps {
@@ -211,8 +233,39 @@ interface Props extends ThemeProps {
     spaceId?: string;
     /** 已安装的工具 ID 列表，用于判断"已添加"状态 */
     installedToolIds?: string[];
+    /**
+     * 已安装工具的 (pluginId, toolId) 映射。
+     * 提供此 prop 后，可以在**未懒加载工具明细**的情况下，仅依据每个插件的
+     * `Statistics.ToolCount` 与该插件下已绑定工具数对比，正确显示"已全部添加"。
+     * 如不传，则退化为旧行为（必须展开插件、懒加载工具明细后才能判定"已全部添加"）。
+     */
+    installedTools?: Array<{ pluginId: string; toolId: string }>;
+    /** 国际化文本（与 SkillsPopover / Sender 共享 SkillsI18n） */
+    i18n?: Partial<SkillsI18n>;
+    /** 语言，决定默认中/英文本，'en-*' 走英文 */
+    language?: string;
 }
-const props = withDefaults(defineProps<Props>(), { ...themePropsDefaults, modelValue: false, applicationId: '', spaceId: '', installedToolIds: () => [] });
+const props = withDefaults(defineProps<Props>(), {
+    ...themePropsDefaults,
+    modelValue: false,
+    applicationId: '',
+    spaceId: '',
+    installedToolIds: () => [],
+    installedTools: () => [],
+    i18n: () => ({}),
+    language: '',
+});
+
+/** 合并默认 + 业务方传入的 i18n（与 SkillsPopover/Sender 同源 SkillsI18n） */
+const mergedI18n = computed<Required<SkillsI18n>>(() => {
+    const defaults = props.language?.startsWith('en') ? defaultSkillsI18nEn : defaultSkillsI18n;
+    return { ...defaults, ...props.i18n };
+});
+
+/** 工具数量本地化（处理「含 N 个工具」/「Contains N tool(s)」占位符） */
+function formatContainsTools(count: number): string {
+    return (mergedI18n.value.containsNTools || '').replace('{count}', String(count));
+}
 const { getAgentIdByAppId } = useAgentStore();
 const emit = defineEmits<{
     (e: 'update:modelValue', v: boolean): void;
@@ -226,7 +279,10 @@ const emit = defineEmits<{
 
 const visible = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) });
 const activeTab = ref('inner');
-const tabOptions = [{ label: '工具', value: 'inner' }, { label: '自定义工具', value: 'custom' }];
+const tabOptions = computed(() => [
+    { label: mergedI18n.value.tabInner, value: 'inner' },
+    { label: mergedI18n.value.tabCustom, value: 'custom' },
+]);
 const activeCategory = ref('all');
 const filterVisible = ref(false);
 const filterFavorite = ref(false);
@@ -242,10 +298,36 @@ const filteredCardList = computed(() => cardList.value.filter(item => !checkNeed
 const pageNumber = ref(1);
 const pageSize = 15;
 const total = ref(0);
-const expandedId = ref('');
-const categories = ref<Array<{ label: string; value: string }>>([{ label: '全部', value: 'all' }]);
-const sortOptions = [{ label: '默认排序', value: 3 }, { label: '按热门排序', value: 4 }, { label: '按更新时间排序', value: 2 }];
-const sortLabel = computed(() => sortOptions.find(o => o.value === selectedSort.value)?.label || '默认排序');
+/**
+ * 当前已展开的插件 ID 集合（支持同时展开多个插件，互不影响）。
+ * 使用 Set 而非数组：插入/移除/判存均为 O(1)。
+ */
+const expandedIds = ref<Set<string>>(new Set());
+/** 模板友好的 helper：判断某 pluginId 是否处于展开态 */
+function isExpanded(id: string): boolean {
+    return expandedIds.value.has(id);
+}
+/**
+ * 子工具懒加载缓存（pluginId -> Tool[]）。
+ * DescribePluginSummaryList 不返回工具明细，需在展开卡片时按需通过 DescribePlugin 拉取。
+ */
+const toolDetailCache = ref<Map<string, Record<string, unknown>[]>>(new Map());
+/** 正在通过 DescribePlugin 拉取工具的 pluginId 集合（多展开模式下每张卡独立 loading） */
+const expandLoadingIds = ref<Set<string>>(new Set());
+/** 拉取失败的 pluginId 集合（每张卡独立错误态） */
+const expandErrorIds = ref<Set<string>>(new Set());
+/** 正在执行"更新"操作的 pluginId 集合（per-card，互不阻塞） */
+const updatingIds = ref<Set<string>>(new Set());
+function isUpdating(id: string): boolean { return updatingIds.value.has(id); }
+function isExpandLoading(id: string): boolean { return expandLoadingIds.value.has(id); }
+function isExpandError(id: string): boolean { return expandErrorIds.value.has(id); }
+const categories = ref<Array<{ label: string; value: string }>>([{ label: defaultSkillsI18n.categoryAll, value: 'all' }]);
+const sortOptions = computed(() => [
+    { label: mergedI18n.value.sortDefault, value: 3 },
+    { label: mergedI18n.value.sortHot, value: 4 },
+    { label: mergedI18n.value.sortUpdateTime, value: 2 },
+]);
+const sortLabel = computed(() => sortOptions.value.find(o => o.value === selectedSort.value)?.label || mergedI18n.value.sortDefault);
 const sortIcon = computed(() => { if (selectedSort.value === 4) return 'basic_hot_line'; if (selectedSort.value === 2) return 'basic_time_line'; return 'basic_move_v_line'; });
 
 /** 本次会话中已添加的 toolId（乐观更新留痕） */
@@ -255,15 +337,29 @@ const filterValue = ref<Record<string, number[]>>({
     plugintypes: [1, 2], financetypes: [2, 3, 0], createtypes: [2, 0, 1, 3],
 });
 
-const filterGroups = ref([
-    { key: 'financetypes', title: '付费方式', options: [{ text: '官方收费', value: 2 }, { text: '公测', value: 3 }, { text: '其他', value: 0 }] },
-    { key: 'plugintypes', title: '来源', options: [{ text: '官方工具', value: 1 }, { text: '三方工具', value: 2 }] },
-    { key: 'createtypes', title: '类型', options: [{ text: 'MCP类', value: 2 }, { text: 'API类', value: 0 }, { text: '代码类', value: 1 }, { text: '应用类', value: 3 }] },
+const filterGroups = computed(() => [
+    { key: 'financetypes', title: mergedI18n.value.filterFinance, options: [
+        { text: mergedI18n.value.tagOfficialPaid, value: 2 },
+        { text: mergedI18n.value.tagBeta, value: 3 },
+        { text: mergedI18n.value.filterOther, value: 0 },
+    ] },
+    { key: 'plugintypes', title: mergedI18n.value.filterSource, options: [
+        { text: mergedI18n.value.sourceOfficial, value: 1 },
+        { text: mergedI18n.value.sourceThirdParty, value: 2 },
+    ] },
+    { key: 'createtypes', title: mergedI18n.value.filterType, options: [
+        { text: mergedI18n.value.typeMcp, value: 2 },
+        { text: mergedI18n.value.typeApi, value: 0 },
+        { text: mergedI18n.value.typeCode, value: 1 },
+        { text: mergedI18n.value.typeApp, value: 3 },
+    ] },
 ]);
 
 const filterLabel = computed(() => {
     const count = Object.values(filterValue.value).reduce((s, a) => s + a.length, 0);
-    return count > 0 ? `已选 ${count} 项` : '全部';
+    return count > 0
+        ? (mergedI18n.value.selectedCount || '').replace('{count}', String(count))
+        : mergedI18n.value.categoryAll;
 });
 
 function isFilterChecked(key: string, val: number) { return (filterValue.value[key] || []).includes(val); }
@@ -291,18 +387,50 @@ function itemCategory(i: Record<string, unknown>) {
 function itemFinanceType(i: Record<string, unknown>) { return (i.FinanceType || i.finance_type || 0) as number; }
 function itemStatus(i: Record<string, unknown>) { return (i.Status || i.status || 0) as number; }
 function getCreateType(i: Record<string, unknown>) { return (i.CreateType || i.create_type || 0) as number; }
-function getCreateTypeLabel(i: Record<string, unknown>) { const t = getCreateType(i); if (t === 2) return 'MCP'; if (t === 0) return 'API'; if (t === 1) return '代码'; if (t === 3) return '应用'; return ''; }
-function getItemTools(i: Record<string, unknown>): Record<string, unknown>[] { return ((i.tools || i.Tools || i.ToolList) as Record<string, unknown>[] | undefined) || []; }
+function getCreateTypeLabel(i: Record<string, unknown>) {
+    const t = getCreateType(i);
+    const m = mergedI18n.value;
+    if (t === 2) return m.createTypeLabelMcp;
+    if (t === 0) return m.createTypeLabelApi;
+    if (t === 1) return m.createTypeLabelCode;
+    if (t === 3) return m.createTypeLabelApp;
+    return '';
+}
+/**
+ * 获取插件子工具列表。
+ *
+ * 自 ListPlugins → DescribePluginSummaryList 升级后，列表接口不再返回工具明细，
+ * 需要在展开卡片时通过 DescribePlugin 按需拉取。本函数优先级：
+ *   1) 本地缓存 toolDetailCache（已通过 ensurePluginTools 拉取过）
+ *   2) item 自身的 Tools / ToolList（旧协议或后端透传场景）
+ */
+function getItemTools(i: Record<string, unknown>): Record<string, unknown>[] {
+    const id = itemId(i);
+    if (id && toolDetailCache.value.has(id)) {
+        return toolDetailCache.value.get(id) || [];
+    }
+    return ((i.tools || i.Tools || i.ToolList) as Record<string, unknown>[] | undefined) || [];
+}
 function itemToolCount(i: Record<string, unknown>) { const tools = getItemTools(i); return tools.length > 0 ? tools.length : ((i.tool_count || i.ToolCount || 0) as number); }
 function onIconError(e: Event) { (e.target as HTMLImageElement).style.display = 'none'; }
 
 /* ===== 子工具数据提取 ===== */
 function getToolId(t: Record<string, unknown>) { return ((t.ToolId || t.tool_id || t.id) as string) || ''; }
 function getToolName(t: Record<string, unknown>) { return ((t.Name || t.ToolName || t.tool_name || t.name) as string) || ''; }
-function getToolDesc(t: Record<string, unknown>) { return ((t.Desc || t.ToolDesc || t.tool_desc || t.description) as string) || ''; }
-function getToolFinanceType(t: Record<string, unknown>) { return (t.FinanceType || t.finance_type || 0) as number; }
+// v2 工具用 Description 替代旧 Desc；保留兼容
+function getToolDesc(t: Record<string, unknown>) {
+    return ((t.Description || t.Desc || t.ToolDesc || t.tool_desc || t.description) as string) || '';
+}
+// v2 工具计费在 t.Billing.BillingType 下，旧字段 FinanceType / finance_type 保留兼容
+function getToolFinanceType(t: Record<string, unknown>) {
+    const billing = (t.Billing as Record<string, unknown> | undefined);
+    return (billing?.BillingType ?? t.FinanceType ?? t.finance_type ?? 0) as number;
+}
 function getToolTags(t: Record<string, unknown>): string[] {
-    const body = (t.Body || t.body || []) as Array<Record<string, unknown>>;
+    // v2 工具的 Body 在 t.ToolConfig.ApiToolConfig.Body 下，旧版本 Body 直接在顶层
+    const toolConfig = (t.ToolConfig as Record<string, unknown> | undefined);
+    const apiToolConfig = (toolConfig?.ApiToolConfig as Record<string, unknown> | undefined);
+    const body = (apiToolConfig?.Body || t.Body || t.body || []) as Array<Record<string, unknown>>;
     return body.map(tag => ((tag.Name || tag.name) as string) || '').filter(Boolean);
 }
 
@@ -312,10 +440,35 @@ function isToolAdded(tool: Record<string, unknown>): boolean {
     if (!tid) return false;
     return props.installedToolIds.includes(tid) || localAddedToolIds.value.has(tid);
 }
+
+/**
+ * 判定插件下所有工具是否都已添加。
+ *
+ * 三档判定（按优先级）：
+ *   1) 已有工具明细（缓存命中 / 旧协议 inline / 已展开）→ 用 `tools.every(isToolAdded)`
+ *   2) 未拿到工具明细但传入了 installedTools → 用「该 pluginId 下已绑定工具数 + 本会话乐观新增数」
+ *      与 `Statistics.ToolCount` 对比；这是升级到 DescribePluginSummaryList 后**未展开也能**正确显示
+ *      "已全部添加"的关键路径
+ *   3) 兜底：返回 false（旧行为，需展开后才能正确判定）
+ */
 function checkIsAllAdd(item: Record<string, unknown>): boolean {
     const tools = getItemTools(item);
-    if (tools.length === 0) return false;
-    return tools.every(t => isToolAdded(t));
+    if (tools.length > 0) {
+        return tools.every(t => isToolAdded(t));
+    }
+    // 列表态：仅靠 ToolCount + installedTools(pluginId,toolId) 做判定
+    const pluginId = itemId(item);
+    if (!pluginId) return false;
+    const toolCount = Number(item.ToolCount || item.tool_count || 0);
+    if (toolCount <= 0) return false;
+    if (props.installedTools.length === 0) return false;
+    const installedIdsForPlugin = new Set<string>();
+    props.installedTools.forEach((t) => {
+        if (t.pluginId === pluginId && t.toolId) installedIdsForPlugin.add(t.toolId);
+    });
+    // 叠加本会话乐观新增（onAddAll / onAddSingle 后立刻刷新 UI）
+    localAddedToolIds.value.forEach((tid) => installedIdsForPlugin.add(tid));
+    return installedIdsForPlugin.size >= toolCount;
 }
 
 /* ===== API 交互 ===== */
@@ -326,7 +479,10 @@ async function fetchCategories() {
         const map: Record<string, string> = {};
         result.categories.forEach(c => { map[c.category_key] = c.category_name; });
         categoryMap.value = map;
-        categories.value = [{ label: '全部', value: 'all' }, ...result.categories.map(c => ({ label: c.category_name, value: c.category_key }))];
+        categories.value = [
+            { label: mergedI18n.value.categoryAll, value: 'all' },
+            ...result.categories.map(c => ({ label: c.category_name, value: c.category_key })),
+        ];
         nextTick(() => updateScrollState());
     } catch (e) { console.error(e); }
 }
@@ -371,6 +527,12 @@ async function fetchList() {
             IsFavorite: filterFavorite.value ? true : !!(p.IsFavorite || p.is_favorite),
         }));
         total.value = result.total;
+        // 列表刷新后收起所有已展开的插件，并清空工具明细缓存/loading/错误态，避免新旧数据混用
+        expandedIds.value = new Set();
+        toolDetailCache.value = new Map();
+        expandLoadingIds.value = new Set();
+        expandErrorIds.value = new Set();
+        updatingIds.value = new Set();
     } catch (e) { console.error(e); } finally { loading.value = false; }
 }
 
@@ -378,15 +540,84 @@ async function fetchList() {
 function doReset() { pageNumber.value = 1; fetchList(); }
 function onSearch() { if (searchTimer) clearTimeout(searchTimer); searchTimer = setTimeout(doReset, 300); }
 function onTabChange() { activeCategory.value = 'all'; filterFavorite.value = false; filterValue.value = { plugintypes: [1, 2], financetypes: [2, 3, 0], createtypes: [2, 0, 1, 3] }; searchKeyword.value = ''; selectedSort.value = 3; doReset(); }
-function onExpand(item: Record<string, unknown>) { const id = itemId(item); expandedId.value = expandedId.value === id ? '' : id; }
+
+/**
+ * 展开/收起插件卡片（多展开模式：彼此独立，不会因为新展开收起其他卡片）。
+ * 展开时若缓存未命中，按需调用 DescribePlugin 拉取工具明细。
+ */
+async function onExpand(item: Record<string, unknown>) {
+    const id = itemId(item);
+    if (!id) return;
+    // 收起：若已展开则移除
+    if (expandedIds.value.has(id)) {
+        const next = new Set(expandedIds.value);
+        next.delete(id);
+        expandedIds.value = next;
+        return;
+    }
+    // 展开：加入集合（用新 Set 触发响应式更新）
+    expandedIds.value = new Set(expandedIds.value).add(id);
+    // 不可用插件无需拉工具
+    if (itemStatus(item) === 2) return;
+    // 命中缓存或自带 ToolList（旧协议）则不发起请求
+    const inlineTools = ((item.tools || item.Tools || item.ToolList) as Record<string, unknown>[] | undefined) || [];
+    if (toolDetailCache.value.has(id) || inlineTools.length > 0) {
+        if (!toolDetailCache.value.has(id) && inlineTools.length > 0) {
+            toolDetailCache.value.set(id, inlineTools);
+        }
+        return;
+    }
+    await ensurePluginTools(item);
+}
+
+/**
+ * 确保某插件的工具列表已就绪：未命中缓存则通过 DescribePlugin 拉取。
+ * 同一插件并发调用只会发起一次请求（基于 expandLoadingIds 集合检测），其他调用方等待完成。
+ * 多个不同插件可并发拉取，各自独立的 loading / 错误态。
+ */
+async function ensurePluginTools(item: Record<string, unknown>): Promise<Record<string, unknown>[]> {
+    const id = itemId(item);
+    if (!id) return [];
+    if (toolDetailCache.value.has(id)) return toolDetailCache.value.get(id) || [];
+    if (!props.applicationId) return [];
+    // 该插件已在拉取中：直接退出（UI 仍显示 loading）
+    if (expandLoadingIds.value.has(id)) return [];
+    // 标记 loading + 清错误态（用新 Set 触发响应式）
+    expandLoadingIds.value = new Set(expandLoadingIds.value).add(id);
+    if (expandErrorIds.value.has(id)) {
+        const next = new Set(expandErrorIds.value);
+        next.delete(id);
+        expandErrorIds.value = next;
+    }
+    try {
+        const { plugin } = await fetchPluginDetail({
+            applicationId: props.applicationId,
+            pluginId: id,
+            spaceId: props.spaceId || undefined,
+        });
+        const tools = (plugin?.Tools as Record<string, unknown>[] | undefined) || [];
+        toolDetailCache.value.set(id, tools);
+        return tools;
+    } catch (e) {
+        console.error('[PluginInstallDialog] DescribePlugin 失败', e);
+        expandErrorIds.value = new Set(expandErrorIds.value).add(id);
+        return [];
+    } finally {
+        if (expandLoadingIds.value.has(id)) {
+            const next = new Set(expandLoadingIds.value);
+            next.delete(id);
+            expandLoadingIds.value = next;
+        }
+    }
+}
 
 /** 正在执行绑定的按钮 key */
 const addingKey = ref('');
 
 async function doBindAgentTool(pluginItem: Record<string, unknown>, toolItems: Record<string, unknown>[]) {
-    if (!props.applicationId) throw new Error('缺少应用 ID，无法绑定工具');
+    if (!props.applicationId) throw new Error(mergedI18n.value.errorMissingAppId);
     const agentId = await getAgentIdByAppId(props.applicationId);
-    if (!agentId) throw new Error('缺少 Agent ID，无法绑定工具');
+    if (!agentId) throw new Error(mergedI18n.value.errorMissingAgentId);
     const pluginId = (pluginItem.PluginId || pluginItem.plugin_id || '') as string;
     const pluginClass = Number(pluginItem.PluginClass || pluginItem.plugin_class || 0);
     const isConnector = pluginClass === 1;
@@ -476,10 +707,10 @@ async function doAddAllAfterFields(item: Record<string, unknown>, tools: Record<
         tools.forEach(t => { const tid = getToolId(t); if (tid) localAddedToolIds.value.add(tid); });
         emit('install', item);
         emit('installed');
-        MessagePlugin.success('已添加');
+        MessagePlugin.success(mergedI18n.value.addedToast);
     } catch (e) {
         console.error('[BindAgentTool] 绑定失败:', e);
-        MessagePlugin.error('工具绑定失败');
+        MessagePlugin.error(mergedI18n.value.bindToolFailedToast);
     } finally {
         addingKey.value = '';
     }
@@ -494,10 +725,10 @@ async function doAddSingleAfterFields(plugin: Record<string, unknown>, tool: Rec
         if (tid) localAddedToolIds.value.add(tid);
         emit('install-tool', { plugin, tool });
         emit('installed');
-        MessagePlugin.success('已添加');
+        MessagePlugin.success(mergedI18n.value.addedToast);
     } catch (e) {
         console.error('[BindAgentTool] 绑定失败:', e);
-        MessagePlugin.error('工具绑定失败');
+        MessagePlugin.error(mergedI18n.value.bindToolFailedToast);
     } finally {
         addingKey.value = '';
     }
@@ -505,9 +736,14 @@ async function doAddSingleAfterFields(plugin: Record<string, unknown>, tool: Rec
 
 async function onAddAll(item: Record<string, unknown>) {
     if (addingKey.value) return;
-    const tools = getItemTools(item).filter(t => !isToolAdded(t));
+    // 工具列表懒加载：v2 DescribePluginSummaryList 不带 ToolList，按需先拉取一次
+    let tools = getItemTools(item).filter(t => !isToolAdded(t));
+    if (tools.length === 0 && !toolDetailCache.value.has(itemId(item))) {
+        await ensurePluginTools(item);
+        tools = getItemTools(item).filter(t => !isToolAdded(t));
+    }
     if (tools.length === 0) {
-        MessagePlugin.info('所有工具已添加');
+        MessagePlugin.info(mergedI18n.value.allToolsAddedToast);
         return;
     }
     if (checkNeedFillFields(item) && !props.installedToolIds.some(tid => getItemTools(item).map(getToolId).includes(tid))) {
@@ -532,16 +768,52 @@ async function onAddSingle(plugin: Record<string, unknown>, tool: Record<string,
     doAddSingleAfterFields(plugin, tool);
 }
 
+/**
+ * 「更新」按钮（仅 MCP 插件可用）：让后端回源 MCP server 拉最新工具列表并同步到平台。
+ *
+ * 实现与 webim/gpt-demo 一致：复用 DescribePlugin（后端在内部对 MCP 类型走 server 同步逻辑），
+ * 不是单纯刷新 UI 列表。前端拿到新 ToolList 后写回 toolDetailCache，已展开的卡片会立即看到新工具。
+ *
+ * 行为：
+ *   - per-card loading（基于 updatingIds 集合，多张卡可并发各自更新）
+ *   - 同一插件并发点击会被去重
+ *   - 成功 toast「已更新工具列表」、失败 toast「更新失败」
+ *   - 不调用 fetchList()，不重排整页插件列表
+ */
 async function onUpdatePlugin(item: Record<string, unknown>) {
-    if (item._toolsLoading) return;
-    item._toolsLoading = true;
+    const id = itemId(item);
+    if (!id) return;
+    if (updatingIds.value.has(id)) return;
+    if (!props.applicationId) return;
+
+    updatingIds.value = new Set(updatingIds.value).add(id);
     try {
-        await fetchList();
-        MessagePlugin.success('已更新工具列表');
+        const { plugin } = await fetchPluginDetail({
+            applicationId: props.applicationId,
+            pluginId: id,
+            spaceId: props.spaceId || undefined,
+        });
+        // 用新 ToolList 覆盖该插件的缓存（仅在返回非空时覆盖，对齐 webim 行为：避免误清空）
+        const tools = (plugin?.Tools as Record<string, unknown>[] | undefined) || [];
+        if (tools.length > 0) {
+            toolDetailCache.value.set(id, tools);
+        }
+        // 顺手清掉该卡之前的错误态（若有）
+        if (expandErrorIds.value.has(id)) {
+            const next = new Set(expandErrorIds.value);
+            next.delete(id);
+            expandErrorIds.value = next;
+        }
+        MessagePlugin.success(mergedI18n.value.updatedToolList);
     } catch (e) {
-        console.error(e);
+        console.error('[PluginInstallDialog] onUpdatePlugin 失败', e);
+        MessagePlugin.error(mergedI18n.value.updateFailed);
     } finally {
-        item._toolsLoading = false;
+        if (updatingIds.value.has(id)) {
+            const next = new Set(updatingIds.value);
+            next.delete(id);
+            updatingIds.value = next;
+        }
     }
 }
 
@@ -556,7 +828,7 @@ watch(() => props.modelValue, (val) => {
         searchKeyword.value = '';
         selectedSort.value = 3;
         pageNumber.value = 1;
-        expandedId.value = '';
+        expandedIds.value = new Set();
         localAddedToolIds.value = new Set();
         fetchCategories();
         fetchList();
@@ -611,9 +883,31 @@ watch(() => props.modelValue, (val) => {
 .plugin-card__tool-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--td-size-2); }
 .plugin-card__tool-title-row { display: flex; align-items: center; gap: var(--td-size-3); }
 .plugin-card__tool-name { font-size: var(--td-font-size-body-small); font-weight: 500; color: var(--td-text-color-primary); }
-.plugin-card__tool-desc { font-size: var(--td-font-size-body-small); color: var(--td-text-color-placeholder); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/**
+ * 工具描述行：
+ * - 外层 `.plugin-card__tool-desc-row` 独立成行，作为文字宽度边界（max-width: 100%）；
+ * - 内层 `.plugin-card__tool-desc` 用 inline-block 让 hover 触发区域贴合文字宽度，
+ *   避免 hover 整行空白也弹出 tooltip。
+ */
+.plugin-card__tool-desc-row {
+    display: block;
+    max-width: 100%;
+    min-width: 0;
+}
+.plugin-card__tool-desc {
+    display: inline-block;
+    max-width: 100%;
+    font-size: var(--td-font-size-body-small);
+    color: var(--td-text-color-placeholder);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: top;
+}
 .plugin-card__tool-tags { display: flex; gap: var(--td-size-2); flex-wrap: wrap; }
 .plugin-card__tool-empty { font-size: var(--td-font-size-body-small); color: var(--td-text-color-placeholder); text-align: center; padding: var(--td-size-4) 0; }
+.plugin-card__tool-retry { color: var(--td-brand-color); cursor: pointer; }
+.plugin-card__tool-retry:hover { color: var(--td-brand-color-hover); }
 
 /* ── 移动端适配 ── */
 @media (max-width: 600px) {

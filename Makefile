@@ -1,11 +1,21 @@
-.PHONY: client server docs deploy build dev dev_withdb
+.PHONY: init init_client init_component init_server client server docs deploy build dev dev_withdb
 
 -include Makefile.local
+
+# ----------------- init (aggregate) -----------------
+
+# 一次性初始化所有依赖：client npm 依赖 + 组件库产物 + server Python 依赖
+init: init_client init_server
 
 # ----------------- client -----------------
 
 init_client:
 	cd client && npm install
+	$(MAKE) init_component
+
+# 组件库需要 build 产物（dist/es/adp-chat-component.css 等）才能被 app 引用
+init_component:
+	cd client/packages/adp-chat-component && npm run build
 
 client:
 	cd client && npm run build

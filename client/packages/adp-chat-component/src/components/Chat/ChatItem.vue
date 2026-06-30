@@ -3,7 +3,7 @@
 import { ref, computed, watch } from 'vue';
 import type { Content, Message, QuoteInfo, Record as RecordV2, Reference as ReferenceV2, FileInfo } from '../../model/chat-v2';
 import { ScoreValue } from '../../model/chat-v2';
-import type { CommonLayoutProps, ChatItemI18n, ChatMode } from '../../model/type';
+import type { CommonLayoutProps, ChatItemI18n, ChatI18n, ChatMode } from '../../model/type';
 import { commonLayoutPropsDefaults, defaultChatItemI18n } from '../../model/type';
 import {  ChatItem as TChatItem } from '@tdesign-vue-next/chat';
 import { Tooltip, Loading as TLoading, Link as TLink, Dialog as TDialog } from 'tdesign-vue-next';
@@ -33,6 +33,8 @@ interface Props extends CommonLayoutProps {
     showActions?: boolean;
     /** 国际化文本 */
     i18n?: ChatItemI18n;
+    /** Chat 折叠组等的国际化文本（透传给 CollapsibleMessageGroup） */
+    chatI18n?: ChatI18n;
     /** 当前语言标识（如 'zh-CN'、'en-US'），用于 widget 国际化 */
     language?: string;
     /** 聊天模式：claw-简化模式, standard-标准模式 */
@@ -52,6 +54,7 @@ const props = withDefaults(defineProps<Props>(), {
     mode: 'standard',
     ...commonLayoutPropsDefaults,
     i18n: () => ({}),
+    chatI18n: () => ({}),
     mentionSkills: () => [],
     mentionTools: () => [],
     mentionConnectors: () => [],
@@ -634,6 +637,7 @@ const referenceDialogTitle = computed(() => {
                             :isTerminated="isTerminated && rIdx === renderItems.length - 1"
                             :theme="theme"
                             :language="language"
+                            :i18n="chatI18n"
                         />
                         <MdContent
                             v-else-if="renderItem.kind === 'reply'"

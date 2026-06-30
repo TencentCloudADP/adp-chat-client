@@ -14,6 +14,8 @@
                     :currentApplicationOpeningQuestions="currentApplicationOpeningQuestions"
                     :isMobile="isMobile"
                     :isOverlay="isOverlay"
+                    :i18n="i18n"
+                    :language="language"
                     @selectQuestion="getDefaultQuestion"
                 />
             </template>
@@ -57,6 +59,7 @@
                                 :mode="props.mode"
                                 :language="props.language"
                                 :i18n="chatItemI18n"
+                                :chat-i18n="i18n"
                                 :mentionSkills="mentionSkills"
                                 :mentionTools="mentionTools"
                                 :mentionConnectors="mentionConnectors"

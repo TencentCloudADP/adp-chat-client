@@ -15,14 +15,13 @@
                 <div class="at-mention-panel__category-inner">
                     <CustomizedIcon remote :name="cat.icon" size="s" :show-hover-bg="false" />
                     <span class="at-mention-panel__category-name">{{ cat.label }}</span>
-                    <CustomizedIcon remote name="arrow_right2_line" size="s" :show-hover-bg="false" class="at-mention-panel__category-arrow" />
                 </div>
             </div>
         </div>
 
         <!-- 右栏：子项列表 -->
         <div class="at-mention-panel__submenu">
-            <div v-if="activeItems.length === 0" class="at-mention-panel__empty">暂无可选项目</div>
+            <div v-if="activeItems.length === 0" class="at-mention-panel__empty">{{ mergedI18n.mentionEmpty }}</div>
             <div
                 v-for="(item, idx) in activeItems"
                 :key="item.id"
@@ -43,7 +42,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
-import type { NormalizedSkill } from '../../model/skills';
+import type { NormalizedSkill, SkillsI18n } from '../../model/skills';
+import { defaultSkillsI18n, defaultSkillsI18nEn } from '../../model/skills';
 
 /** 分类配置 */
 interface Category {
@@ -58,6 +58,10 @@ interface Props {
     installedConnectors?: NormalizedSkill[];
     installedTools?: NormalizedSkill[];
     searchKeyword?: string;
+    /** 国际化文本 */
+    i18n?: SkillsI18n;
+    /** 当前语言标识 */
+    language?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -65,6 +69,13 @@ const props = withDefaults(defineProps<Props>(), {
     installedConnectors: () => [],
     installedTools: () => [],
     searchKeyword: '',
+    i18n: () => ({}),
+    language: 'zh-CN',
+});
+
+const mergedI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultSkillsI18nEn : defaultSkillsI18n;
+    return { ...defaults, ...props.i18n };
 });
 
 const emit = defineEmits<{
@@ -80,9 +91,9 @@ const isKeyboardNavigating = ref(false);
 
 const categoryList = computed<Category[]>(() => {
     const list: Category[] = [];
-    if (props.installedSkills.length) list.push({ key: 'skills', label: 'Skills', icon: 'basic_bulb_line', items: props.installedSkills });
-    if (props.installedConnectors.length) list.push({ key: 'connectors', label: '连接器', icon: 'basic_api_line', items: props.installedConnectors });
-    if (props.installedTools.length) list.push({ key: 'tools', label: '工具', icon: 'basic_plugin_line', items: props.installedTools });
+    if (props.installedSkills.length) list.push({ key: 'skills', label: mergedI18n.value.skills || 'Skills', icon: 'basic_bulb_line', items: props.installedSkills });
+    if (props.installedConnectors.length) list.push({ key: 'connectors', label: mergedI18n.value.connector || '连接器', icon: 'basic_connector_line', items: props.installedConnectors });
+    if (props.installedTools.length) list.push({ key: 'tools', label: mergedI18n.value.tools || '工具', icon: 'basic_plugin_line', items: props.installedTools });
     return list;
 });
 
@@ -187,7 +198,7 @@ defineExpose({ handleKeydown, resetNavigation });
 
 /* ── 左栏：分类列表 ── */
 .at-mention-panel__categories {
-    width: 110px;
+    width: 130px;
     border-right: 1px solid var(--td-component-border);
     overflow-y: auto;
     padding: 4px 0;
@@ -218,6 +229,7 @@ defineExpose({ handleKeydown, resetNavigation });
     align-items: center;
     gap: 6px;
     padding: 7px 10px;
+    height: 36px;
     font-size: 13px;
     color: var(--td-text-color-primary);
 }
@@ -265,6 +277,7 @@ defineExpose({ handleKeydown, resetNavigation });
     align-items: center;
     gap: 8px;
     padding: 7px 10px;
+    height: 36px;
     cursor: pointer;
     transition: background 0.12s ease;
 }

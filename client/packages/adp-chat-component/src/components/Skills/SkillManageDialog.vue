@@ -17,7 +17,7 @@
                 <label v-if="enableImport" class="skills-manage__import-btn">
                     <t-button  :loading="importing" @click.stop>
                         <template #icon><CustomizedIcon remote name="basic_upload2_line" size="s" :show-hover-bg="false" :theme="theme" /></template>
-                        导入
+                        {{ i18n.importBtn }}
                     </t-button>
                     <input
                         ref="importFileInput"
@@ -29,7 +29,7 @@
                 </label>
                 <t-input
                     v-model="searchKeyword"
-                    placeholder="搜索 Skills"
+                    :placeholder="i18n.searchSkills"
                     clearable
                     class="skills-manage__search"
                 >
@@ -39,12 +39,12 @@
 
             <!-- 加载中 -->
             <div v-if="loading" class="skills-manage__loading">
-                <t-loading size="small" text="加载中..." />
+                <t-loading size="small" :text="i18n.loading" />
             </div>
 
             <!-- 空状态 -->
             <div v-else-if="filteredList.length === 0" class="skills-manage__empty">
-                <span v-if="searchKeyword">暂无匹配的 Skills</span>
+                <span v-if="searchKeyword">{{ i18n.noMatch }}</span>
                 <span v-else>{{ i18n.noSkills }}</span>
             </div>
 
@@ -68,13 +68,13 @@
                     <div class="skills-manage__item-info">
                         <div class="skills-manage__item-title">
                             <t-tooltip :content="item.name" placement="top"><span class="skills-manage__item-name">{{ item.name }}</span></t-tooltip>
-                            <t-tag v-if="isPreset(item)"  variant="light">预置</t-tag>
+                            <t-tag v-if="isPreset(item)"  variant="light">{{ i18n.tagBuiltin }}</t-tag>
                             <t-tag v-if="item.version"  variant="outline">{{ item.version }}</t-tag>
                         </div>
                         <t-tooltip v-if="item.desc" :content="item.desc" placement="top"><div class="skills-manage__item-desc">{{ item.desc }}</div></t-tooltip>
                     </div>
                     <div class="skills-manage__item-actions">
-                        <t-tooltip v-if="isPreset(item)" content="预置 Skill 无法删除" placement="top">
+                        <t-tooltip v-if="isPreset(item)" :content="i18n.presetSkillNotDeletable" placement="top">
                             <t-button  variant="text" theme="default" disabled>
                                 <template #icon><CustomizedIcon remote name="basic_delete_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                             </t-button>

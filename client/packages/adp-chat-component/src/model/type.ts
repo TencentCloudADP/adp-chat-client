@@ -83,6 +83,34 @@ export interface ChatI18n {
   getAppListFailed?: string
   getConversationListFailed?: string
   getConversationDetailFailed?: string
+  /* ───────── AppType 欢迎面板 ───────── */
+  /** 欢迎页大标题 */
+  welcomeTitle?: string
+  /** 欢迎页副标题描述 */
+  welcomeDescription?: string
+  /* ───────── CollapsibleMessageGroup 折叠组 ───────── */
+  /** 任务终止文案 */
+  taskTerminated?: string
+  /** 网络搜索中（streaming） */
+  collapseSearching?: string
+  /** 已搜索网页（done） */
+  collapseSearched?: string
+  /** 思考中 */
+  collapseThinking?: string
+  /** 深度思考（thought 折叠项标签） */
+  collapseDeepThinking?: string
+  /** 调用工具中（streaming） */
+  collapseCallingTools?: string
+  /** 调用了 N 次工具，支持 {count} 占位符 */
+  collapseCalledTools?: string
+  /** 读写文件中（streaming） */
+  collapseReadingFiles?: string
+  /** 读取了 N 个文件，支持 {count} 占位符 */
+  collapseReadFiles?: string
+  /** 修改文件中（streaming） */
+  collapseWritingFiles?: string
+  /** 修改了 N 个文件，支持 {count} 占位符 */
+  collapseWroteFiles?: string
 }
 
 /** ChatItem 国际化文本 */
@@ -263,6 +291,23 @@ export const defaultChatI18n: Required<ChatI18n> = {
   getAppListFailed: '获取应用列表失败',
   getConversationListFailed: '获取会话列表失败',
   getConversationDetailFailed: '获取会话详情失败',
+
+  /* AppType 欢迎面板 */
+  welcomeTitle: '描述需求，开启智能工作方式',
+  welcomeDescription: '一站式智能工作台，连接企业知识库与技能工具，替你从规划到执行完成每一项任务。',
+
+  /* CollapsibleMessageGroup 折叠组 */
+  taskTerminated: '任务终止',
+  collapseSearching: '网络搜索中',
+  collapseSearched: '搜索了网页',
+  collapseThinking: '思考中',
+  collapseDeepThinking: '深度思考',
+  collapseCallingTools: '调用工具中',
+  collapseCalledTools: '调用了{count}次工具',
+  collapseReadingFiles: '读写文件中',
+  collapseReadFiles: '读取了{count}个文件',
+  collapseWritingFiles: '修改文件中',
+  collapseWroteFiles: '修改了{count}个文件',
 }
 
 /** ChatItem i18n 默认值 */
@@ -363,6 +408,23 @@ export const defaultChatI18nEn: Required<ChatI18n> = {
   getAppListFailed: 'Failed to get app list',
   getConversationListFailed: 'Failed to get conversation list',
   getConversationDetailFailed: 'Failed to get conversation detail',
+
+  /* AppType welcome panel */
+  welcomeTitle: 'Describe what you need to start working smarter',
+  welcomeDescription: 'A one-stop intelligent workbench that connects enterprise knowledge and skill tools to handle every task end-to-end.',
+
+  /* CollapsibleMessageGroup */
+  taskTerminated: 'Task terminated',
+  collapseSearching: 'Searching...',
+  collapseSearched: 'Searched the web',
+  collapseThinking: 'Thinking...',
+  collapseDeepThinking: 'Deep thinking',
+  collapseCallingTools: 'Calling tools...',
+  collapseCalledTools: 'Called tools {count} time(s)',
+  collapseReadingFiles: 'Reading files...',
+  collapseReadFiles: 'Read {count} file(s)',
+  collapseWritingFiles: 'Writing files...',
+  collapseWroteFiles: 'Modified {count} file(s)',
 }
 
 /** ChatItem i18n 英文默认值 */

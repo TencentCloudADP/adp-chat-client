@@ -2,8 +2,8 @@
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue';
 import type { Message } from '../../model/chat-v2';
-import type { ThemeProps } from '../../model/type';
-import { themePropsDefaults } from '../../model/type';
+import type { ThemeProps, ChatI18n } from '../../model/type';
+import { themePropsDefaults, defaultChatI18n, defaultChatI18nEn } from '../../model/type';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import MdContent from '../Common/MdContent.vue';
 import ToolCallItem from './ToolCallItem.vue';
@@ -21,6 +21,8 @@ interface Props extends ThemeProps {
     isTerminated?: boolean;
     /** 当前语言标识 */
     language?: string;
+    /** 国际化文本 */
+    i18n?: ChatI18n;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -29,6 +31,12 @@ const props = withDefaults(defineProps<Props>(), {
     isStreaming: false,
     isTerminated: false,
     language: 'zh-CN',
+    i18n: () => ({}),
+});
+
+const mergedI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultChatI18nEn : defaultChatI18n;
+    return { ...defaults, ...props.i18n };
 });
 
 const expanded = ref(false);
@@ -69,42 +77,17 @@ function getMsgSubKind(msg: Message): string {
     return 'tools';
 }
 
-/** 国际化文本 */
-const t = (key: string, params?: Record<string, string | number>) => {
-    const isEn = props.language?.startsWith('en');
-    const map: Record<string, string> = isEn ? {
-        '任务终止': 'Task terminated',
-        '网络搜索中': 'Searching...',
-        '搜索了网页': 'Searched the web',
-        '思考中': 'Thinking...',
-        '思考': 'Thinking',
-        '调用工具中': 'Calling tools...',
-        '调用了{0}次工具': `Called tools ${params?.['0'] || ''} time(s)`,
-        '读写文件中': 'Reading files...',
-        '读取了{0}个文件': `Read ${params?.['0'] || ''} file(s)`,
-        '修改文件中': 'Writing files...',
-        '修改了{0}个文件': `Modified ${params?.['0'] || ''} file(s)`,
-    } : {
-        '任务终止': '任务终止',
-        '网络搜索中': '网络搜索中',
-        '搜索了网页': '搜索了网页',
-        '思考中': '思考中',
-        '思考': '思考',
-        '调用工具中': '调用工具中',
-        '调用了{0}次工具': `调用了${params?.['0'] || ''}次工具`,
-        '读写文件中': '读写文件中',
-        '读取了{0}个文件': `读取了${params?.['0'] || ''}个文件`,
-        '修改文件中': '修改文件中',
-        '修改了{0}个文件': `修改了${params?.['0'] || ''}个文件`,
-    };
-    return map[key] || key;
-};
+/** 替换 {count} 占位符 */
+function fmt(template: string, count: number | string): string {
+    return template.replace('{count}', String(count));
+}
 
 /**
  * 生成 mixed 类型折叠组的标题
  */
 function getMixedTitle(streaming: boolean): string {
     const msgs = props.messages || [];
+    const t = mergedI18n.value;
 
     if (streaming) {
         let lastNonThought: Message | null = null;
@@ -114,12 +97,12 @@ function getMixedTitle(streaming: boolean): string {
                 break;
             }
         }
-        if (!lastNonThought) return t('思考中');
+        if (!lastNonThought) return t.collapseThinking!;
         const toolName = lastNonThought.ExtraInfo?.ToolName || '';
-        if (toolName === 'write' || toolName === 'edit') return t('修改文件中');
-        if (toolName === 'read' || toolName === 'grep' || toolName === 'glob') return t('读写文件中');
-        if (getToolCategory(toolName) === 'search') return t('网络搜索中');
-        return t('调用工具中');
+        if (toolName === 'write' || toolName === 'edit') return t.collapseWritingFiles!;
+        if (toolName === 'read' || toolName === 'grep' || toolName === 'glob') return t.collapseReadingFiles!;
+        if (getToolCategory(toolName) === 'search') return t.collapseSearching!;
+        return t.collapseCallingTools!;
     }
 
     let writeCount = 0;
@@ -138,33 +121,35 @@ function getMixedTitle(streaming: boolean): string {
     });
 
     const parts: string[] = [];
-    if (writeCount > 0) parts.push(t('修改了{0}个文件', { '0': writeCount }));
-    if (readCount > 0) parts.push(t('读取了{0}个文件', { '0': readCount }));
-    if (searchCount > 0) parts.push(t('搜索了网页'));
-    if (toolsCount > 0) parts.push(t('调用了{0}次工具', { '0': toolsCount }));
+    if (writeCount > 0) parts.push(fmt(t.collapseWroteFiles!, writeCount));
+    if (readCount > 0) parts.push(fmt(t.collapseReadFiles!, readCount));
+    if (searchCount > 0) parts.push(t.collapseSearched!);
+    if (toolsCount > 0) parts.push(fmt(t.collapseCalledTools!, toolsCount));
 
-    if (parts.length === 0) return t('思考中');
-    return parts.join('，');
+    if (parts.length === 0) return t.collapseThinking!;
+    const sep = props.language?.startsWith('en') ? ', ' : '，';
+    return parts.join(sep);
 }
 
 /** 折叠标题文本 */
 const titleText = computed(() => {
-    if (props.isTerminated) return t('任务终止');
+    const t = mergedI18n.value;
+    if (props.isTerminated) return t.taskTerminated!;
     const streaming = props.isStreaming;
 
     if (props.kind === 'mixed') return getMixedTitle(streaming);
 
     switch (props.kind) {
     case 'search':
-        return streaming ? t('网络搜索中') : t('搜索了网页');
+        return streaming ? t.collapseSearching! : t.collapseSearched!;
     case 'thought':
-        return t('思考中');
+        return t.collapseThinking!;
     case 'tools':
-        return streaming ? t('调用工具中') : t('调用了{0}次工具', { '0': count.value });
+        return streaming ? t.collapseCallingTools! : fmt(t.collapseCalledTools!, count.value);
     case 'read':
-        return streaming ? t('读写文件中') : t('读取了{0}个文件', { '0': count.value });
+        return streaming ? t.collapseReadingFiles! : fmt(t.collapseReadFiles!, count.value);
     case 'write':
-        return streaming ? t('修改文件中') : t('修改了{0}个文件', { '0': count.value });
+        return streaming ? t.collapseWritingFiles! : fmt(t.collapseWroteFiles!, count.value);
     default:
         return '';
     }
@@ -229,7 +214,7 @@ function extractText(msg: Message): string {
                             class="collapsible-group__thought-arrow"
                             :class="{ 'collapsible-group__thought-arrow--expanded': getThoughtExpanded(msg.MessageId || '') }"
                         />
-                        <span class="collapsible-group__thought-label">{{ t('深度思考') }}</span>
+                        <span class="collapsible-group__thought-label">{{ mergedI18n.collapseDeepThinking }}</span>
                     </div>
                     <div
                         v-if="extractText(msg) && getThoughtExpanded(msg.MessageId || '')"

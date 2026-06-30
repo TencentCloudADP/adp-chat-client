@@ -45,8 +45,8 @@
                             </div>
                         </div>
                         <div class="skills-install__filter-actions">
-                            <t-checkbox v-model="filterOfficial">官方</t-checkbox>
-                            <t-checkbox v-model="filterFavorite">收藏</t-checkbox>
+                            <t-checkbox v-model="filterOfficial">{{ i18n.filterOfficialLabel }}</t-checkbox>
+                            <t-checkbox v-model="filterFavorite">{{ i18n.filterFavoriteLabel }}</t-checkbox>
                             <t-input
                                 v-model="searchKeyword"
                                 :placeholder="i18n.search"
@@ -63,8 +63,8 @@
                 <!-- 企业共享 / 自定义：搜索 -->
                 <template v-else>
                     <div class="skills-install__filter-row skills-install__filter-row--simple">
-                        <t-checkbox v-model="filterFavorite">收藏</t-checkbox>
-                        <t-checkbox v-if="activeTab === 'custom'" v-model="filterShareStatus">企业共享</t-checkbox>
+                        <t-checkbox v-model="filterFavorite">{{ i18n.filterFavoriteLabel }}</t-checkbox>
+                        <t-checkbox v-if="activeTab === 'custom'" v-model="filterShareStatus">{{ i18n.filterEnterpriseSharedLabel }}</t-checkbox>
                         <t-input
                             v-model="searchKeyword"
                             :placeholder="i18n.search"
@@ -80,7 +80,7 @@
 
             <!-- Skill 列表（触底加载更多） -->
             <div class="skills-install__list" @scroll="onListScroll">
-                <t-loading v-if="loading" size="small" text="加载中..." class="skills-install__loading" />
+                <t-loading v-if="loading" size="small" :text="i18n.loading" class="skills-install__loading" />
                 <template v-else>
                     <div v-if="skillList.length > 0" class="skills-install__items">
                         <div
@@ -112,7 +112,7 @@
                                                 icon="basic_verification_code_line"
                                                 :theme="theme"
                                             >
-                                                {{ isSuspectedRisk(skill) ? '疑似风险' : '安全' }}
+                                                {{ isSuspectedRisk(skill) ? i18n.tagSuspectedRisk : i18n.tagSafe }}
                                                 <CustomizedIcon
                                                     remote
                                                     v-if="safetyReportUrl(skill)"
@@ -131,15 +131,15 @@
                                             :content="sharedTooltip(skill)"
                                             placement="top"
                                         >
-                                            <TagWithColor color="blue" :theme="theme">企业共享</TagWithColor>
+                                            <TagWithColor color="blue" :theme="theme">{{ i18n.tagEnterpriseShared }}</TagWithColor>
                                         </t-tooltip>
                                         <!-- 付费 tag -->
                                         <t-tooltip
                                             v-if="isPaidSkill(skill)"
-                                            content="包含官方付费工具"
+                                            :content="i18n.paidToolTooltip"
                                             placement="top"
                                         >
-                                            <TagWithColor color="purple" icon="basic_vip_line" :theme="theme">官方收费</TagWithColor>
+                                            <TagWithColor color="purple" icon="basic_vip_line" :theme="theme">{{ i18n.tagOfficialPaid }}</TagWithColor>
                                         </t-tooltip>
                                     </div>
                                     <t-tooltip v-if="skillDesc(skill)" :content="skillDesc(skill)" placement="top"><div class="skill-card__desc">{{ skillDesc(skill) }}</div></t-tooltip>
@@ -183,9 +183,9 @@
                             </div>
                         </div>
                     </div>
-                    <div v-else class="skills-install__empty">暂无数据</div>
+                    <div v-else class="skills-install__empty">{{ i18n.noData }}</div>
                 </template>
-                <t-loading v-if="loadingMore" size="small" text="加载中..." class="skills-install__loading-more" />
+                <t-loading v-if="loadingMore" size="small" :text="i18n.loading" class="skills-install__loading-more" />
             </div>
         </div>
     </t-dialog>
@@ -275,7 +275,7 @@ const canScrollRight = ref(false);
 const busyId = ref('');
 const categoriesRef = ref<HTMLDivElement | null>(null);
 
-const categories = ref<Array<{ label: string; value: string }>>([{ label: '全部', value: 'all' }]);
+const categories = ref<Array<{ label: string; value: string }>>([{ label: i18n.value.categoryAll, value: 'all' }]);
 
 // 已安装 ID 集合
 const installedIds = computed(() => new Set(props.installedSkillIds));
@@ -350,8 +350,8 @@ function safetyReportUrl(s: Record<string, unknown>): string {
 
 function safetyTooltip(s: Record<string, unknown>): string {
     return isSuspectedRisk(s)
-        ? '科恩实验室检测结果为"疑似风险"'
-        : '科恩实验室检测结果为"安全"';
+        ? i18n.value.safetySuspectedTip
+        : i18n.value.safetySafeTip;
 }
 
 function onOpenReport(url: string) {
@@ -375,7 +375,7 @@ function isSharedSkill(s: Record<string, unknown>): boolean {
 function sharedTooltip(s: Record<string, unknown>): string {
     const sharedItem = getShareInfo(s).find((item) => Number(item.status ?? item.Status) === 1);
     const v = sharedItem?.share_version || sharedItem?.ShareVersion;
-    return v ? `已加入"企业共享Skill" 所用版本 v${v}` : '已加入"企业共享Skill"';
+    return v ? i18n.value.sharedTipWithVersion.replace('{version}', String(v)) : i18n.value.sharedTip;
 }
 
 function isInstalled(skill: Record<string, unknown>): boolean {
@@ -399,7 +399,7 @@ async function fetchCategories() {
     try {
         const result = await fetchSkillCategories({ applicationId: props.applicationId });
         categories.value = [
-            { label: '全部', value: 'all' },
+            { label: i18n.value.categoryAll, value: 'all' },
             ...result.categories.map((c) => ({
                 label: c.category_name,
                 value: c.category_key,
@@ -537,7 +537,7 @@ async function onInstallSkill(skill: Record<string, unknown>) {
         return;
     }
     if (isLimitReached.value) {
-        MessagePlugin.warning('已达到最大安装数量');
+        MessagePlugin.warning(i18n.value.maxInstallReached);
         return;
     }
     const agentId = await getAgentIdByAppId(props.applicationId);
@@ -563,10 +563,10 @@ async function onInstallSkill(skill: Record<string, unknown>) {
             skills: mergedSkills,
         });
         emit('skill-installed', skill);
-        MessagePlugin.success('添加成功');
+        MessagePlugin.success(i18n.value.addSuccessToast);
     } catch (e) {
         console.error('[SkillsInstallDialog] ModifyAgent error:', e);
-        MessagePlugin.error('添加失败');
+        MessagePlugin.error(i18n.value.addFailedToast);
     } finally {
         busyId.value = '';
     }

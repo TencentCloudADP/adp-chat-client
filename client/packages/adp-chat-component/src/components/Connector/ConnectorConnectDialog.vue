@@ -11,21 +11,21 @@
         <div class="connector-connect">
             <!-- OAuth 类型：展示授权状态 + 跳转授权链接 -->
             <div v-if="isOAuth" class="connector-connect__auth">
-                <div class="connector-connect__auth-label">连接器授权</div>
+                <div class="connector-connect__auth-label">{{ mergedI18n.connectorAuth }}</div>
                 <div class="connector-connect__auth-row">
                     <span
                         class="connector-connect__auth-dot"
                         :class="isAuthorized ? 'is-success' : 'is-warning'"
                     ></span>
                     <span class="connector-connect__auth-status">
-                        {{ isAuthorized ? '已授权' : '待授权' }}
+                        {{ isAuthorized ? mergedI18n.authorized : mergedI18n.pendingAuth }}
                     </span>
                     <span class="connector-connect__auth-link" @click="handleOAuth">
-                        {{ isAuthorized ? '重新授权' : '去授权' }}
+                        {{ isAuthorized ? mergedI18n.reauthorize : mergedI18n.goAuthorize }}
                     </span>
                 </div>
                 <div class="connector-connect__auth-tip">
-                    完成授权后请点击右下角"确认"按钮保存。
+                    {{ mergedI18n.authCompleteTip }}
                 </div>
             </div>
 
@@ -43,7 +43,7 @@
                     </div>
                     <t-input
                         v-model="formValues[item.key]"
-                        :placeholder="`请输入 ${item.paramName}`"
+                        :placeholder="formatPleaseInput(item.paramName)"
                         size="small"
                         clearable
                     />
@@ -52,7 +52,7 @@
 
             <!-- 既无 OAuth 也无表单 -->
             <div v-if="!isOAuth && !formItems.length" class="connector-connect__empty">
-                该连接器无需配置鉴权参数，可直接确认连接。
+                {{ mergedI18n.noAuthNeededTip }}
             </div>
         </div>
     </t-dialog>
@@ -66,6 +66,8 @@ import {
 import {
     bindAgentTool, createOAuthUrl, buildPluginConfig,
 } from '../../service/connectorPluginApi';
+import type { SkillsI18n } from '../../model/skills';
+import { defaultSkillsI18n, defaultSkillsI18nEn } from '../../model/skills';
 
 interface Props {
     modelValue: boolean;
@@ -73,6 +75,10 @@ interface Props {
     connector: Record<string, unknown> | null;
     applicationId: string;
     agentId: string;
+    /** 国际化文本 */
+    i18n?: Partial<SkillsI18n>;
+    /** 语言：'en-*' 走英文 */
+    language?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -80,7 +86,21 @@ const props = withDefaults(defineProps<Props>(), {
     connector: null,
     applicationId: '',
     agentId: '',
+    i18n: () => ({}),
+    language: '',
 });
+
+const mergedI18n = computed<Required<SkillsI18n>>(() => {
+    const defaults = props.language?.startsWith('en') ? defaultSkillsI18nEn : defaultSkillsI18n;
+    return { ...defaults, ...props.i18n };
+});
+
+function formatPleaseInput(name: string): string {
+    return (mergedI18n.value.pleaseInput || '').replace('{name}', name);
+}
+function formatPleaseFill(name: string): string {
+    return (mergedI18n.value.pleaseFill || '').replace('{name}', name);
+}
 
 const emit = defineEmits<{
     (e: 'update:modelValue', v: boolean): void;
@@ -118,7 +138,9 @@ const isOAuth = computed(() => authType.value === 3);
 
 const title = computed(() => {
     const name = (props.connector?.Name || props.connector?.PluginName || props.connector?.plugin_name || '') as string;
-    return name ? `连接 ${name}` : '连接连接器';
+    return name
+        ? (mergedI18n.value.connectName || '').replace('{name}', name)
+        : mergedI18n.value.connectConnector;
 });
 
 /**
@@ -177,7 +199,7 @@ const formItems = computed<FormItem[]>(() => {
 function validate(): boolean {
     for (const item of formItems.value) {
         if (item.required && !formValues.value[item.key]) {
-            MessagePlugin.warning(`请填写 ${item.paramName}`);
+            MessagePlugin.warning(formatPleaseFill(item.paramName));
             return false;
         }
     }
@@ -189,7 +211,7 @@ async function handleOAuth() {
     if (!props.connector || !props.applicationId) return;
     const pluginId = (props.connector.PluginId || props.connector.plugin_id || '') as string;
     if (!pluginId) {
-        MessagePlugin.error('连接器 ID 缺失');
+        MessagePlugin.error(mergedI18n.value.connectorIdMissing);
         return;
     }
     try {
@@ -203,11 +225,11 @@ async function handleOAuth() {
             // 用户完成授权后回到该页面手动点击"确认"，先乐观置为已授权
             isAuthorized.value = true;
         } else {
-            MessagePlugin.error('获取授权链接失败');
+            MessagePlugin.error(mergedI18n.value.getOAuthUrlFailed);
         }
     } catch (e) {
         console.error('[ConnectorConnectDialog] createOAuthUrl error:', e);
-        MessagePlugin.error('获取授权链接失败');
+        MessagePlugin.error(mergedI18n.value.getOAuthUrlFailed);
     }
 }
 
@@ -218,7 +240,7 @@ async function handleOAuth() {
 async function handleConfirm() {
     if (!props.connector) return;
     if (!props.applicationId || !props.agentId) {
-        MessagePlugin.warning('缺少应用 ID 或 Agent ID');
+        MessagePlugin.warning(mergedI18n.value.missingAppOrAgentId);
         return;
     }
     if (!validate()) return;
@@ -252,12 +274,12 @@ async function handleConfirm() {
             // 连接器：tool_list 省略
             plugin: baseConfig,
         });
-        MessagePlugin.success('已连接');
+        MessagePlugin.success(mergedI18n.value.connectedToast);
         emit('connected', props.connector);
         visible.value = false;
     } catch (e) {
         console.error('[ConnectorConnectDialog] bindAgentTool error:', e);
-        MessagePlugin.error('连接失败');
+        MessagePlugin.error(mergedI18n.value.connectFailedToast);
     } finally {
         loading.value = false;
     }

@@ -3,13 +3,13 @@
  * 智能体选择组件
  * 功能：展示当前智能体的欢迎语和推荐问题
  */
-import { ref, toRefs } from 'vue';
+import { ref, toRefs, computed } from 'vue';
 import { Space as TSpace, CheckTag as TCheckTag } from 'tdesign-vue-next';
 import AnimatedIcon from '../AnimatedIcon/index.vue';
 
 // TSpace, TCheckTag 已导入，AnimatedIcon 为动效图标组件
-import type { MobileProps } from '../../model/type';
-import { mobilePropsDefaults } from '../../model/type';
+import type { MobileProps, ChatI18n } from '../../model/type';
+import { mobilePropsDefaults, defaultChatI18n, defaultChatI18nEn } from '../../model/type';
 interface Props extends MobileProps {
   /** 当前应用头像 */
   currentApplicationAvatar?: string;
@@ -21,6 +21,10 @@ interface Props extends MobileProps {
   currentApplicationOpeningQuestions?: string[];
   /** 是否显示遮罩层 */
   isOverlay?: boolean;
+  /** 国际化文本 */
+  i18n?: ChatI18n;
+  /** 当前语言标识 */
+  language?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -29,7 +33,14 @@ const props = withDefaults(defineProps<Props>(), {
   currentApplicationGreeting: '',
   currentApplicationOpeningQuestions: () => [],
   isOverlay: false,
+  i18n: () => ({}),
+  language: 'zh-CN',
   ...mobilePropsDefaults,
+});
+
+const mergedI18n = computed(() => {
+  const defaults = props.language?.startsWith('en') ? defaultChatI18nEn : defaultChatI18n;
+  return { ...defaults, ...props.i18n };
 });
 
 // 解构 props 以便在模板中使用
@@ -68,10 +79,10 @@ const handleChooseQuestion = (value: string) => {
     <div class="welcome-header-content" v-if="!isOverlay">
       <div class="welcome-title-row">
         <AnimatedIcon class="welcome-robot-icon" :width="46" :height="36" />
-        <div class="welcome-title">描述需求，开启智能工作方式</div>
+        <div class="welcome-title">{{ mergedI18n.welcomeTitle }}</div>
       </div>
       <div class="welcome-description">
-        一站式智能工作台，连接企业知识库与技能工具，替你从规划到执行完成每一项任务。
+        {{ mergedI18n.welcomeDescription }}
       </div>
     </div>
     <div class="greet-desc" v-if="currentApplicationGreeting">
