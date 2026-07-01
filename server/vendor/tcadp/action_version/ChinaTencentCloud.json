@@ -113,5 +113,15 @@
     "DescribePlugin": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20"
+    },
+    "ListReferShareKnowledge": {
+        "service": "lke",
+        "headers.X-TC-Version": "2023-11-30",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "GetKBDefaultConfig": {
+        "service": "lke",
+        "headers.X-TC-Version": "2023-11-30",
+        "headers.X-TC-Region": "ap-guangzhou"
     }
 }

@@ -121,6 +121,7 @@
                     :enableModelSelector="props.enableModelSelector && agentDetailAvailable"
                     :enableConnector="props.enableConnector && agentDetailAvailable"
                     :enableTools="props.enableTools && agentDetailAvailable"
+                    :enableKnowledge="props.enableKnowledge && agentDetailAvailable"
                     :spaceId="props.skillsSpaceId"
                     :skillsApplicationId="skillsAppId"
                     @stop="onStop"
@@ -209,6 +210,8 @@ export interface Props extends ChatRelatedProps {
     enableConnector?: boolean;
     /** 是否显示工具按钮 */
     enableTools?: boolean;
+    /** 是否显示知识库按钮（需 Agent 已启用 KnowledgeRetrievalAnswer 工具） */
+    enableKnowledge?: boolean;
     /** Skills 空间 ID */
     skillsSpaceId?: string;
     /** Skills 应用 ID（/adp/ 转发需要） */
@@ -239,6 +242,7 @@ const props = withDefaults(defineProps<Props>(), {
     enableModelSelector: false,
     enableConnector: false,
     enableTools: false,
+    enableKnowledge: false,
     skillsSpaceId: '',
     skillsApplicationId: '',
     suggestionApi: '/suggestions',

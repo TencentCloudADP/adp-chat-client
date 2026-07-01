@@ -105,5 +105,15 @@
         "service": "lkeap",
         "headers.X-TC-Version": "2024-05-22",
         "headers.X-TC-Region": "ap-jakarta"
+    },
+    "ListReferShareKnowledge": {
+        "service": "lke",
+        "headers.X-TC-Version": "2023-11-30",
+        "headers.X-TC-Region": "ap-guangzhou"
+    },
+    "GetKBDefaultConfig": {
+        "service": "lke",
+        "headers.X-TC-Version": "2023-11-30",
+        "headers.X-TC-Region": "ap-guangzhou"
     }
 }

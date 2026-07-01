@@ -93,5 +93,13 @@
     "DescribePlugin": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20"
+    },
+    "ListReferShareKnowledge": {
+        "service": "adp",
+        "headers.X-TC-Version": "2023-11-30"
+    },
+    "GetKBDefaultConfig": {
+        "service": "adp",
+        "headers.X-TC-Version": "2023-11-30"
     }
 }

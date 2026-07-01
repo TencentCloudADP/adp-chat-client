@@ -430,6 +430,30 @@ export interface SkillsI18n {
     sharedTip?: string;
     /** 已加入"企业共享Skill" 所用版本 v{version} tooltip（支持 {version} 占位符） */
     sharedTipWithVersion?: string;
+
+    /* ───────── 知识库相关（KnowledgeDialog） ───────── */
+    /** KnowledgeDialog 弹窗标题 */
+    manageKnowledge?: string;
+    /** 搜索知识库 placeholder */
+    searchKnowledge?: string;
+    /** 暂无知识库 */
+    noKnowledge?: string;
+    /** 暂无已开启的知识库 */
+    noEnabledKnowledge?: string;
+    /** 默认知识库标签 */
+    defaultKnowledgeTag?: string;
+    /** 默认知识库名称（列表首项） */
+    defaultKnowledgeName?: string;
+    /** 知识库：开启成功 toast */
+    knowledgeEnabledToast?: string;
+    /** 知识库：关闭成功 toast */
+    knowledgeDisabledToast?: string;
+    /** 知识库：开启失败 toast */
+    knowledgeEnableFailedToast?: string;
+    /** 知识库：关闭失败 toast */
+    knowledgeDisableFailedToast?: string;
+    /** 缺少 KnowledgeRetrievalAnswer 工具的错误提示 */
+    knowledgeToolMissingTip?: string;
 }
 
 /** Skills 国际化默认值 */
@@ -587,6 +611,19 @@ export const defaultSkillsI18n: Required<SkillsI18n> = {
     safetySafeTip: '科恩实验室检测结果为"安全"',
     sharedTip: '已加入"企业共享Skill"',
     sharedTipWithVersion: '已加入"企业共享Skill" 所用版本 v{version}',
+
+    /* 知识库相关 */
+    manageKnowledge: '管理知识库',
+    searchKnowledge: '搜索知识库',
+    noKnowledge: '暂无知识库',
+    noEnabledKnowledge: '暂无已开启的知识库',
+    defaultKnowledgeTag: '默认',
+    defaultKnowledgeName: '默认知识库',
+    knowledgeEnabledToast: '已开启',
+    knowledgeDisabledToast: '已关闭',
+    knowledgeEnableFailedToast: '开启失败',
+    knowledgeDisableFailedToast: '关闭失败',
+    knowledgeToolMissingTip: '当前 Agent 未启用「知识库检索」工具',
 };
 
 /** Skills 国际化英文默认值 */
@@ -744,4 +781,17 @@ export const defaultSkillsI18nEn: Required<SkillsI18n> = {
     safetySafeTip: 'Keen Lab result: "Safe"',
     sharedTip: 'Joined "Enterprise shared Skill"',
     sharedTipWithVersion: 'Joined "Enterprise shared Skill", using version v{version}',
+
+    /* 知识库相关 */
+    manageKnowledge: 'Manage Knowledge',
+    searchKnowledge: 'Search knowledge',
+    noKnowledge: 'No knowledge',
+    noEnabledKnowledge: 'No enabled knowledge',
+    defaultKnowledgeTag: 'Default',
+    defaultKnowledgeName: 'Default Knowledge',
+    knowledgeEnabledToast: 'Enabled',
+    knowledgeDisabledToast: 'Disabled',
+    knowledgeEnableFailedToast: 'Failed to enable',
+    knowledgeDisableFailedToast: 'Failed to disable',
+    knowledgeToolMissingTip: 'Knowledge Retrieval tool is not enabled for this Agent',
 };

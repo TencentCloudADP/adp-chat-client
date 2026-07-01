@@ -35,6 +35,7 @@ import SkillManageDialog from '../Skills/SkillManageDialog.vue';
 import ConnectorDialog from '../Connector/ConnectorDialog.vue';
 import PluginInstallDialog from '../Plugin/PluginInstallDialog.vue';
 import PluginManageDialog from '../Plugin/PluginManageDialog.vue';
+import KnowledgeDialog from '../Knowledge/KnowledgeDialog.vue';
 import AtMentionPanel from './AtMentionPanel.vue';
 
 export interface Props extends ChatRelatedProps {
@@ -67,6 +68,8 @@ export interface Props extends ChatRelatedProps {
     enableConnector?: boolean;
     /** 是否显示工具按钮 */
     enableTools?: boolean;
+    /** 是否显示知识库按钮（仅在 Agent 已启用 KnowledgeRetrievalAnswer 工具时才最终展示） */
+    enableKnowledge?: boolean;
     /** 已安装 Skills 列表（标准化后） */
     installedSkills?: NormalizedSkill[];
     /** Skills 数据加载中 */
@@ -98,6 +101,7 @@ const props = withDefaults(defineProps<Props>(), {
     enableModelSelector: false,
     enableConnector: false,
     enableTools: false,
+    enableKnowledge: false,
     installedSkills: () => [],
     skillsLoading: false,
     installedSkillIds: () => [],
@@ -430,6 +434,29 @@ const showSkillsManage = ref(false);
 const showConnector = ref(false);
 const showPlugin = ref(false);
 const showPluginManage = ref(false);
+// 知识库
+const showKnowledgeDialog = ref(false);
+
+/**
+ * 是否已在 Agent 中安装 KnowledgeRetrievalAnswer 工具
+ * 匹配来源：tool.Name / tool.ToolName / tool.Config.Description（若为 "中文/英文" 结构，取 "/" 后英文段）
+ * 有此工具时 Sender 才展示"知识库"按钮，与 gpt-demo/webim 表现一致
+ */
+const hasKnowledgeRetrievalTool = computed<boolean>(() => {
+    const isMatch = (raw: string): boolean => {
+        if (!raw) return false;
+        const idx = raw.lastIndexOf('/');
+        const tail = idx > -1 ? raw.slice(idx + 1) : raw;
+        return tail.trim() === 'KnowledgeRetrievalAnswer';
+    };
+    return installedToolsRaw.value.some((t) => {
+        const cfg = (t.Config || t.config || {}) as Record<string, unknown>;
+        const name = String(t.Name || t.name || '');
+        const toolName = String(t.ToolName || t.tool_name || '');
+        const desc = String(cfg.Description || cfg.description || '');
+        return isMatch(name) || isMatch(toolName) || isMatch(desc);
+    });
+});
 
 // ─── @ Mention ───────────────────────────────────────────────
 const atMentionVisible = ref(false);
@@ -1206,6 +1233,12 @@ defineExpose({
                     <CustomizedIcon remote name="basic_plugin_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" :theme="theme"/>
                     <span class="toolbar-pill-btn__text">{{ skillsI18n.tools }}</span>
                 </div>
+
+                <!-- 知识库按钮：仅当已启用 KnowledgeRetrievalAnswer 工具时才显示 -->
+                <div v-if="enableKnowledge && hasKnowledgeRetrievalTool && mode === 'claw'" class="toolbar-pill-btn" @click="showKnowledgeDialog = true">
+                    <CustomizedIcon remote name="basic_book_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" :theme="theme"/>
+                    <span class="toolbar-pill-btn__text">{{ skillsI18n.knowledgeBase }}</span>
+                </div>
             </div>
 
             <div class="sender-toolbar__right">
@@ -1278,6 +1311,18 @@ defineExpose({
             :language="language"
             :i18n="skillsI18n"
             @installed="refreshSkills"
+        />
+
+        <!-- 知识库管理弹窗 -->
+        <KnowledgeDialog
+            v-if="enableKnowledge"
+            v-model="showKnowledgeDialog"
+            :application-id="skillsApplicationId"
+            :space-id="spaceId"
+            :theme="theme"
+            :language="language"
+            :i18n="skillsI18n"
+            @change="refreshSkills"
         />
 
         <!-- @ Mention 面板 -->
