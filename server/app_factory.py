@@ -1,5 +1,6 @@
 import os
 import logging
+import logging.handlers
 import time
 from pathlib import Path
 
@@ -29,10 +30,7 @@ class TAgenticApp(Sanic):
         super().__init__(dumps=custom_dumps, *args, **kwargs)
         self.config.update(tagentic_config.model_dump())
         self.config.RESPONSE_TIMEOUT = tagentic_config.SERVER_RESPONSE_TIMEOUT
-        logging.basicConfig(
-            level=logging.getLevelNamesMapping()[self.config.LOG_LEVEL],
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
+        self._setup_logging()
 
         # 厂商类注册
         self.vendors.update(autodiscover_vendor())
@@ -51,6 +49,37 @@ class TAgenticApp(Sanic):
             else:
                 logging.error(f'Vendor {app_config["Vendor"]} not found in vendors({list(self.vendors.keys())})')
         logging.info(f'apps: {self.apps}')
+
+    def _setup_logging(self):
+        """配置日志：控制台 + 本地文件持久化（按天轮转，保留 3 天）"""
+        log_level = logging.getLevelNamesMapping()[self.config.LOG_LEVEL]
+        log_format = '%(asctime)s - %(levelname)s - %(message)s'
+        formatter = logging.Formatter(log_format)
+
+        # 根 logger 配置
+        root_logger = logging.getLogger()
+        root_logger.setLevel(log_level)
+
+        # 控制台 handler（保持原有行为）
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(log_level)
+        console_handler.setFormatter(formatter)
+        root_logger.addHandler(console_handler)
+
+        # 文件 handler：按天轮转，保留 3 天
+        log_dir = Path(__file__).resolve().parent / 'logs'
+        log_dir.mkdir(exist_ok=True)
+        file_handler = logging.handlers.TimedRotatingFileHandler(
+            filename=log_dir / 'server.log',
+            when='midnight',       # 每天午夜轮转
+            interval=1,
+            backupCount=3,         # 保留最近 3 天的日志
+            encoding='utf-8',
+        )
+        file_handler.suffix = '%Y-%m-%d'  # 轮转后文件名后缀：server.log.2026-07-01
+        file_handler.setLevel(log_level)
+        file_handler.setFormatter(formatter)
+        root_logger.addHandler(file_handler)
 
     def get_vendor_app(self, application_id: str) -> BaseVendor:
         if application_id in self.apps.keys():

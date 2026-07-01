@@ -887,9 +887,14 @@ class TCADP(BaseVendor):
                             # Forward V2 event directly
                             yield f'data: {custom_dumps(data)}\n\n'.encode('utf-8')
 
-                except asyncio.CancelledError:
-                    logging.info("forward_request: cancelled")
+                except (asyncio.CancelledError, GeneratorExit):
+                    logging.info("forward_request: client disconnected, closing upstream SSE connection")
+                    # 强制关闭底层 TCP socket，确保上游立即收到 RST
+                    if resp.connection and resp.connection.transport:
+                        resp.connection.transport.abort()
                     resp.close()
+                    await session.close()
+                    raise
 
             logging.info("forward_request: done")
 
