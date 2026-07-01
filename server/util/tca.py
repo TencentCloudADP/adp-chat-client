@@ -188,7 +188,7 @@ def tc_request_prepare(config: dict, action: str, payload: str, service: str = "
     action_config = overrides.get(action, {})
     action_headers_config = action_config.get('headers', {})
     # version 和 region 优先从 action_version 配置获取，未配置时 fallback 到 service_configs
-    default_version = action_headers_config.get('X-TC-Version', '2023-11-30')
+    default_version = action_headers_config.get('X-TC-Version')
     region = action_headers_config.get('X-TC-Region') or config[service].get('region', '')
     algorithm = "TC3-HMAC-SHA256"
     timestamp = int(time.time())
@@ -236,15 +236,16 @@ def tc_request_prepare(config: dict, action: str, payload: str, service: str = "
         "Host": host,
         "X-TC-Action": action,
         "X-TC-Timestamp": str(timestamp),
-        "X-TC-Version": default_version,
     }
+    # version 优先级：入参 version > action_version 配置 > 不带
+    if version:
+        headers["X-TC-Version"] = version
+    elif default_version:
+        headers["X-TC-Version"] = default_version
     if region:
         headers["X-TC-Region"] = region
     if token:
         headers["X-TC-Token"] = token
-    # 入参 version 优先级高于默认值（兼容极少数场景）
-    if version:
-        headers["X-TC-Version"] = version
     # action_version 配置优先级最高，覆盖所有（包括 X-TC-Version）
     for h_key, h_value in action_headers_config.items():
         headers[h_key] = h_value

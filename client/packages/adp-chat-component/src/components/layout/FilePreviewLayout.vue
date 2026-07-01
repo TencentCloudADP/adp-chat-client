@@ -371,6 +371,7 @@ defineExpose({
     border-bottom: 1px solid var(--td-border-level-1-color, #e7e7e7);
     flex-shrink: 0;
     gap: 4px;
+    line-height: 31px;
 }
 
 .file-preview-panel__toggle-dir {

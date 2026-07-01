@@ -939,7 +939,7 @@ defineExpose({
 
 /* ── 聊天列表容器 ── */
 :deep(.t-chat__list) {
-    padding: 0 20px;
+    padding: 20px 20px 0 20px;
     overflow-y: scroll;
     scrollbar-width: thin;
     scrollbar-color: var(--td-scrollbar-color, rgba(0,0,0,.12)) transparent;
