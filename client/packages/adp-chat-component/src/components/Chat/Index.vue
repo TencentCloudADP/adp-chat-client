@@ -130,7 +130,16 @@
                     @stopRecord="handleStopRecord"
                     @message="handleMessage"
                     @mention-list-update="onMentionListUpdate"
-                />
+                >
+                    <!-- 快捷按钮：消息列表为空时显示，放在 Sender 内部编辑器上方，对齐 webim assist-quick-buttons -->
+                    <template #quick-buttons>
+                        <AssistQuickButtons
+                            v-if="chatList.length <= 0 && !chatId"
+                            :suggestionApi="suggestionApi"
+                            @selectSuggestion="onSelectSuggestion"
+                        />
+                    </template>
+                </Sender>
             </template>
         </TChat>
     </div>
@@ -153,6 +162,7 @@ import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../..
 import { chatRelatedPropsDefaults, defaultChatI18n, defaultChatI18nEn, defaultChatItemI18n, defaultChatItemI18nEn, defaultSenderI18n, defaultSenderI18nEn } from '../../model/type'
 
 import AppType from './AppType.vue'
+import AssistQuickButtons from './AssistQuickButtons.vue'
 import Sender from './Sender.vue'
 import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
@@ -203,6 +213,8 @@ export interface Props extends ChatRelatedProps {
     skillsSpaceId?: string;
     /** Skills 应用 ID（/adp/ 转发需要） */
     skillsApplicationId?: string;
+    /** 快捷按钮建议列表 API 路径 */
+    suggestionApi?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -229,6 +241,7 @@ const props = withDefaults(defineProps<Props>(), {
     enableTools: false,
     skillsSpaceId: '',
     skillsApplicationId: '',
+    suggestionApi: '/suggestions',
 });
 
 // 解构 props 以便在模板中使用
@@ -540,6 +553,51 @@ onUnmounted(() => {
         footerResizeObserver = null
     }
 })
+
+/**
+ * 把 PromptContent 中的 @skill:xxx / @tool:xxx / @knowledgeBase:id:name
+ * 内联标记转为 wangEditor 可识别的 mention HTML 标签。
+ */
+const buildPromptInsertHtml = (text: string): string => {
+    if (!text) return '';
+    let html = text
+        // 先转义 HTML 特殊字符，防止 XSS
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        // @skill:xxx → mention HTML
+        .replace(
+            /@skill:([\w-]+)/g,
+            (_match, skillId) =>
+                `<span data-w-e-type="mention" data-mention-type="skills" data-mention-id="${skillId}" data-mention-name="${skillId}" class="at-mention-tag" contenteditable="false"><span class="at-mention-tag__text">@${skillId}</span></span>`
+        )
+        // @tool:xxx → mention HTML（icon modifier = "plugins"）
+        .replace(
+            /@tool:([\w-]+)/g,
+            (_match, toolId) =>
+                `<span data-w-e-type="mention" data-mention-type="tools" data-mention-id="${toolId}" data-mention-name="${toolId}" class="at-mention-tag" contenteditable="false"><span class="at-mention-tag__text">@${toolId}</span></span>`
+        )
+        // @knowledgeBase:id:name → mention HTML
+        .replace(
+            /@knowledgeBase:([\w-]+):([^@\s]+)/g,
+            (_match, kbId, kbName) =>
+                `<span data-w-e-type="mention" data-mention-type="knowledge" data-mention-id="${kbId}" data-mention-name="${kbName}" data-mention-display-name="${kbName}" class="at-mention-tag" contenteditable="false"><span class="at-mention-tag__text">@${kbName}</span></span>`
+        )
+        // 换行转 <br>
+        .replace(/\n/g, '<br/>');
+    return html;
+};
+
+/**
+ * 处理快捷按钮建议选择：将建议文本（含 @skill/@tool/@knowledgeBase 标记）
+ * 转为编辑器 mention HTML 后填入输入框，不自动发送
+ */
+const onSelectSuggestion = (promptContent: string) => {
+    if (senderRef.value) {
+        const insertHtml = buildPromptInsertHtml(promptContent);
+        senderRef.value.changeSenderVal(insertHtml, []);
+    }
+}
 
 /**
  * 设置默认问题

@@ -24,6 +24,7 @@
 - [专题](#专题)
   - [智能体: VisitorId 配置](#智能体-visitorid-配置)
   - [智能体: 变量-API参数](#智能体-变量-API参数)
+  - [智能体: 快捷按钮配置](#智能体-快捷按钮配置)
   - [部署: nginx](#部署-nginx)
   - [部署: 长时间回复被截断问题](#部署-长时间回复被截断问题)
   - [部署: 子路径](#部署-子路径)
@@ -112,6 +113,36 @@ SECRET_KEY=
 > 3. International: 使用腾讯云国内站设为false(默认)，如果是在国际站开发的智能体应用，此处设为true
 > 4. ApplicationId: 进入任意ADP应用，在应用网址内查看appid。例如某个应用的链接为 `https://adp.cloud.tencent.com/adp/#/app/knowledge/app-config?appid=1959******8208&appType=knowledge_qa&spaceId=default_space`，则它的ApplicationId为1959******8208。
 > 5. Vendor: 固定为Tencent，后续支持其他平台可能会有其他选项
+> 6. 配置多个应用时，在 APP_CONFIGS 数组内追加对象即可，格式与示例一致。
+
+#### 快捷按钮建议配置（可选）
+
+通过 `SUGGESTION_CONFIGS` 可以为 Web 端对话页面配置快捷按钮，在输入框上方展示提示模板，用户点击后自动填入输入框。如果不配置该项，则不会显示快捷按钮。
+
+配置格式：
+
+```bash
+SUGGESTION_CONFIGS='[
+    {
+        "GroupId": "分组唯一ID",
+        "IconUrl": "分组图标URL（支持 https 远程图片）",
+        "Name": "分组名称（如：文档处理、数据分析等）",
+        "SuggestionList": [
+            {
+                "SuggestionId": "建议唯一ID",
+                "Title": "建议标题",
+                "PromptContent": "点击后填入输入框的提示文本"
+            }
+        ]
+    }
+]'
+```
+
+交互说明：
+- **一级菜单**：水平展示各分组，显示图标+名称，可左右滑动
+- **二级菜单**：点击分组后展开，水平展示该分组下的建议卡片（标题+描述）
+- **点击建议**：将 `PromptContent` 填入输入框，用户可编辑后再发送
+- **返回**：点击左上角返回图标回到一级菜单
 
 5. 制作镜像
 
@@ -343,6 +374,81 @@ class ChatMessageApi(HTTPMethodView):
 
 ```
 
+## 智能体: 快捷按钮配置
+
+在 Web 端对话页面的输入框上方，可以通过配置 `SUGGESTION_CONFIGS` 展示快捷按钮，为用户提供预设的提示模板。该功能对标智能体开发平台的"提示建议"（DescribePromptSuggestionList）能力，数据完全从配置文件读取，不依赖后端接口调用。
+
+### 数据结构
+
+`SUGGESTION_CONFIGS` 是一个 JSON 数组，数组的每一项为一个分组（Group），每个分组包含一个建议列表（SuggestionList）：
+
+```json
+[
+    {
+        "GroupId": "分组唯一标识（字符串）",
+        "IconUrl": "分组图标URL（支持https远程图片，建议 32x32px）",
+        "Name": "分组名称",
+        "SuggestionList": [
+            {
+                "SuggestionId": "建议唯一标识（字符串）",
+                "Title": "建议标题（展示在卡片上方）",
+                "PromptContent": "点击后填入输入框的文本内容"
+            }
+        ]
+    }
+]
+```
+
+### 交互说明
+
+| 层级 | 展示方式 | 操作 |
+|------|---------|------|
+| 一级（分组列表） | 水平滚动行，显示图标+名称 | 点击分组进入二级 |
+| 二级（建议卡片） | 水平滚动的卡片行，每张卡片显示标题+描述（最多两行） | 点击卡片将 `PromptContent` 填入输入框，并返回一级 |
+| 返回 | 二级顶部显示带左箭头的分组名称 | 点击返回一级 |
+
+> 📝 **注意**：
+> 1. 仅在消息列表为空时显示快捷按钮，发送消息后自动隐藏
+> 2. 点击建议后填入输入框但**不会自动发送**，用户可以编辑后再发送
+> 3. 如果不配置或配置为空数组 `[]`，则不显示快捷按钮区域
+> 4. 图标加载失败时会显示默认占位图标
+
+### 完整配置示例
+
+```bash
+SUGGESTION_CONFIGS='[
+    {
+        "GroupId": "group-doc",
+        "IconUrl": "https://cdn.example.com/icons/doc-process.png",
+        "Name": "文档处理",
+        "SuggestionList": [
+            {
+                "SuggestionId": "sug-001",
+                "Title": "会议纪要转周报",
+                "PromptContent": "请将我上传的会议纪要整理成正式项目周报..."
+            },
+            {
+                "SuggestionId": "sug-002",
+                "Title": "合同合规审阅",
+                "PromptContent": "请审阅我上传的合同文件..."
+            }
+        ]
+    },
+    {
+        "GroupId": "group-data",
+        "IconUrl": "https://cdn.example.com/icons/data-analysis.png",
+        "Name": "数据分析",
+        "SuggestionList": [
+            {
+                "SuggestionId": "sug-003",
+                "Title": "销售数据汇报",
+                "PromptContent": "分析销售数据报表，生成汇报材料..."
+            }
+        ]
+    }
+]'
+```
+
 ## 部署: nginx
 
 生产环境通常会使用 nginx 反向代理到本系统。以下配置不能遗漏，否则容易出现流式响应卡住、后端拿不到真实客户端 IP、限流误判等问题。
@@ -476,9 +582,8 @@ IFRAME_ORIGINS=https://example.com
 word、excel、ppt 等需要配置启动预览服务。
 1. 需要使用主账号登录 https://console.cloud.tencent.com/cos/bucket；
 2. 搜索.env中配置的 cos 桶名称COS_BUCKET（默认为chat-client-bucket-${TC_SECRET_APPID}， 注意: ${TC_SECRET_APPID} 为配置中填入的TC_SECRET_APPID， 实际cos桶的名称例如chat-client-bucket-1322044278），点击打开选中的桶
-3. 左侧菜单中选中 “数据处理” -> “文档处理” -> “开启”；
-4. “数据处理” -> 文件处理 -> “开启”
-
+3. 左侧菜单中选中 "数据处理" -> "文档处理" -> "开启"；
+4. "数据处理" -> 文件处理 -> "开启"
 
 ## 微信小程序接入示例
 

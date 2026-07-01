@@ -13,7 +13,18 @@ export {
     createShare,
     fetchUserInfo,
     uploadFile,
+    parseFile,
+    getFileDownloadUrl,
+    describeConversation,
+    listDir,
+    fetchFile,
     fetchModelList,
+    describeAgentSummaryList,
+    copyAgentFromApp,
+    getAgentConfig,
+    saveAgentConfig,
+    createConversation,
+    fetchSuggestionList,
 } from './api';
 export type {
     ApiConfig,
@@ -21,4 +32,7 @@ export type {
     ListModelParams,
     ListModelRawItem,
     ListModelResponse,
+    SuggestionItem,
+    SuggestionGroup,
+    SuggestionListResponse,
 } from './api';

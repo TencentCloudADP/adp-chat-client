@@ -1090,10 +1090,14 @@ defineExpose({
 </script>
 
 <template>
-    <div class="sender-container" :class="{ 'is-uploading': isUploading, 'is-focused': inputFocus }">
-        <!-- 文件预览区域 -->
-        <div v-if="fileList.length > 0" class="sender-files">
-            <FileList :fileList="fileList" :theme="theme" :mode="mode" @delete="handleDeleteFile"/>
+    <div class="sender-wrapper">
+        <!-- 快捷按钮插槽：消息列表为空时，外部注入 assist-quick-buttons（在输入框边框外侧上方） -->
+        <slot name="quick-buttons" />
+
+        <div class="sender-container" :class="{ 'is-uploading': isUploading, 'is-focused': inputFocus }">
+            <!-- 文件预览区域 -->
+            <div v-if="fileList.length > 0" class="sender-files">
+                <FileList :fileList="fileList" :theme="theme" :mode="mode" @delete="handleDeleteFile"/>
         </div>
 
         <!-- 编辑器区域 -->
@@ -1295,9 +1299,18 @@ defineExpose({
             </div>
         </Teleport>
     </div>
+    </div>
 </template>
 
 <style scoped>
+/* ── 外层包裹：确保 quick-buttons 和 sender-container 垂直排列 ── */
+.sender-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
 /* ── 主容器 ── */
 .sender-container {
     width: 100%;

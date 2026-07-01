@@ -1582,6 +1582,7 @@ defineExpose({
                 :enableSkills="props.enableSkills"
                 :skillsSpaceId="resolvedSpaceId"
                 :skillsApplicationId="skillsAppId"
+                :suggestionApi="mergedApiDetailConfig.suggestionListApi"
                 @toggleSidebar="handleToggleSidebar"
                 @createConversation="handleCreateConversation"
                 @close="handleClose"

@@ -23,6 +23,7 @@
 - [Advanced Topics](#advanced-topics)
   - [Agent: VisitorId Configuration](#agent-visitorid-configuration)
   - [Agent: Variables - API Parameters](#agent-variables---api-parameters)
+  - [Smart Agent: Quick Buttons Configuration](#smart-agent-quick-buttons-configuration)
   - [Deployment: nginx](#deployment-nginx)
   - [Deployment: Long Responses Are Cut Off](#deployment-long-responses-are-cut-off)
   - [Deployment: Subpath](#deployment-subpath)
@@ -111,6 +112,36 @@ SECRET_KEY=
 > 3. International: If the agent application is developed on the [ADP](https://adp.tencentcloud.com/), set the value to true.
 > 4. ApplicationId: Access any ADP application and check the appid in the application URL. For example, if an application's link is `https://adp.tencentcloud.com/adp/#/app/knowledge/app-config?appid=197******768&appType=knowledge_qa&spaceId=default_space`, then its ApplicationId is 197******768.
 > 5. Vendor: Fixed to "Tencent", other options may be available for other platforms in the future.
+> 6. To configure multiple applications, simply append more objects to the APP_CONFIGS array in the same format.
+
+#### Quick Buttons Suggestion Configuration (Optional)
+
+You can configure `SUGGESTION_CONFIGS` to display quick-button prompt templates above the input box on the chat page. Users can click a suggestion to auto-fill it into the input field. If not configured, no quick buttons will be shown.
+
+Configuration format:
+
+```bash
+SUGGESTION_CONFIGS='[
+    {
+        "GroupId": "Unique group ID",
+        "IconUrl": "Group icon URL (supports https remote images)",
+        "Name": "Group name (e.g. Document Processing, Data Analysis)",
+        "SuggestionList": [
+            {
+                "SuggestionId": "Unique suggestion ID",
+                "Title": "Suggestion title",
+                "PromptContent": "Prompt text that fills into the input box on click"
+            }
+        ]
+    }
+]'
+```
+
+Interaction:
+- **Level 1**: Horizontally scrollable group list with icon + name
+- **Level 2**: Click a group to expand horizontal suggestion cards (title + description)
+- **Click suggestion**: Fills `PromptContent` into the input box; user can edit before sending
+- **Back**: Click the back arrow in the top-left corner to return to groups
 
 5. Build docker image
 ```bash
@@ -342,6 +373,81 @@ class ChatMessageApi(HTTPMethodView):
             CustomVariables: {args['CustomVariables']},\n\
             vendor_app: {vendor_app}")
 
+```
+
+## Smart Agent: Quick Buttons Configuration
+
+You can configure `SUGGESTION_CONFIGS` to display quick-button prompt templates above the input box on the Web chat page. This feature mirrors the "Prompt Suggestion" (DescribePromptSuggestionList) capability of the Agent Development Platform, reading data entirely from the configuration file without backend API calls.
+
+### Data Structure
+
+`SUGGESTION_CONFIGS` is a JSON array where each item is a group containing a suggestion list:
+
+```json
+[
+    {
+        "GroupId": "Unique group identifier (string)",
+        "IconUrl": "Group icon URL (supports https remote images, recommended 32x32px)",
+        "Name": "Group name",
+        "SuggestionList": [
+            {
+                "SuggestionId": "Unique suggestion identifier (string)",
+                "Title": "Suggestion title (shown at the top of the card)",
+                "PromptContent": "Text that fills into the input box on click"
+            }
+        ]
+    }
+]
+```
+
+### Interaction
+
+| Level | Display | Action |
+|-------|---------|--------|
+| Level 1 (Groups) | Horizontal scrollable row, icon + name | Click to enter Level 2 |
+| Level 2 (Suggestions) | Horizontal scrollable cards, each showing title + description (max 2 lines) | Click to fill `PromptContent` into input box and return to Level 1 |
+| Back | Top of Level 2: group name with left arrow | Click to return to Level 1 |
+
+> 📝 **Note**:
+> 1. Quick buttons only appear when the message list is empty; they auto-hide after sending a message
+> 2. Clicking a suggestion fills it into the input box **without auto-sending** — users can edit before sending
+> 3. If not configured or set to an empty array `[]`, no quick button area will be shown
+> 4. Icon loading failures will display a default placeholder icon
+
+### Full Configuration Example
+
+```bash
+SUGGESTION_CONFIGS='[
+    {
+        "GroupId": "group-doc",
+        "IconUrl": "https://cdn.example.com/icons/doc-process.png",
+        "Name": "Document Processing",
+        "SuggestionList": [
+            {
+                "SuggestionId": "sug-001",
+                "Title": "Meeting Notes to Report",
+                "PromptContent": "Please organize my uploaded meeting notes into a formal weekly report..."
+            },
+            {
+                "SuggestionId": "sug-002",
+                "Title": "Contract Review",
+                "PromptContent": "Please review the uploaded contract..."
+            }
+        ]
+    },
+    {
+        "GroupId": "group-data",
+        "IconUrl": "https://cdn.example.com/icons/data-analysis.png",
+        "Name": "Data Analysis",
+        "SuggestionList": [
+            {
+                "SuggestionId": "sug-003",
+                "Title": "Sales Report",
+                "PromptContent": "Analyze the sales data and generate a report..."
+            }
+        ]
+    }
+]'
 ```
 
 ## Deployment: nginx

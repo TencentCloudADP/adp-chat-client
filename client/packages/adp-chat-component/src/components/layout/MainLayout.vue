@@ -68,6 +68,8 @@ export interface Props extends ChatRelatedProps {
     skillsSpaceId?: string;
     /** Skills 应用 ID */
     skillsApplicationId?: string;
+    /** 快捷按钮建议列表 API 路径 */
+    suggestionApi?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -92,6 +94,7 @@ const props = withDefaults(defineProps<Props>(), {
     enableTools: true,
     skillsSpaceId: '',
     skillsApplicationId: '',
+    suggestionApi: '/suggestions',
 });
 
 // 合并 i18n 配置，获取 createConversation 文本
@@ -246,6 +249,7 @@ defineExpose({
                 :enableTools="enableTools"
                 :skillsSpaceId="skillsSpaceId"
                 :skillsApplicationId="skillsApplicationId"
+                :suggestionApi="suggestionApi"
                 @send="(query: string, fileList: FileProps[], conversationId: string, applicationId: string) => emit('send', query, fileList, conversationId, applicationId)"
                 @stop="emit('stop')"
                 @loadMore="(conversationId: string, lastRecordId: string) => emit('loadMore', conversationId, lastRecordId)"
