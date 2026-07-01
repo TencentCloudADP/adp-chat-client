@@ -11,7 +11,7 @@
  * Slate 节点结构：
  * {
  *   type: 'mention',
- *   mentionType: 'skills' | 'connectors' | 'tools',
+ *   mentionType: 'skills' | 'knowledgeBase' | 'connectors' | 'tools',
  *   mentionId: string,
  *   mentionName: string,         // 技术名（序列化用）
  *   mentionDisplayName: string,  // 中文展示名（chip 文本用）
@@ -45,6 +45,7 @@ const REGISTER_FLAG = '__adpMentionModuleRegistered'
 function getIconModifier(mentionType: string): string {
     if (mentionType === 'tools') return 'plugins'
     if (mentionType === 'connectors') return 'connectors'
+    if (mentionType === 'knowledgeBase') return 'knowledge'
     return 'skills'
 }
 
@@ -233,6 +234,7 @@ export function registerMentionModule(): void {
 /**
  * 将编辑器 Slate 树序列化为带 mention 内联标记的纯文本
  * - mention(skills)     → @skill:name
+ * - mention(knowledgeBase) → @knowledgeBase:id:name
  * - mention(tools/connectors) → @tool:name
  * - image               → ![](src)
  * - 其余文本原样输出，块级节点之间用 \n 连接
@@ -243,6 +245,7 @@ export function serializeMentionToInlineText(editor: IDomEditor): string {
 
     const getPrefix = (mentionType: string): string => {
         if (mentionType === 'skills') return '@skill'
+        if (mentionType === 'knowledgeBase') return '@knowledgeBase'
         return '@tool'
     }
 
@@ -256,6 +259,11 @@ export function serializeMentionToInlineText(editor: IDomEditor): string {
             const prefix = getPrefix(m.mentionType)
             const nameForSerialization = m.mentionName || m.mentionDisplayName || ''
             const safeName = String(nameForSerialization).replace(/\s+/g, (s) => encodeURIComponent(s))
+            // knowledgeBase 格式：@knowledgeBase:id:name（对齐 webim）
+            if (m.mentionType === 'knowledgeBase' && m.mentionId) {
+                const safeId = String(m.mentionId).replace(/\s+/g, (s) => encodeURIComponent(s))
+                return `${prefix}:${safeId}:${safeName} `
+            }
             return `${prefix}:${safeName} `
         }
         if (n.type === 'image') {
@@ -283,15 +291,17 @@ export interface RegisteredMentionItem {
 
 /**
  * 反向序列化所需的上下文配置
- * skills/tools 用于把内联文本中的 @skill:name / @tool:name 还原为中文 chip
+ * 用于把内联文本中的 @skill:name / @knowledgeBase:id:name / @tool:name 还原为中文 chip
  */
 export interface InlineTextToMentionOptions {
     /** 已注册 skills 列表（来自面板数据） */
     skills?: RegisteredMentionItem[]
+    /** 已注册 knowledgeBase 列表（来自面板数据） */
+    knowledgeBase?: RegisteredMentionItem[]
     /** 已注册 tools/connectors 列表（合并） */
     tools?: RegisteredMentionItem[]
-    /** 类目前缀文案，如 { skills: '技能', tools: '工具' } */
-    labels?: { skills?: string; tools?: string }
+    /** 类目前缀文案，如 { skills: '技能', knowledgeBase: '知识库', tools: '工具' } */
+    labels?: { skills?: string; knowledgeBase?: string; tools?: string }
 }
 
 /** 构造 name → displayName 的映射 */
@@ -336,11 +346,12 @@ function buildMentionChipHtml(opts: {
 
 /**
  * 把 "已序列化的内联文本" 反向解析为含 chip HTML 的字符串：
- * - @skill:name → 蓝色 skill chip
- * - @tool:name  → 蓝色 tool chip
+ * - @skill:name         → 蓝色 skill chip
+ * - @knowledgeBase:id:name → 蓝色 knowledgeBase chip
+ * - @tool:name          → 蓝色 tool chip
  *
  * 解析规则：
- * - 优先在 skills/tools 注册表中按最长前缀匹配名字，命中则用其中文 displayName 做展示，
+ * - 优先在 skills/knowledgeBase/tools 注册表中按最长前缀匹配名字，命中则用其中文 displayName 做展示，
  *   未匹配的部分回退到原始 name；
  * - 未注册的 name 仍会渲染为 chip，文本直接显示英文 name；
  * - 其它字符按原样保留并做 HTML 转义。
@@ -351,16 +362,19 @@ export function inlineTextToMentionHtml(text: string, opts: InlineTextToMentionO
     if (!text || typeof text !== 'string') return ''
 
     const skillMap = buildMentionNameMap(opts.skills)
+    const knowledgeMap = buildMentionNameMap(opts.knowledgeBase)
     const toolMap = buildMentionNameMap(opts.tools)
     const labelSkill = opts.labels?.skills || ''
+    const labelKnowledge = opts.labels?.knowledgeBase || ''
     const labelTool = opts.labels?.tools || ''
 
     // 注册名按长度降序，便于做最长前缀匹配（避免 "foo" 把 "foobar" 截断成 "foo"）
     const skillNames = Object.keys(skillMap).sort((a, b) => b.length - a.length)
+    const knowledgeNames = Object.keys(knowledgeMap).sort((a, b) => b.length - a.length)
     const toolNames = Object.keys(toolMap).sort((a, b) => b.length - a.length)
 
-    // @tool/@skill 的通用正则：name 可包含字母数字下划线、'-'、'/'、'.'，遇到空白/中文/@ 等终止
-    const TAG_REGEX = /@(skill|tool):([^\s@<>]+)/g
+    // @knowledgeBase:id:name / @tool / @skill 的通用正则
+    const TAG_REGEX = /@(skill|knowledgeBase|tool):([^\s@<>]+)/g
 
     const out: string[] = []
     let lastIndex = 0
@@ -370,9 +384,23 @@ export function inlineTextToMentionHtml(text: string, opts: InlineTextToMentionO
         const rawType = m[1] || ''
         let name = m[2] || ''
         let matchEnd = matchStart + m[0].length
+        let mentionId = ''
+
+        // knowledgeBase 格式：@knowledgeBase:id:name
+        if (rawType === 'knowledgeBase') {
+            const colonIdx = name.indexOf(':')
+            if (colonIdx !== -1) {
+                mentionId = name.slice(0, colonIdx)
+                name = name.slice(colonIdx + 1)
+            }
+        }
 
         // 最长前缀匹配，把多余字符回退到外层文本
-        const candidates = rawType === 'skill' ? skillNames : rawType === 'tool' ? toolNames : []
+        let candidates: string[]
+        if (rawType === 'skill') candidates = skillNames
+        else if (rawType === 'knowledgeBase') candidates = knowledgeNames
+        else candidates = toolNames
+
         if (candidates.length) {
             const hit = candidates.find((n) => name.startsWith(n))
             if (hit && hit.length < name.length) {
@@ -387,15 +415,23 @@ export function inlineTextToMentionHtml(text: string, opts: InlineTextToMentionO
             out.push(escapeHtmlText(text.slice(lastIndex, matchStart)))
         }
 
-        const mentionType = rawType === 'skill' ? 'skills' : 'tools'
-        const map = rawType === 'skill' ? skillMap : toolMap
+        let mentionType: string
+        let map: Record<string, string>
+        let displayLabel: string
+        if (rawType === 'skill') {
+            mentionType = 'skills'; map = skillMap; displayLabel = labelSkill
+        } else if (rawType === 'knowledgeBase') {
+            mentionType = 'knowledgeBase'; map = knowledgeMap; displayLabel = labelKnowledge
+        } else {
+            mentionType = 'tools'; map = toolMap; displayLabel = labelTool
+        }
+
         const mentionDisplayName = map[name] || ''
-        const displayLabel = rawType === 'skill' ? labelSkill : labelTool
 
         out.push(
             buildMentionChipHtml({
                 mentionType,
-                mentionId: '',
+                mentionId,
                 mentionName: name,
                 mentionDisplayName,
                 displayLabel,

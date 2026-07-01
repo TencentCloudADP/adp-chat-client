@@ -57,6 +57,7 @@ interface Props {
     installedSkills?: NormalizedSkill[];
     installedConnectors?: NormalizedSkill[];
     installedTools?: NormalizedSkill[];
+    installedKnowledge?: NormalizedSkill[];
     searchKeyword?: string;
     /** 国际化文本 */
     i18n?: SkillsI18n;
@@ -68,6 +69,7 @@ const props = withDefaults(defineProps<Props>(), {
     installedSkills: () => [],
     installedConnectors: () => [],
     installedTools: () => [],
+    installedKnowledge: () => [],
     searchKeyword: '',
     i18n: () => ({}),
     language: 'zh-CN',
@@ -94,6 +96,7 @@ const categoryList = computed<Category[]>(() => {
     if (props.installedSkills.length) list.push({ key: 'skills', label: mergedI18n.value.skills || 'Skills', icon: 'basic_bulb_line', items: props.installedSkills });
     if (props.installedConnectors.length) list.push({ key: 'connectors', label: mergedI18n.value.connector || '连接器', icon: 'basic_connector_line', items: props.installedConnectors });
     if (props.installedTools.length) list.push({ key: 'tools', label: mergedI18n.value.tools || '工具', icon: 'basic_plugin_line', items: props.installedTools });
+    if (props.installedKnowledge.length) list.push({ key: 'knowledgeBase', label: mergedI18n.value.knowledgeBase || '知识库', icon: 'basic_book_line', items: props.installedKnowledge });
     return list;
 });
 

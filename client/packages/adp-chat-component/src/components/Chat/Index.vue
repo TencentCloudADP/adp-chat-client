@@ -61,6 +61,7 @@
                                 :i18n="chatItemI18n"
                                 :chat-i18n="i18n"
                                 :mentionSkills="mentionSkills"
+                                :mentionKnowledge="mentionKnowledge"
                                 :mentionTools="mentionTools"
                                 :mentionConnectors="mentionConnectors"
                                 @resend="onResend"
@@ -317,21 +318,29 @@ const emit = defineEmits<{
 const internalChatList = ref<Record[]>([]);
 
 /**
- * mention 列表：由 Sender 在拉取 Skills/Tools 后 emit，
- * 透传给 ChatItem → MdContent，用于把消息文本中的 @skill:/@tool: 还原为蓝色 chip
+ * mention 列表：由 Sender 在拉取 Skills/Tools/Knowledge 后 emit，
+ * 透传给 ChatItem → MdContent，用于把消息文本中的 @skill:/@knowledgeBase:/@tool: 还原为蓝色 chip
  */
 const mentionSkills = ref<NormalizedSkill[]>([]);
+const mentionKnowledge = ref<NormalizedSkill[]>([]);
 const mentionTools = ref<NormalizedSkill[]>([]);
 const mentionConnectors = ref<NormalizedSkill[]>([]);
 
 /** Sender mention 列表更新事件处理 */
-function onMentionListUpdate(payload: { skills: NormalizedSkill[]; tools: NormalizedSkill[]; connectors: NormalizedSkill[] }) {
+function onMentionListUpdate(payload: {
+    skills: NormalizedSkill[];
+    knowledgeBase?: NormalizedSkill[];
+    tools: NormalizedSkill[];
+    connectors: NormalizedSkill[];
+}) {
     // eslint-disable-next-line no-console
     console.log('[Chat/Index] onMentionListUpdate received',
         'skills:', (payload.skills || []).length,
+        'knowledge:', (payload.knowledgeBase || []).length,
         'tools:', (payload.tools || []).length,
         'connectors:', (payload.connectors || []).length);
     mentionSkills.value = payload.skills || [];
+    mentionKnowledge.value = payload.knowledgeBase || [];
     mentionTools.value = payload.tools || [];
     mentionConnectors.value = payload.connectors || [];
 }

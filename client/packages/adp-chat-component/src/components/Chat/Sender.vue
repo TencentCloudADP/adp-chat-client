@@ -37,6 +37,7 @@ import PluginInstallDialog from '../Plugin/PluginInstallDialog.vue';
 import PluginManageDialog from '../Plugin/PluginManageDialog.vue';
 import KnowledgeDialog from '../Knowledge/KnowledgeDialog.vue';
 import AtMentionPanel from './AtMentionPanel.vue';
+import { listReferShareKnowledge } from '../../service/knowledgeApi';
 
 export interface Props extends ChatRelatedProps {
     /** 是否正在流式加载 */
@@ -72,6 +73,8 @@ export interface Props extends ChatRelatedProps {
     enableKnowledge?: boolean;
     /** 已安装 Skills 列表（标准化后） */
     installedSkills?: NormalizedSkill[];
+    /** 已配置知识库列表（标准化后，用于 @ mention） */
+    installedKnowledge?: NormalizedSkill[];
     /** Skills 数据加载中 */
     skillsLoading?: boolean;
     /** 已安装 Skill ID 集合 */
@@ -103,6 +106,7 @@ const props = withDefaults(defineProps<Props>(), {
     enableTools: false,
     enableKnowledge: false,
     installedSkills: () => [],
+    installedKnowledge: () => [],
     skillsLoading: false,
     installedSkillIds: () => [],
     spaceId: '',
@@ -162,7 +166,7 @@ const emit = defineEmits<{
      * mention 列表更新：包含已注册 skills/tools/connectors 的标准化数据，
      * 父组件可将其透传给 ChatItem/MdContent，用于把消息中的 @skill:/@tool: 还原为蓝色 chip
      */
-    (e: 'mention-list-update', payload: { skills: NormalizedSkill[]; tools: NormalizedSkill[]; connectors: NormalizedSkill[] }): void;
+    (e: 'mention-list-update', payload: { skills: NormalizedSkill[]; knowledgeBase?: NormalizedSkill[]; tools: NormalizedSkill[]; connectors: NormalizedSkill[] }): void;
 }>();
 
 const editorHtml = ref('');
@@ -333,6 +337,106 @@ const mentionTools = computed<NormalizedSkill[]>(() => {
         }));
 });
 
+/** 双兼容 pick：先 PascalCase，再下划线 */
+function pickField(obj: Record<string, unknown> | null | undefined, ...keys: string[]): unknown {
+    if (!obj) return undefined;
+    for (const k of keys) {
+        if (obj[k] !== undefined) return obj[k];
+    }
+    return undefined;
+}
+
+/**
+ * 从 tools 列表中解析 KnowledgeRetrievalAnswer → KnowledgeScope → KnowledgeList → KnowledgeBizId。
+ * 结构对齐 KnowledgeDialog.parseKnowledgeScope。
+ */
+function parseKnowledgeIdsFromTools(tools: Record<string, unknown>[]): { allKnowledge: boolean; ids: string[] } {
+    const kbTool = tools.find((t) => {
+        const cfg = (t.Config || {}) as Record<string, unknown>;
+        const rawName = (t.Name || t.ToolName || cfg.Description || cfg.description || '') as string;
+        const name = rawName.includes('/') ? rawName.split('/').pop() || '' : rawName;
+        return name === 'KnowledgeRetrievalAnswer';
+    });
+    if (!kbTool) return { allKnowledge: false, ids: [] };
+
+    const cfg = (pickField(kbTool, 'Config', 'config') || {}) as Record<string, unknown>;
+    const inputList = (pickField(cfg, 'InputList', 'input_list') || []) as Array<Record<string, unknown>>;
+    const scope = inputList.find((n) => pickField(n, 'Name', 'name') === 'KnowledgeScope');
+    if (!scope) return { allKnowledge: false, ids: [] };
+    const scopeSubs = (pickField(scope, 'SubParameterList', 'sub_parameter_list') || []) as Array<Record<string, unknown>>;
+
+    // 解析 AllKnowledge 标记
+    let allKnowledge = false;
+    let ids: string[] = [];
+    for (const sub of scopeSubs) {
+        const subName = pickField(sub, 'Name', 'name');
+        if (subName === 'AllKnowledge') {
+            const input = (pickField(sub, 'Input', 'input') || {}) as Record<string, unknown>;
+            const uiv = (pickField(input, 'UserInputValue', 'user_input_value') || {}) as Record<string, unknown>;
+            const values = (pickField(uiv, 'ValueList', 'value_list') || []) as string[];
+            allKnowledge = values[0] === 'true';
+        } else if (subName === 'KnowledgeList') {
+            const items = (pickField(sub, 'SubParameterList', 'sub_parameter_list') || []) as Array<Record<string, unknown>>;
+            ids = items
+                .map((it) => {
+                    const itemSubs = (pickField(it, 'SubParameterList', 'sub_parameter_list') || []) as Array<Record<string, unknown>>;
+                    const bizNode = itemSubs.find((n) => pickField(n, 'Name', 'name') === 'KnowledgeBizId');
+                    if (!bizNode) return '';
+                    const bInput = (pickField(bizNode, 'Input', 'input') || {}) as Record<string, unknown>;
+                    const buiv = (pickField(bInput, 'UserInputValue', 'user_input_value') || {}) as Record<string, unknown>;
+                    const bvalues = (pickField(buiv, 'ValueList', 'value_list') || []) as string[];
+                    return bvalues[0] || '';
+                })
+                .filter(Boolean);
+        }
+    }
+    return { allKnowledge, ids };
+}
+
+/** 知识库 BizId → 名称 映射缓存（从 listReferShareKnowledge 填充） */
+const knowledgeNameMap = ref<Record<string, string>>({});
+
+/** 拉取知识库名称列表（非阻塞，用于 @ mention 展示） */
+async function refreshKnowledgeNames(appId: string) {
+    try {
+        const { list } = await listReferShareKnowledge({
+            applicationId: appId,
+            includeDefault: true,
+            defaultName: '默认知识库',
+        });
+        const map: Record<string, string> = {};
+        for (const item of list) {
+            if (item.knowledgeBizId) map[item.knowledgeBizId] = item.knowledgeName || item.knowledgeBizId;
+        }
+        knowledgeNameMap.value = map;
+    } catch (e) {
+        // 非阻塞，静默失败
+    }
+}
+
+/** 知识库列表（用于 @ mention）：优先用外部 prop，否则从 Agent 工具解析 + 名称映射 */
+const mentionKnowledge = computed<NormalizedSkill[]>(() => {
+    // 外部传入（含名称、图标等完整信息）优先
+    if (props.installedKnowledge.length) return props.installedKnowledge;
+
+    // 从 Agent 工具解析 KnowledgeRetrievalAnswer → KnowledgeScope
+    const { allKnowledge, ids } = parseKnowledgeIdsFromTools(installedToolsRaw.value);
+    const nameMap = knowledgeNameMap.value;
+
+    // "全部知识库"模式 → 展示所有已拉取到的知识库（与 KnowledgeDialog 一致）
+    if (allKnowledge) {
+        return Object.entries(nameMap).map(([id, name]) => ({ id, name, displayName: name, iconUrl: '' }));
+    }
+
+    // "按知识库"模式 → 仅展示 KnowledgeList 中的知识库
+    return ids.map((id) => ({
+        id,
+        name: nameMap[id] || id,
+        displayName: nameMap[id] || id,
+        iconUrl: '',
+    }));
+});
+
 /** 已安装 Skill ID 集合 */
 const skillsInstalledIds = computed(() => {
     return [...new Set(skillList.value.map((s) => s.SkillId || '').filter(Boolean))];
@@ -370,8 +474,12 @@ async function refreshSkills() {
     }
     skillsRefreshing.value = true;
     try {
-        await refreshAgentCache(appId);
-        console.log('[Sender] refreshSkills done, skills:', skillList.value.length);
+        // 并行拉取 agent 缓存和知识库名称
+        await Promise.all([
+            refreshAgentCache(appId),
+            refreshKnowledgeNames(appId),
+        ]);
+        console.log('[Sender] refreshSkills done, skills:', skillList.value.length, 'knowledge:', Object.keys(knowledgeNameMap.value).length);
     } catch (e) {
         console.error('[Sender] refreshSkills error:', e);
     } finally {
@@ -381,15 +489,17 @@ async function refreshSkills() {
 
 /** 已注册 mention 数据变化时向父组件 emit，父组件再透传给 ChatItem/MdContent 渲染 chip */
 watch(
-    [skillList, installedToolsRaw],
+    [skillList, installedToolsRaw, () => props.installedKnowledge],
     () => {
         // eslint-disable-next-line no-console
         console.log('[Sender] emit mention-list-update (raw data changed)',
             'skills:', normalizedSkills.value.length,
+            'knowledge:', mentionKnowledge.value.length,
             'tools:', mentionTools.value.length,
             'connectors:', mentionConnectors.value.length);
         emit('mention-list-update', {
             skills: normalizedSkills.value,
+            knowledgeBase: mentionKnowledge.value,
             tools: mentionTools.value,
             connectors: mentionConnectors.value,
         });
@@ -1332,6 +1442,7 @@ defineExpose({
                     <AtMentionPanel
                         ref="mentionPanelRef"
                         :installed-skills="normalizedSkills"
+                        :installed-knowledge="mentionKnowledge"
                         :installed-connectors="mentionConnectors"
                         :installed-tools="mentionTools"
                         :search-keyword="mentionSearchStr"
@@ -1713,6 +1824,10 @@ defineExpose({
 .at-mention-tag__icon--connectors {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='13' viewBox='0 0 13 13' fill='none'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M12.2383 8.21079L6.32226 11.5402C6.2693 11.5702 6.20456 11.5703 6.15169 11.5402L0.209638 8.21144C0.117809 8.16004 0.00446184 8.22593 0.00390912 8.33123L2.87514e-06 9.11183C-0.000390956 9.18679 0.0397001 9.25643 0.10482 9.29347L5.63932 12.4413C6.00986 12.652 6.46399 12.6519 6.83463 12.4413L12.3659 9.29542C12.4328 9.25735 12.4733 9.18489 12.4707 9.10792L12.4447 8.32667C12.4412 8.22304 12.3286 8.15994 12.2383 8.21079ZM12.2383 5.52719L6.32226 8.85662C6.2693 8.88665 6.20456 8.88671 6.15169 8.85662L0.209638 5.52784C0.117809 5.47638 0.00446184 5.54241 0.00390912 5.64763L2.87514e-06 6.42823C-0.000390956 6.50313 0.0397001 6.57284 0.10482 6.60987L5.63932 9.75766C6.00986 9.96842 6.46399 9.96832 6.83463 9.75766L12.3659 6.61183C12.4328 6.57376 12.4733 6.50137 12.4707 6.42433L12.4447 5.64308C12.4412 5.53951 12.3286 5.47634 12.2383 5.52719ZM5.89583 0.0903423L0.324872 3.25831C0.0920792 3.39079 0.0920772 3.72675 0.324872 3.85922L5.89583 7.02719C6.1076 7.14761 6.36694 7.14762 6.57877 7.02719L12.1491 3.85922C12.382 3.72676 12.382 3.39077 12.1491 3.25831L6.57877 0.0903423C6.36694 -0.0301232 6.1076 -0.030105 5.89583 0.0903423ZM1.89323 3.55844L6.23698 6.02914L10.5814 3.55844L6.23698 1.08839L1.89323 3.55844Z' fill='%234A70FF'/%3E%3C/svg%3E");
     background-size: 13px 13px;
+}
+
+.at-mention-tag__icon--knowledge {
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 1.5C5.17157 1.5 4.5 2.17157 4.5 3V4H3.5C2.67157 4 2 4.67157 2 5.5V9.5C2 10.3284 2.67157 11 3.5 11H8.5C9.32843 11 10 10.3284 10 9.5V5.5C10 4.67157 9.32843 4 8.5 4H7.5V3C7.5 2.17157 6.82843 1.5 6 1.5ZM4 3C4 1.89543 4.89543 1 6 1C7.10457 1 8 1.89543 8 3V4H4V3ZM3.5 5H8.5C8.77614 5 9 5.22386 9 5.5V9.5C9 9.77614 8.77614 10 8.5 10H3.5C3.22386 10 3 9.77614 3 9.5V5.5C3 5.22386 3.22386 5 3.5 5Z' fill='%234A70FF'/%3E%3C/svg%3E");
 }
 
 .at-mention-tag__text {

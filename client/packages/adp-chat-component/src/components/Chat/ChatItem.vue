@@ -41,6 +41,8 @@ interface Props extends CommonLayoutProps {
     mode?: ChatMode;
     /** 已注册 skills 列表（用于把 user 消息中的 @skill:name 还原为蓝色 chip） */
     mentionSkills?: NormalizedSkill[];
+    /** 已注册 knowledgeBase 列表 */
+    mentionKnowledge?: NormalizedSkill[];
     /** 已注册 tools 列表 */
     mentionTools?: NormalizedSkill[];
     /** 已注册 connectors 列表 */
@@ -56,6 +58,7 @@ const props = withDefaults(defineProps<Props>(), {
     i18n: () => ({}),
     chatI18n: () => ({}),
     mentionSkills: () => [],
+    mentionKnowledge: () => [],
     mentionTools: () => [],
     mentionConnectors: () => [],
 });
@@ -615,6 +618,7 @@ const referenceDialogTitle = computed(() => {
                         :recordId="item.RecordId"
                         :enableScale="isMobile"
                         :mentionSkills="mentionSkills"
+                        :mentionKnowledge="mentionKnowledge"
                         :mentionTools="mentionTools"
                         :mentionConnectors="mentionConnectors"
                         @widgetEvent="handleWidgetEvent"
