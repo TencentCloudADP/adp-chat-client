@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import sanic
@@ -35,15 +36,21 @@ class ChatMessageApi(HTTPMethodView):
             vendor_app: {vendor_app}")
 
         async def streaming_fn(response):
-            async for data in CoreChat.message(
+            chat_gen = CoreChat.message(
                 vendor_app,
                 request.ctx.account_id,
                 args['Contents'],
                 args['ConversationId'],
                 args['SearchNetwork'],
                 args['CustomVariables']
-            ):
-                await response.write(data)
+            )
+            try:
+                async for data in chat_gen:
+                    await response.write(data)
+            except asyncio.CancelledError:
+                logging.info("[ChatMessageApi] Client disconnected, closing upstream")
+                await chat_gen.aclose()
+                raise
         return ResponseStream(streaming_fn, content_type='text/event-stream; charset=utf-8')
 
 

@@ -16,4 +16,5 @@ deploy
 .codebuddy/
 .vercel
 server/static/
+server/logs/
 yarn.lock
