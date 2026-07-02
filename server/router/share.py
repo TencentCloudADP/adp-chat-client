@@ -35,11 +35,16 @@ class ShareCreateApi(HTTPMethodView):
             )
             records = _records + records
             if len(_records) > 0:
-                last_record_id = _records[0].RecordId
+                item = _records[0]
+                last_record_id = item.RecordId if hasattr(item, 'RecordId') else item.get("RecordId")
             else:
                 break
 
-        records = [record.model_dump() for record in records if record.RecordId in args["RecordIds"]]
+        records = [
+            record.model_dump() if hasattr(record, 'model_dump') else record
+            for record in records
+            if (record.RecordId if hasattr(record, 'RecordId') else record.get("RecordId")) in args["RecordIds"]
+        ]
 
         shared = await CoreShareConversation.create(
             request.ctx.db, request.ctx.account_id, args["ConversationId"], args["ApplicationId"], records
