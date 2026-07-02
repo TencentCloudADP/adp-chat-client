@@ -91,12 +91,23 @@ const categoryIndex = ref(0);
 const subitemIndex = ref(0);
 const isKeyboardNavigating = ref(false);
 
+/** 按 id 去重，保留首次出现的项 */
+function dedupe(items: NormalizedSkill[]): NormalizedSkill[] {
+    const seen = new Set<string>();
+    return items.filter((item) => {
+        const key = item.id || item.name;
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
 const categoryList = computed<Category[]>(() => {
     const list: Category[] = [];
-    if (props.installedSkills.length) list.push({ key: 'skills', label: mergedI18n.value.skills || 'Skills', icon: 'basic_bulb_line', items: props.installedSkills });
-    if (props.installedConnectors.length) list.push({ key: 'connectors', label: mergedI18n.value.connector || '连接器', icon: 'basic_connector_line', items: props.installedConnectors });
-    if (props.installedTools.length) list.push({ key: 'tools', label: mergedI18n.value.tools || '工具', icon: 'basic_plugin_line', items: props.installedTools });
-    if (props.installedKnowledge.length) list.push({ key: 'knowledgeBase', label: mergedI18n.value.knowledgeBase || '知识库', icon: 'basic_book_line', items: props.installedKnowledge });
+    if (props.installedSkills.length) list.push({ key: 'skills', label: mergedI18n.value.skills || 'Skills', icon: 'basic_bulb_line', items: dedupe(props.installedSkills) });
+    if (props.installedConnectors.length) list.push({ key: 'connectors', label: mergedI18n.value.connector || '连接器', icon: 'basic_connector_line', items: dedupe(props.installedConnectors) });
+    if (props.installedTools.length) list.push({ key: 'tools', label: mergedI18n.value.tools || '工具', icon: 'basic_plugin_line', items: dedupe(props.installedTools) });
+    if (props.installedKnowledge.length) list.push({ key: 'knowledgeBase', label: mergedI18n.value.knowledgeBase || '知识库', icon: 'basic_book_line', items: dedupe(props.installedKnowledge) });
     return list;
 });
 

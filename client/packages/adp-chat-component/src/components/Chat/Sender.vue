@@ -302,9 +302,23 @@ function toolDisplayName(t: Record<string, unknown>): string {
     return displayName || name || ((t.tool_id || t.ToolId || '') as string);
 }
 
+/**
+ * 按 id 去重 NormalizedSkill 数组，保留首次出现的项。
+ * 防止 tools / connectors / knowledge 因并发刷新产生重复条目。
+ */
+function dedupeById(items: NormalizedSkill[]): NormalizedSkill[] {
+    const seen = new Set<string>();
+    return items.filter((item) => {
+        const key = item.id || item.name;
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
 /** 连接器列表：从 PluginList 中取 PluginClass === 1 (= CONNECTOR) 的项 */
 const mentionConnectors = computed<NormalizedSkill[]>(() => {
-    return installedPlugins.value
+    return dedupeById(installedPlugins.value
         .filter((p) => (p.PluginClass ?? p.plugin_class ?? 0) === 1)
         .map((p) => {
             const cfg = (p.Config || p.config || {}) as Record<string, unknown>;
@@ -316,13 +330,13 @@ const mentionConnectors = computed<NormalizedSkill[]>(() => {
                 displayName: pluginName,
                 iconUrl: (p.IconUrl || p.icon_url || p.Icon || p.icon || '') as string,
             };
-        });
+        }));
 });
 
 /** 工具列表：从 ToolList 中取 pluginClass === 0 或无标记的项 */
 const mentionTools = computed<NormalizedSkill[]>(() => {
     const m = getPluginClassMap();
-    return installedToolsRaw.value
+    return dedupeById(installedToolsRaw.value
         .filter((t) => {
             const pid = getPluginId(t);
             const cls = m.get(pid);
@@ -334,7 +348,7 @@ const mentionTools = computed<NormalizedSkill[]>(() => {
             name: toolName(t),
             displayName: toolDisplayName(t),
             iconUrl: (t.IconUrl || t.icon_url || '') as string,
-        }));
+        })));
 });
 
 /** 双兼容 pick：先 PascalCase，再下划线 */
@@ -417,7 +431,7 @@ async function refreshKnowledgeNames(appId: string) {
 /** 知识库列表（用于 @ mention）：优先用外部 prop，否则从 Agent 工具解析 + 名称映射 */
 const mentionKnowledge = computed<NormalizedSkill[]>(() => {
     // 外部传入（含名称、图标等完整信息）优先
-    if (props.installedKnowledge.length) return props.installedKnowledge;
+    if (props.installedKnowledge.length) return dedupeById(props.installedKnowledge);
 
     // 从 Agent 工具解析 KnowledgeRetrievalAnswer → KnowledgeScope
     const { allKnowledge, ids } = parseKnowledgeIdsFromTools(installedToolsRaw.value);
@@ -425,16 +439,16 @@ const mentionKnowledge = computed<NormalizedSkill[]>(() => {
 
     // "全部知识库"模式 → 展示所有已拉取到的知识库（与 KnowledgeDialog 一致）
     if (allKnowledge) {
-        return Object.entries(nameMap).map(([id, name]) => ({ id, name, displayName: name, iconUrl: '' }));
+        return dedupeById(Object.entries(nameMap).map(([id, name]) => ({ id, name, displayName: name, iconUrl: '' })));
     }
 
     // "按知识库"模式 → 仅展示 KnowledgeList 中的知识库
-    return ids.map((id) => ({
+    return dedupeById(ids.map((id) => ({
         id,
         name: nameMap[id] || id,
         displayName: nameMap[id] || id,
         iconUrl: '',
-    }));
+    })));
 });
 
 /** 已安装 Skill ID 集合 */
@@ -472,6 +486,11 @@ async function refreshSkills() {
         console.warn('[Sender] refreshSkills skipped: no applicationId');
         return;
     }
+    // 防止并发刷新导致数据竞态和重复条目
+    if (skillsRefreshing.value) {
+        console.log('[Sender] refreshSkills skipped: already refreshing');
+        return;
+    }
     skillsRefreshing.value = true;
     try {
         // 并行拉取 agent 缓存和知识库名称
@@ -499,9 +518,9 @@ watch(
             'connectors:', mentionConnectors.value.length);
         emit('mention-list-update', {
             skills: normalizedSkills.value,
-            knowledgeBase: mentionKnowledge.value,
-            tools: mentionTools.value,
-            connectors: mentionConnectors.value,
+            knowledgeBase: dedupeById(mentionKnowledge.value),
+            tools: dedupeById(mentionTools.value),
+            connectors: dedupeById(mentionConnectors.value),
         });
     },
     { immediate: true },

@@ -531,7 +531,9 @@ watch(() => props.modelValue, (val) => {
     if (val) {
         searchKeyword.value = '';
         enabledOnly.value = false;
-        fetchAll(true);
+        // 使用 refreshAgentCache 强制刷新 Agent 数据，避免 resetAgentStore 清空 Sender/工具栏共享缓存
+        fetchAll(false);
+        refreshAgentCache(props.applicationId);
     }
 });
 </script>
