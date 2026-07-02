@@ -94,7 +94,6 @@ export type {
 } from './model/chat-v2'
 export { ScoreValue } from './model/chat-v2'
 export type { FileProps } from './model/file'
-export type { ApiConfig, ApiDetailConfig } from './service/api'
 
 // Skills 类型导出
 export type {
