@@ -144,6 +144,15 @@ SUGGESTION_CONFIGS='[
 - **点击建议**：将 `PromptContent` 填入输入框，用户可编辑后再发送
 - **返回**：点击左上角返回图标回到一级菜单
 
+`PromptContent` 支持 mention 语法（可选）：
+- `@skill:<skill-name>` 引用当前应用已安装的 Skill
+- `@knowledgeBase:<kb-name>` 引用已挂载的知识库
+- `@tool:<tool-name>` 引用已注册的工具（**连接器 connector 同样使用 `@tool:` 前缀**）
+
+点击后 mention 会以蓝色 chip 的形式渲染在输入框内，被引用对象必须已在当前应用中安装/挂载。
+
+> ⚠️ **格式注意**：整个值使用单引号 `'...'` 包裹，JSON 内部**不要出现半角单引号 `'`（U+0027）**。若需要在 `PromptContent` 中引出一段短语，请使用中文全角引号 `“…”` / `‘…’`，或去掉引号。否则 Docker 部署模式下 dotenv 会把内部 `'` 视为值的结束，导致 `SUGGESTION_CONFIGS` 回退为空数组、快捷按钮全部消失。
+
 5. 制作镜像
 
 ``` bash
@@ -429,25 +438,47 @@ SUGGESTION_CONFIGS='[
             },
             {
                 "SuggestionId": "sug-002",
-                "Title": "合同合规审阅",
-                "PromptContent": "请审阅我上传的合同文件..."
+                "Title": "发票信息提取",
+                "PromptContent": "帮我创建一个“发票信息提取”Skill：上传发票图片或 PDF，自动识别发票关键字段并输出结构化 JSON。"
             }
         ]
     },
     {
-        "GroupId": "group-data",
-        "IconUrl": "https://cdn.example.com/icons/data-analysis.png",
-        "Name": "数据分析",
+        "GroupId": "group-app",
+        "IconUrl": "https://cdn.example.com/icons/app-build.png",
+        "Name": "应用搭建",
         "SuggestionList": [
             {
                 "SuggestionId": "sug-003",
-                "Title": "销售数据汇报",
-                "PromptContent": "分析销售数据报表，生成汇报材料..."
+                "Title": "销售数据分析助手",
+                "PromptContent": "帮我创建一个销售数据分析助手的应用，支持自然语言查询销售数据、自动生成可视化图表。@skill:example-app-manager"
             }
         ]
     }
 ]'
 ```
+
+### PromptContent 高级用法
+
+`PromptContent` 除了纯文本外，还支持 **mention 引用**，格式为 `@<type>:<name>`，点击建议后会在输入框中以蓝色 chip 形式呈现：
+
+| 语法 | 含义 |
+|------|------|
+| `@skill:<skill-name>` | 引用当前应用已安装的 Skill |
+| `@knowledgeBase:<kb-name>` | 引用已挂载的知识库 |
+| `@tool:<tool-name>` | 引用已注册的工具或连接器（connector 同样使用 `@tool:` 前缀） |
+
+被引用的实体必须已经在当前应用中安装/挂载，否则 chip 无法命中，会以纯文本形式展示。连接器与工具共用 `@tool:` 前缀，前端会依据当前应用已注册的 connector 名称自动区分并展示为"连接器"类型的 chip。
+
+### 格式注意事项
+
+`SUGGESTION_CONFIGS` 在 `.env` 中使用单引号 `'...'` 包裹一段跨行 JSON。请遵守以下规则，避免解析失败：
+
+1. **禁止在 JSON 内出现半角单引号 `'`（U+0027）**。若 `PromptContent` 需要引出一段短语，请使用中文全角引号 `“…”` / `‘…’`，或者不加引号。原因：Docker 部署模式下后端使用 `python-dotenv` 严格解析 `.env`，遇到内部 `'` 会立刻视为闭合引号，从而丢弃整个 `SUGGESTION_CONFIGS`，前端表现为 `GroupList` 为空、看不到任何快捷按钮。
+2. **JSON 字符串使用双引号 `"..."`**；如需在文本内出现英文双引号，请使用 `\"` 转义。
+3. **建议每个 `GroupId` / `SuggestionId` 全局唯一**，前端会用作 `key`。
+4. **`IconUrl` 必须是可公网访问的 https 链接**，建议尺寸 32×32 px。
+5. **修改 `.env` 后需要重启容器/服务**才能生效（无需重新 `pack` 镜像）。
 
 ## 部署: nginx
 

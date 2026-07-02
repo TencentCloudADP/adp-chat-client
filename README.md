@@ -143,6 +143,15 @@ Interaction:
 - **Click suggestion**: Fills `PromptContent` into the input box; user can edit before sending
 - **Back**: Click the back arrow in the top-left corner to return to groups
 
+`PromptContent` supports mention syntax (optional):
+- `@skill:<skill-name>` — reference a Skill installed on the current agent
+- `@knowledgeBase:<kb-name>` — reference an attached knowledge base
+- `@tool:<tool-name>` — reference a registered tool (**connectors use the same `@tool:` prefix as tools**)
+
+Mentions are rendered as colored chips inside the input box after the suggestion is filled. The referenced entity must already be installed / attached on the current agent.
+
+> ⚠️ **Format note**: The whole value is wrapped in single quotes `'...'`, so the JSON body **must not contain any ASCII single quote `'` (U+0027)**. If you need to quote a phrase inside `PromptContent`, use full-width Chinese quotes `“…”` / `‘…’`, or drop the quotes. Otherwise, in Docker deploy mode dotenv will treat the inner `'` as the closing delimiter and `SUGGESTION_CONFIGS` will silently fall back to an empty list — no quick buttons will be shown.
+
 5. Build docker image
 ```bash
 # Build image (The initial deployment requires packing, and it needs to be rerun after code changes, no need to repack if you only modify the .env file).
@@ -430,25 +439,47 @@ SUGGESTION_CONFIGS='[
             },
             {
                 "SuggestionId": "sug-002",
-                "Title": "Contract Review",
-                "PromptContent": "Please review the uploaded contract..."
+                "Title": "Invoice Extraction",
+                "PromptContent": "Please build an “Invoice Extraction” Skill: upload an invoice image or PDF, auto-detect key fields and output structured JSON."
             }
         ]
     },
     {
-        "GroupId": "group-data",
-        "IconUrl": "https://cdn.example.com/icons/data-analysis.png",
-        "Name": "Data Analysis",
+        "GroupId": "group-app",
+        "IconUrl": "https://cdn.example.com/icons/app-build.png",
+        "Name": "App Building",
         "SuggestionList": [
             {
                 "SuggestionId": "sug-003",
-                "Title": "Sales Report",
-                "PromptContent": "Analyze the sales data and generate a report..."
+                "Title": "Sales Analytics Assistant",
+                "PromptContent": "Create a sales analytics assistant that supports natural-language queries over sales data and auto-generates charts. @skill:example-app-manager"
             }
         ]
     }
 ]'
 ```
+
+### Advanced usage of PromptContent
+
+Beyond plain text, `PromptContent` supports **mention references** in the form `@<type>:<name>`. When the suggestion is clicked, the mention is rendered as a colored chip inside the input box:
+
+| Syntax | Meaning |
+|--------|---------|
+| `@skill:<skill-name>` | Reference a Skill installed on the current agent |
+| `@knowledgeBase:<kb-name>` | Reference an attached knowledge base |
+| `@tool:<tool-name>` | Reference a registered tool or connector (connectors reuse the `@tool:` prefix) |
+
+The referenced entity must already be installed / attached on the current agent, otherwise the mention will not resolve to a chip and will be shown as plain text. Connectors and tools share the `@tool:` prefix; the frontend detects the connector by name among the agent's registered connectors and renders it as a "connector" chip.
+
+### Format rules
+
+`SUGGESTION_CONFIGS` is a multi-line JSON value wrapped by single quotes `'...'` in `.env`. Please follow the rules below to avoid parsing failures:
+
+1. **Do NOT put an ASCII single quote `'` (U+0027) anywhere inside the JSON body**. If you need to quote a phrase inside `PromptContent`, use full-width Chinese quotes `“…”` / `‘…’`, or drop the quotes. Reason: in Docker deploy mode the backend parses `.env` strictly with `python-dotenv`, which treats the first inner `'` as the closing delimiter, discards the whole `SUGGESTION_CONFIGS` value, and the frontend ends up with an empty `GroupList` — no quick buttons will show up.
+2. **JSON string values use double quotes `"..."`**; if you need a literal `"` inside the text, escape it as `\"`.
+3. **Every `GroupId` / `SuggestionId` should be globally unique** — the frontend uses them as `key`.
+4. **`IconUrl` must be publicly reachable via https**, recommended size 32×32 px.
+5. **Restart the container/service after editing `.env`** to pick up the new value (no need to re-`pack` the image).
 
 ## Deployment: nginx
 
