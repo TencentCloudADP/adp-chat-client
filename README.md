@@ -90,14 +90,29 @@ You need to fill in the following credentials and application keys based on your
 TC_SECRET_APPID=
 TC_SECRET_ID=
 TC_SECRET_KEY=
-# Tencent Cloud ADP platform agent app key: https://adp.tencentcloud.com/
+
+# ADP platform-specific secrets (required only when ServiceVendor is "ChinaTencentADP")
+# See the standalone site guide below for how to obtain them
+ADP_SECRET_ID=
+ADP_SECRET_KEY=
+
+# Tencent Cloud ADP platform agent app key:
+# - China public cloud: https://adp.cloud.tencent.com/
+# - Standalone site (独立站): https://adp.tencent.com/
 APP_CONFIGS='[
     {
         "Vendor":"Tencent",
         "ApplicationId":"The unique ID of the chat application, used to uniquely identify a chat application in this system. Recommended to use appid or generate a random uuid using the uuidgen command",
         "Comment": "Comment",
         "AppKey": "",
-        "International": true
+        "International": false
+    },
+    {
+        "Vendor":"Tencent",
+        "ApplicationId":"Standalone-site application unique ID",
+        "Comment": "Standalone site comment",
+        "AppKey": "",
+        "ServiceVendor": "ChinaTencentADP"
     }
 ]'
 
@@ -109,10 +124,12 @@ SECRET_KEY=
 > ⚠️ **Note**:
 > 1. The content of APP_CONFIGS is in JSON format. Please adhere to JSON specifications, e.g., the last item should not end with a comma, and // comments are not supported.
 > 2. Comment: Can be filled in freely for easy identification of the corresponding agent application.
-> 3. International: If the agent application is developed on the [ADP](https://adp.tencentcloud.com/), set the value to true.
-> 4. ApplicationId: Access any ADP application and check the appid in the application URL. For example, if an application's link is `https://adp.tencentcloud.com/adp/#/app/knowledge/app-config?appid=197******768&appType=knowledge_qa&spaceId=default_space`, then its ApplicationId is 197******768.
+> 3. International: If the agent application is developed on the [ADP China cloud](https://adp.cloud.tencent.com/), set to `false` (default). Set to `true` for international site applications.
+> 4. ApplicationId: Access any ADP application and check the appid in the application URL. For example, if an application's link is `https://adp.cloud.tencent.com/adp/#/app/knowledge/app-config?appid=197******768&appType=knowledge_qa&spaceId=default_space`, then its ApplicationId is 197******768.
 > 5. Vendor: Fixed to "Tencent", other options may be available for other platforms in the future.
 > 6. To configure multiple applications, simply append more objects to the APP_CONFIGS array in the same format.
+> 7. **ServiceVendor**: Optional values — `"ChinaTencentCloud"` (**default**, China public cloud) / `"ChinaTencentADP"` (**standalone site / 独立站**) / `"International"` (international site) / `"Private"` (private deployment). Must set to `"ChinaTencentADP"` when using the standalone ADP instance.
+> 8. **ADP_SECRET_ID / ADP_SECRET_KEY**: Required only when at least one application uses `"ServiceVendor": "ChinaTencentADP"`. Used for API authentication against the standalone ADP instance. If left empty, falls back to TC_SECRET_ID / TC_SECRET_KEY.
 
 #### Quick Buttons Suggestion Configuration (Optional)
 
@@ -223,6 +240,54 @@ OAUTH_MICROSOFT_ENTRA_SECRET=
 OAUTH_MICROSOFT_ENTRA_ENDPOINT=common
 ```
 > 📝 **Note**：When creating a Microsoft Entra ID OAuth application, fill in the callback URL as：SERVICE_API_URL+/oauth/callback/ms_entra_id, for example: http://localhost:8000/oauth/callback/ms_entra_id
+
+### ADP Standalone Site (ChinaTencentADP) Credentials
+
+When your agent application is deployed on the **ADP Standalone Site** ([https://adp.tencent.com](https://adp.tencent.com/)), you need to configure the standalone-site-specific secrets `ADP_SECRET_ID` / `ADP_SECRET_KEY` and declare `ServiceVendor: "ChinaTencentADP"` on the corresponding application.
+
+#### Step 1: Obtain Standalone API Credentials
+
+1. Log in to the **ADP Standalone Site**: [https://adp.tencent.com](https://adp.tencent.com/)
+2. Navigate to the **Key Management** page: [https://adp.tencent.com/adp#/key-manage](https://adp.tencent.com/adp#/key-manage)
+3. Click the **「+ New API Key (+ 新建 API 密钥)」** button
+
+![ADP Key Management Page](assets/readme/adp-key-management.png)
+
+4. After confirming creation in the popup dialog, the system displays `SecretID` and `SecretKey`
+
+![Create API Key Dialog](assets/readme/create-api-key.png)
+
+> ⚠️ **Important**: The SecretKey is shown **only once** at creation time and cannot be retrieved later. Make sure to save it securely.
+
+#### Step 2: Fill in .env (do NOT commit real secrets to the repository)
+
+In `deploy/default/.env`, fill in the following fields:
+
+```bash
+# ADP standalone-site secrets (required only when ServiceVendor is "ChinaTencentADP")
+# Get them from: https://adp.tencent.com/adp#/key-manage
+ADP_SECRET_ID=
+ADP_SECRET_KEY=
+```
+
+- Copy the **SecretID** from the dialog into `ADP_SECRET_ID`
+- Copy the **SecretKey** from the dialog into `ADP_SECRET_KEY`
+- Add `"ServiceVendor": "ChinaTencentADP"` to the corresponding application object inside `APP_CONFIGS`
+
+```bash
+APP_CONFIGS='[
+    {
+        "Vendor": "Tencent",
+        "ApplicationId": "Standalone-site application unique ID",
+        "Comment": "Standalone site comment",
+        "AppKey": "",
+        "ServiceVendor": "ChinaTencentADP"
+    }
+]'
+```
+
+> 💡 **Tip**: If `ADP_SECRET_ID` / `ADP_SECRET_KEY` are left empty, the system falls back to `TC_SECRET_ID` / `TC_SECRET_KEY`. You can mix multiple source types within the same `APP_CONFIGS` array (public cloud + standalone + international) — just ensure each application object has the correct `ServiceVendor` value.
+
 
 ### Other OAuth providers
 

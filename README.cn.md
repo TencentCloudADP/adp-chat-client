@@ -91,7 +91,14 @@ TC_SECRET_APPID=
 TC_SECRET_ID=
 TC_SECRET_KEY=
 
-# ADP平台获取的智能体应用key：https://adp.cloud.tencent.com/
+# ADP 平台专用密钥（仅当 ServiceVendor 为 "ChinaTencentADP" 时必填）
+# 独立站获取地址见下方说明
+ADP_SECRET_ID=
+ADP_SECRET_KEY=
+
+# ADP平台获取的智能体应用key：
+# - 国内站：https://adp.cloud.tencent.com/
+# - 独立站：https://adp.tencent.com/
 APP_CONFIGS='[
     {
         "Vendor":"Tencent",
@@ -99,6 +106,13 @@ APP_CONFIGS='[
         "Comment": "注释",
         "AppKey": "",
         "International": false
+    },
+    {
+        "Vendor":"Tencent",
+        "ApplicationId":"独立站应用的唯一ID",
+        "Comment": "独立站应用注释",
+        "AppKey": "",
+        "ServiceVendor": "ChinaTencentADP"
     }
 ]'
 
@@ -114,6 +128,8 @@ SECRET_KEY=
 > 4. ApplicationId: 进入任意ADP应用，在应用网址内查看appid。例如某个应用的链接为 `https://adp.cloud.tencent.com/adp/#/app/knowledge/app-config?appid=1959******8208&appType=knowledge_qa&spaceId=default_space`，则它的ApplicationId为1959******8208。
 > 5. Vendor: 固定为Tencent，后续支持其他平台可能会有其他选项
 > 6. 配置多个应用时，在 APP_CONFIGS 数组内追加对象即可，格式与示例一致。
+> 7. **ServiceVendor**: 可选值 `"ChinaTencentCloud"` (国内云，**默认**) / `"ChinaTencentADP"` (**独立站**) / `"International"` (国际站) / `"Private"` (私有化)。使用独立站时必须设置为 `"ChinaTencentADP"`。
+> 8. **ADP_SECRET_ID / ADP_SECRET_KEY**: 仅当存在 `ServiceVendor: "ChinaTencentADP"` 时需要填写，用于独立站 API 认证。如果留空，系统会回退使用 TC_SECRET_ID / TC_SECRET_KEY。
 
 #### 快捷按钮建议配置（可选）
 
@@ -222,6 +238,54 @@ OAUTH_MICROSOFT_ENTRA_SECRET=
 OAUTH_MICROSOFT_ENTRA_ENDPOINT=common
 ```
 > 📝 **注意**：创建Microsoft Entra ID OAuth应用时，callback URL填写：SERVICE_API_URL+/oauth/callback/ms_entra_id，例如：http://localhost:8000/oauth/callback/ms_entra_id
+
+### ADP 独立站（ChinaTencentADP）密钥配置
+
+当你的智能体应用部署在 **ADP 独立站**（[https://adp.tencent.com](https://adp.tencent.com/)）上时，需要额外配置独立站专用密钥 `ADP_SECRET_ID` / `ADP_SECRET_KEY`，并在应用配置中声明 `ServiceVendor: "ChinaTencentADP"`。
+
+#### 步骤一：申请独立站 API 密钥
+
+1. 登录 [ADP 独立站](https://adp.tencent.com/)
+2. 进入 **密钥管理** 页面：[https://adp.tencent.com/adp#/key-manage](https://adp.tencent.com/adp#/key-manage)
+3. 点击 **「+ 新建 API 密钥」** 按钮
+
+![ADP 密钥管理页面](assets/readme/adp-key-management.png)
+
+4. 在弹窗中确认创建后，系统将显示 `SecretID` 和 `SecretKey`
+
+![新建 API 密钥弹窗](assets/readme/create-api-key.png)
+
+> ⚠️ **重要提示**：新建的密钥只在创建时提供一次 SecretKey，后续不可再查看，请务必妥善保存。
+
+#### 步骤二：在 .env 中填写密钥（请勿将真实密钥提交到代码仓库）
+
+在 `deploy/default/.env` 中填写以下字段：
+
+```bash
+# ADP 独立站专用密钥（仅当 ServiceVendor 为 "ChinaTencentADP" 时必填）
+# 获取地址：https://adp.tencent.com/adp#/key-manage
+ADP_SECRET_ID=
+ADP_SECRET_KEY=
+```
+
+- 将弹窗中的 **SecretID** 填入 `ADP_SECRET_ID`
+- 将弹窗中的 **SecretKey** 填入 `ADP_SECRET_KEY`
+- 在 `APP_CONFIGS` 中对应应用的配置对象中加入 `"ServiceVendor": "ChinaTencentADP"`
+
+```bash
+APP_CONFIGS='[
+    {
+        "Vendor": "Tencent",
+        "ApplicationId": "独立站应用的唯一ID",
+        "Comment": "独立站应用注释",
+        "AppKey": "",
+        "ServiceVendor": "ChinaTencentADP"
+    }
+]'
+```
+
+> 💡 **提示**：如果 `ADP_SECRET_ID` / `ADP_SECRET_KEY` 留空，系统会回退使用 `TC_SECRET_ID` / `TC_SECRET_KEY`。同一份 `APP_CONFIGS` 可混合配置多个来源的应用（国内云 + 独立站 + 国际站），只需每个应用对象的 `ServiceVendor` 设置正确即可。
+
 
 ### 其它OAuth
 
