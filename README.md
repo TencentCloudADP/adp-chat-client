@@ -251,11 +251,11 @@ When your agent application is deployed on the **ADP Standalone Site** ([https:/
 2. Navigate to the **Key Management** page: [https://adp.tencent.com/adp#/key-manage](https://adp.tencent.com/adp#/key-manage)
 3. Click the **「+ New API Key (+ 新建 API 密钥)」** button
 
-![ADP Key Management Page](assets/readme/adp-key-management.png)
+![ADP Key Management Page](docs/assets/adp-key-management.png)
 
 4. After confirming creation in the popup dialog, the system displays `SecretID` and `SecretKey`
 
-![Create API Key Dialog](assets/readme/create-api-key.png)
+![Create API Key Dialog](docs/assets/create-api-key.png)
 
 > ⚠️ **Important**: The SecretKey is shown **only once** at creation time and cannot be retrieved later. Make sure to save it securely.
 

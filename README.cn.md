@@ -249,11 +249,11 @@ OAUTH_MICROSOFT_ENTRA_ENDPOINT=common
 2. 进入 **密钥管理** 页面：[https://adp.tencent.com/adp#/key-manage](https://adp.tencent.com/adp#/key-manage)
 3. 点击 **「+ 新建 API 密钥」** 按钮
 
-![ADP 密钥管理页面](assets/readme/adp-key-management.png)
+![ADP 密钥管理页面](docs/assets/adp-key-management.png)
 
 4. 在弹窗中确认创建后，系统将显示 `SecretID` 和 `SecretKey`
 
-![新建 API 密钥弹窗](assets/readme/create-api-key.png)
+![新建 API 密钥弹窗](docs/assets/create-api-key.png)
 
 > ⚠️ **重要提示**：新建的密钥只在创建时提供一次 SecretKey，后续不可再查看，请务必妥善保存。
 
