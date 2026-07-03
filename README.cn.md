@@ -765,3 +765,10 @@ Page({
 3. 在高级配置中找到 "允许在对话中动态修改配置"
 ![alt text](docs/assets/setting1.png)
 4. 发布应用
+
+## 应用&配置：开启知识库功能 
+1. 登录腾讯云 [智能体开发平台](https://adp.cloud.tencent.com/adp)
+2. 应用开发 -> 进入 APP_CONFIGS 配置的 应用
+3. 在工具中添加 "知识库问答/KnowledgeRetrievalAnswer" 工具（默认是已添加的）
+![alt text](docs/assets/setting2.png)
+4. 发布应用

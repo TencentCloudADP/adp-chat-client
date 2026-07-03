@@ -768,3 +768,11 @@ Page({
 3. In the advanced settings, find "Allow dynamic configuration changes during conversation"
 ![alt text](docs/assets/setting1.png)
 4. Publish the application
+
+## App & Configuration: Enable Knowledge Base Feature
+
+1. Log in to the Tencent Cloud [Agent Development Platform](https://adp.tencentcloud.com/)
+2. Go to App Development → Enter the application configured in APP_CONFIGS
+3. In the tools, add the "Knowledge Q&A / KnowledgeRetrievalAnswer" tool (it is added by default)
+![alt text](docs/assets/setting2.png)
+4. Publish the application

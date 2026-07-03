@@ -1,4 +1,42 @@
-## v0.5.0 (Unreleased)
+## v0.6.0 (2026-07-03)
+
+### Feat
+
+- **tca**: Introduce ServiceVendor multi-scenario routing supporting ChinaTencentCloud / ChinaTencentADP / International / Private, replacing the previous International/Private flags; split action_version.json into per-ServiceVendor config files for flexible control of routing, API version and region per scenario
+- **tca**: Add `ADP_SECRET_ID` / `ADP_SECRET_KEY` environment variables; the ADP standalone site uses these dedicated secrets first and falls back to `TC_SECRET_*` when not set
+- **client**: Knowledge Base management feature
+- **client**: Knowledge Base `@mention` input support
+- **client**: Quick template (SUGGESTION_CONFIGS) configuration: clickable suggestion buttons shown above the chat input box
+- **client**: Upgrade the plugin API from ListPlugins to DescribePluginSummaryList and improve English i18n
+- **server**: Add log file rotation and handle client disconnection gracefully
+
+### Fix
+
+- **db**: Fix DB connection pool leak and un-released resources
+- **server**: Fix sharing failure issue
+- **client**: Fix empty quick buttons in deploy mode — the multi-line `SUGGESTION_CONFIGS` value was truncated by dotenv due to an inner ASCII single quote, leaving the list empty
+- **client**: Fix knowledge base list display issue in the `@mention` panel
+- **fix**: Fix `X-TC-Version` priority logic (param > action config > omit) and chat list / file panel UI styling
+- **chat**: Add WeChat Mini Program integration docs and feature toggles (Knowledge / Skills / model selector / connector / tool `enable*` switches)
+
+### Style
+
+- **chat**: Polish the chat component visuals and interaction details
+
+### Config
+
+New or changed `.env` items:
+
+- `SUGGESTION_CONFIGS`: quick template config; the multi-line JSON is wrapped in single quotes `'…'`. The JSON body must not contain an ASCII single quote `'` — use Chinese full-width quotes `"…"` instead. `PromptContent` supports `@skill:` / `@knowledgeBase:` / `@tool:` mention syntax (connectors share the `@tool:` prefix with tools)
+- `ServiceVendor`: per-application field; one of `ChinaTencentCloud` (default) / `ChinaTencentADP` / `International` / `Private`
+- `ADP_SECRET_ID` / `ADP_SECRET_KEY`: dedicated secrets for the ADP standalone site; obtain from https://adp.tencent.com/adp#/key-manage
+
+### Docs
+
+- Add the ADP standalone site (ChinaTencentADP) configuration guide and secret acquisition instructions (with key management screenshots)
+- Update the `SUGGESTION_CONFIGS` example (including `@skill` reference and full-width quote usage)
+
+## v0.5.0 (2026-06-26)
 
 ### Feat
 
