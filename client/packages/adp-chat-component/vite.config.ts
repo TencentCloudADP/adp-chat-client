@@ -1,19 +1,34 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type UserConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
 import dts from 'vite-plugin-dts'
-import { visualizer } from 'rollup-plugin-visualizer'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(async ({ mode }) => {
   const isAnalyze = mode === 'analyze'
   const isUmd = mode === 'umd'
-  return {
+
+  // 仅在 analyze 模式下按需加载 rollup-plugin-visualizer，避免常态构建依赖它。
+  // 用变量名隐藏模块字面量，跳过 TS 静态解析（该包不在依赖中，仅 analyze 模式才会用到，
+  // 使用前请先 `npm i -D rollup-plugin-visualizer`）。
+  let visualizerPlugin: any = null
+  if (isAnalyze) {
+    const moduleName = 'rollup-plugin-visualizer'
+    const { visualizer } = await import(/* @vite-ignore */ moduleName)
+    visualizerPlugin = visualizer({
+      open: true,
+      filename: 'dist/stats.html',
+      gzipSize: true,
+      brotliSize: true,
+    })
+  }
+
+  const config: UserConfig = {
     plugins: [
       vue(), 
       vueJsx(),
@@ -43,13 +58,8 @@ export default defineConfig(({ mode }) => {
         // （可选）自定义 SVG 雪碧图的 DOM 元素 ID
         customDomId: '__svg__icons__dom__',
       }),
-      // 打包分析插件，使用 pnpm build:analyze 启用
-      isAnalyze && visualizer({
-        open: true,
-        filename: 'dist/stats.html',
-        gzipSize: true,
-        brotliSize: true,
-      }),
+      // 打包分析插件，仅在 --mode analyze 时启用
+      visualizerPlugin,
     ].filter(Boolean),
     resolve: {
       alias: {
@@ -78,7 +88,7 @@ export default defineConfig(({ mode }) => {
               'tdesign-vue-next': 'TDesign',
               '@tdesign-vue-next/chat': 'TDesignChat',
             },
-            assetFileNames: (assetInfo) => {
+            assetFileNames: (assetInfo: { name?: string }) => {
               if (assetInfo.name === 'style.css') return 'adp-chat-component.css'
               return assetInfo.name || 'assets/[name]-[hash][extname]'
             },
@@ -92,12 +102,12 @@ export default defineConfig(({ mode }) => {
             entryFileNames: 'adp-chat-component.es.js',
             // 使用相对路径，确保 chunk 可以被正确加载
             chunkFileNames: 'chunks/[name]-[hash].js',
-            assetFileNames: (assetInfo) => {
+            assetFileNames: (assetInfo: { name?: string }) => {
               if (assetInfo.name === 'style.css') return 'adp-chat-component.css'
               return assetInfo.name || 'assets/[name]-[hash][extname]'
             },
             // 手动分包：大体积资源单独打包
-            manualChunks(id) {
+            manualChunks(id: string) {
               // katex 分包
               if (id.includes('katex')) {
                 return 'katex'
@@ -112,5 +122,6 @@ export default defineConfig(({ mode }) => {
       'process.env.NODE_ENV': JSON.stringify('production'),
     },
   }
+  return config
 })
 

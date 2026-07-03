@@ -18,51 +18,59 @@ import pydash
 from config import tagentic_config
 
 
-# 加载 action 级别的 version 覆盖配置
-_ACTION_VERSION_CONFIG_PATH = os.path.join(
+# action_version 配置目录：每个 ServiceVendor 对应一套 JSON 文件
+_ACTION_VERSION_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    'vendor', 'tcadp', 'action_version.json'
+    'vendor', 'tcadp', 'action_version'
 )
 
+def _parse_action_version_raw(config: dict) -> dict:
+    """解析单个 action_version JSON 内容，返回 {Action: {headers: {}, payload: {}, service: str}} 映射"""
+    result = {}
+    for action, value in config.items():
+        if action.startswith('_'):
+            continue
+        if not isinstance(value, dict):
+            continue
+        headers = {}
+        payload_paths = {}  # {dotted_path: value}
+        action_service = None
+        for k, v in value.items():
+            if k == 'service':
+                action_service = v
+            elif k.startswith('headers.'):
+                header_name = k[len('headers.'):]
+                headers[header_name] = v
+            elif k.startswith('payload.'):
+                path_str = k[len('payload.'):]
+                payload_paths[path_str] = v
+        result[action] = {'headers': headers, 'payload': payload_paths, 'service': action_service}
+    return result
 
-def _load_action_version_config() -> dict:
-    """加载 action_version.json 配置，返回 {Action: {headers: {}, payload: {}}} 映射
 
-    配置项格式:
-        - "headers.X-TC-Version": "2025-11-12"  -> 注入到请求 headers 中
-        - "payload.AppKey": "xxx"               -> 注入到 payload 顶层字段
-        - "payload.a.b": "xxx"                  -> 注入到 payload 嵌套字段 payload["a"]["b"]
+def load_action_version_config(vendor_key: str) -> dict:
+    """加载 action_version/<vendor_key>.json 配置
+
+    Args:
+        vendor_key: ServiceVendor 名称，如 'ChinaTencentCloud'、'International' 等。
+
+    Returns:
+        {Action: {headers: {}, payload: {}, service: str}} 映射
     """
-    if not os.path.exists(_ACTION_VERSION_CONFIG_PATH):
+    vendor_path = os.path.join(_ACTION_VERSION_DIR, f'{vendor_key}.json')
+    if not os.path.exists(vendor_path):
+        logging.warning(f'[tca] action_version/{vendor_key}.json not found')
         return {}
     try:
-        with open(_ACTION_VERSION_CONFIG_PATH, 'r', encoding='utf-8') as f:
+        with open(vendor_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
-        result = {}
-        for action, value in config.items():
-            if action.startswith('_'):
-                continue
-            if not isinstance(value, dict):
-                continue
-            headers = {}
-            payload_paths = {}  # {dotted_path: value}
-            action_service = None
-            for k, v in value.items():
-                if k == 'service':
-                    action_service = v
-                elif k.startswith('headers.'):
-                    header_name = k[len('headers.'):]
-                    headers[header_name] = v
-                elif k.startswith('payload.'):
-                    path_str = k[len('payload.'):]
-                    payload_paths[path_str] = v
-            result[action] = {'headers': headers, 'payload': payload_paths, 'service': action_service}
-        return result
+        return _parse_action_version_raw(config)
     except (OSError, ValueError, KeyError, TypeError) as e:
-        logging.warning(f'[tca] Failed to load action_version.json: {e}')
+        logging.warning(f'[tca] Failed to load action_version/{vendor_key}.json: {e}')
         return {}
 
-ACTION_VERSION_OVERRIDES = _load_action_version_config()
+
+
 
 
 _TEMPLATE_PATTERN = re.compile(r'\{\{(\w+)\}\}')
@@ -89,15 +97,19 @@ def _render_template(value, variables: dict):
     return _TEMPLATE_PATTERN.sub(replacer, value)
 
 
-def inject_action_payload(action: str, payload: dict, variables: dict = None) -> dict:
-    """根据 action_version.json 配置，将配置中的 payload 字段注入到 payload 中（不覆盖已有值）
+def inject_action_payload(action: str, payload: dict, variables: dict = None, action_overrides: dict = None) -> dict:
+    """根据 action_version 配置，将配置中的 payload 字段注入到 payload 中（不覆盖已有值）
 
     支持嵌套路径，如配置 "payload.Config.Mode": "advanced" 会设置 payload["Config"]["Mode"] = "advanced"
     支持模板变量，如 "payload.AppKey": "{{APP_KEY}}" 会将 APP_KEY 替换为 variables 中的对应值
+
+    Args:
+        action_overrides: 特定场景的 action_version 配置，为 None 时使用全局默认配置
     """
     if variables is None:
         variables = {}
-    action_config = ACTION_VERSION_OVERRIDES.get(action, {})
+    overrides = action_overrides or {}
+    action_config = overrides.get(action, {})
     action_payload_paths = action_config.get('payload', {})
     for path, p_value in action_payload_paths.items():
         if not pydash.has(payload, path):
@@ -152,17 +164,32 @@ def sign(key, msg):
     return hmac.new(key, msg.encode("utf-8"), hashlib.sha256).digest()
 
 
-def tc_request_prepare(config: dict, action: str, payload: str, service = "lke", version: str = None) -> dict:
-    secret_id = tagentic_config.TC_SECRET_ID
-    secret_key = tagentic_config.TC_SECRET_KEY
+def tc_request_prepare(config: dict, action: str, payload: str, service: str = "lke", version: str = None, action_overrides: dict = None) -> dict:
+    """构造腾讯云 API 签名请求的 headers 和 url
+
+    Args:
+        config: 包含 endpoint 信息的 service_configs（只含 url + region）
+        action: API Action 名称
+        payload: 已序列化的 JSON payload 字符串
+        service: 目标服务名称（由 action_version 配置决定）
+        version: API 版本号覆盖（通常不再使用，由 action_version 配置决定）
+        action_overrides: 特定场景的 action_version 配置
+    """
+    # 优先使用 config 中注入的密钥（如 ChinaTencentADP），否则使用全局 TC 密钥
+    secret_id = config.get('secret_id') or tagentic_config.TC_SECRET_ID
+    secret_key = config.get('secret_key') or tagentic_config.TC_SECRET_KEY
     token = ""
+    logging.info(f'[tca] tc_request_prepare: action={action}, service={service}')
+
     url = config[service]['url']
     host = url.split('//')[1].split('/')[0]
     # 加载 action 级别的 headers 配置
-    action_config = ACTION_VERSION_OVERRIDES.get(action, {})
+    overrides = action_overrides or {}
+    action_config = overrides.get(action, {})
     action_headers_config = action_config.get('headers', {})
-    default_version = config[service]['version']
-    region = config[service]['region']
+    # version 和 region 优先从 action_version 配置获取，未配置时 fallback 到 service_configs
+    default_version = action_headers_config.get('X-TC-Version')
+    region = action_headers_config.get('X-TC-Region') or config[service].get('region', '')
     algorithm = "TC3-HMAC-SHA256"
     timestamp = int(time.time())
     date = datetime.utcfromtimestamp(timestamp).strftime("%Y-%m-%d")
@@ -209,26 +236,27 @@ def tc_request_prepare(config: dict, action: str, payload: str, service = "lke",
         "Host": host,
         "X-TC-Action": action,
         "X-TC-Timestamp": str(timestamp),
-        "X-TC-Version": default_version,
     }
+    # version 优先级：入参 version > action_version 配置 > 不带
+    if version:
+        headers["X-TC-Version"] = version
+    elif default_version:
+        headers["X-TC-Version"] = default_version
     if region:
         headers["X-TC-Region"] = region
     if token:
         headers["X-TC-Token"] = token
-    # 入参 version 优先级高于默认值
-    if version:
-        headers["X-TC-Version"] = version
-    # action_version.json 配置优先级最高，覆盖所有（包括 X-TC-Version）
+    # action_version 配置优先级最高，覆盖所有（包括 X-TC-Version）
     for h_key, h_value in action_headers_config.items():
         headers[h_key] = h_value
+   
     return headers, url
 
 
-def _resolve_service(action: str, service) -> str:
-    """解析最终的 service：外部显式传入优先，否则使用 action_version.json 配置，最后回退到默认值 'lke'"""
-    if service is not None:
-        return service
-    action_config = ACTION_VERSION_OVERRIDES.get(action, {})
+def _resolve_service(action: str, action_overrides: dict = None) -> str:
+    """从 action_version 配置中解析 action 对应的目标 service，回退到默认值 'lke'"""
+    overrides = action_overrides or {}
+    action_config = overrides.get(action, {})
     return action_config.get('service') or 'lke'
 
 
@@ -236,13 +264,26 @@ async def tc_request(
     config: dict, action: str, payload: dict = None,
     service=None, version: str = None,
     variables: dict = None,
+    action_overrides: dict = None,
 ) -> str:
-    service = _resolve_service(action, service)
+    """发起腾讯云 API 请求
+
+    Args:
+        config: endpoint 配置（service_configs 中对应 vendor 的配置）
+        action: API Action 名称
+        payload: 请求参数字典
+        service: 目标服务名（已废弃，建议不传，由 action_version 配置决定）
+        version: API 版本号（已废弃，建议不传，由 action_version 配置决定）
+        variables: 模板变量字典
+        action_overrides: 特定场景的 action_version 配置（由 TCADP 实例传入）
+    """
+    if service is None:
+        service = _resolve_service(action, action_overrides)
     if payload is None:
         payload = {}
-    payload = inject_action_payload(action, payload, variables)
+    payload = inject_action_payload(action, payload, variables, action_overrides)
     payload = json.dumps(payload)
-    headers, url = tc_request_prepare(config, action, payload, service, version)
+    headers, url = tc_request_prepare(config, action, payload, service, version, action_overrides)
     full_url = f'{url}/'
     logging.info(
         '[tc_request] POST %s action=%s service=%s version=%s host=%s payload=%s',
@@ -251,15 +292,41 @@ async def tc_request(
     )
     async with aiohttp.ClientSession() as session:
         async with session.post(full_url, headers=headers, data=payload) as resp:
-            return await resp.json()
+            try:
+                return await resp.json()
+            except aiohttp.ContentTypeError:
+                body = await resp.text()
+                logging.error(
+                    '[tc_request] Non-JSON response: status=%s, content_type=%s, url=%s, body=%s',
+                    resp.status, resp.content_type, full_url, body[:500],
+                )
+                return {
+                    'Response': {
+                        'Error': {
+                            'Code': 'InvalidResponse',
+                            'Message': f'Non-JSON response (status={resp.status}, content_type={resp.content_type})',
+                        }
+                    }
+                }
 
 
-async def tc_request_sse(config: dict, action: str, payload: dict = None, service=None, version: str = None):
-    service = _resolve_service(action, service)
+async def tc_request_sse(config: dict, action: str, payload: dict = None, service=None, version: str = None, action_overrides: dict = None):
+    """发起腾讯云 API SSE 流式请求
+
+    Args:
+        config: endpoint 配置
+        action: API Action 名称
+        payload: 请求参数字典
+        service: 目标服务名（已废弃，建议不传，由 action_version 配置决定）
+        version: API 版本号（已废弃，建议不传，由 action_version 配置决定）
+        action_overrides: 特定场景的 action_version 配置（由 TCADP 实例传入）
+    """
+    if service is None:
+        service = _resolve_service(action, action_overrides)
     if payload is None:
         payload = {}
     payload = json.dumps(payload)
-    headers, url = tc_request_prepare(config, action, payload, service, version)
+    headers, url = tc_request_prepare(config, action, payload, service, version, action_overrides)
     async with aiohttp.ClientSession() as session:
         async with session.post(f'{url}/', headers=headers, data=payload) as resp:
             try:

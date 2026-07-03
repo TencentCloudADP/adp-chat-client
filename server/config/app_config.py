@@ -38,6 +38,12 @@ class TAgenticConfig(
         default=[],
     )
 
+    SUGGESTION_CONFIGS: list[dict] = Field(
+        description="prompt suggestion configs for assist quick buttons, "
+            "each item is a group with IconUrl, Name and SuggestionList",
+        default=[],
+    )
+
     CUSTOMER_ACCOUNT_SECRET_KEY: str = Field(
         description="Secret key for secure customer account signing."
             "Make sure you are changing this key for your deployment with a strong key."

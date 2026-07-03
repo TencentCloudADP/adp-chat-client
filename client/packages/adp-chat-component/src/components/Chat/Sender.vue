@@ -35,7 +35,9 @@ import SkillManageDialog from '../Skills/SkillManageDialog.vue';
 import ConnectorDialog from '../Connector/ConnectorDialog.vue';
 import PluginInstallDialog from '../Plugin/PluginInstallDialog.vue';
 import PluginManageDialog from '../Plugin/PluginManageDialog.vue';
+import KnowledgeDialog from '../Knowledge/KnowledgeDialog.vue';
 import AtMentionPanel from './AtMentionPanel.vue';
+import { listReferShareKnowledge } from '../../service/knowledgeApi';
 
 export interface Props extends ChatRelatedProps {
     /** 是否正在流式加载 */
@@ -67,8 +69,12 @@ export interface Props extends ChatRelatedProps {
     enableConnector?: boolean;
     /** 是否显示工具按钮 */
     enableTools?: boolean;
+    /** 是否显示知识库按钮（仅在 Agent 已启用 KnowledgeRetrievalAnswer 工具时才最终展示） */
+    enableKnowledge?: boolean;
     /** 已安装 Skills 列表（标准化后） */
     installedSkills?: NormalizedSkill[];
+    /** 已配置知识库列表（标准化后，用于 @ mention） */
+    installedKnowledge?: NormalizedSkill[];
     /** Skills 数据加载中 */
     skillsLoading?: boolean;
     /** 已安装 Skill ID 集合 */
@@ -98,7 +104,9 @@ const props = withDefaults(defineProps<Props>(), {
     enableModelSelector: false,
     enableConnector: false,
     enableTools: false,
+    enableKnowledge: false,
     installedSkills: () => [],
+    installedKnowledge: () => [],
     skillsLoading: false,
     installedSkillIds: () => [],
     spaceId: '',
@@ -158,7 +166,7 @@ const emit = defineEmits<{
      * mention 列表更新：包含已注册 skills/tools/connectors 的标准化数据，
      * 父组件可将其透传给 ChatItem/MdContent，用于把消息中的 @skill:/@tool: 还原为蓝色 chip
      */
-    (e: 'mention-list-update', payload: { skills: NormalizedSkill[]; tools: NormalizedSkill[]; connectors: NormalizedSkill[] }): void;
+    (e: 'mention-list-update', payload: { skills: NormalizedSkill[]; knowledgeBase?: NormalizedSkill[]; tools: NormalizedSkill[]; connectors: NormalizedSkill[] }): void;
 }>();
 
 const editorHtml = ref('');
@@ -294,9 +302,23 @@ function toolDisplayName(t: Record<string, unknown>): string {
     return displayName || name || ((t.tool_id || t.ToolId || '') as string);
 }
 
+/**
+ * 按 id 去重 NormalizedSkill 数组，保留首次出现的项。
+ * 防止 tools / connectors / knowledge 因并发刷新产生重复条目。
+ */
+function dedupeById(items: NormalizedSkill[]): NormalizedSkill[] {
+    const seen = new Set<string>();
+    return items.filter((item) => {
+        const key = item.id || item.name;
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
 /** 连接器列表：从 PluginList 中取 PluginClass === 1 (= CONNECTOR) 的项 */
 const mentionConnectors = computed<NormalizedSkill[]>(() => {
-    return installedPlugins.value
+    return dedupeById(installedPlugins.value
         .filter((p) => (p.PluginClass ?? p.plugin_class ?? 0) === 1)
         .map((p) => {
             const cfg = (p.Config || p.config || {}) as Record<string, unknown>;
@@ -308,13 +330,13 @@ const mentionConnectors = computed<NormalizedSkill[]>(() => {
                 displayName: pluginName,
                 iconUrl: (p.IconUrl || p.icon_url || p.Icon || p.icon || '') as string,
             };
-        });
+        }));
 });
 
 /** 工具列表：从 ToolList 中取 pluginClass === 0 或无标记的项 */
 const mentionTools = computed<NormalizedSkill[]>(() => {
     const m = getPluginClassMap();
-    return installedToolsRaw.value
+    return dedupeById(installedToolsRaw.value
         .filter((t) => {
             const pid = getPluginId(t);
             const cls = m.get(pid);
@@ -326,7 +348,107 @@ const mentionTools = computed<NormalizedSkill[]>(() => {
             name: toolName(t),
             displayName: toolDisplayName(t),
             iconUrl: (t.IconUrl || t.icon_url || '') as string,
-        }));
+        })));
+});
+
+/** 双兼容 pick：先 PascalCase，再下划线 */
+function pickField(obj: Record<string, unknown> | null | undefined, ...keys: string[]): unknown {
+    if (!obj) return undefined;
+    for (const k of keys) {
+        if (obj[k] !== undefined) return obj[k];
+    }
+    return undefined;
+}
+
+/**
+ * 从 tools 列表中解析 KnowledgeRetrievalAnswer → KnowledgeScope → KnowledgeList → KnowledgeBizId。
+ * 结构对齐 KnowledgeDialog.parseKnowledgeScope。
+ */
+function parseKnowledgeIdsFromTools(tools: Record<string, unknown>[]): { allKnowledge: boolean; ids: string[] } {
+    const kbTool = tools.find((t) => {
+        const cfg = (t.Config || {}) as Record<string, unknown>;
+        const rawName = (t.Name || t.ToolName || cfg.Description || cfg.description || '') as string;
+        const name = rawName.includes('/') ? rawName.split('/').pop() || '' : rawName;
+        return name === 'KnowledgeRetrievalAnswer';
+    });
+    if (!kbTool) return { allKnowledge: false, ids: [] };
+
+    const cfg = (pickField(kbTool, 'Config', 'config') || {}) as Record<string, unknown>;
+    const inputList = (pickField(cfg, 'InputList', 'input_list') || []) as Array<Record<string, unknown>>;
+    const scope = inputList.find((n) => pickField(n, 'Name', 'name') === 'KnowledgeScope');
+    if (!scope) return { allKnowledge: false, ids: [] };
+    const scopeSubs = (pickField(scope, 'SubParameterList', 'sub_parameter_list') || []) as Array<Record<string, unknown>>;
+
+    // 解析 AllKnowledge 标记
+    let allKnowledge = false;
+    let ids: string[] = [];
+    for (const sub of scopeSubs) {
+        const subName = pickField(sub, 'Name', 'name');
+        if (subName === 'AllKnowledge') {
+            const input = (pickField(sub, 'Input', 'input') || {}) as Record<string, unknown>;
+            const uiv = (pickField(input, 'UserInputValue', 'user_input_value') || {}) as Record<string, unknown>;
+            const values = (pickField(uiv, 'ValueList', 'value_list') || []) as string[];
+            allKnowledge = values[0] === 'true';
+        } else if (subName === 'KnowledgeList') {
+            const items = (pickField(sub, 'SubParameterList', 'sub_parameter_list') || []) as Array<Record<string, unknown>>;
+            ids = items
+                .map((it) => {
+                    const itemSubs = (pickField(it, 'SubParameterList', 'sub_parameter_list') || []) as Array<Record<string, unknown>>;
+                    const bizNode = itemSubs.find((n) => pickField(n, 'Name', 'name') === 'KnowledgeBizId');
+                    if (!bizNode) return '';
+                    const bInput = (pickField(bizNode, 'Input', 'input') || {}) as Record<string, unknown>;
+                    const buiv = (pickField(bInput, 'UserInputValue', 'user_input_value') || {}) as Record<string, unknown>;
+                    const bvalues = (pickField(buiv, 'ValueList', 'value_list') || []) as string[];
+                    return bvalues[0] || '';
+                })
+                .filter(Boolean);
+        }
+    }
+    return { allKnowledge, ids };
+}
+
+/** 知识库 BizId → 名称 映射缓存（从 listReferShareKnowledge 填充） */
+const knowledgeNameMap = ref<Record<string, string>>({});
+
+/** 拉取知识库名称列表（非阻塞，用于 @ mention 展示） */
+async function refreshKnowledgeNames(appId: string) {
+    try {
+        const { list } = await listReferShareKnowledge({
+            applicationId: appId,
+            includeDefault: true,
+            defaultName: '默认知识库',
+        });
+        const map: Record<string, string> = {};
+        for (const item of list) {
+            if (item.knowledgeBizId) map[item.knowledgeBizId] = item.knowledgeName || item.knowledgeBizId;
+        }
+        knowledgeNameMap.value = map;
+    } catch (e) {
+        // 非阻塞，静默失败
+    }
+}
+
+/** 知识库列表（用于 @ mention）：优先用外部 prop，否则从 Agent 工具解析 + 名称映射 */
+const mentionKnowledge = computed<NormalizedSkill[]>(() => {
+    // 外部传入（含名称、图标等完整信息）优先
+    if (props.installedKnowledge.length) return dedupeById(props.installedKnowledge);
+
+    // 从 Agent 工具解析 KnowledgeRetrievalAnswer → KnowledgeScope
+    const { allKnowledge, ids } = parseKnowledgeIdsFromTools(installedToolsRaw.value);
+    const nameMap = knowledgeNameMap.value;
+
+    // "全部知识库"模式 → 展示所有已拉取到的知识库（与 KnowledgeDialog 一致）
+    if (allKnowledge) {
+        return dedupeById(Object.entries(nameMap).map(([id, name]) => ({ id, name, displayName: name, iconUrl: '' })));
+    }
+
+    // "按知识库"模式 → 仅展示 KnowledgeList 中的知识库
+    return dedupeById(ids.map((id) => ({
+        id,
+        name: nameMap[id] || id,
+        displayName: nameMap[id] || id,
+        iconUrl: '',
+    })));
 });
 
 /** 已安装 Skill ID 集合 */
@@ -342,6 +464,20 @@ const currentInstalledToolIds = computed<string[]>(() => {
     }).filter(Boolean);
 });
 
+/**
+ * 已安装工具的 (pluginId, toolId) 映射，用于在未懒加载工具明细的情况下
+ * 仍能正确显示插件「已全部添加」状态。
+ */
+const currentInstalledTools = computed<Array<{ pluginId: string; toolId: string }>>(() => {
+    return installedToolsRaw.value.map((t) => {
+        const cfg = (t.Config || t.config || {}) as Record<string, unknown>;
+        return {
+            pluginId: (cfg.plugin_id || cfg.PluginId || t.plugin_id || t.PluginId || '') as string,
+            toolId: (cfg.tool_id || cfg.ToolId || t.tool_id || t.ToolId || '') as string,
+        };
+    }).filter((x) => x.pluginId && x.toolId);
+});
+
 /** 刷新 Skills 列表（通过 useAgentStore 统一缓存） */
 async function refreshSkills() {
     const appId = props.skillsApplicationId;
@@ -350,10 +486,19 @@ async function refreshSkills() {
         console.warn('[Sender] refreshSkills skipped: no applicationId');
         return;
     }
+    // 防止并发刷新导致数据竞态和重复条目
+    if (skillsRefreshing.value) {
+        console.log('[Sender] refreshSkills skipped: already refreshing');
+        return;
+    }
     skillsRefreshing.value = true;
     try {
-        await refreshAgentCache(appId);
-        console.log('[Sender] refreshSkills done, skills:', skillList.value.length);
+        // 并行拉取 agent 缓存和知识库名称
+        await Promise.all([
+            refreshAgentCache(appId),
+            refreshKnowledgeNames(appId),
+        ]);
+        console.log('[Sender] refreshSkills done, skills:', skillList.value.length, 'knowledge:', Object.keys(knowledgeNameMap.value).length);
     } catch (e) {
         console.error('[Sender] refreshSkills error:', e);
     } finally {
@@ -363,17 +508,19 @@ async function refreshSkills() {
 
 /** 已注册 mention 数据变化时向父组件 emit，父组件再透传给 ChatItem/MdContent 渲染 chip */
 watch(
-    [skillList, installedToolsRaw],
+    [skillList, installedToolsRaw, () => props.installedKnowledge],
     () => {
         // eslint-disable-next-line no-console
         console.log('[Sender] emit mention-list-update (raw data changed)',
             'skills:', normalizedSkills.value.length,
+            'knowledge:', mentionKnowledge.value.length,
             'tools:', mentionTools.value.length,
             'connectors:', mentionConnectors.value.length);
         emit('mention-list-update', {
             skills: normalizedSkills.value,
-            tools: mentionTools.value,
-            connectors: mentionConnectors.value,
+            knowledgeBase: dedupeById(mentionKnowledge.value),
+            tools: dedupeById(mentionTools.value),
+            connectors: dedupeById(mentionConnectors.value),
         });
     },
     { immediate: true },
@@ -416,6 +563,29 @@ const showSkillsManage = ref(false);
 const showConnector = ref(false);
 const showPlugin = ref(false);
 const showPluginManage = ref(false);
+// 知识库
+const showKnowledgeDialog = ref(false);
+
+/**
+ * 是否已在 Agent 中安装 KnowledgeRetrievalAnswer 工具
+ * 匹配来源：tool.Name / tool.ToolName / tool.Config.Description（若为 "中文/英文" 结构，取 "/" 后英文段）
+ * 有此工具时 Sender 才展示"知识库"按钮，与 gpt-demo/webim 表现一致
+ */
+const hasKnowledgeRetrievalTool = computed<boolean>(() => {
+    const isMatch = (raw: string): boolean => {
+        if (!raw) return false;
+        const idx = raw.lastIndexOf('/');
+        const tail = idx > -1 ? raw.slice(idx + 1) : raw;
+        return tail.trim() === 'KnowledgeRetrievalAnswer';
+    };
+    return installedToolsRaw.value.some((t) => {
+        const cfg = (t.Config || t.config || {}) as Record<string, unknown>;
+        const name = String(t.Name || t.name || '');
+        const toolName = String(t.ToolName || t.tool_name || '');
+        const desc = String(cfg.Description || cfg.description || '');
+        return isMatch(name) || isMatch(toolName) || isMatch(desc);
+    });
+});
 
 // ─── @ Mention ───────────────────────────────────────────────
 const atMentionVisible = ref(false);
@@ -1076,10 +1246,14 @@ defineExpose({
 </script>
 
 <template>
-    <div class="sender-container" :class="{ 'is-uploading': isUploading, 'is-focused': inputFocus }">
-        <!-- 文件预览区域 -->
-        <div v-if="fileList.length > 0" class="sender-files">
-            <FileList :fileList="fileList" :theme="theme" :mode="mode" @delete="handleDeleteFile"/>
+    <div class="sender-wrapper">
+        <!-- 快捷按钮插槽：消息列表为空时，外部注入 assist-quick-buttons（在输入框边框外侧上方） -->
+        <slot name="quick-buttons" />
+
+        <div class="sender-container" :class="{ 'is-uploading': isUploading, 'is-focused': inputFocus }">
+            <!-- 文件预览区域 -->
+            <div v-if="fileList.length > 0" class="sender-files">
+                <FileList :fileList="fileList" :theme="theme" :mode="mode" @delete="handleDeleteFile"/>
         </div>
 
         <!-- 编辑器区域 -->
@@ -1188,6 +1362,12 @@ defineExpose({
                     <CustomizedIcon remote name="basic_plugin_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" :theme="theme"/>
                     <span class="toolbar-pill-btn__text">{{ skillsI18n.tools }}</span>
                 </div>
+
+                <!-- 知识库按钮：仅当已启用 KnowledgeRetrievalAnswer 工具时才显示 -->
+                <div v-if="enableKnowledge && hasKnowledgeRetrievalTool && mode === 'claw'" class="toolbar-pill-btn" @click="showKnowledgeDialog = true">
+                    <CustomizedIcon remote name="basic_book_line" size="s" :show-hover-bg="false" :color="'var(--td-text-color-secondary)'" :theme="theme"/>
+                    <span class="toolbar-pill-btn__text">{{ skillsI18n.knowledgeBase }}</span>
+                </div>
             </div>
 
             <div class="sender-toolbar__right">
@@ -1231,6 +1411,8 @@ defineExpose({
             :application-id="skillsApplicationId"
             :space-id="spaceId"
             :theme="theme"
+            :language="language"
+            :i18n="skillsI18n"
             @change="refreshSkills"
         />
 
@@ -1241,6 +1423,8 @@ defineExpose({
             :application-id="skillsApplicationId"
             :space-id="spaceId"
             :theme="theme"
+            :language="language"
+            :i18n="skillsI18n"
             @change="refreshSkills"
         />
 
@@ -1251,8 +1435,23 @@ defineExpose({
             :application-id="skillsApplicationId"
             :space-id="spaceId"
             :installed-tool-ids="currentInstalledToolIds"
+            :installed-tools="currentInstalledTools"
             :theme="theme"
+            :language="language"
+            :i18n="skillsI18n"
             @installed="refreshSkills"
+        />
+
+        <!-- 知识库管理弹窗 -->
+        <KnowledgeDialog
+            v-if="enableKnowledge"
+            v-model="showKnowledgeDialog"
+            :application-id="skillsApplicationId"
+            :space-id="spaceId"
+            :theme="theme"
+            :language="language"
+            :i18n="skillsI18n"
+            @change="refreshSkills"
         />
 
         <!-- @ Mention 面板 -->
@@ -1262,9 +1461,12 @@ defineExpose({
                     <AtMentionPanel
                         ref="mentionPanelRef"
                         :installed-skills="normalizedSkills"
+                        :installed-knowledge="mentionKnowledge"
                         :installed-connectors="mentionConnectors"
                         :installed-tools="mentionTools"
                         :search-keyword="mentionSearchStr"
+                        :i18n="skillsI18n"
+                        :language="language"
                         @select="onAtMentionSelect"
                         @close="_hideMention"
                     />
@@ -1272,9 +1474,19 @@ defineExpose({
             </div>
         </Teleport>
     </div>
+    </div>
 </template>
 
 <style scoped>
+/* ── 外层包裹：确保 quick-buttons 和 sender-container 垂直排列 ── */
+.sender-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+/* ── 主容器 ── */
 .sender-container {
     width: 100%;
     max-width: 800px;
@@ -1309,37 +1521,53 @@ defineExpose({
         0 0 0 3px rgba(0, 82, 217, 0.04);
 }
 
-/* 减少动画偏好（系统级 prefers-reduced-motion）时关闭过渡，避免给敏感用户带来不适 */
 @media (prefers-reduced-motion: reduce) {
-    .sender-container {
-        transition: none;
+    .sender-container,
+    .sender-container * {
+        transition: none !important;
     }
 }
 
 .sender-container.is-uploading {
-    opacity: 0.7;
+    opacity: 0.65;
     pointer-events: auto;
 }
 
-/* 文件区域 */
+/* ── 文件预览区域 ── */
 .sender-files {
-    padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-m) 0;
+    padding: 10px 14px 0;
 }
 
-/* 编辑器区域 */
+/* ── 编辑器区域 ── */
 .sender-editor-area {
     max-height: 200px;
     overflow-y: auto;
     overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--td-scrollbar-color, rgba(0,0,0,.12)) transparent;
 }
 
-/* 底部工具栏 */
+.sender-editor-area::-webkit-scrollbar {
+    width: 5px;
+}
+
+.sender-editor-area::-webkit-scrollbar-thumb {
+    background: var(--td-scrollbar-color, rgba(0,0,0,.12));
+    border-radius: 4px;
+}
+
+.sender-editor-area::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* ── 底部工具栏 ── */
 .sender-toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: var(--td-comp-paddingTB-xxs) var(--td-comp-paddingLR-s) var(--td-comp-paddingTB-s);
+    padding: 2px 10px 8px;
     cursor: default;
+    gap: 4px;
 }
 
 .sender-toolbar__primary {
@@ -1350,16 +1578,17 @@ defineExpose({
 .sender-toolbar__extras {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 2px;
 }
 
 .sender-toolbar__right {
     display: flex;
     align-items: center;
     margin-left: auto;
+    flex-shrink: 0;
 }
 
-/* 移动端：extras 换行到第二排 */
+/* ── 移动端布局 ── */
 .sender-toolbar.is-mobile {
     flex-wrap: wrap;
 }
@@ -1368,6 +1597,7 @@ defineExpose({
     order: 3;
     width: 100%;
     margin-top: 6px;
+    gap: 4px;
 }
 
 .sender-toolbar.is-mobile .sender-toolbar__right {
@@ -1379,7 +1609,7 @@ defineExpose({
     flex: 1;
 }
 
-/* 加号菜单 */
+/* ── 加号菜单 ── */
 .plus-menu-wrapper {
     position: relative;
     display: inline-flex;
@@ -1387,62 +1617,72 @@ defineExpose({
 }
 
 .plus-btn {
-    width: var(--td-comp-size-m);
-    height: var(--td-comp-size-m);
+    width: 32px;
+    height: 32px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    border-radius: var(--td-radius-default);
-    transition: background 0.2s, transform 0.2s;
+    border-radius: var(--td-radius-medium);
+    transition: background 0.15s ease;
 }
 
 .plus-btn:hover {
+    background-color: var(--td-bg-color-container-hover);
+}
+
+.plus-btn:active {
     background-color: var(--td-bg-color-container-active);
 }
-.plus-btn:active {
-    background-color: var(--td-bg-color-component-active);
+
+.plus-btn.active {
+    background-color: var(--td-bg-color-container-hover);
 }
 
 .plus-btn.disabled {
-    opacity: 0.4;
+    opacity: 0.3;
     cursor: not-allowed;
     pointer-events: none;
 }
 
 .plus-menu-popover {
     position: absolute;
-    bottom: calc(100% + 8px);
+    bottom: calc(100% + 6px);
     left: 0;
-    width: 140px;
-    padding: var(--td-pop-padding-m);
-    border-radius: var(--td-radius-large);
+    min-width: 148px;
+    padding: 5px;
+    border-radius: 12px;
     background: var(--td-bg-color-container);
-    box-shadow: var(--td-shadow-2);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 8px 32px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--td-component-stroke);
     z-index: 2000;
 }
 
 .plus-menu-item {
     display: flex;
     align-items: center;
-    gap: var(--td-comp-margin-s);
-    padding: var(--td-comp-paddingTB-s);
-    border-radius: var(--td-radius-medium);
-    font-size: var(--td-font-size-body-small);
-    line-height: var(--td-line-height-body-small);
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 20px;
     color: var(--td-text-color-primary);
     cursor: pointer;
-    transition: background 0.15s;
+    transition: background 0.12s ease;
 }
 
 .plus-menu-item:hover {
-   background-color: var(--td-bg-color-container-active);
+    background-color: var(--td-bg-color-container-hover);
 }
 
-/* 菜单出入动画 */
+.plus-menu-item:active {
+    background-color: var(--td-bg-color-container-active);
+}
+
+/* ── 菜单出入动画 ── */
 .fade-up-enter-active,
 .fade-up-leave-active {
-    transition: opacity 0.15s, transform 0.15s;
+    transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
 .fade-up-enter-from,
@@ -1451,50 +1691,70 @@ defineExpose({
     transform: translateY(4px);
 }
 
-/* 模型选择器 */
+/* ── 模型选择器 ── */
 .sender-model-selector {
     display: inline-flex;
     align-items: center;
 }
 
-/* 录音按钮 */
-.recording-icon:hover {
-    cursor: pointer;
-    color: var(--td-brand-color);
-}
-
+/* ── 录音按钮 ── */
 .recording-icon {
-    height: var(--td-comp-size-m);
+    height: 32px;
     display: inline-flex;
     align-items: center;
-    margin-right: var(--td-comp-paddingLR-xs);
+    margin-right: 2px;
+    cursor: pointer;
+    border-radius: var(--td-radius-medium);
+    transition: color 0.15s ease, background 0.15s ease;
 }
 
-/* 发送按钮 */
+.recording-icon:hover {
+    color: var(--td-brand-color);
+    background: var(--td-bg-color-container-hover);
+}
+
+.recording-icon .stop-icon {
+    color: var(--td-error-color);
+}
+
+/* ── 发送按钮 ── */
 .send-icon {
     padding: 0 !important;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    transition: opacity 0.15s ease, transform 0.12s ease;
+}
+
+.send-icon:active {
+    transform: scale(0.94);
 }
 
 .send-icon.disabled {
-    opacity: 0.4;
+    opacity: 0.25;
     cursor: not-allowed;
     pointer-events: none;
 }
 
-/* Skills 添加按钮 */
+.send-icon.stop {
+    color: var(--td-text-color-secondary);
+}
+
+.send-icon.stop:hover {
+    color: var(--td-text-color-primary);
+}
+
+/* ── Skills 添加按钮 ── */
 .skills-add-btn {
-    height: var(--td-comp-size-m);
+    height: 32px;
     display: inline-flex;
     align-items: center;
     cursor: pointer;
     margin-left: 2px;
 }
 
-/* 工具栏 pill 按钮（连接器、工具） */
+/* ── 工具栏 pill 按钮（尺寸/字号/hover 行为与 SkillsPopover 触发按钮对齐） ── */
 .toolbar-pill-btn {
     display: inline-flex;
     align-items: center;
@@ -1505,30 +1765,37 @@ defineExpose({
     font-size: var(--td-font-size-body-small);
     line-height: 1;
     color: var(--td-text-color-secondary);
+    background: transparent;
     cursor: pointer;
     white-space: nowrap;
     transition: background-color 0.2s;
 }
+
 .toolbar-pill-btn:hover {
     background: var(--td-bg-color-container-hover);
 }
+
 .toolbar-pill-btn:active {
     background: var(--td-bg-color-component-active);
 }
+
 .toolbar-pill-btn__text {
     white-space: nowrap;
 }
 
-/* 移动端隐藏 Skills、工具、连接器的文字 */
+/* ── 移动端隐藏文字 ── */
 .sender-toolbar.is-mobile .toolbar-pill-btn__text,
 .sender-toolbar.is-mobile :deep(.skills-popover-trigger__text) {
     display: none;
 }
 
-/* @Mention overlay */
+/* ── @Mention overlay ── */
 .at-mention-overlay {
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: 5600;
 }
 </style>
@@ -1539,18 +1806,23 @@ defineExpose({
     display: inline-flex;
     align-items: center;
     height: 20px;
-    padding: 0 4px;
+    padding: 0 5px;
     margin: 0 2px;
-    background: #F1F6FF;
-    border: 1px solid #DBE8FF;
-    border-radius: 3px;
+    background: var(--td-brand-color-light, #F1F6FF);
+    border: 1px solid var(--td-brand-color-light-hover, #DBE8FF);
+    border-radius: 4px;
     font-size: 12px;
     line-height: 16px;
-    color: #4A70FF;
+    color: var(--td-brand-color, #4A70FF);
     cursor: default;
     user-select: none;
     vertical-align: middle;
     white-space: nowrap;
+    transition: background 0.12s ease;
+}
+
+.at-mention-tag:hover {
+    background: var(--td-brand-color-light-hover, #E4EDFF);
 }
 
 .at-mention-tag__icon {
@@ -1573,9 +1845,13 @@ defineExpose({
     background-size: 13px 13px;
 }
 
+.at-mention-tag__icon--knowledge {
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 1.5C5.17157 1.5 4.5 2.17157 4.5 3V4H3.5C2.67157 4 2 4.67157 2 5.5V9.5C2 10.3284 2.67157 11 3.5 11H8.5C9.32843 11 10 10.3284 10 9.5V5.5C10 4.67157 9.32843 4 8.5 4H7.5V3C7.5 2.17157 6.82843 1.5 6 1.5ZM4 3C4 1.89543 4.89543 1 6 1C7.10457 1 8 1.89543 8 3V4H4V3ZM3.5 5H8.5C8.77614 5 9 5.22386 9 5.5V9.5C9 9.77614 8.77614 10 8.5 10H3.5C3.22386 10 3 9.77614 3 9.5V5.5C3 5.22386 3.22386 5 3.5 5Z' fill='%234A70FF'/%3E%3C/svg%3E");
+}
+
 .at-mention-tag__text {
-    margin-left: 2px;
-    font-family: 'PingFang SC', sans-serif;
+    margin-left: 3px;
+    font-family: 'PingFang SC', -apple-system, sans-serif;
     font-weight: 400;
     max-width: 160px;
     overflow: hidden;
@@ -1584,15 +1860,17 @@ defineExpose({
 }
 
 .at-mention-tag__close {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     margin-left: 2px;
     cursor: pointer;
     border-radius: 50%;
-    transition: background 0.15s;
-    background-size: 12px 12px;
+    transition: background 0.12s ease;
+    background-size: 10px 10px;
     background-repeat: no-repeat;
     background-position: center;
     background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' clip-rule='evenodd' d='M2.82542 9.67801C2.87136 9.65898 2.91255 9.6178 2.99492 9.53543L6.00011 6.53023L9.0053 9.53541C9.08766 9.61778 9.12885 9.65897 9.17479 9.678C9.23605 9.70337 9.30488 9.70337 9.36613 9.678C9.41208 9.65897 9.45326 9.61778 9.53563 9.53541C9.61799 9.45305 9.65918 9.41186 9.67821 9.36592C9.70358 9.30466 9.70358 9.23584 9.67821 9.17458C9.65918 9.12864 9.61799 9.08745 9.53563 9.00508L6.53044 5.9999L9.53565 2.99469C9.61802 2.91232 9.65921 2.87114 9.67824 2.8252C9.70361 2.76394 9.70361 2.69511 9.67824 2.63386C9.65921 2.58791 9.61802 2.54673 9.53565 2.46436C9.45329 2.38199 9.4121 2.34081 9.36616 2.32178C9.3049 2.29641 9.23608 2.29641 9.17482 2.32178C9.12888 2.34081 9.08769 2.38199 9.00532 2.46436L6.00011 5.46957L2.99489 2.46435C2.91252 2.38198 2.87134 2.34079 2.8254 2.32176C2.76414 2.29639 2.69531 2.29639 2.63405 2.32176C2.58811 2.34079 2.54693 2.38198 2.46456 2.46434C2.38219 2.54671 2.34101 2.5879 2.32198 2.63384C2.2966 2.6951 2.2966 2.76392 2.32198 2.82518C2.34101 2.87112 2.38219 2.91231 2.46456 2.99468L5.46978 5.9999L2.46459 9.0051C2.38222 9.08747 2.34103 9.12865 2.322 9.17459C2.29663 9.23585 2.29663 9.30468 2.322 9.36593C2.34103 9.41188 2.38222 9.45306 2.46459 9.53543C2.54695 9.6178 2.58814 9.65898 2.63408 9.67801C2.69534 9.70338 2.76416 9.70338 2.82542 9.67801Z' fill='%234A70FF'/%3E%3C/svg%3E");
@@ -1601,5 +1879,4 @@ defineExpose({
 .at-mention-tag__close:hover {
     background-color: rgba(74, 112, 255, 0.15);
 }
-
 </style>

@@ -4,7 +4,7 @@
         v-model:visible="visible"
         header=" "
         :confirm-btn="confirmBtn"
-        cancel-btn="取消"
+        :cancel-btn="mergedI18n.extensionCancelBtn"
         :close-on-overlay-click="false"
         :close-on-esc-to-close="true"
         width="500"
@@ -15,38 +15,39 @@
     >
         <div class="browser-extension-install-dialog__body">
             <div class="browser-extension-install-dialog__header">                
-                <div class="browser-extension-install-dialog__header-title">阅读并同意该协议</div>
+                <div class="browser-extension-install-dialog__header-title">{{ mergedI18n.extensionAgreeTitle }}</div>
             </div>
 
             <div class="browser-extension-install-dialog__intro">
-                <p>使用本功能需要两个组件协同工作：</p>
+                <p>{{ mergedI18n.extensionIntroLead }}</p>
                 <ul>
                     <li>
-                        <strong>浏览器助手 Connector</strong>
-                        <span>（安装在 ADP 平台侧）：负责接收您在智能工作台或 Claw 应用中发出的指令，并将指令传递给扩展程序；</span>
+                        <strong>{{ mergedI18n.extensionConnectorName }}</strong>
+                        <span>{{ mergedI18n.extensionConnectorDesc }}</span>
                     </li>
                     <li>
-                        <strong>ADP 浏览器助手扩展程序</strong>
-                        <span>（安装在您的 Chrome 浏览器中）：负责在浏览器中实际执行网页自动化操作。</span>
+                        <strong>{{ mergedI18n.extensionPluginName }}</strong>
+                        <span>{{ mergedI18n.extensionPluginDesc }}</span>
                     </li>
                 </ul>
+                <!-- {link} 占位符替换为可点击链接 -->
                 <p>
-                    您需要<a class="browser-extension-install-dialog__link" @click.stop="onGotoStore">前往 Chrome 浏览器</a>安装 ADP 浏览器助手扩展程序。
+                    <template v-for="(seg, idx) in installPromptSegments" :key="idx">
+                        <a v-if="seg.isLink" class="browser-extension-install-dialog__link" @click.stop="onGotoStore">{{ seg.text }}</a>
+                        <template v-else>{{ seg.text }}</template>
+                    </template>
                 </p>
-                <p>
-                    您充分知悉，扩展程序执行操作过程中可能涉及对您当前浏览网页内容的读取、页面元素的点击与填写、标签页的创建与管理等操作，部分操作一旦执行可能不可撤销。请在使用前确认您已充分了解相关服务内容和存在的风险情况。
-                </p>
-                <p>
-                    同时，您在使用 ADP 浏览器助手扩展程序时，还需遵守 Google Chrome 应用商店的相关服务条款及扩展程序使用规范。
-                </p>
+                <p>{{ mergedI18n.extensionRiskTip }}</p>
+                <p>{{ mergedI18n.extensionPolicyTip }}</p>
             </div>
 
             <t-checkbox v-model="agreed" class="browser-extension-install-dialog__agree">
                 <span class="browser-extension-install-dialog__agree-text">
-                    我已阅读并同意<a
-                        class="browser-extension-install-dialog__link"
-                        @click.stop.prevent="onProtocol"
-                    >《ADP 浏览器助手插件服务协议》</a>，我充分知悉并自愿承担使用该插件的全部责任和相关风险，同意遵守协议约定。
+                    <!-- {policy} 占位符替换为可点击协议链接 -->
+                    <template v-for="(seg, idx) in agreeSegments" :key="idx">
+                        <a v-if="seg.isLink" class="browser-extension-install-dialog__link" @click.stop.prevent="onProtocol">{{ seg.text }}</a>
+                        <template v-else>{{ seg.text }}</template>
+                    </template>
                 </span>
             </t-checkbox>
         </div>
@@ -61,6 +62,8 @@ import {
 } from 'tdesign-vue-next';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
+import type { SkillsI18n } from '../../model/skills';
+import { defaultSkillsI18n, defaultSkillsI18nEn } from '../../model/skills';
 import { getChromeStoreUrl } from '../../utils/adp-browser-extension';
 
 interface Props extends ThemeProps {
@@ -68,12 +71,18 @@ interface Props extends ThemeProps {
     modelValue: boolean;
     /** 协议跳转地址 */
     protocolUrl?: string;
+    /** 国际化文本 */
+    i18n?: Partial<SkillsI18n>;
+    /** 语言：'en-*' 走英文 */
+    language?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     ...themePropsDefaults,
     modelValue: false,
     protocolUrl: 'https://cloud.tencent.com/document/product/1759/132714',
+    i18n: () => ({}),
+    language: '',
 });
 
 const emit = defineEmits<{
@@ -82,6 +91,37 @@ const emit = defineEmits<{
     (e: 'cancel'): void;
     (e: 'protocol-click'): void;
 }>();
+
+const mergedI18n = computed<Required<SkillsI18n>>(() => {
+    const defaults = props.language?.startsWith('en') ? defaultSkillsI18nEn : defaultSkillsI18n;
+    return { ...defaults, ...props.i18n };
+});
+
+/**
+ * 将带 `{token}` 占位符的整句切成 [文本, 链接, 文本] 三段，便于模板渲染。
+ * 找不到占位符时退回到整段非链接文本。
+ */
+function splitWithLink(template: string, token: string, linkText: string) {
+    const idx = template.indexOf(token);
+    if (idx < 0) return [{ text: template, isLink: false }];
+    return [
+        { text: template.slice(0, idx), isLink: false },
+        { text: linkText, isLink: true },
+        { text: template.slice(idx + token.length), isLink: false },
+    ];
+}
+
+const installPromptSegments = computed(() => splitWithLink(
+    mergedI18n.value.extensionInstallPromptHtml,
+    '{link}',
+    mergedI18n.value.extensionGotoStoreLink,
+));
+
+const agreeSegments = computed(() => splitWithLink(
+    mergedI18n.value.extensionAgreeText,
+    '{policy}',
+    mergedI18n.value.extensionPolicyName,
+));
 
 /** 是否已勾选同意协议 */
 const agreed = ref(false);
@@ -94,7 +134,7 @@ const visible = computed<boolean>({
 
 /** 确认按钮配置：随勾选状态切换 disabled */
 const confirmBtn = computed(() => ({
-    content: '确认并前往 Chrome 应用商店',
+    content: mergedI18n.value.extensionConfirmBtn,
     theme: 'primary' as const,
     disabled: !agreed.value,
 }));

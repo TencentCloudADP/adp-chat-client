@@ -24,6 +24,7 @@
 - [专题](#专题)
   - [智能体: VisitorId 配置](#智能体-visitorid-配置)
   - [智能体: 变量-API参数](#智能体-变量-API参数)
+  - [智能体: 快捷按钮配置](#智能体-快捷按钮配置)
   - [部署: nginx](#部署-nginx)
   - [部署: 长时间回复被截断问题](#部署-长时间回复被截断问题)
   - [部署: 子路径](#部署-子路径)
@@ -90,7 +91,14 @@ TC_SECRET_APPID=
 TC_SECRET_ID=
 TC_SECRET_KEY=
 
-# ADP平台获取的智能体应用key：https://adp.cloud.tencent.com/
+# ADP 平台专用密钥（仅当 ServiceVendor 为 "ChinaTencentADP" 时必填）
+# 独立站获取地址见下方说明
+ADP_SECRET_ID=
+ADP_SECRET_KEY=
+
+# ADP平台获取的智能体应用key：
+# - 国内站：https://adp.cloud.tencent.com/
+# - 独立站：https://adp.tencent.com/
 APP_CONFIGS='[
     {
         "Vendor":"Tencent",
@@ -98,6 +106,13 @@ APP_CONFIGS='[
         "Comment": "注释",
         "AppKey": "",
         "International": false
+    },
+    {
+        "Vendor":"Tencent",
+        "ApplicationId":"独立站应用的唯一ID",
+        "Comment": "独立站应用注释",
+        "AppKey": "",
+        "ServiceVendor": "ChinaTencentADP"
     }
 ]'
 
@@ -112,6 +127,47 @@ SECRET_KEY=
 > 3. International: 使用腾讯云国内站设为false(默认)，如果是在国际站开发的智能体应用，此处设为true
 > 4. ApplicationId: 进入任意ADP应用，在应用网址内查看appid。例如某个应用的链接为 `https://adp.cloud.tencent.com/adp/#/app/knowledge/app-config?appid=1959******8208&appType=knowledge_qa&spaceId=default_space`，则它的ApplicationId为1959******8208。
 > 5. Vendor: 固定为Tencent，后续支持其他平台可能会有其他选项
+> 6. 配置多个应用时，在 APP_CONFIGS 数组内追加对象即可，格式与示例一致。
+> 7. **ServiceVendor**: 可选值 `"ChinaTencentCloud"` (国内云，**默认**) / `"ChinaTencentADP"` (**独立站**) / `"International"` (国际站) / `"Private"` (私有化)。使用独立站时必须设置为 `"ChinaTencentADP"`。
+> 8. **ADP_SECRET_ID / ADP_SECRET_KEY**: 仅当存在 `ServiceVendor: "ChinaTencentADP"` 时需要填写，用于独立站 API 认证。如果留空，系统会回退使用 TC_SECRET_ID / TC_SECRET_KEY。
+
+#### 快捷按钮建议配置（可选）
+
+通过 `SUGGESTION_CONFIGS` 可以为 Web 端对话页面配置快捷按钮，在输入框上方展示提示模板，用户点击后自动填入输入框。如果不配置该项，则不会显示快捷按钮。
+
+配置格式：
+
+```bash
+SUGGESTION_CONFIGS='[
+    {
+        "GroupId": "分组唯一ID",
+        "IconUrl": "分组图标URL（支持 https 远程图片）",
+        "Name": "分组名称（如：文档处理、数据分析等）",
+        "SuggestionList": [
+            {
+                "SuggestionId": "建议唯一ID",
+                "Title": "建议标题",
+                "PromptContent": "点击后填入输入框的提示文本"
+            }
+        ]
+    }
+]'
+```
+
+交互说明：
+- **一级菜单**：水平展示各分组，显示图标+名称，可左右滑动
+- **二级菜单**：点击分组后展开，水平展示该分组下的建议卡片（标题+描述）
+- **点击建议**：将 `PromptContent` 填入输入框，用户可编辑后再发送
+- **返回**：点击左上角返回图标回到一级菜单
+
+`PromptContent` 支持 mention 语法（可选）：
+- `@skill:<skill-name>` 引用当前应用已安装的 Skill
+- `@knowledgeBase:<kb-name>` 引用已挂载的知识库
+- `@tool:<tool-name>` 引用已注册的工具（**连接器 connector 同样使用 `@tool:` 前缀**）
+
+点击后 mention 会以蓝色 chip 的形式渲染在输入框内，被引用对象必须已在当前应用中安装/挂载。
+
+> ⚠️ **格式注意**：整个值使用单引号 `'...'` 包裹，JSON 内部**不要出现半角单引号 `'`（U+0027）**。若需要在 `PromptContent` 中引出一段短语，请使用中文全角引号 `“…”` / `‘…’`，或去掉引号。否则 Docker 部署模式下 dotenv 会把内部 `'` 视为值的结束，导致 `SUGGESTION_CONFIGS` 回退为空数组、快捷按钮全部消失。
 
 5. 制作镜像
 
@@ -182,6 +238,54 @@ OAUTH_MICROSOFT_ENTRA_SECRET=
 OAUTH_MICROSOFT_ENTRA_ENDPOINT=common
 ```
 > 📝 **注意**：创建Microsoft Entra ID OAuth应用时，callback URL填写：SERVICE_API_URL+/oauth/callback/ms_entra_id，例如：http://localhost:8000/oauth/callback/ms_entra_id
+
+### ADP 独立站（ChinaTencentADP）密钥配置
+
+当你的智能体应用部署在 **ADP 独立站**（[https://adp.tencent.com](https://adp.tencent.com/)）上时，需要额外配置独立站专用密钥 `ADP_SECRET_ID` / `ADP_SECRET_KEY`，并在应用配置中声明 `ServiceVendor: "ChinaTencentADP"`。
+
+#### 步骤一：申请独立站 API 密钥
+
+1. 登录 [ADP 独立站](https://adp.tencent.com/)
+2. 进入 **密钥管理** 页面：[https://adp.tencent.com/adp#/key-manage](https://adp.tencent.com/adp#/key-manage)
+3. 点击 **「+ 新建 API 密钥」** 按钮
+
+![ADP 密钥管理页面](docs/assets/adp-key-management.png)
+
+4. 在弹窗中确认创建后，系统将显示 `SecretID` 和 `SecretKey`
+
+![新建 API 密钥弹窗](docs/assets/create-api-key.png)
+
+> ⚠️ **重要提示**：新建的密钥只在创建时提供一次 SecretKey，后续不可再查看，请务必妥善保存。
+
+#### 步骤二：在 .env 中填写密钥（请勿将真实密钥提交到代码仓库）
+
+在 `deploy/default/.env` 中填写以下字段：
+
+```bash
+# ADP 独立站专用密钥（仅当 ServiceVendor 为 "ChinaTencentADP" 时必填）
+# 获取地址：https://adp.tencent.com/adp#/key-manage
+ADP_SECRET_ID=
+ADP_SECRET_KEY=
+```
+
+- 将弹窗中的 **SecretID** 填入 `ADP_SECRET_ID`
+- 将弹窗中的 **SecretKey** 填入 `ADP_SECRET_KEY`
+- 在 `APP_CONFIGS` 中对应应用的配置对象中加入 `"ServiceVendor": "ChinaTencentADP"`
+
+```bash
+APP_CONFIGS='[
+    {
+        "Vendor": "Tencent",
+        "ApplicationId": "独立站应用的唯一ID",
+        "Comment": "独立站应用注释",
+        "AppKey": "",
+        "ServiceVendor": "ChinaTencentADP"
+    }
+]'
+```
+
+> 💡 **提示**：如果 `ADP_SECRET_ID` / `ADP_SECRET_KEY` 留空，系统会回退使用 `TC_SECRET_ID` / `TC_SECRET_KEY`。同一份 `APP_CONFIGS` 可混合配置多个来源的应用（国内云 + 独立站 + 国际站），只需每个应用对象的 `ServiceVendor` 设置正确即可。
+
 
 ### 其它OAuth
 
@@ -343,6 +447,103 @@ class ChatMessageApi(HTTPMethodView):
 
 ```
 
+## 智能体: 快捷按钮配置
+
+在 Web 端对话页面的输入框上方，可以通过配置 `SUGGESTION_CONFIGS` 展示快捷按钮，为用户提供预设的提示模板。该功能对标智能体开发平台的"提示建议"（DescribePromptSuggestionList）能力，数据完全从配置文件读取，不依赖后端接口调用。
+
+### 数据结构
+
+`SUGGESTION_CONFIGS` 是一个 JSON 数组，数组的每一项为一个分组（Group），每个分组包含一个建议列表（SuggestionList）：
+
+```json
+[
+    {
+        "GroupId": "分组唯一标识（字符串）",
+        "IconUrl": "分组图标URL（支持https远程图片，建议 32x32px）",
+        "Name": "分组名称",
+        "SuggestionList": [
+            {
+                "SuggestionId": "建议唯一标识（字符串）",
+                "Title": "建议标题（展示在卡片上方）",
+                "PromptContent": "点击后填入输入框的文本内容"
+            }
+        ]
+    }
+]
+```
+
+### 交互说明
+
+| 层级 | 展示方式 | 操作 |
+|------|---------|------|
+| 一级（分组列表） | 水平滚动行，显示图标+名称 | 点击分组进入二级 |
+| 二级（建议卡片） | 水平滚动的卡片行，每张卡片显示标题+描述（最多两行） | 点击卡片将 `PromptContent` 填入输入框，并返回一级 |
+| 返回 | 二级顶部显示带左箭头的分组名称 | 点击返回一级 |
+
+> 📝 **注意**：
+> 1. 仅在消息列表为空时显示快捷按钮，发送消息后自动隐藏
+> 2. 点击建议后填入输入框但**不会自动发送**，用户可以编辑后再发送
+> 3. 如果不配置或配置为空数组 `[]`，则不显示快捷按钮区域
+> 4. 图标加载失败时会显示默认占位图标
+
+### 完整配置示例
+
+```bash
+SUGGESTION_CONFIGS='[
+    {
+        "GroupId": "group-doc",
+        "IconUrl": "https://cdn.example.com/icons/doc-process.png",
+        "Name": "文档处理",
+        "SuggestionList": [
+            {
+                "SuggestionId": "sug-001",
+                "Title": "会议纪要转周报",
+                "PromptContent": "请将我上传的会议纪要整理成正式项目周报..."
+            },
+            {
+                "SuggestionId": "sug-002",
+                "Title": "发票信息提取",
+                "PromptContent": "帮我创建一个“发票信息提取”Skill：上传发票图片或 PDF，自动识别发票关键字段并输出结构化 JSON。"
+            }
+        ]
+    },
+    {
+        "GroupId": "group-app",
+        "IconUrl": "https://cdn.example.com/icons/app-build.png",
+        "Name": "应用搭建",
+        "SuggestionList": [
+            {
+                "SuggestionId": "sug-003",
+                "Title": "销售数据分析助手",
+                "PromptContent": "帮我创建一个销售数据分析助手的应用，支持自然语言查询销售数据、自动生成可视化图表。@skill:example-app-manager"
+            }
+        ]
+    }
+]'
+```
+
+### PromptContent 高级用法
+
+`PromptContent` 除了纯文本外，还支持 **mention 引用**，格式为 `@<type>:<name>`，点击建议后会在输入框中以蓝色 chip 形式呈现：
+
+| 语法 | 含义 |
+|------|------|
+| `@skill:<skill-name>` | 引用当前应用已安装的 Skill |
+| `@knowledgeBase:<kb-name>` | 引用已挂载的知识库 |
+| `@tool:<tool-name>` | 引用已注册的工具或连接器（connector 同样使用 `@tool:` 前缀） |
+
+被引用的实体必须已经在当前应用中安装/挂载，否则 chip 无法命中，会以纯文本形式展示。连接器与工具共用 `@tool:` 前缀，前端会依据当前应用已注册的 connector 名称自动区分并展示为"连接器"类型的 chip。
+
+### 格式注意事项
+
+`SUGGESTION_CONFIGS` 在 `.env` 中使用单引号 `'...'` 包裹一段跨行 JSON。请遵守以下规则，避免解析失败：
+
+1. **禁止在 JSON 内出现半角单引号 `'`（U+0027）**。若 `PromptContent` 需要引出一段短语，请使用中文全角引号 `“…”` / `‘…’`，或者不加引号。原因：Docker 部署模式下后端使用 `python-dotenv` 严格解析 `.env`，遇到内部 `'` 会立刻视为闭合引号，从而丢弃整个 `SUGGESTION_CONFIGS`，前端表现为 `GroupList` 为空、看不到任何快捷按钮。
+2. **JSON 字符串使用双引号 `"..."`**；如需在文本内出现英文双引号，请使用 `\"` 转义。
+3. **建议每个 `GroupId` / `SuggestionId` 全局唯一**，前端会用作 `key`。
+4. **`IconUrl` 必须是可公网访问的 https 链接**，建议尺寸 32×32 px。
+5. **修改 `.env` 后需要重启容器/服务**才能生效（无需重新 `pack` 镜像）。
+
 ## 部署: nginx
 
 生产环境通常会使用 nginx 反向代理到本系统。以下配置不能遗漏，否则容易出现流式响应卡住、后端拿不到真实客户端 IP、限流误判等问题。
@@ -476,9 +677,8 @@ IFRAME_ORIGINS=https://example.com
 word、excel、ppt 等需要配置启动预览服务。
 1. 需要使用主账号登录 https://console.cloud.tencent.com/cos/bucket；
 2. 搜索.env中配置的 cos 桶名称COS_BUCKET（默认为chat-client-bucket-${TC_SECRET_APPID}， 注意: ${TC_SECRET_APPID} 为配置中填入的TC_SECRET_APPID， 实际cos桶的名称例如chat-client-bucket-1322044278），点击打开选中的桶
-3. 左侧菜单中选中 “数据处理” -> “文档处理” -> “开启”；
-4. “数据处理” -> 文件处理 -> “开启”
-
+3. 左侧菜单中选中 "数据处理" -> "文档处理" -> "开启"；
+4. "数据处理" -> 文件处理 -> "开启"
 
 ## 微信小程序接入示例
 
@@ -564,4 +764,11 @@ Page({
 2. 应用开发 -> 进入 APP_CONFIGS 配置的 应用
 3. 在高级配置中找到 "允许在对话中动态修改配置"
 ![alt text](docs/assets/setting1.png)
+4. 发布应用
+
+## 应用&配置：开启知识库功能 
+1. 登录腾讯云 [智能体开发平台](https://adp.cloud.tencent.com/adp)
+2. 应用开发 -> 进入 APP_CONFIGS 配置的 应用
+3. 在工具中添加 "知识库问答/KnowledgeRetrievalAnswer" 工具（默认是已添加的）
+![alt text](docs/assets/setting2.png)
 4. 发布应用

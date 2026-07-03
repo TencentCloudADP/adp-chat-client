@@ -403,24 +403,23 @@ const actualAutoLoad = computed(() => props.autoLoad);
     height: 48px;
     cursor: pointer;
     border-radius: 100%;
-    background-color: #ffffff80;
-    border: #dcdcdc 1px solid;
-    box-shadow: 0 1px 44px #00000026;
+    background-color: var(--td-bg-color-container, #ffffff);
+    border: 1px solid var(--td-component-stroke, #e8e8eb);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.1);
     user-select: none;
-    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .toggle-btn:hover {
-    border: #d0d0d0 1px solid;
-    transform: scale(1.1);
+    transform: scale(1.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.1);
 }
 
 .panel-park {
-    background: white;
+    background: var(--td-bg-color-container);
     box-sizing: border-box;
     overflow: hidden;
 }
@@ -432,17 +431,15 @@ const actualAutoLoad = computed(() => props.autoLoad);
 
 .panel-park--overlay {
     /* 宽高由 style 动态设置 */
-    border-radius: var(--td-radius-large);
-    box-shadow: 0 4px 16px #00000026;
-
     position: fixed;
     z-index: 999;
     bottom: 0%;
     right: 0%;
     margin: 24px;
-    background-color: white;
-    border-radius: var(--td-radius-large);
-    box-shadow: 0 4px 16px #00000026;
+    background-color: var(--td-bg-color-container);
+    border-radius: var(--td-radius-xl);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--td-component-stroke);
     overflow: hidden;
 }
 </style>

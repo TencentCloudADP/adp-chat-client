@@ -1,7 +1,7 @@
 <template>
     <t-dialog
         v-model:visible="visible"
-        header="管理工具"
+        :header="mergedI18n.manageTool"
         :footer="false"
         :close-on-overlay-click="false"
         width="min(900px, calc(100vw - 40px))"
@@ -11,16 +11,16 @@
             <div class="manage-tool-dialog__action-bar">
                 <t-button theme="primary"  @click="onOpenAdd">
                     <template #icon><CustomizedIcon  color="var(--td-font-white-1)"  remote name="basic_new_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
-                    添加
+                    {{ mergedI18n.addSkillsBtn }}
                 </t-button>
             </div>
 
             <!-- 列表区域 -->
             <div v-if="loading" class="manage-tool-dialog__loading">
-                <t-loading size="small" text="加载中..." />
+                <t-loading size="small" :text="mergedI18n.loading" />
             </div>
             <div v-else-if="filteredList.length === 0" class="manage-tool-dialog__empty">
-                <span>暂无已安装工具</span>
+                <span>{{ mergedI18n.noAddedTools }}</span>
             </div>
             <div v-else class="manage-tool-dialog__list">
                 <div v-for="item in filteredList" :key="item.toolId" class="manage-tool-item">
@@ -31,7 +31,7 @@
                     <div class="manage-tool-item__info">
                         <div class="manage-tool-item__title">
                             <t-tooltip :content="item.displayName" placement="top"><span class="manage-tool-item__name">{{ item.displayName }}</span></t-tooltip>
-                            <t-tag v-if="item.isInner"  variant="light-outline">预置</t-tag>
+                            <t-tag v-if="item.isInner"  variant="light-outline">{{ mergedI18n.tagBuiltin }}</t-tag>
                             <t-tag v-if="item.createTypeLabel"  variant="light">{{ item.createTypeLabel }}</t-tag>
                         </div>
                         <t-tooltip :content="item.desc || item.pluginName" placement="top"><div class="manage-tool-item__desc">{{ item.desc || item.pluginName }}</div></t-tooltip>
@@ -48,7 +48,7 @@
                         >
                             <template #icon><CustomizedIcon remote name="basic_delete_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                         </t-button>
-                        <t-tooltip v-else content="预置工具无法删除" placement="top">
+                        <t-tooltip v-else :content="mergedI18n.builtinNotDeletable" placement="top">
                             <t-button  variant="text" theme="default" disabled>
                                 <template #icon><CustomizedIcon remote name="basic_delete_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                             </t-button>
@@ -64,7 +64,10 @@
             :application-id="applicationId"
             :space-id="spaceId || 'default_space'"
             :theme="theme"
+            :language="language"
+            :i18n="i18n"
             :installed-tool-ids="installedToolIds"
+            :installed-tools="installedTools"
             @installed="onInstalled"
         />
     </t-dialog>
@@ -74,7 +77,7 @@
 import { ref, computed, watch } from 'vue';
 import {
     Dialog as TDialog, Button as TButton, Tag as TTag,
-    Input as TInput, Loading as TLoading, Tooltip as TTooltip, MessagePlugin,
+    Loading as TLoading, Tooltip as TTooltip, MessagePlugin,
 } from 'tdesign-vue-next';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import { fetchGlobalAgent } from '../../service/skillsApi';
@@ -82,14 +85,34 @@ import { unbindAgentTool } from '../../service/connectorPluginApi';
 import PluginInstallDialog from './PluginInstallDialog.vue';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
+import type { SkillsI18n } from '../../model/skills';
+import { defaultSkillsI18n, defaultSkillsI18nEn } from '../../model/skills';
 import useAgentStore from '../../composables/useAgentStore';
 
 interface Props extends ThemeProps {
     modelValue: boolean;
     applicationId?: string;
     spaceId?: string;
+    /** 国际化文本（与 SkillsPopover / Sender 共享 SkillsI18n） */
+    i18n?: Partial<SkillsI18n>;
+    /** 语言，决定默认中/英文本，'en-*' 走英文 */
+    language?: string;
 }
-const props = withDefaults(defineProps<Props>(), { ...themePropsDefaults, modelValue: false, applicationId: '', spaceId: '' });
+const props = withDefaults(defineProps<Props>(), {
+    ...themePropsDefaults,
+    modelValue: false,
+    applicationId: '',
+    spaceId: '',
+    i18n: () => ({}),
+    language: '',
+});
+
+/** 合并默认 + 业务方传入的 i18n */
+const mergedI18n = computed<Required<SkillsI18n>>(() => {
+    const defaults = props.language?.startsWith('en') ? defaultSkillsI18nEn : defaultSkillsI18n;
+    return { ...defaults, ...props.i18n };
+});
+
 const { getAgentIdByAppId } = useAgentStore();
 const emit = defineEmits<{
     (e: 'update:modelValue', v: boolean): void;
@@ -118,6 +141,15 @@ interface ManageToolItem {
 const toolList = ref<ManageToolItem[]>([]);
 
 const installedToolIds = computed(() => toolList.value.map(t => t.toolId));
+/**
+ * 已安装工具的 (pluginId, toolId) 映射，传给 PluginInstallDialog 用于在未懒加载工具明细时
+ * 也能正确显示「已全部添加」状态。
+ */
+const installedTools = computed(() =>
+    toolList.value
+        .filter(t => t.pluginId && t.toolId)
+        .map(t => ({ pluginId: t.pluginId, toolId: t.toolId })),
+);
 
 const filteredList = computed(() => {
     const kw = searchKeyword.value.trim().toLowerCase();
@@ -162,10 +194,10 @@ async function fetchInstalledTools() {
 
             const createType = Number(plugin.CreateType || plugin.create_type || 0);
             let createTypeLabel = '';
-            if (createType === 2) createTypeLabel = 'MCP';
-            else if (createType === 0) createTypeLabel = 'API';
-            else if (createType === 1) createTypeLabel = '代码';
-            else if (createType === 3) createTypeLabel = '应用';
+            if (createType === 2) createTypeLabel = mergedI18n.value.createTypeLabelMcp;
+            else if (createType === 0) createTypeLabel = mergedI18n.value.createTypeLabelApi;
+            else if (createType === 1) createTypeLabel = mergedI18n.value.createTypeLabelCode;
+            else if (createType === 3) createTypeLabel = mergedI18n.value.createTypeLabelApp;
 
             const pluginClass = Number(plugin.PluginClass || plugin.plugin_class || 0);
 
@@ -194,7 +226,7 @@ async function onDelete(item: ManageToolItem) {
     try {
         const agentId = await getAgentIdByAppId(props.applicationId);
         if (!props.applicationId || !agentId) {
-            MessagePlugin.warning('缺少应用 ID 或 Agent ID');
+            MessagePlugin.warning(mergedI18n.value.missingAppOrAgentId);
             return;
         }
         await unbindAgentTool({
@@ -206,10 +238,10 @@ async function onDelete(item: ManageToolItem) {
         });
         toolList.value = toolList.value.filter(t => t.toolId !== item.toolId);
         emit('change');
-        MessagePlugin.success('已删除');
+        MessagePlugin.success(mergedI18n.value.removeSuccessToast);
     } catch (e) {
         console.error('[UnbindAgentTool] 解绑失败:', e);
-        MessagePlugin.error('工具删除失败');
+        MessagePlugin.error(mergedI18n.value.toolRemoveFailedToast);
     } finally {
         deletingId.value = '';
     }

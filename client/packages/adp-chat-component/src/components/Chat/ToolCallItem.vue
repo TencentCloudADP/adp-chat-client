@@ -330,27 +330,27 @@ function detectLanguage(): string {
 </template>
 
 <style scoped>
+/* ── 工具调用项 ── */
 .tool-call-item {
     width: 100%;
-    border-radius: var(--td-radius-medium);
+    border-radius: 8px;
     overflow: hidden;
 }
 
 .tool-call-item--expanded {
     border: 1px solid var(--td-component-border, #e7e7e7);
-    background: var(--td-bg-color-container, #fff);
+    background: var(--td-bg-color-container);
 }
 
+/* ── 头部 ── */
 .tool-call-item__header {
     display: flex;
-    user-select: none;
-    border-radius: 4px;
-
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
     user-select: none;
-    transition: all 0.2s ease;
+    transition: background 0.15s ease;
 }
 
 .tool-call-item--expandable .tool-call-item__header {
@@ -379,6 +379,7 @@ function detectLanguage(): string {
     margin-left: 8px;
 }
 
+/* ── 工具图标 ── */
 .tool-call-item__icon {
     display: flex;
     align-items: center;
@@ -386,13 +387,14 @@ function detectLanguage(): string {
     flex-shrink: 0;
     color: var(--td-text-color-placeholder);
 }
+
 .tool-call-item__icon-img {
     width: 16px;
     height: 16px;
     display: block;
 }
 
-
+/* ── 工具文本 ── */
 .tool-call-item__text {
     display: flex;
     align-items: center;
@@ -414,6 +416,7 @@ function detectLanguage(): string {
     white-space: nowrap;
 }
 
+/* ── 状态指示 ── */
 .tool-call-item__error-badge {
     display: flex;
     align-items: center;
@@ -433,7 +436,7 @@ function detectLanguage(): string {
     to { transform: rotate(360deg); }
 }
 
-/* 操作按钮（复制/展开） */
+/* ── 操作按钮 ── */
 .tool-call-item__action-btn {
     position: relative;
     display: flex;
@@ -441,10 +444,10 @@ function detectLanguage(): string {
     justify-content: center;
     width: 20px;
     height: 20px;
-    border-radius: 3px;
+    border-radius: 4px;
     cursor: pointer;
     color: var(--td-text-color-placeholder);
-    transition: all 0.2s ease;
+    transition: color 0.15s ease, background 0.15s ease;
     flex-shrink: 0;
 }
 
@@ -453,7 +456,7 @@ function detectLanguage(): string {
     background: var(--td-bg-color-container-hover, rgba(0, 0, 0, 0.04));
 }
 
-/* 查看按钮 */
+/* ── 查看按钮 ── */
 .tool-call-item__view-btn {
     font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
     font-size: var(--td-font-size-link-small);
@@ -462,14 +465,14 @@ function detectLanguage(): string {
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
-    transition: color 0.2s;
+    transition: color 0.15s ease;
 }
 
 .tool-call-item__view-btn:hover {
     color: var(--td-brand-color, #0052d9);
 }
 
-/* 复制按钮：使用 button 元素确保点击事件可靠触发 */
+/* ── 复制按钮 ── */
 .tool-call-item__copy-btn {
     position: relative;
     display: inline-flex;
@@ -479,11 +482,11 @@ function detectLanguage(): string {
     height: 20px;
     padding: 0;
     border: none;
-    border-radius: 3px;
+    border-radius: 4px;
     cursor: pointer;
     color: var(--td-text-color-placeholder);
     background: transparent;
-    transition: all 0.2s ease;
+    transition: color 0.15s ease, background 0.15s ease;
     flex-shrink: 0;
     outline: none;
 }
@@ -497,7 +500,7 @@ function detectLanguage(): string {
     pointer-events: none;
 }
 
-/* 展开/收起箭头 */
+/* ── 展开/收起箭头 ── */
 .tool-call-item__arrow-icon {
     transition: transform 0.2s ease;
 }
@@ -506,64 +509,58 @@ function detectLanguage(): string {
     transform: rotate(90deg);
 }
 
-/* 展开内容区域 */
+/* ── 展开内容 ── */
 .tool-call-item__content {
     border-top: 1px solid var(--td-component-border, #e7e7e7);
     overflow: hidden;
 }
 
-/* 代码展示区域包装 */
+/* ── 代码展示区域 ── */
 .tool-call-item__code-wrapper {
     position: relative;
 }
 
-/* 代码展示区域 */
 .tool-call-item__code-area {
     max-height: 200px;
     overflow-y: auto;
     font-size: var(--td-font-size-link-small);
-    scrollbar-color: var(--td-scrollbar-color) transparent;
+    scrollbar-color: var(--td-scrollbar-color, rgba(0,0,0,.12)) transparent;
     scrollbar-width: thin;
 }
+
 .tool-call-item__code-area :deep(.md-content-container) {
     background: transparent;
     padding: 0;
 }
-.tool-call-item__code-area :deep(pre) {
-    background: transparent;
-}
-.tool-call-item__code-area :deep(code) {
-    background: transparent;
-}
-
-.tool-call-item__code-area::-webkit-scrollbar {
-    width: var(--td-size-4, 4px);
-    background: transparent;
-}
-
-.tool-call-item__code-area::-webkit-scrollbar-thumb {
-    border: 2px solid transparent;
-    background-clip: content-box;
-    background-color: var(--td-scrollbar-color);
-    border-radius: 15px;
-}
-
-.tool-call-item__code-area::-webkit-scrollbar-thumb:hover {
-    background-color: var(--td-scrollbar-hover-color);
-}
 
 .tool-call-item__code-area :deep(pre) {
+    background: transparent;
     margin: 0;
     border-radius: 0;
     border: none;
 }
 
 .tool-call-item__code-area :deep(code) {
+    background: transparent;
     font-size: var(--td-font-size-link-small);
     line-height: 18px;
 }
 
-/* 搜索/文本结果区域 */
+.tool-call-item__code-area::-webkit-scrollbar {
+    width: 4px;
+    background: transparent;
+}
+
+.tool-call-item__code-area::-webkit-scrollbar-thumb {
+    background-color: var(--td-scrollbar-color, rgba(0,0,0,.12));
+    border-radius: 4px;
+}
+
+.tool-call-item__code-area::-webkit-scrollbar-thumb:hover {
+    background-color: var(--td-scrollbar-hover-color, rgba(0,0,0,.2));
+}
+
+/* ── 文本结果区域 ── */
 .tool-call-item__text-area {
     padding: 8px 12px;
     font-size: var(--td-font-size-link-small);
@@ -572,24 +569,22 @@ function detectLanguage(): string {
     word-break: break-word;
     max-height: 200px;
     overflow-y: auto;
-    scrollbar-color: var(--td-scrollbar-color) transparent;
+    scrollbar-color: var(--td-scrollbar-color, rgba(0,0,0,.12)) transparent;
     scrollbar-width: thin;
 }
 
 .tool-call-item__text-area::-webkit-scrollbar {
-    width: var(--td-size-4, 4px);
+    width: 4px;
     background: transparent;
 }
 
 .tool-call-item__text-area::-webkit-scrollbar-thumb {
-    border: 2px solid transparent;
-    background-clip: content-box;
-    background-color: var(--td-scrollbar-color);
-    border-radius: 15px;
+    background-color: var(--td-scrollbar-color, rgba(0,0,0,.12));
+    border-radius: 4px;
 }
 
 .tool-call-item__text-area::-webkit-scrollbar-thumb:hover {
-    background-color: var(--td-scrollbar-hover-color);
+    background-color: var(--td-scrollbar-hover-color, rgba(0,0,0,.2));
 }
 
 .tool-call-item__text-area p {
@@ -605,7 +600,7 @@ function detectLanguage(): string {
     opacity: 0.8;
 }
 
-/* 展开/收起过渡动画 */
+/* ── 展开/收起动画 ── */
 .tool-expand-enter-active,
 .tool-expand-leave-active {
     transition: all 0.2s ease;
@@ -617,5 +612,15 @@ function detectLanguage(): string {
 .tool-expand-leave-to {
     max-height: 0;
     opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tool-call-item__spinner {
+        animation: none;
+    }
+    .tool-expand-enter-active,
+    .tool-expand-leave-active {
+        transition: none;
+    }
 }
 </style>

@@ -630,12 +630,13 @@ class BaseVendor(ChatInterface, MessageInterface, FileInterface, ReferenceInterf
 
         当前端传入的 Action 名称没有对应的具体路由实现时，
         可通过此方法将请求直接转发到厂商后端接口。
+        目标 service 和 version 由 action_version 配置自动决定。
 
         Args:
             action: API Action 名称
             payload: 请求参数字典
-            service: 服务名称
-            version: API 版本号，为 None 时使用 service 配置中的默认版本
+            service: （已废弃）保留参数以保持接口兼容
+            version: （已废弃）保留参数以保持接口兼容
             response_key: 从响应中提取指定 key
             raise_on_error: 遇错是否抛异常
             variables: 模板变量字典，用于替换配置中的 {{VAR}} 占位符

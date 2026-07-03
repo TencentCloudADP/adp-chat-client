@@ -14,6 +14,8 @@
                     :currentApplicationOpeningQuestions="currentApplicationOpeningQuestions"
                     :isMobile="isMobile"
                     :isOverlay="isOverlay"
+                    :i18n="i18n"
+                    :language="language"
                     @selectQuestion="getDefaultQuestion"
                 />
             </template>
@@ -57,7 +59,9 @@
                                 :mode="props.mode"
                                 :language="props.language"
                                 :i18n="chatItemI18n"
+                                :chat-i18n="i18n"
                                 :mentionSkills="mentionSkills"
+                                :mentionKnowledge="mentionKnowledge"
                                 :mentionTools="mentionTools"
                                 :mentionConnectors="mentionConnectors"
                                 @resend="onResend"
@@ -118,6 +122,7 @@
                     :enableModelSelector="props.enableModelSelector && agentDetailAvailable"
                     :enableConnector="props.enableConnector && agentDetailAvailable"
                     :enableTools="props.enableTools && agentDetailAvailable"
+                    :enableKnowledge="props.enableKnowledge && agentDetailAvailable"
                     :spaceId="props.skillsSpaceId"
                     :skillsApplicationId="skillsAppId"
                     @stop="onStop"
@@ -127,7 +132,16 @@
                     @stopRecord="handleStopRecord"
                     @message="handleMessage"
                     @mention-list-update="onMentionListUpdate"
-                />
+                >
+                    <!-- 快捷按钮：消息列表为空时显示，放在 Sender 内部编辑器上方，对齐 webim assist-quick-buttons -->
+                    <template #quick-buttons>
+                        <AssistQuickButtons
+                            v-if="chatList.length <= 0 && !chatId"
+                            :suggestionApi="suggestionApi"
+                            @selectSuggestion="onSelectSuggestion"
+                        />
+                    </template>
+                </Sender>
             </template>
         </TChat>
     </div>
@@ -150,6 +164,7 @@ import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../..
 import { chatRelatedPropsDefaults, defaultChatI18n, defaultChatI18nEn, defaultChatItemI18n, defaultChatItemI18nEn, defaultSenderI18n, defaultSenderI18nEn } from '../../model/type'
 
 import AppType from './AppType.vue'
+import AssistQuickButtons from './AssistQuickButtons.vue'
 import Sender from './Sender.vue'
 import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
@@ -196,10 +211,14 @@ export interface Props extends ChatRelatedProps {
     enableConnector?: boolean;
     /** 是否显示工具按钮 */
     enableTools?: boolean;
+    /** 是否显示知识库按钮（需 Agent 已启用 KnowledgeRetrievalAnswer 工具） */
+    enableKnowledge?: boolean;
     /** Skills 空间 ID */
     skillsSpaceId?: string;
     /** Skills 应用 ID（/adp/ 转发需要） */
     skillsApplicationId?: string;
+    /** 快捷按钮建议列表 API 路径 */
+    suggestionApi?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -224,8 +243,10 @@ const props = withDefaults(defineProps<Props>(), {
     enableModelSelector: false,
     enableConnector: false,
     enableTools: false,
+    enableKnowledge: false,
     skillsSpaceId: '',
     skillsApplicationId: '',
+    suggestionApi: '/suggestions',
 });
 
 // 解构 props 以便在模板中使用
@@ -297,21 +318,29 @@ const emit = defineEmits<{
 const internalChatList = ref<Record[]>([]);
 
 /**
- * mention 列表：由 Sender 在拉取 Skills/Tools 后 emit，
- * 透传给 ChatItem → MdContent，用于把消息文本中的 @skill:/@tool: 还原为蓝色 chip
+ * mention 列表：由 Sender 在拉取 Skills/Tools/Knowledge 后 emit，
+ * 透传给 ChatItem → MdContent，用于把消息文本中的 @skill:/@knowledgeBase:/@tool: 还原为蓝色 chip
  */
 const mentionSkills = ref<NormalizedSkill[]>([]);
+const mentionKnowledge = ref<NormalizedSkill[]>([]);
 const mentionTools = ref<NormalizedSkill[]>([]);
 const mentionConnectors = ref<NormalizedSkill[]>([]);
 
 /** Sender mention 列表更新事件处理 */
-function onMentionListUpdate(payload: { skills: NormalizedSkill[]; tools: NormalizedSkill[]; connectors: NormalizedSkill[] }) {
+function onMentionListUpdate(payload: {
+    skills: NormalizedSkill[];
+    knowledgeBase?: NormalizedSkill[];
+    tools: NormalizedSkill[];
+    connectors: NormalizedSkill[];
+}) {
     // eslint-disable-next-line no-console
     console.log('[Chat/Index] onMentionListUpdate received',
         'skills:', (payload.skills || []).length,
+        'knowledge:', (payload.knowledgeBase || []).length,
         'tools:', (payload.tools || []).length,
         'connectors:', (payload.connectors || []).length);
     mentionSkills.value = payload.skills || [];
+    mentionKnowledge.value = payload.knowledgeBase || [];
     mentionTools.value = payload.tools || [];
     mentionConnectors.value = payload.connectors || [];
 }
@@ -537,6 +566,51 @@ onUnmounted(() => {
         footerResizeObserver = null
     }
 })
+
+/**
+ * 把 PromptContent 中的 @skill:xxx / @tool:xxx / @knowledgeBase:id:name
+ * 内联标记转为 wangEditor 可识别的 mention HTML 标签。
+ */
+const buildPromptInsertHtml = (text: string): string => {
+    if (!text) return '';
+    let html = text
+        // 先转义 HTML 特殊字符，防止 XSS
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        // @skill:xxx → mention HTML
+        .replace(
+            /@skill:([\w-]+)/g,
+            (_match, skillId) =>
+                `<span data-w-e-type="mention" data-mention-type="skills" data-mention-id="${skillId}" data-mention-name="${skillId}" class="at-mention-tag" contenteditable="false"><span class="at-mention-tag__text">@${skillId}</span></span>`
+        )
+        // @tool:xxx → mention HTML（icon modifier = "plugins"）
+        .replace(
+            /@tool:([\w-]+)/g,
+            (_match, toolId) =>
+                `<span data-w-e-type="mention" data-mention-type="tools" data-mention-id="${toolId}" data-mention-name="${toolId}" class="at-mention-tag" contenteditable="false"><span class="at-mention-tag__text">@${toolId}</span></span>`
+        )
+        // @knowledgeBase:id:name → mention HTML
+        .replace(
+            /@knowledgeBase:([\w-]+):([^@\s]+)/g,
+            (_match, kbId, kbName) =>
+                `<span data-w-e-type="mention" data-mention-type="knowledge" data-mention-id="${kbId}" data-mention-name="${kbName}" data-mention-display-name="${kbName}" class="at-mention-tag" contenteditable="false"><span class="at-mention-tag__text">@${kbName}</span></span>`
+        )
+        // 换行转 <br>
+        .replace(/\n/g, '<br/>');
+    return html;
+};
+
+/**
+ * 处理快捷按钮建议选择：将建议文本（含 @skill/@tool/@knowledgeBase 标记）
+ * 转为编辑器 mention HTML 后填入输入框，不自动发送
+ */
+const onSelectSuggestion = (promptContent: string) => {
+    if (senderRef.value) {
+        const insertHtml = buildPromptInsertHtml(promptContent);
+        senderRef.value.changeSenderVal(insertHtml, []);
+    }
+}
 
 /**
  * 设置默认问题
@@ -800,11 +874,13 @@ defineExpose({
 </script>
 
 <style scoped>
-.upload-loading{
-    position: absolute; 
-    bottom: var(--td-comp-margin-m); 
-    z-index:2
+/* ── 主容器 ── */
+.upload-loading {
+    position: absolute;
+    bottom: 12px;
+    z-index: 2;
 }
+
 .chat-box {
     height: 100%;
     position: relative;
@@ -816,12 +892,13 @@ defineExpose({
     align-items: self-start;
 }
 
+/* ── 分享设置浮层 ── */
 .share-setting-container {
     z-index: 10;
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    top: calc((var(--td-size-4) + var(--td-size-1)) * -1);
+    top: -6px;
     translate: 0 -100%;
     width: max-content;
 }
@@ -830,19 +907,31 @@ defineExpose({
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: var(--td-font-size-link-medium);
+    font-size: 13px;
+    gap: 4px;
 }
 
 .icon__share-copy {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 4px;
     background: var(--td-bg-color-container-hover);
-    border-radius: var(--td-radius-default);
-    padding: var(--td-comp-paddingLR-xs) var(--td-comp-paddingLR-xl);
-    margin-left: var(--td-comp-paddingLR-l);
-    margin-right: var(--td-comp-paddingLR-xs);
+    border-radius: var(--td-radius-medium);
+    padding: 5px 14px;
+    margin-left: 10px;
+    margin-right: 4px;
     cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.icon__share-copy:hover {
+    background: var(--td-bg-color-container-active);
+}
+
+.icon__share-copy:active {
+    background: var(--td-bg-color-container-active);
+    opacity: 0.85;
 }
 
 .share-text {
@@ -852,23 +941,33 @@ defineExpose({
 
 .icon__share-copy.disabled {
     cursor: not-allowed;
-    opacity: 0.4;
+    opacity: 0.25;
+    pointer-events: none;
 }
 
 .icon__share-copy span:nth-child(1) {
-    margin-right: var(--td-pop-padding-s);
+    margin-right: 4px;
 }
 
 .icon__share-close {
     cursor: pointer;
-    margin-left: var(--td-comp-margin-m);
-    padding-left: var(--td-comp-paddingLR-xxs);
+    margin-left: 10px;
+    padding: 2px 4px;
+    color: var(--td-text-color-secondary);
+    border-radius: var(--td-radius-default);
+    transition: color 0.15s ease, background 0.15s ease;
 }
 
-.thinking-text {
+.icon__share-close:hover {
     color: var(--td-text-color-primary);
-    font-size: var(--td-font-size-link-medium);
-    margin-left: var(--td-comp-margin-xs)
+    background: var(--td-bg-color-container-hover);
+}
+
+/* ── 加载状态 ── */
+.thinking-text {
+    color: var(--td-text-color-secondary);
+    font-size: 14px;
+    margin-left: 4px;
 }
 
 .thinking-icon {
@@ -878,6 +977,7 @@ defineExpose({
     padding: 0;
 }
 
+/* ── 内容区 ── */
 .content.isFull,
 .content.isFull .infinite-loading-container,
 .content.isFull .infinite-status-prompt {
@@ -891,24 +991,42 @@ defineExpose({
     justify-content: center;
 }
 
+/* ── Footer 区域 ── */
 :deep(.t-chat__footer) {
     display: flex;
     justify-content: center;
-    padding: 0 var(--td-comp-paddingLR-m);
+    padding: 0 16px;
 }
 
+/* ── 消息列表间距 ── */
 :deep(.content .chat-item__content) {
-    padding-bottom: var(--td-comp-paddingLR-l);
+    padding-bottom: 16px;
     margin-left: var(--td-size-4);
 }
 
 :deep(.content .chat-item__content:last-child) {
-    padding-bottom: var(--td-comp-paddingLR-xl);
+    padding-bottom: 24px;
 }
 
+/* ── 聊天列表容器 ── */
 :deep(.t-chat__list) {
-    padding: 0 calc(var(--td-comp-paddingLR-xl) - var(--td-size-4));
+    padding: 20px 20px 0 20px;
     overflow-y: scroll;
+    scrollbar-width: thin;
+    scrollbar-color: var(--td-scrollbar-color, rgba(0,0,0,.12)) transparent;
+}
+
+:deep(.t-chat__list::-webkit-scrollbar) {
+    width: 5px;
+}
+
+:deep(.t-chat__list::-webkit-scrollbar-thumb) {
+    background: var(--td-scrollbar-color, rgba(0,0,0,.12));
+    border-radius: 4px;
+}
+
+:deep(.t-chat__list::-webkit-scrollbar-track) {
+    background: transparent;
 }
 
 /* 确保 AppType 组件容器有足够高度实现垂直居中 */
@@ -918,53 +1036,62 @@ defineExpose({
 
 :deep(.t-chat__list .content) {
     width: 100%;
-    max-width: calc(800px + var(--td-size-4));
+    max-width: 820px;
     margin: 0 auto;
 }
 
+/* ── 分享卡片覆盖 ── */
 :deep(.share-setting-content .t-card__body) {
-    padding: var(--td-comp-paddingLR-l) var(--td-size-10) var(--td-comp-paddingLR-l) var(--td-comp-paddingLR-xl);
+    padding: 10px 20px 10px 16px;
 }
 
 :deep(.share-setting-card) {
     box-sizing: border-box;
-    box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 18px rgba(18, 19, 25, 0.08), 0px 16px 64px rgba(18, 19, 25, 0.16);
-    border-radius: var(--td-radius-medium);
-    padding: var(--td-comp-paddingLR-s) var(--td-size-10) var(--td-comp-paddingLR-s) var(--td-comp-paddingLR-xl) !important;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 8px 32px rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
+    border: 1px solid var(--td-component-stroke);
+    padding: 8px 20px 8px 16px !important;
 }
 
 :deep(.share-setting-container) {
     border: none;
     box-sizing: border-box;
-    box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 18px rgba(18, 19, 25, 0.08), 0px 16px 64px rgba(18, 19, 25, 0.16);
-    border-radius: var(--td-radius-medium);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 8px 32px rgba(0, 0, 0, 0.06);
+    border-radius: 12px;
 }
 
+/* ── 移动端分享面板 ── */
 .share-setting-content.isMobile {
-    font-size: var(--td-font-size-link-small);
+    font-size: 12px;
 }
 
 .share-setting-content.isMobile .icon__share-copy {
-    padding: var(--td-comp-paddingLR-xxs) var(--td-comp-paddingLR-s);
-    margin-left: var(--td-comp-paddingLR-s);
-    margin-right: var(--td-comp-paddingLR-xxs);
+    padding: 3px 10px;
+    margin-left: 8px;
+    margin-right: 3px;
 }
 
 .share-setting-content.isMobile .icon__share-copy :deep(svg) {
-    width: var(--td-font-size-body-medium);
-    height: var(--td-font-size-body-medium);
+    width: 14px;
+    height: 14px;
 }
 
 .share-setting-content.isMobile .icon__share-close {
-    margin-left: var(--td-comp-paddingLR-s);
+    margin-left: 8px;
     padding-left: 0;
 }
 
 :deep(.share-setting-container.isMobile .share-setting-card) {
-    padding: var(--td-comp-paddingLR-xs) var(--td-comp-paddingLR-s);
+    padding: 6px 10px;
 }
 
 :deep(.share-setting-container.isMobile) {
-    box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.06), 0px 0px 8px rgba(18, 19, 25, 0.06), 0px 8px 32px rgba(18, 19, 25, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .thinking-icon {
+        animation: none;
+    }
 }
 </style>

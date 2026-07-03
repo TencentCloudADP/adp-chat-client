@@ -44,6 +44,8 @@ async def _cleanup_session(request):
 async def inject_session(request):
     if request.server_path in _SKIP_SESSION_PATHS:
         return
+    if request.server_path.startswith('/static'):  # 静态资源不需要 DB session
+        return
     request.ctx.db = app.config['sessionmaker']()
     request.ctx.db_ctx_token = _base_model_db_ctx.set(request.ctx.db)
     request.ctx._db_cleaned = False

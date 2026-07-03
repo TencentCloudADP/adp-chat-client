@@ -53,6 +53,8 @@ export interface ApiDetailConfig {
     agentConfigApi?: string;
     /** 创建会话接口路径 */
     createConversationApi?: string;
+    /** 快捷按钮建议列表接口路径 */
+    suggestionListApi?: string;
 }
 
 /**
@@ -88,6 +90,7 @@ export const defaultApiDetailConfig: ApiDetailConfig = {
     copyAgentFromAppApi: '/adp/CopyAgentFromApp',
     agentConfigApi: '/agent/config',
     createConversationApi: '/adp/CreateConversation',
+    suggestionListApi: '/suggestions',
 };
 
 export interface ReferenceDetailParams {
@@ -937,6 +940,50 @@ export const createConversation = async (
         return response.Response.ConversationId;
     } catch (error) {
         console.error('创建会话失败:', error);
+        throw error;
+    }
+};
+
+/** 快捷按钮建议项 */
+export interface SuggestionItem {
+    /** 建议 ID */
+    SuggestionId: string;
+    /** 建议标题 */
+    Title: string;
+    /** 建议提示内容 */
+    PromptContent: string;
+}
+
+/** 快捷按钮建议分组 */
+export interface SuggestionGroup {
+    /** 分组 ID */
+    GroupId: string;
+    /** 分组图标 URL */
+    IconUrl: string;
+    /** 分组名称 */
+    Name: string;
+    /** 分组下的建议列表 */
+    SuggestionList: SuggestionItem[];
+}
+
+/** 快捷按钮建议列表响应 */
+export interface SuggestionListResponse {
+    Response: {
+        GroupList: SuggestionGroup[];
+    };
+}
+
+/**
+ * 获取快捷按钮建议列表
+ * @param apiPath API 路径
+ */
+export const fetchSuggestionList = async (apiPath?: string): Promise<SuggestionGroup[]> => {
+    const path = apiPath || defaultApiDetailConfig.suggestionListApi!;
+    try {
+        const response: SuggestionListResponse = await httpService.get(path);
+        return response?.Response?.GroupList || [];
+    } catch (error) {
+        console.error('获取快捷按钮建议列表失败:', error);
         throw error;
     }
 };

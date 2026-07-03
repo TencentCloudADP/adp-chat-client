@@ -261,6 +261,7 @@ defineExpose({
                     :refresh-text="i18n.refresh"
                     :download-text="i18n.download"
                     :download-started-text="i18n.downloadStarted"
+                    :loading-text="i18n.loading"
                     @select="handleFileDirSelect"
                     @close="handleCloseDir"                    
                 />
@@ -370,6 +371,7 @@ defineExpose({
     border-bottom: 1px solid var(--td-border-level-1-color, #e7e7e7);
     flex-shrink: 0;
     gap: 4px;
+    line-height: 31px;
 }
 
 .file-preview-panel__toggle-dir {

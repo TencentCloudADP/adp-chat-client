@@ -15,14 +15,13 @@
                 <div class="at-mention-panel__category-inner">
                     <CustomizedIcon remote :name="cat.icon" size="s" :show-hover-bg="false" />
                     <span class="at-mention-panel__category-name">{{ cat.label }}</span>
-                    <CustomizedIcon remote name="arrow_right2_line" size="s" :show-hover-bg="false" class="at-mention-panel__category-arrow" />
                 </div>
             </div>
         </div>
 
         <!-- 右栏：子项列表 -->
         <div class="at-mention-panel__submenu">
-            <div v-if="activeItems.length === 0" class="at-mention-panel__empty">暂无可选项目</div>
+            <div v-if="activeItems.length === 0" class="at-mention-panel__empty">{{ mergedI18n.mentionEmpty }}</div>
             <div
                 v-for="(item, idx) in activeItems"
                 :key="item.id"
@@ -43,7 +42,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
-import type { NormalizedSkill } from '../../model/skills';
+import type { NormalizedSkill, SkillsI18n } from '../../model/skills';
+import { defaultSkillsI18n, defaultSkillsI18nEn } from '../../model/skills';
 
 /** 分类配置 */
 interface Category {
@@ -57,14 +57,27 @@ interface Props {
     installedSkills?: NormalizedSkill[];
     installedConnectors?: NormalizedSkill[];
     installedTools?: NormalizedSkill[];
+    installedKnowledge?: NormalizedSkill[];
     searchKeyword?: string;
+    /** 国际化文本 */
+    i18n?: SkillsI18n;
+    /** 当前语言标识 */
+    language?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     installedSkills: () => [],
     installedConnectors: () => [],
     installedTools: () => [],
+    installedKnowledge: () => [],
     searchKeyword: '',
+    i18n: () => ({}),
+    language: 'zh-CN',
+});
+
+const mergedI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultSkillsI18nEn : defaultSkillsI18n;
+    return { ...defaults, ...props.i18n };
 });
 
 const emit = defineEmits<{
@@ -78,11 +91,23 @@ const categoryIndex = ref(0);
 const subitemIndex = ref(0);
 const isKeyboardNavigating = ref(false);
 
+/** 按 id 去重，保留首次出现的项 */
+function dedupe(items: NormalizedSkill[]): NormalizedSkill[] {
+    const seen = new Set<string>();
+    return items.filter((item) => {
+        const key = item.id || item.name;
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+}
+
 const categoryList = computed<Category[]>(() => {
     const list: Category[] = [];
-    if (props.installedSkills.length) list.push({ key: 'skills', label: 'Skills', icon: 'basic_bulb_line', items: props.installedSkills });
-    if (props.installedConnectors.length) list.push({ key: 'connectors', label: '连接器', icon: 'basic_api_line', items: props.installedConnectors });
-    if (props.installedTools.length) list.push({ key: 'tools', label: '工具', icon: 'basic_plugin_line', items: props.installedTools });
+    if (props.installedSkills.length) list.push({ key: 'skills', label: mergedI18n.value.skills || 'Skills', icon: 'basic_bulb_line', items: dedupe(props.installedSkills) });
+    if (props.installedConnectors.length) list.push({ key: 'connectors', label: mergedI18n.value.connector || '连接器', icon: 'basic_connector_line', items: dedupe(props.installedConnectors) });
+    if (props.installedTools.length) list.push({ key: 'tools', label: mergedI18n.value.tools || '工具', icon: 'basic_plugin_line', items: dedupe(props.installedTools) });
+    if (props.installedKnowledge.length) list.push({ key: 'knowledgeBase', label: mergedI18n.value.knowledgeBase || '知识库', icon: 'basic_book_line', items: dedupe(props.installedKnowledge) });
     return list;
 });
 
@@ -172,38 +197,53 @@ function resetNavigation() {
 defineExpose({ handleKeydown, resetNavigation });
 </script>
 
-<style lang="less" scoped>
+<style scoped>
+/* ── 面板容器 ── */
 .at-mention-panel {
     display: flex;
     background: var(--td-bg-color-container);
-    border-radius: 6px;
-    box-shadow: var(--td-shadow-2);
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 8px 32px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--td-component-stroke);
     overflow: hidden;
     width: 320px;
     height: 280px;
 }
 
+/* ── 左栏：分类列表 ── */
 .at-mention-panel__categories {
-    width: 110px;
+    width: 130px;
     border-right: 1px solid var(--td-component-border);
     overflow-y: auto;
     padding: 4px 0;
     flex-shrink: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--td-scrollbar-color, rgba(0,0,0,.12)) transparent;
 }
 
 .at-mention-panel__category {
     cursor: pointer;
-    transition: background 0.15s;
-    &:hover { background: var(--td-bg-color-container-active); }
-    &--active { background: var(--td-bg-color-container-active); }
-    &--focused { background: var(--td-brand-color-light); }
+    transition: background 0.12s ease;
+}
+
+.at-mention-panel__category:hover {
+    background: var(--td-bg-color-container-active);
+}
+
+.at-mention-panel__category--active {
+    background: var(--td-bg-color-container-active);
+}
+
+.at-mention-panel__category--focused {
+    background: var(--td-brand-color-light);
 }
 
 .at-mention-panel__category-inner {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 10px;
+    padding: 7px 10px;
+    height: 36px;
     font-size: 13px;
     color: var(--td-text-color-primary);
 }
@@ -215,24 +255,53 @@ defineExpose({ handleKeydown, resetNavigation });
 
 .at-mention-panel__category-arrow {
     color: var(--td-text-color-placeholder);
+    opacity: 0.6;
+    transition: opacity 0.15s ease;
 }
 
+.at-mention-panel__category--active .at-mention-panel__category-arrow {
+    opacity: 1;
+}
+
+/* ── 右栏：子项列表 ── */
 .at-mention-panel__submenu {
     flex: 1;
     overflow-y: auto;
     padding: 4px 0;
     min-width: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--td-scrollbar-color, rgba(0,0,0,.12)) transparent;
+}
+
+.at-mention-panel__submenu::-webkit-scrollbar {
+    width: 4px;
+}
+
+.at-mention-panel__submenu::-webkit-scrollbar-thumb {
+    background: var(--td-scrollbar-color, rgba(0,0,0,.12));
+    border-radius: 4px;
+}
+
+.at-mention-panel__submenu::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 .at-mention-panel__subitem {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 10px;
+    padding: 7px 10px;
+    height: 36px;
     cursor: pointer;
-    transition: background 0.15s;
-    &:hover { background: var(--td-bg-color-container-active); }
-    &--focused { background: var(--td-brand-color-light); }
+    transition: background 0.12s ease;
+}
+
+.at-mention-panel__subitem:hover {
+    background: var(--td-bg-color-container-active);
+}
+
+.at-mention-panel__subitem--focused {
+    background: var(--td-brand-color-light);
 }
 
 .at-mention-panel__subitem-icon {
@@ -242,12 +311,13 @@ defineExpose({ handleKeydown, resetNavigation });
     object-fit: cover;
     flex-shrink: 0;
     color: var(--td-text-color-secondary);
-    &--fallback {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--td-bg-color-secondarycontainer);
-    }
+}
+
+.at-mention-panel__subitem-icon--fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--td-bg-color-secondarycontainer);
 }
 
 .at-mention-panel__subitem-name {
@@ -259,7 +329,7 @@ defineExpose({ handleKeydown, resetNavigation });
 }
 
 .at-mention-panel__empty {
-    padding: 8px;
+    padding: 24px 8px;
     color: var(--td-text-color-placeholder);
     font-size: 12px;
     text-align: center;

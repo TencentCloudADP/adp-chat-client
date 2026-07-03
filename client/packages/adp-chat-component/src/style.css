@@ -1,5 +1,5 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -15,11 +15,11 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: var(--td-brand-color, #4a70ff);
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: var(--td-brand-color-hover, #6c8bff);
 }
 
 body {
@@ -44,10 +44,10 @@ button {
   font-family: inherit;
   background-color: #1a1a1a;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.2s ease;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: var(--td-brand-color, #4a70ff);
 }
 
 
@@ -67,9 +67,7 @@ button:hover {
 }
 #main {
   flex-grow: 1;
-  /* background: #fafafa; */
-  /* border: gray 2px solid; */
-  background-image: repeating-linear-gradient(45deg, #f0f0f0, #f0f0f0 100px, #ffffff 100px, #ffffff 200px);
+  background: var(--td-bg-color-page, #f7f7f8);
 }
 #chat-panel {
   width: fit-content;
@@ -82,7 +80,7 @@ button:hover {
     background-color: #ffffff;
   }
   a:hover {
-    color: #747bff;
+    color: var(--td-brand-color-hover, #6c8bff);
   }
   button {
     background-color: #f9f9f9;
@@ -97,17 +95,15 @@ button:hover {
 
 .t-drawer__footer {
   border-top: none !important;
-  background: var(--td-bg-color-container) !important;
 }
 
 .t-drawer__content-wrapper {
-  /* background: var(--td-bg-color-secondarycontainer) !important; */
-  background: var(--td-bg-color-container) !important;
+  background: var(--td-bg-color-page) !important;
 }
 
 .t-divider--horizontal {
-  margin: var(--td-comp-margin-l) 0 !important;
-  border-top: 1px solid var(--td-border-level-2-color) !important;
+  margin: 12px 0 !important;
+  border-top: 1px solid var(--td-component-stroke) !important;
 }
 
 .t-drawer__body {
@@ -116,8 +112,8 @@ button:hover {
 /* stylelint-enable */
 
 :root[theme-mode='dark']{
-  --td-sender-bg:rgba(255, 255, 255, 0.22);
+  --td-sender-bg: rgba(255, 255, 255, 0.08);
 }
 :root[theme-mode='light']{
-  --td-sender-bg:rgba(255, 255, 255, 1);
+  --td-sender-bg: rgba(255, 255, 255, 1);
 }

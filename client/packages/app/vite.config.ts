@@ -1,8 +1,7 @@
 import { fileURLToPath, URL } from 'node:url'
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig, loadEnv, type UserConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
-import { visualizer } from 'rollup-plugin-visualizer'
 import path from 'node:path'
 import { existsSync, readFileSync } from 'node:fs'
 
@@ -41,21 +40,32 @@ function serveWidgetPlugin() {
 }
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => {
+export default defineConfig(async ({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   const isAnalyze = mode === 'analyze'
-  return {
+
+  // 仅在 analyze 模式下按需加载 rollup-plugin-visualizer，避免常态 dev/build 时
+  // 因为 npm workspaces hoist 边界问题导致 Node ESM 解析失败。
+  // 使用时请确保 devDependencies 中已声明该包。
+  let visualizerPlugin: any = null
+  if (isAnalyze) {
+    const moduleName = 'rollup-plugin-visualizer'
+    const { visualizer } = await import(/* @vite-ignore */ moduleName)
+    visualizerPlugin = visualizer({
+      open: true,
+      filename: 'dist/stats.html',
+      gzipSize: true,
+      brotliSize: true,
+    })
+  }
+
+  const config: UserConfig = {
     base: './',
     plugins: [
       vue(),
       vueJsx() as any,
-      // 打包分析插件，使用 pnpm build --mode analyze 启用
-      isAnalyze && visualizer({
-        open: true,
-        filename: 'dist/stats.html',
-        gzipSize: true,
-        brotliSize: true,
-      }),
+      // 打包分析插件，仅在 --mode analyze 时启用
+      visualizerPlugin,
       // 开发时服务 widget 静态资源（widget 只存放于 adp-chat-component 中）
       serveWidgetPlugin(),
     ].filter(Boolean),
@@ -68,7 +78,15 @@ export default defineConfig(({ mode }) => {
     },
     // 优化依赖预构建
     optimizeDeps: {
-      include: ['tdesign-vue-next'],
+      include: [
+        'tdesign-vue-next',
+        '@tdesign-vue-next/chat',
+        'vue',
+        'vue-router',
+        'pinia',
+        'axios',
+        'vue-i18n',
+      ],
       // 排除 workspace 包，让其使用源码
       exclude: ['adp-chat-component', 'adp-widget'],
     },
@@ -85,4 +103,5 @@ export default defineConfig(({ mode }) => {
       },
     },
   }
+  return config
 })

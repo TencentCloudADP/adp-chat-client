@@ -1,7 +1,7 @@
 <template>
     <t-dialog
         v-model:visible="visible"
-        header="请填充相关信息并继续"
+        :header="mergedI18n.mcpFieldTitle"
         :confirm-btn="null"
         :cancel-btn="null"
         :close-on-overlay-click="false"
@@ -17,9 +17,9 @@
                         :key="`h-${idx}`"
                         :label="item.param_name"
                         :name="`headers_${idx}`"
-                        :rules="item.is_required ? [{ required: true, message: '必填' }] : []"
+                        :rules="item.is_required ? [{ required: true, message: mergedI18n.fieldRequired }] : []"
                     >
-                        <t-input v-model="item._value" :placeholder="`请输入 ${item.param_name}`"  />
+                        <t-input v-model="item._value" :placeholder="formatPleaseInput(item.param_name)"  />
                     </t-form-item>
                 </template>
                 <template v-if="query.length > 0">
@@ -29,14 +29,14 @@
                         :key="`q-${idx}`"
                         :label="item.param_name"
                         :name="`query_${idx}`"
-                        :rules="item.is_required ? [{ required: true, message: '必填' }] : []"
+                        :rules="item.is_required ? [{ required: true, message: mergedI18n.fieldRequired }] : []"
                     >
-                        <t-input v-model="item._value" :placeholder="`请输入 ${item.param_name}`"  />
+                        <t-input v-model="item._value" :placeholder="formatPleaseInput(item.param_name)"  />
                     </t-form-item>
                 </template>
                 <div class="mcp-field-dialog__footer">
-                    <t-button theme="primary" type="submit" :loading="submitting" >确定并添加工具</t-button>
-                    <t-button variant="outline"  @click="onCancel">取消</t-button>
+                    <t-button theme="primary" type="submit" :loading="submitting" >{{ mergedI18n.confirmAndAdd }}</t-button>
+                    <t-button variant="outline"  @click="onCancel">{{ mergedI18n.cancel }}</t-button>
                 </div>
             </t-form>
         </div>
@@ -46,6 +46,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { Dialog as TDialog, Form as TForm, FormItem as TFormItem, Input as TInput, Button as TButton } from 'tdesign-vue-next';
+import type { SkillsI18n } from '../../model/skills';
+import { defaultSkillsI18n, defaultSkillsI18nEn } from '../../model/skills';
 
 interface FieldItem {
     param_name: string;
@@ -60,14 +62,32 @@ interface Props {
     modelValue: boolean;
     requiredHeaders?: Array<Record<string, unknown>>;
     requiredQuery?: Array<Record<string, unknown>>;
+    /** 国际化文本 */
+    i18n?: Partial<SkillsI18n>;
+    /** 语言：'en-*' 走英文 */
+    language?: string;
 }
 
-const props = withDefaults(defineProps<Props>(), { modelValue: false, requiredHeaders: () => [], requiredQuery: () => [] });
+const props = withDefaults(defineProps<Props>(), {
+    modelValue: false,
+    requiredHeaders: () => [],
+    requiredQuery: () => [],
+    i18n: () => ({}),
+    language: '',
+});
 const emit = defineEmits<{
     (e: 'update:modelValue', v: boolean): void;
     (e: 'confirm', payload: { headers: Array<Record<string, unknown>>; query: Array<Record<string, unknown>> }): void;
     (e: 'cancel'): void;
 }>();
+
+const mergedI18n = computed<Required<SkillsI18n>>(() => {
+    const defaults = props.language?.startsWith('en') ? defaultSkillsI18nEn : defaultSkillsI18n;
+    return { ...defaults, ...props.i18n };
+});
+function formatPleaseInput(name: string): string {
+    return (mergedI18n.value.pleaseInput || '').replace('{name}', name);
+}
 
 const visible = computed({ get: () => props.modelValue, set: (v) => emit('update:modelValue', v) });
 const formRef = ref<InstanceType<typeof TForm> | null>(null);

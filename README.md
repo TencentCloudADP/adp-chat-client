@@ -23,6 +23,7 @@
 - [Advanced Topics](#advanced-topics)
   - [Agent: VisitorId Configuration](#agent-visitorid-configuration)
   - [Agent: Variables - API Parameters](#agent-variables---api-parameters)
+  - [Smart Agent: Quick Buttons Configuration](#smart-agent-quick-buttons-configuration)
   - [Deployment: nginx](#deployment-nginx)
   - [Deployment: Long Responses Are Cut Off](#deployment-long-responses-are-cut-off)
   - [Deployment: Subpath](#deployment-subpath)
@@ -89,14 +90,29 @@ You need to fill in the following credentials and application keys based on your
 TC_SECRET_APPID=
 TC_SECRET_ID=
 TC_SECRET_KEY=
-# Tencent Cloud ADP platform agent app key: https://adp.tencentcloud.com/
+
+# ADP platform-specific secrets (required only when ServiceVendor is "ChinaTencentADP")
+# See the standalone site guide below for how to obtain them
+ADP_SECRET_ID=
+ADP_SECRET_KEY=
+
+# Tencent Cloud ADP platform agent app key:
+# - China public cloud: https://adp.cloud.tencent.com/
+# - Standalone site (独立站): https://adp.tencent.com/
 APP_CONFIGS='[
     {
         "Vendor":"Tencent",
         "ApplicationId":"The unique ID of the chat application, used to uniquely identify a chat application in this system. Recommended to use appid or generate a random uuid using the uuidgen command",
         "Comment": "Comment",
         "AppKey": "",
-        "International": true
+        "International": false
+    },
+    {
+        "Vendor":"Tencent",
+        "ApplicationId":"Standalone-site application unique ID",
+        "Comment": "Standalone site comment",
+        "AppKey": "",
+        "ServiceVendor": "ChinaTencentADP"
     }
 ]'
 
@@ -108,9 +124,50 @@ SECRET_KEY=
 > ⚠️ **Note**:
 > 1. The content of APP_CONFIGS is in JSON format. Please adhere to JSON specifications, e.g., the last item should not end with a comma, and // comments are not supported.
 > 2. Comment: Can be filled in freely for easy identification of the corresponding agent application.
-> 3. International: If the agent application is developed on the [ADP](https://adp.tencentcloud.com/), set the value to true.
-> 4. ApplicationId: Access any ADP application and check the appid in the application URL. For example, if an application's link is `https://adp.tencentcloud.com/adp/#/app/knowledge/app-config?appid=197******768&appType=knowledge_qa&spaceId=default_space`, then its ApplicationId is 197******768.
+> 3. International: If the agent application is developed on the [ADP China cloud](https://adp.cloud.tencent.com/), set to `false` (default). Set to `true` for international site applications.
+> 4. ApplicationId: Access any ADP application and check the appid in the application URL. For example, if an application's link is `https://adp.cloud.tencent.com/adp/#/app/knowledge/app-config?appid=197******768&appType=knowledge_qa&spaceId=default_space`, then its ApplicationId is 197******768.
 > 5. Vendor: Fixed to "Tencent", other options may be available for other platforms in the future.
+> 6. To configure multiple applications, simply append more objects to the APP_CONFIGS array in the same format.
+> 7. **ServiceVendor**: Optional values — `"ChinaTencentCloud"` (**default**, China public cloud) / `"ChinaTencentADP"` (**standalone site / 独立站**) / `"International"` (international site) / `"Private"` (private deployment). Must set to `"ChinaTencentADP"` when using the standalone ADP instance.
+> 8. **ADP_SECRET_ID / ADP_SECRET_KEY**: Required only when at least one application uses `"ServiceVendor": "ChinaTencentADP"`. Used for API authentication against the standalone ADP instance. If left empty, falls back to TC_SECRET_ID / TC_SECRET_KEY.
+
+#### Quick Buttons Suggestion Configuration (Optional)
+
+You can configure `SUGGESTION_CONFIGS` to display quick-button prompt templates above the input box on the chat page. Users can click a suggestion to auto-fill it into the input field. If not configured, no quick buttons will be shown.
+
+Configuration format:
+
+```bash
+SUGGESTION_CONFIGS='[
+    {
+        "GroupId": "Unique group ID",
+        "IconUrl": "Group icon URL (supports https remote images)",
+        "Name": "Group name (e.g. Document Processing, Data Analysis)",
+        "SuggestionList": [
+            {
+                "SuggestionId": "Unique suggestion ID",
+                "Title": "Suggestion title",
+                "PromptContent": "Prompt text that fills into the input box on click"
+            }
+        ]
+    }
+]'
+```
+
+Interaction:
+- **Level 1**: Horizontally scrollable group list with icon + name
+- **Level 2**: Click a group to expand horizontal suggestion cards (title + description)
+- **Click suggestion**: Fills `PromptContent` into the input box; user can edit before sending
+- **Back**: Click the back arrow in the top-left corner to return to groups
+
+`PromptContent` supports mention syntax (optional):
+- `@skill:<skill-name>` — reference a Skill installed on the current agent
+- `@knowledgeBase:<kb-name>` — reference an attached knowledge base
+- `@tool:<tool-name>` — reference a registered tool (**connectors use the same `@tool:` prefix as tools**)
+
+Mentions are rendered as colored chips inside the input box after the suggestion is filled. The referenced entity must already be installed / attached on the current agent.
+
+> ⚠️ **Format note**: The whole value is wrapped in single quotes `'...'`, so the JSON body **must not contain any ASCII single quote `'` (U+0027)**. If you need to quote a phrase inside `PromptContent`, use full-width Chinese quotes `“…”` / `‘…’`, or drop the quotes. Otherwise, in Docker deploy mode dotenv will treat the inner `'` as the closing delimiter and `SUGGESTION_CONFIGS` will silently fall back to an empty list — no quick buttons will be shown.
 
 5. Build docker image
 ```bash
@@ -183,6 +240,54 @@ OAUTH_MICROSOFT_ENTRA_SECRET=
 OAUTH_MICROSOFT_ENTRA_ENDPOINT=common
 ```
 > 📝 **Note**：When creating a Microsoft Entra ID OAuth application, fill in the callback URL as：SERVICE_API_URL+/oauth/callback/ms_entra_id, for example: http://localhost:8000/oauth/callback/ms_entra_id
+
+### ADP Standalone Site (ChinaTencentADP) Credentials
+
+When your agent application is deployed on the **ADP Standalone Site** ([https://adp.tencent.com](https://adp.tencent.com/)), you need to configure the standalone-site-specific secrets `ADP_SECRET_ID` / `ADP_SECRET_KEY` and declare `ServiceVendor: "ChinaTencentADP"` on the corresponding application.
+
+#### Step 1: Obtain Standalone API Credentials
+
+1. Log in to the **ADP Standalone Site**: [https://adp.tencent.com](https://adp.tencent.com/)
+2. Navigate to the **Key Management** page: [https://adp.tencent.com/adp#/key-manage](https://adp.tencent.com/adp#/key-manage)
+3. Click the **「+ New API Key (+ 新建 API 密钥)」** button
+
+![ADP Key Management Page](docs/assets/adp-key-management.png)
+
+4. After confirming creation in the popup dialog, the system displays `SecretID` and `SecretKey`
+
+![Create API Key Dialog](docs/assets/create-api-key.png)
+
+> ⚠️ **Important**: The SecretKey is shown **only once** at creation time and cannot be retrieved later. Make sure to save it securely.
+
+#### Step 2: Fill in .env (do NOT commit real secrets to the repository)
+
+In `deploy/default/.env`, fill in the following fields:
+
+```bash
+# ADP standalone-site secrets (required only when ServiceVendor is "ChinaTencentADP")
+# Get them from: https://adp.tencent.com/adp#/key-manage
+ADP_SECRET_ID=
+ADP_SECRET_KEY=
+```
+
+- Copy the **SecretID** from the dialog into `ADP_SECRET_ID`
+- Copy the **SecretKey** from the dialog into `ADP_SECRET_KEY`
+- Add `"ServiceVendor": "ChinaTencentADP"` to the corresponding application object inside `APP_CONFIGS`
+
+```bash
+APP_CONFIGS='[
+    {
+        "Vendor": "Tencent",
+        "ApplicationId": "Standalone-site application unique ID",
+        "Comment": "Standalone site comment",
+        "AppKey": "",
+        "ServiceVendor": "ChinaTencentADP"
+    }
+]'
+```
+
+> 💡 **Tip**: If `ADP_SECRET_ID` / `ADP_SECRET_KEY` are left empty, the system falls back to `TC_SECRET_ID` / `TC_SECRET_KEY`. You can mix multiple source types within the same `APP_CONFIGS` array (public cloud + standalone + international) — just ensure each application object has the correct `ServiceVendor` value.
+
 
 ### Other OAuth providers
 
@@ -343,6 +448,103 @@ class ChatMessageApi(HTTPMethodView):
             vendor_app: {vendor_app}")
 
 ```
+
+## Smart Agent: Quick Buttons Configuration
+
+You can configure `SUGGESTION_CONFIGS` to display quick-button prompt templates above the input box on the Web chat page. This feature mirrors the "Prompt Suggestion" (DescribePromptSuggestionList) capability of the Agent Development Platform, reading data entirely from the configuration file without backend API calls.
+
+### Data Structure
+
+`SUGGESTION_CONFIGS` is a JSON array where each item is a group containing a suggestion list:
+
+```json
+[
+    {
+        "GroupId": "Unique group identifier (string)",
+        "IconUrl": "Group icon URL (supports https remote images, recommended 32x32px)",
+        "Name": "Group name",
+        "SuggestionList": [
+            {
+                "SuggestionId": "Unique suggestion identifier (string)",
+                "Title": "Suggestion title (shown at the top of the card)",
+                "PromptContent": "Text that fills into the input box on click"
+            }
+        ]
+    }
+]
+```
+
+### Interaction
+
+| Level | Display | Action |
+|-------|---------|--------|
+| Level 1 (Groups) | Horizontal scrollable row, icon + name | Click to enter Level 2 |
+| Level 2 (Suggestions) | Horizontal scrollable cards, each showing title + description (max 2 lines) | Click to fill `PromptContent` into input box and return to Level 1 |
+| Back | Top of Level 2: group name with left arrow | Click to return to Level 1 |
+
+> 📝 **Note**:
+> 1. Quick buttons only appear when the message list is empty; they auto-hide after sending a message
+> 2. Clicking a suggestion fills it into the input box **without auto-sending** — users can edit before sending
+> 3. If not configured or set to an empty array `[]`, no quick button area will be shown
+> 4. Icon loading failures will display a default placeholder icon
+
+### Full Configuration Example
+
+```bash
+SUGGESTION_CONFIGS='[
+    {
+        "GroupId": "group-doc",
+        "IconUrl": "https://cdn.example.com/icons/doc-process.png",
+        "Name": "Document Processing",
+        "SuggestionList": [
+            {
+                "SuggestionId": "sug-001",
+                "Title": "Meeting Notes to Report",
+                "PromptContent": "Please organize my uploaded meeting notes into a formal weekly report..."
+            },
+            {
+                "SuggestionId": "sug-002",
+                "Title": "Invoice Extraction",
+                "PromptContent": "Please build an “Invoice Extraction” Skill: upload an invoice image or PDF, auto-detect key fields and output structured JSON."
+            }
+        ]
+    },
+    {
+        "GroupId": "group-app",
+        "IconUrl": "https://cdn.example.com/icons/app-build.png",
+        "Name": "App Building",
+        "SuggestionList": [
+            {
+                "SuggestionId": "sug-003",
+                "Title": "Sales Analytics Assistant",
+                "PromptContent": "Create a sales analytics assistant that supports natural-language queries over sales data and auto-generates charts. @skill:example-app-manager"
+            }
+        ]
+    }
+]'
+```
+
+### Advanced usage of PromptContent
+
+Beyond plain text, `PromptContent` supports **mention references** in the form `@<type>:<name>`. When the suggestion is clicked, the mention is rendered as a colored chip inside the input box:
+
+| Syntax | Meaning |
+|--------|---------|
+| `@skill:<skill-name>` | Reference a Skill installed on the current agent |
+| `@knowledgeBase:<kb-name>` | Reference an attached knowledge base |
+| `@tool:<tool-name>` | Reference a registered tool or connector (connectors reuse the `@tool:` prefix) |
+
+The referenced entity must already be installed / attached on the current agent, otherwise the mention will not resolve to a chip and will be shown as plain text. Connectors and tools share the `@tool:` prefix; the frontend detects the connector by name among the agent's registered connectors and renders it as a "connector" chip.
+
+### Format rules
+
+`SUGGESTION_CONFIGS` is a multi-line JSON value wrapped by single quotes `'...'` in `.env`. Please follow the rules below to avoid parsing failures:
+
+1. **Do NOT put an ASCII single quote `'` (U+0027) anywhere inside the JSON body**. If you need to quote a phrase inside `PromptContent`, use full-width Chinese quotes `“…”` / `‘…’`, or drop the quotes. Reason: in Docker deploy mode the backend parses `.env` strictly with `python-dotenv`, which treats the first inner `'` as the closing delimiter, discards the whole `SUGGESTION_CONFIGS` value, and the frontend ends up with an empty `GroupList` — no quick buttons will show up.
+2. **JSON string values use double quotes `"..."`**; if you need a literal `"` inside the text, escape it as `\"`.
+3. **Every `GroupId` / `SuggestionId` should be globally unique** — the frontend uses them as `key`.
+4. **`IconUrl` must be publicly reachable via https**, recommended size 32×32 px.
+5. **Restart the container/service after editing `.env`** to pick up the new value (no need to re-`pack` the image).
 
 ## Deployment: nginx
 
@@ -565,4 +767,12 @@ Page({
 2. Go to App Development → Enter the application configured in APP_CONFIGS
 3. In the advanced settings, find "Allow dynamic configuration changes during conversation"
 ![alt text](docs/assets/setting1.png)
+4. Publish the application
+
+## App & Configuration: Enable Knowledge Base Feature
+
+1. Log in to the Tencent Cloud [Agent Development Platform](https://adp.tencentcloud.com/)
+2. Go to App Development → Enter the application configured in APP_CONFIGS
+3. In the tools, add the "Knowledge Q&A / KnowledgeRetrievalAnswer" tool (it is added by default)
+![alt text](docs/assets/setting2.png)
 4. Publish the application

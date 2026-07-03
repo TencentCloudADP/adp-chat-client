@@ -1,7 +1,7 @@
 <template>
     <t-dialog
         v-model:visible="visible"
-        header="管理连接器"
+        :header="mergedI18n.manageConnector"
         :footer="false"
         :close-on-overlay-click="false"
         width="min(900px, calc(100vw - 40px))"
@@ -11,22 +11,22 @@
             <div class="connector-manage__filter-bar">
                 <t-input
                     v-model="searchKeyword"
-                    placeholder="搜索连接器"
+                    :placeholder="mergedI18n.searchConnector"
                     clearable
                     class="connector-manage__search"
                     @change="onSearchChange"
                 >
                     <template #prefix-icon><CustomizedIcon remote name="basic_search_line" size="xs" :show-hover-bg="false" :theme="theme" /></template>
                 </t-input>
-                <t-checkbox v-model="enabledOnly" @change="onEnabledOnlyChange">已启用</t-checkbox>
+                <t-checkbox v-model="enabledOnly" @change="onEnabledOnlyChange">{{ mergedI18n.enabledOnly }}</t-checkbox>
             </div>
 
             <!-- 列表区 -->
             <div v-if="loading" class="connector-manage__loading">
-                <t-loading size="small"  text="加载中..." />
+                <t-loading size="small" :text="mergedI18n.loading" />
             </div>
             <div v-else-if="displayList.length === 0" class="connector-manage__empty">
-                <span>{{ enabledOnly ? '暂无已启用的连接器' : '暂无连接器' }}</span>
+                <span>{{ enabledOnly ? mergedI18n.noEnabledConnector : mergedI18n.noConnector }}</span>
             </div>
             <div v-else class="connector-manage__list">
                 <div v-for="item in displayList" :key="item.pluginId" class="connector-item">
@@ -37,10 +37,10 @@
                     <div class="connector-item__info">
                         <div class="connector-item__title">
                             <span class="connector-item__name" :title="item.name">{{ item.name }}</span>
-                            <t-tag v-if="item.isInner" variant="light">预置</t-tag>
+                            <t-tag v-if="item.isInner" variant="light">{{ mergedI18n.tagBuiltin }}</t-tag>
                         </div>
                         <div class="connector-item__desc" :title="item.desc">
-                            {{ item.desc || '暂无描述' }}
+                            {{ item.desc || mergedI18n.noDescription }}
                         </div>
                     </div>
                     <div class="connector-item__actions">
@@ -58,13 +58,13 @@
             <!-- 分页 -->
             <t-pagination
                 v-if="!enabledOnly && total > pageSize"
-                v-model="pageNumber"
+                :current="pageNumber"
                 :total="total"
                 :page-size="pageSize"
                 :page-size-options="[]"
                 size="small"
                 class="connector-manage__pagination"
-                @change="fetchList"
+                @current-change="onPageChange"
             />
         </div>
 
@@ -72,6 +72,8 @@
         <BrowserExtensionInstallDialog
             v-model="showExtensionInstallDialog"
             :theme="theme"
+            :language="language"
+            :i18n="i18n"
             @confirm="handleExtensionDialogClose"
             @cancel="handleExtensionDialogClose"
         />
@@ -102,11 +104,17 @@ import {
 import type { DetectExtensionResult, DetectExtensionFailReason } from '../../utils/adp-browser-extension';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
+import type { SkillsI18n } from '../../model/skills';
+import { defaultSkillsI18n, defaultSkillsI18nEn } from '../../model/skills';
 
 interface Props extends ThemeProps {
     modelValue: boolean;
     applicationId?: string;
     spaceId?: string;
+    /** 国际化文本（与 SkillsPopover / Sender 共享 SkillsI18n） */
+    i18n?: Partial<SkillsI18n>;
+    /** 语言：'en-*' 走英文 */
+    language?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -114,6 +122,14 @@ const props = withDefaults(defineProps<Props>(), {
     modelValue: false,
     applicationId: '',
     spaceId: '',
+    i18n: () => ({}),
+    language: '',
+});
+
+/** 合并默认 + 业务方传入的 i18n */
+const mergedI18n = computed<Required<SkillsI18n>>(() => {
+    const defaults = props.language?.startsWith('en') ? defaultSkillsI18nEn : defaultSkillsI18n;
+    return { ...defaults, ...props.i18n };
 });
 
 const { getAgentIdByAppId, getAgentDetailByAppId, resetAgentStore, fetchAgentDetail } = useAgentStore();
@@ -243,9 +259,15 @@ function onSearchChange() {
 
 function onEnabledOnlyChange() {
     pageNumber.value = 1;
+    total.value = 0;
     if (!enabledOnly.value) {
         fetchList();
     }
+}
+
+function onPageChange(current: number) {
+    pageNumber.value = current;
+    fetchList();
 }
 
 /** 拉取已启用的连接器列表，可选是否先清除缓存 */
@@ -608,11 +630,11 @@ function startExtensionPollingForEnable(): void {
         togglingId.value = pendingItem.pluginId;
         try {
             await doEnableConnector(pendingItem, agentId);
-            MessagePlugin.success('已开启');
+            MessagePlugin.success(mergedI18n.value.enabledToast);
             await fetchInstalled(true);
         } catch (e) {
             console.error('[ConnectorDialog] auto enable after extension ready failed:', e);
-            MessagePlugin.error('开启失败');
+            MessagePlugin.error(mergedI18n.value.enableFailedToast);
         } finally {
             togglingId.value = '';
         }
@@ -675,7 +697,7 @@ async function checkExtensionBeforeEnable(item: ConnectorItem, agentId: string):
     if (!isExtensionMissingReason(result.reason)) {
         // 扩展可能已安装但通信异常（超时/异常等），不弹安装引导，提示用户后退出
         console.warn('[ConnectorDialog] extension detect non-missing failure:', result.reason);
-        throw new Error('浏览器扩展通信异常，请刷新页面或检查扩展状态后重试');
+        throw new Error(mergedI18n.value.extensionCommErrorMsg);
     }
 
     // 未安装：入队 + 弹出引导 + 启动轮询；轮询命中安装后会自动完成启用
@@ -695,7 +717,7 @@ async function onToggleEnabled(item: ConnectorItem, val: boolean) {
     if (togglingId.value) return;
     const agentId = await getAgentIdByAppId(props.applicationId);
     if (!props.applicationId || !agentId) {
-        MessagePlugin.warning('缺少应用 ID 或 Agent ID');
+        MessagePlugin.warning(mergedI18n.value.missingAppOrAgentId);
         return;
     }
     togglingId.value = item.pluginId;
@@ -719,12 +741,12 @@ async function onToggleEnabled(item: ConnectorItem, val: boolean) {
 
         // 仅当不在"等待扩展安装"状态时才提示成功（扩展未安装的场景下成功提示由轮询完成后统一发出）
         if (extensionPendingItem.value !== item) {
-            MessagePlugin.success(val ? '已开启' : '已关闭');
+            MessagePlugin.success(val ? mergedI18n.value.enabledToast : mergedI18n.value.disabledToast);
             await fetchInstalled(true);
         }
     } catch (e) {
         console.error('[ConnectorDialog] toggle error:', e);
-        MessagePlugin.error(val ? '开启失败' : '关闭失败');
+        MessagePlugin.error(val ? mergedI18n.value.enableFailedToast : mergedI18n.value.disableFailedToast);
     } finally {
         togglingId.value = '';
     }
@@ -781,7 +803,6 @@ watch(() => props.modelValue, (val) => {
     transition: background 0.15s;
 }
 .connector-item:last-child { border-bottom: none; }
-.connector-item:hover { background: var(--td-bg-color-container-hover); }
 .connector-item__icon { flex-shrink: 0; width: var(--td-comp-size-xl); }
 .connector-item__icon img {
     width: var(--td-comp-size-xl);

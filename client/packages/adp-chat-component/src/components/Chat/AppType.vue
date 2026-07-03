@@ -3,13 +3,13 @@
  * 智能体选择组件
  * 功能：展示当前智能体的欢迎语和推荐问题
  */
-import { ref, toRefs } from 'vue';
+import { ref, toRefs, computed } from 'vue';
 import { Space as TSpace, CheckTag as TCheckTag } from 'tdesign-vue-next';
 import AnimatedIcon from '../AnimatedIcon/index.vue';
 
 // TSpace, TCheckTag 已导入，AnimatedIcon 为动效图标组件
-import type { MobileProps } from '../../model/type';
-import { mobilePropsDefaults } from '../../model/type';
+import type { MobileProps, ChatI18n } from '../../model/type';
+import { mobilePropsDefaults, defaultChatI18n, defaultChatI18nEn } from '../../model/type';
 interface Props extends MobileProps {
   /** 当前应用头像 */
   currentApplicationAvatar?: string;
@@ -21,6 +21,10 @@ interface Props extends MobileProps {
   currentApplicationOpeningQuestions?: string[];
   /** 是否显示遮罩层 */
   isOverlay?: boolean;
+  /** 国际化文本 */
+  i18n?: ChatI18n;
+  /** 当前语言标识 */
+  language?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -29,7 +33,14 @@ const props = withDefaults(defineProps<Props>(), {
   currentApplicationGreeting: '',
   currentApplicationOpeningQuestions: () => [],
   isOverlay: false,
+  i18n: () => ({}),
+  language: 'zh-CN',
   ...mobilePropsDefaults,
+});
+
+const mergedI18n = computed(() => {
+  const defaults = props.language?.startsWith('en') ? defaultChatI18nEn : defaultChatI18n;
+  return { ...defaults, ...props.i18n };
 });
 
 // 解构 props 以便在模板中使用
@@ -68,10 +79,10 @@ const handleChooseQuestion = (value: string) => {
     <div class="welcome-header-content" v-if="!isOverlay">
       <div class="welcome-title-row">
         <AnimatedIcon class="welcome-robot-icon" :width="46" :height="36" />
-        <div class="welcome-title">描述需求，开启智能工作方式</div>
+        <div class="welcome-title">{{ mergedI18n.welcomeTitle }}</div>
       </div>
       <div class="welcome-description">
-        一站式智能工作台，连接企业知识库与技能工具，替你从规划到执行完成每一项任务。
+        {{ mergedI18n.welcomeDescription }}
       </div>
     </div>
     <div class="greet-desc" v-if="currentApplicationGreeting">
@@ -89,98 +100,124 @@ const handleChooseQuestion = (value: string) => {
 </template>
 
 <style scoped>
-/* app展示内容详情 */
-.app-detail-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
+/* ── 欢迎面板 ── */
 .greeting-panel {
   display: flex;
   height: 100%;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: 0 24px;
 }
+
 .welcome-header-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 48px;
+  margin-bottom: 36px;
 }
+
 .welcome-title-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 12px;
 }
+
 .welcome-robot-icon {
   width: 46px;
   height: 36px;
   flex-shrink: 0;
 }
+
 .welcome-title {
-  font-size: 28px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: 700;
   color: var(--td-text-color-primary, rgba(0, 0, 0, 0.9));
-  line-height: 36px;
-}
-.welcome-description {
-  font-size: 12px;
-  line-height: 20px;
-  color: var(--td-text-color-secondary, rgba(3, 10, 38, 0.65));
-  text-align: center;
-  max-width: 500px;
-}
-.isMobile .greet-desc{
-  background-color: transparent;
-  padding:0;
-  margin-top: var(--td-comp-margin-m);
-  color: var(--td-text-color-primary)
-}
-.greet-desc {
-  color: var(--td-text-color-secondary);
-  background-color: var(--td-bg-color-container-hover) ;
-  font-size: var(--td-font-size-title-small);
-  word-break: break-all;
-  margin-top: var(--td-size-8);
-  padding:var(--td-pop-padding-l) var(--td-pop-padding-xl);
-  border-radius: var(--td-radius-medium);
+  line-height: 32px;
+  letter-spacing: -0.02em;
 }
 
-.isMobile .greet-desc{
-  background: var(-----td-bg-color-container-hover, #F3F3F3);
-  color: var(-----td-text-color-secondary, #00000099);
-  padding: calc(var(--td-size-4) + var(--td-size-1)) var(--td-pop-padding-xl);
+.welcome-description {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--td-text-color-placeholder);
+  text-align: center;
+  max-width: 460px;
+  text-wrap: balance;
 }
-.isMobile .greet-tag{
-  font-size: var(--td-font-size-body-small);
-  box-shadow: none;
+
+/* ── 欢迎语 ── */
+.greet-desc {
+  color: var(--td-text-color-secondary);
+  background-color: var(--td-bg-color-container-hover);
+  font-size: 14px;
+  word-break: break-word;
+  margin-top: 20px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  line-height: 22px;
 }
+
+.isMobile .greet-desc {
+  background: var(--td-bg-color-container-hover, #F3F3F3);
+  color: var(--td-text-color-secondary, #00000099);
+  padding: 10px 16px;
+}
+
+/* ── 推荐问题 ── */
+.recommend-question-container {
+  margin-top: 16px;
+}
+
 .greet-tag {
-  padding:var(--td-pop-padding-l) var(--td-pop-padding-xl);
-  height: var(--td-comp-size-m);
-  font-weight:500;
-  font-size: var(--td-font-size-link-small);
-  border-radius: var(--td-radius-medium);
-  box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 6px rgba(18, 19, 25, 0.02), 0px 2px 12px rgba(18, 19, 25, 0.04);
+  padding: 8px 16px;
+  height: auto;
+  min-height: 36px;
+  font-weight: 500;
+  font-size: 13px;
+  border-radius: var(--td-radius-round);
+  border: 1px solid var(--td-component-stroke);
+  box-shadow: none;
+  background: var(--td-bg-color-container);
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
 }
-.greet-tag-text{
+
+.greet-tag:hover {
+  border-color: var(--td-brand-color-3);
+  background: var(--td-bg-color-container-hover);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+}
+
+.greet-tag:active {
+  transform: scale(0.98);
+}
+
+.greet-tag-text {
   display: flex;
   color: var(--td-brand-color);
   align-items: center;
   font-weight: 500;
+  line-height: 20px;
 }
-.greet-tag-text .star-icon{
+
+.greet-tag-text .star-icon {
   margin-right: var(--td-comp-margin-xs);
 }
-.recommend-question-container {
-  margin-top: var(--td-size-6)
+
+.isMobile .greet-tag {
+  font-size: var(--td-font-size-body-small);
+  box-shadow: none;
 }
+
 :deep(.recommend-question-container.t-space-vertical .t-space-item) {
   display: flex;
   justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .greet-tag {
+    transition: none;
+  }
 }
 </style>

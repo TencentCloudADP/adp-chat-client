@@ -29,6 +29,7 @@ export { default as Chat } from './components/Chat/Index.vue'
 export { default as ChatItem } from './components/Chat/ChatItem.vue'
 export { default as ChatSender } from './components/Chat/Sender.vue'
 export { default as ChatAppType } from './components/Chat/AppType.vue'
+export { default as AssistQuickButtons } from './components/Chat/AssistQuickButtons.vue'
 // Common 组件导出
 export { default as MdContent } from './components/Common/MdContent.vue'
 export { default as OptionCard } from './components/Common/OptionCard.vue'
@@ -93,7 +94,6 @@ export type {
 } from './model/chat-v2'
 export { ScoreValue } from './model/chat-v2'
 export type { FileProps } from './model/file'
-export type { ApiConfig, ApiDetailConfig } from './service/api'
 
 // Skills 类型导出
 export type {
@@ -127,6 +127,25 @@ export {
     createShare,
     fetchUserInfo,
     uploadFile,
+    parseFile,
+    getFileDownloadUrl,
+    describeConversation,
+    listDir,
+    fetchFile,
+    fetchModelList,
+    describeAgentSummaryList,
+    copyAgentFromApp,
+    getAgentConfig,
+    saveAgentConfig,
+    createConversation,
+    fetchSuggestionList,
+} from './service'
+export type {
+    ApiConfig,
+    ApiDetailConfig,
+    SuggestionItem,
+    SuggestionGroup,
+    SuggestionListResponse,
 } from './service'
 
 // Utils 导出
