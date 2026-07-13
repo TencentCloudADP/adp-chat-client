@@ -4,6 +4,7 @@
 -->
 <script setup lang="tsx">
 import { computed } from 'vue';
+import { Loading as TLoading } from 'tdesign-vue-next';
 import type { ChatConversation } from '../model/chat-v2';
 
 interface Props {
@@ -11,12 +12,24 @@ interface Props {
     conversations: ChatConversation[];
     /** 当前选中的会话ID */
     currentConversationId?: string;
+    /**
+     * 正在进行中（流式请求未完成）的会话 Id 集合
+     * 命中的项会在列表里显示转圈加载态（替代时间显示）
+     * 由父组件基于 conversationRuntimeStates.isChatting 计算后传入
+     */
+    chattingConversationIds?: string[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
     conversations: () => [],
-    currentConversationId: ''
+    currentConversationId: '',
+    chattingConversationIds: () => []
 });
+
+/**
+ * 用 Set 加速命中判断，避免每项 O(n) 扫描
+ */
+const chattingIdSet = computed(() => new Set(props.chattingConversationIds));
 
 const emit = defineEmits<{
     (e: 'select', conversation: ChatConversation): void;
@@ -88,7 +101,11 @@ const handleClick = (detail: ChatConversation) => {
             @click="handleClick(item)"
         >
             <div class="history-title" :title="item.Title">{{ item.Title }}</div>
-            <span v-if="item.LastActiveAt" class="history-time">
+            <!-- 进行中：转圈；否则显示最近更新时间。二选一避免右侧拥挤 -->
+            <span v-if="chattingIdSet.has(item.Id)" class="history-loading" aria-label="进行中">
+                <TLoading size="14px" />
+            </span>
+            <span v-else-if="item.LastActiveAt" class="history-time">
                 {{ formatUpdateTime(item.LastActiveAt) }}
             </span>
         </div>
@@ -166,5 +183,14 @@ const handleClick = (detail: ChatConversation) => {
 .history-item:hover .history-time,
 .history-item.active .history-time {
     opacity: 1;
+}
+
+/* 进行中的转圈：始终可见，颜色与主色一致，位置与 history-time 对齐 */
+.history-loading {
+    flex-shrink: 0;
+    margin-left: 8px;
+    display: inline-flex;
+    align-items: center;
+    color: var(--td-brand-color);
 }
 </style>

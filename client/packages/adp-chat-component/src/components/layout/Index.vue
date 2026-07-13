@@ -552,6 +552,19 @@ const actualIsChatting = computed(() =>
     useApiMode.value ? isConversationChatting(currentConversationStateKey.value) : props.isChatting
 );
 
+/**
+ * 所有正在进行中的会话 Id 集合
+ * 用途：透传给 HistoryList 让侧栏对应项显示转圈
+ * 数据源：conversationRuntimeStates 中 isChatting=true 的 key
+ * 注意：key 既包含真实 conversationId，也包含 pending-conversation:* 占位 key（乐观 UI 场景），
+ *      两种 key 都会出现在 internalConversations 里，所以直接命中即可
+ */
+const chattingConversationIds = computed(() =>
+    Object.entries(conversationRuntimeStates.value)
+        .filter(([, state]) => state?.isChatting)
+        .map(([key]) => key)
+);
+
 // 计算属性
 const currentApplicationId = computed(() => actualCurrentApplication.value?.ApplicationId || '');
 // 在最外层监听 currentApplicationId 变化，自动触发 Agent 拉取
@@ -608,7 +621,14 @@ const loadConversations = async () => {
     if (!useApiMode.value) return;
     try {
         const data = await fetchConversationList(mergedApiDetailConfig.value.conversationListApi);
-        internalConversations.value = data;
+        // 乐观 UI 合并策略：以后端返回的 data 为准，但保留仍在流式中的"pending 前缀"占位（后端还没这条时避免闪没）
+        // 关键点：真实 Id 的占位（agentId 分支预先建的会话）不需要单独保留——只要后端列表里已经包含同 Id 的项，
+        // 后端项自然覆盖之。因此这里只处理"key 仍是 pending-conversation:*"的临时占位。
+        const backendIds = new Set(data.map(c => c.Id));
+        const activePendings = internalConversations.value.filter(
+            c => c.Id.startsWith('pending-conversation:') && isConversationChatting(c.Id) && !backendIds.has(c.Id)
+        );
+        internalConversations.value = activePendings.length > 0 ? [...activePendings, ...data] : data;
         emit('dataLoaded', 'conversations', data);
     } catch (error) {
         const text = mergedChatI18n.value.getConversationListFailed;
@@ -675,6 +695,11 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
         return;
     }
 
+    // 乐观 UI 需要在函数最开始就记录"进入时是不是新会话"
+    // 因为后面走 agentId 分支会同步调 createConversation，把 conversationId 从空变成真实 Id，
+    // 那样后续判断就分不清了。
+    const isNewConversationSend = !conversationId;
+
     const agentId = await getAgentIdByAppId(applicationId);
 
     // 如果存在 agentId 且没有 conversationId，则先调用 CreateConversation 获取
@@ -718,6 +743,34 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
         internalCurrentApplication.value?.ApplicationId;
     // 重置用户滚动状态
     mainLayoutRef.value?.getChatRef()?.setHasUserScrolled(false);
+
+    // 乐观 UI：新会话首条消息发送时，先在侧栏插入占位会话
+    // 覆盖两种"新会话"路径：
+    //   1) 走 CreateConversation 提前拿到真实 Id（agentId 分支）：streamConversationKey 是真实 Id
+    //   2) 未走 CreateConversation，靠 SSE 首事件回吐 Id：streamConversationKey 是 pending-conversation:*
+    // 两者都需要占位，因为无论哪种，此刻侧栏都还没这条会话（loadConversations 尚未刷新）
+    // - Id 用 streamConversationKey，保证 HistoryList 的 active 高亮命中
+    // - Title 用用户首条消息前 40 字符（后端也会基于首条 query 生成摘要）
+    // - LastActiveAt 用当前时间，保证在 sortedConversations 中排最上
+    // - 路径 1：SSE 结束后无 IsNewConversation 事件，占位靠 loadConversations 时把 pending 过滤后由真实项覆盖
+    //          → 因此路径 1 的占位替换依赖 SSE finish/success 中的 loadConversations 调用（见后端事件处理）
+    // - 路径 2：SSE 首事件（IsNewConversation=true）就地替换 pending 项
+    if (isNewConversationSend) {
+        const optimisticTitle = (query || '').replace(/\s+/g, ' ').trim().slice(0, 40) || 'New chat';
+        const nowSec = Math.floor(Date.now() / 1000);
+        const optimisticConversation: ChatConversation = {
+            Id: streamConversationKey,
+            AccountId: '',
+            Title: optimisticTitle,
+            LastActiveAt: nowSec,
+            CreatedAt: nowSec,
+            ApplicationId: applicationId || internalCurrentApplication.value?.ApplicationId || '',
+        };
+        // 幂等：避免同一 key 被重复插入
+        if (!internalConversations.value.some(c => c.Id === streamConversationKey)) {
+            internalConversations.value = [optimisticConversation, ...internalConversations.value];
+        }
+    }
 
     const timestamp = Date.now();
     const baseExtraInfo = (isFromSelf: boolean) => ({
@@ -827,6 +880,14 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
                             currentConversationStateKey.value = streamConversationKey;
                             internalCurrentConversation.value = event.Payload;
                         }
+                        // 乐观 UI：把占位项（pending key）就地替换为真实会话
+                        // 若 loadConversations() 已经先返回，pending 项会被过滤（见 loadConversations），此处 index 为 -1，直接跳过
+                        const pendingIdx = internalConversations.value.findIndex(c => c.Id === previousKey);
+                        if (pendingIdx !== -1) {
+                            const merged = [...internalConversations.value];
+                            merged.splice(pendingIdx, 1, event.Payload);
+                            internalConversations.value = merged;
+                        }
                     }
                     return;
                 }
@@ -905,6 +966,12 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
                 if (!isOk) {
                     return;
                 }
+                // 乐观 UI：路径 1（agentId 分支已提前拿到真实 conversationId）不会触发 SSE 的 conversation 事件，
+                // 需要在 SSE 完成后主动刷一次列表，让后端返回的真实会话（含正式 Title / LastActiveAt）覆盖占位项。
+                // 路径 2 已在 success 事件里就地替换过，这里的 loadConversations 只是"顺带兜底"，代价可以接受。
+                if (isNewConversationSend) {
+                    loadConversations();
+                }
                 // 完成后滚动到底部并延迟重置用户滚动状态
                 if (currentConversationStateKey.value === streamConversationKey) {
                     nextTick(() => {
@@ -916,6 +983,16 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
                 }
             },
             fail(msg, errorEvent) {
+                // 乐观 UI 回滚：SSE 失败时，若本次是新会话发送、且占位仍在，清掉避免侧栏残留死条目
+                // 覆盖两种占位：pending-conversation:* 前缀（路径 2）和真实 Id 占位（路径 1，agentId 分支）
+                if (isNewConversationSend) {
+                    const pendingIdx = internalConversations.value.findIndex(c => c.Id === streamConversationKey);
+                    if (pendingIdx !== -1) {
+                        const next = [...internalConversations.value];
+                        next.splice(pendingIdx, 1);
+                        internalConversations.value = next;
+                    }
+                }
                 handleStreamFailure(msg, errorEvent, streamConversationKey);
             }
         }
@@ -1533,6 +1610,7 @@ defineExpose({
                 :currentApplicationId="currentApplicationId"
                 :conversations="actualConversations"
                 :currentConversationId="currentConversationId"
+                :chattingConversationIds="chattingConversationIds"
                 :userAvatarUrl="actualUser?.avatarUrl"
                 :userAvatarName="actualUser?.avatarName"
                 :userName="actualUser?.name"
@@ -1611,7 +1689,7 @@ defineExpose({
                     <slot name="header-overlay-content">
                         <CustomizedIcon class="header-overlay-icon" v-if="showOverlayButton" name="overlay" :theme="theme" @click="handleOverlay"/>
                     </slot>
-                </template>
+            </template>
                 <template #header-close-content v-if="showCloseButton || $slots['header-close-content']">
                     <slot name="header-close-content">
                         <CustomizedIcon class="header-overlay-icon" v-if="showCloseButton" name="logout_close" :theme="theme" @click="handleClose"/>

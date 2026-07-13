@@ -90,23 +90,31 @@ async function fetchWorkspaceId(): Promise<string> {
     return fetchWorkspaceIdPromise;
 }
 
-// 监听 conversationId / applicationId 变化，重置缓存（不立即请求，等 FileDir 展示时再请求）
+// 监听 conversationId / applicationId 变化，重置缓存
+// 如果此时面板和文档列表都可见，则立即重新拉取；否则等待下面的 watch 调度
 watch(
     [() => props.conversationId, () => props.applicationId],
     () => {
         workspaceId.value = '';
         fetchWorkspaceIdPromise = null;
-    },
-);
-
-// 监听面板可见性和文件列表可见性，FileDir 真正展示时才去获取 workspaceId
-watch(
-    [() => props.visible, dirVisible],
-    ([panelVisible, dirShow]) => {
-        if (panelVisible && dirShow && !workspaceId.value && props.applicationId) {
+        if (props.visible && dirVisible.value && props.applicationId) {
             fetchWorkspaceId();
         }
     },
+);
+
+// 监听面板可见性、文件列表可见性和 applicationId，FileDir 真正展示时才去获取 workspaceId
+// 注意：必须加 immediate: true，否则首次挂载时如果这些值都已就绪，watch 不会触发，
+// workspaceId 就永远拿不到，FileDir 会一直卡在 loading 直到超时。
+// 同时把 applicationId 也纳入监听源，避免 applicationId 后到时错过一次调度。
+watch(
+    [() => props.visible, dirVisible, () => props.applicationId],
+    ([panelVisible, dirShow, appId]) => {
+        if (panelVisible && dirShow && !workspaceId.value && appId) {
+            fetchWorkspaceId();
+        }
+    },
+    { immediate: true }
 );
 
 // ========== 拖拽调整预览面板宽度 ==========
