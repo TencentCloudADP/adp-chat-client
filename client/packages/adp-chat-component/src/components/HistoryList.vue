@@ -210,8 +210,6 @@ const handleDeleteClick = (event: Event, detail: ChatConversation) => {
     margin-left: 8px;
     font-size: 11px;
     color: var(--td-text-color-placeholder);
-    opacity: 0;
-    transition: opacity 0.15s ease;
 }
 
 /* 默认展示时间；hover/active 时让位给删除按钮，避免右侧同时显示两个元素造成拥挤 */

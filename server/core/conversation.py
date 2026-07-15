@@ -7,10 +7,17 @@ from model.chat import ChatConversation, ChatRecord
 
 class CoreConversation:
     @staticmethod
-    async def list(db: AsyncSession, account_id: str) -> list[ChatConversation]:
-        conversations = (await db.execute(select(ChatConversation).where(
-            ChatConversation.AccountId == account_id
-        ).order_by(desc(ChatConversation.LastActiveAt)))).scalars()
+    async def list(
+        db: AsyncSession,
+        account_id: str,
+        application_id: str = None,
+    ) -> list[ChatConversation]:
+        stmt = select(ChatConversation).where(ChatConversation.AccountId == account_id)
+        if application_id:
+            stmt = stmt.where(ChatConversation.ApplicationId == application_id)
+        conversations = (await db.execute(
+            stmt.order_by(desc(ChatConversation.LastActiveAt))
+        )).scalars()
         return conversations
 
     @staticmethod

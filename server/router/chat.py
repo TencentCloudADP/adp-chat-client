@@ -153,7 +153,15 @@ class ChatMessageListApi(HTTPMethodView):
 class ChatConversationListApi(HTTPMethodView):
     @login_required
     async def get(self, request: Request):
-        conversations = await CoreConversation.list(request.ctx.db, request.ctx.account_id)
+        parser = reqparse.RequestParser()
+        parser.add_argument("ApplicationId", type=str, required=False, location="args")
+        args = parser.parse_args(request)
+
+        conversations = await CoreConversation.list(
+            request.ctx.db,
+            request.ctx.account_id,
+            application_id=args["ApplicationId"],
+        )
         return sanic.json([conversation.to_dict() for conversation in conversations])
 
 

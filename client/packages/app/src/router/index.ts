@@ -11,13 +11,12 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes: [
     {
-      path: '/:conversationId?',
+      // 统一层级结构：/:applicationId?/:conversationId?
+      // 例：/                       -> 未选应用
+      //     /appA                   -> 选中应用 appA，无会话
+      //     /appA/convX             -> 应用 appA 下的会话 convX
+      path: '/:applicationId?/:conversationId?',
       name: 'home',
-      component: () => import('@/pages/Home.vue'),
-    },
-    {
-      path: '/app/:applicationId?',
-      name: 'app',
       component: () => import('@/pages/Home.vue'),
     },
     {

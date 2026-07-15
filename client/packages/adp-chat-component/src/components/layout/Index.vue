@@ -9,14 +9,16 @@ import SideLayout from './SideLayout.vue';
 import FilePreviewLayout from './FilePreviewLayout.vue';
 import LogoArea from '../LogoArea.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
+import CronTask from '../CronTask/CronTask.vue';
 import type { Application, AppPattern } from '../../model/application';
 import type { ChatConversation, Record, Reference, SseEvent, Content, ErrorEvent } from '../../model/chat-v2';
+import type { CronTaskI18n, TimerTask, TimerTaskSummary } from '../../model/cronTask';
 import type { FileProps } from '../../model/file';
 import { ScoreValue } from '../../model/chat-v2';
 import type { ApiConfig } from '../../service/api';
 import {
     fetchApplicationList,
-    fetchConversationList,
+    // fetchConversationList 已移入 SideLayout 内部使用（方案 B：SideLayout 按 appId 主动拉取）
     deleteConversation,
     fetchConversationDetail,
     fetchReferenceDetails,
@@ -66,7 +68,9 @@ import {
     defaultChatItemI18n,
     defaultChatItemI18nEn,
     defaultSenderI18n,
-    defaultSenderI18nEn
+    defaultSenderI18nEn,
+    defaultSideI18n,
+    defaultSideI18nEn
 } from '../../model/type';
 import { useAgentStore } from '../../composables/useAgentStore';
 
@@ -136,6 +140,18 @@ export interface Props extends ThemeProps, OverlayProps {
     skillsSpaceId?: string;
     /** Skills 应用 ID（/adp/ 转发需要） */
     skillsApplicationId?: string;
+    /** 定时任务国际化文本 */
+    cronTaskI18n?: Partial<CronTaskI18n>;
+    /** 定时任务：模型选项 */
+    cronTaskModelOptions?: Array<{ label: string; value: string }>;
+    /** 定时任务：关联文件夹选项 */
+    cronTaskFolderOptions?: Array<{ label: string; value: string }>;
+    /** 定时任务：列表分页大小 */
+    cronTaskPageSize?: number;
+    /** 定时任务：详情页运行日志轮询间隔（ms） */
+    cronTaskPollInterval?: number;
+    /** 是否在侧边栏显示"定时任务"入口 */
+    enableCronTask?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -166,6 +182,12 @@ const props = withDefaults(defineProps<Props>(), {
     enableSkills: true,
     skillsSpaceId: '',
     skillsApplicationId: '',
+    cronTaskI18n: () => ({}),
+    cronTaskModelOptions: () => [],
+    cronTaskFolderOptions: () => [],
+    cronTaskPageSize: 20,
+    cronTaskPollInterval: 10 * 1000,
+    enableCronTask: true,
 });
 
 const { getAgentIdByAppId, watchApplicationId } = useAgentStore();
@@ -197,6 +219,16 @@ const emit = defineEmits<{
     (e: 'dataLoaded', type: 'applications' | 'conversations' | 'chatList' | 'user' | 'systemConfig', data: any): void;
     /** Widget 事件（用于与 SSE/对话流交互） */
     (e: 'widgetEvent', event: CustomEvent, widgetRunId: string, widgetId: string, recordId: string): void;
+    /** 定时任务面板可见性变化 */
+    (e: 'cronTaskVisibleChange', visible: boolean): void;
+    /** 定时任务：立即执行并查看 */
+    (e: 'cronTaskRunAndView', task: TimerTask | TimerTaskSummary): void;
+    /** 定时任务：切换到聊天窗口（携带任务 & 会话 / 日志 Id） */
+    (e: 'cronTaskSwitchToChat', payload: { task: TimerTask | TimerTaskSummary; sessionId?: string; logId?: string }): void;
+    /** 定时任务：某个操作完成（新增/编辑/删除/暂停/恢复/立即执行等） */
+    (e: 'cronTaskActionDone', action: string, task: TimerTask | TimerTaskSummary): void;
+    /** 定时任务：优化 Prompt */
+    (e: 'cronTaskOptimizePrompt', content: string): void;
 }>();
 
 // 解构 props 保持响应式
@@ -204,10 +236,34 @@ const { theme } = toRefs(props);
 
 const sidebarVisible = ref(!props.isSidePanelOverlay);
 const mainLayoutRef = ref<InstanceType<typeof MainLayout> | null>(null);
+const sideLayoutRef = ref<InstanceType<typeof SideLayout> | null>(null);
 const filePreviewLayoutRef = ref<InstanceType<typeof FilePreviewLayout> | null>(null);
 
 // 文件预览面板显示状态
 const filePreviewVisible = ref(false);
+
+// 定时任务面板显示状态（覆盖会话窗口）
+const cronTaskVisible = ref(false);
+
+/**
+ * 打开定时任务面板
+ * 同时关闭文件预览面板，避免同时叠加
+ */
+const openCronTask = () => {
+    if (cronTaskVisible.value) return;
+    cronTaskVisible.value = true;
+    filePreviewVisible.value = false;
+    emit('cronTaskVisibleChange', true);
+};
+
+/**
+ * 关闭定时任务面板
+ */
+const closeCronTask = () => {
+    if (!cronTaskVisible.value) return;
+    cronTaskVisible.value = false;
+    emit('cronTaskVisibleChange', false);
+};
 
 /**
  * 切换文件预览面板显示
@@ -264,6 +320,12 @@ const mergedChatItemI18n = computed(() => {
 const mergedFilePreviewI18n = computed(() => {
     const defaults = props.language?.startsWith('en') ? defaultFilePreviewI18nEn : defaultFilePreviewI18n;
     return { ...defaults, ...props.filePreviewI18n };
+});
+
+// 合并侧边栏 i18n（顶栏"定时任务"按钮 tooltip 复用 sideI18n.cronTask）
+const mergedSideI18n = computed(() => {
+    const defaults = props.language?.startsWith('en') ? defaultSideI18nEn : defaultSideI18n;
+    return { ...defaults, ...props.sideI18n };
 });
 
 // 计算是否为移动端模式（内部计算，不再依赖外部传入）
@@ -620,24 +682,44 @@ const loadApplications = async () => {
     }
 };
 
+/**
+ * 会话列表加载入口（方案 B：由 SideLayout 内部按 currentApplicationId 主动拉取）
+ *
+ * 变更说明：
+ * - 后端请求由 SideLayout.fetchList() 发起，本函数改为委托到 sideLayoutRef.reload()
+ * - internalConversations 保留作为"业务判断镜像"（isConversationChatting、getConversationDisplayName、
+ *   SSE 事件里判断占位是否存在等仍读它），通过 handleSideConversationsChange 由 SideLayout 事件反向同步
+ * - 若 SideLayout 尚未挂载（首次加载最早期），本函数是 no-op，不会阻塞其它并行初始化流程
+ */
 const loadConversations = async () => {
     if (!useApiMode.value) return;
-    try {
-        const data = await fetchConversationList(mergedApiDetailConfig.value.conversationListApi);
-        // 乐观 UI 合并策略：以后端返回的 data 为准，但保留仍在流式中的"pending 前缀"占位（后端还没这条时避免闪没）
-        // 关键点：真实 Id 的占位（agentId 分支预先建的会话）不需要单独保留——只要后端列表里已经包含同 Id 的项，
-        // 后端项自然覆盖之。因此这里只处理"key 仍是 pending-conversation:*"的临时占位。
-        const backendIds = new Set(data.map(c => c.Id));
-        const activePendings = internalConversations.value.filter(
-            c => c.Id.startsWith('pending-conversation:') && isConversationChatting(c.Id) && !backendIds.has(c.Id)
-        );
-        internalConversations.value = activePendings.length > 0 ? [...activePendings, ...data] : data;
-        emit('dataLoaded', 'conversations', data);
-    } catch (error) {
-        const text = mergedChatI18n.value.getConversationListFailed;
-        MessagePlugin.error(text);
-        emit('message', MessageCode.GET_CONVERSATION_LIST_FAILED, text);
-    }
+    if (!sideLayoutRef.value) return;
+    await sideLayoutRef.value.reload();
+};
+
+/**
+ * SideLayout 内部会话列表变化时的镜像同步：
+ * SideLayout 是权威源，Index 只做镜像，供 chattingConversationIds / SSE 占位查询 等业务判断使用。
+ */
+const handleSideConversationsChange = (list: ChatConversation[]) => {
+    internalConversations.value = list;
+};
+
+/**
+ * SideLayout 拉取后端成功后触发（区别于乐观 UI 变更）
+ * 保留 dataLoaded 事件语义，供外部业务感知
+ */
+const handleSideConversationsLoaded = (list: ChatConversation[]) => {
+    emit('dataLoaded', 'conversations', list);
+};
+
+/**
+ * SideLayout 拉取后端失败时的错误提示（保持与原 loadConversations 的错误行为一致）
+ */
+const handleSideFetchError = (_error: unknown) => {
+    const text = mergedChatI18n.value.getConversationListFailed;
+    MessagePlugin.error(text);
+    emit('message', MessageCode.GET_CONVERSATION_LIST_FAILED, text);
 };
 
 const loadConversationDetail = async (conversationId: string) => {
@@ -771,7 +853,9 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
         };
         // 幂等：避免同一 key 被重复插入
         if (!internalConversations.value.some(c => c.Id === streamConversationKey)) {
-            internalConversations.value = [optimisticConversation, ...internalConversations.value];
+            // 方案 B：SideLayout 是权威源；本地镜像通过 SideLayout 的 @conversationsChange 事件同步，
+            // 无需再手动写 internalConversations（写了也会被 change 事件覆盖，语义不冲突，但避免出现"镜像先于源"的窗口）
+            sideLayoutRef.value?.addOptimistic(optimisticConversation);
         }
     }
 
@@ -884,12 +968,10 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
                             internalCurrentConversation.value = event.Payload;
                         }
                         // 乐观 UI：把占位项（pending key）就地替换为真实会话
-                        // 若 loadConversations() 已经先返回，pending 项会被过滤（见 loadConversations），此处 index 为 -1，直接跳过
-                        const pendingIdx = internalConversations.value.findIndex(c => c.Id === previousKey);
-                        if (pendingIdx !== -1) {
-                            const merged = [...internalConversations.value];
-                            merged.splice(pendingIdx, 1, event.Payload);
-                            internalConversations.value = merged;
+                        // 若 loadConversations() 已经先返回，pending 项在 SideLayout 端已被覆盖（fetchList 里以后端为准），
+                        // 此时 replaceConversation 找不到对应 Id，方法内部 no-op
+                        if (internalConversations.value.some(c => c.Id === previousKey)) {
+                            sideLayoutRef.value?.replaceConversation(previousKey, event.Payload);
                         }
                     }
                     return;
@@ -989,11 +1071,8 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
                 // 乐观 UI 回滚：SSE 失败时，若本次是新会话发送、且占位仍在，清掉避免侧栏残留死条目
                 // 覆盖两种占位：pending-conversation:* 前缀（路径 2）和真实 Id 占位（路径 1，agentId 分支）
                 if (isNewConversationSend) {
-                    const pendingIdx = internalConversations.value.findIndex(c => c.Id === streamConversationKey);
-                    if (pendingIdx !== -1) {
-                        const next = [...internalConversations.value];
-                        next.splice(pendingIdx, 1);
-                        internalConversations.value = next;
+                    if (internalConversations.value.some(c => c.Id === streamConversationKey)) {
+                        sideLayoutRef.value?.removeConversation(streamConversationKey);
                     }
                 }
                 handleStreamFailure(msg, errorEvent, streamConversationKey);
@@ -1127,8 +1206,9 @@ const handleSelectApplication = (app: Application) => {
             senderRef.changeSenderVal('', []);
         }
     }
-    // 切换应用时关闭文件预览面板
+    // 切换应用时关闭文件预览面板 & 定时任务面板
     closeFilePreview();
+    closeCronTask();
     // 移动端选择应用后收起侧边栏
     if (isMobile.value || props.isSidePanelOverlay) {
         sidebarVisible.value = false;
@@ -1153,8 +1233,9 @@ const handleSelectConversation = async (conversation: ChatConversation) => {
         currentConversationStateKey.value = conversation.Id;
         setConversationApplicationId(conversation.Id, conversation.ApplicationId);
     }
-    // 切换会话时关闭文件预览面板
+    // 切换会话时关闭文件预览面板 & 定时任务面板
     closeFilePreview();
+    closeCronTask();
     // 移动端选择对话后收起侧边栏
     if (isMobile.value) {
         sidebarVisible.value = false;
@@ -1167,9 +1248,29 @@ const handleCreateConversation = () => {
         internalCurrentConversation.value = undefined;
         currentConversationStateKey.value = '';
     }
-    // 创建新会话时关闭文件预览面板
+    // 创建新会话时关闭文件预览面板 & 定时任务面板
     closeFilePreview();
+    closeCronTask();
     emit('createConversation');
+};
+
+/**
+ * 定时任务面板 → 切回聊天：关闭覆盖层，透传给外部
+ */
+const handleCronTaskSwitchToChat = (payload: { task: TimerTask | TimerTaskSummary; sessionId?: string; logId?: string }) => {
+    closeCronTask();
+    emit('cronTaskSwitchToChat', payload);
+};
+
+/**
+ * SideActions 快捷入口点击：
+ * - key === 'cron-task'：打开定时任务面板（等同于顶栏 header-action 的 openCronTask）
+ * - 其它 key：暂无内部处理逻辑（如需扩展可在此追加分支）
+ */
+const handleSideAction = (key: string) => {
+    if (key === 'cron-task') {
+        openCronTask();
+    }
 };
 
 /**
@@ -1209,9 +1310,9 @@ const handleDeleteConversation = (conversation: ChatConversation) => {
             confirmDialog.hide();
 
             // 乐观 UI：立即从侧栏移除
-            const prevList = internalConversations.value;
-            const nextList = prevList.filter(c => c.Id !== conversation.Id);
-            internalConversations.value = nextList;
+            // 通过 SideLayout 的 snapshot 拿到当前权威源快照用于失败回滚
+            const prevList = sideLayoutRef.value?.snapshot?.() ?? internalConversations.value.slice();
+            sideLayoutRef.value?.removeConversation(conversation.Id);
 
             // 如果删的是当前会话，清空主区状态
             const wasCurrent =
@@ -1247,7 +1348,7 @@ const handleDeleteConversation = (conversation: ChatConversation) => {
                     return;
                 }
                 // 其它错误：回滚，把这条塞回原位置
-                internalConversations.value = prevList;
+                sideLayoutRef.value?.rollback(prevList);
                 if (wasCurrent) {
                     internalCurrentConversation.value = conversation;
                     currentConversationStateKey.value = conversation.Id;
@@ -1681,6 +1782,9 @@ defineExpose({
     openFilePreview,
     closeFilePreview,
     getFilePreviewRef: () => filePreviewLayoutRef.value,
+    openCronTask,
+    closeCronTask,
+    isCronTaskVisible: () => cronTaskVisible.value,
 });
 </script>
 
@@ -1694,11 +1798,15 @@ defineExpose({
                 @click="handleToggleSidebar"
             ></div>
             <SideLayout 
+                ref="sideLayoutRef"
                 :isMobile="isMobile"
                 :visible="sidebarVisible"
                 :applications="actualApplications"
                 :currentApplicationId="currentApplicationId"
+                :currentApplication="actualCurrentApplication"
                 :conversations="actualConversations"
+                :useInternalFetch="useApiMode"
+                :conversationListApi="mergedApiDetailConfig.conversationListApi"
                 :currentConversationId="currentConversationId"
                 :chattingConversationIds="chattingConversationIds"
                 :userAvatarUrl="actualUser?.avatarUrl"
@@ -1709,6 +1817,8 @@ defineExpose({
                 :isSidePanelOverlay="isSidePanelOverlay"
                 :maxAppLen="maxAppLen"
                 :i18n="props.sideI18n"
+                :showCronTaskAction="enableCronTask"
+                :sideActionActiveKey="cronTaskVisible ? 'cron-task' : ''"
                 @toggleSidebar="handleToggleSidebar"
                 @selectApplication="handleSelectApplication"
                 @selectConversation="handleSelectConversation"
@@ -1717,6 +1827,10 @@ defineExpose({
                 @changeLanguage="(key) => emit('changeLanguage', key)"
                 @logout="emit('logout')"
                 @userClick="emit('userClick')"
+                @conversationsChange="handleSideConversationsChange"
+                @conversationsLoaded="handleSideConversationsLoaded"
+                @fetchError="handleSideFetchError"
+                @sideAction="handleSideAction"
             >
                 <template #sider-logo v-if="(logoUrl || logoTitle) || $slots['sider-logo']">
                     <slot name="sider-logo">
@@ -1724,7 +1838,9 @@ defineExpose({
                     </slot>
                 </template>
             </SideLayout>
+            <div class="main-area">
             <MainLayout
+                v-show="!cronTaskVisible"
                 ref="mainLayoutRef"
                 :currentApplicationAvatar="currentApplicationAvatar"
                 :currentApplicationName="currentApplicationName"
@@ -1770,6 +1886,15 @@ defineExpose({
                 @widgetEvent="handleInternalWidgetEvent"
             >
                 <template #header-actions>
+                    <Tooltip v-if="enableCronTask" :content="mergedSideI18n.cronTask" destroyOnClose showArrow theme="default">
+                        <span
+                            class="header-action-btn"
+                            :class="{ 'header-action-btn--active': cronTaskVisible }"
+                            @click="openCronTask"
+                        >
+                            <CustomizedIcon remote name="basic_time_line" :theme="theme" />
+                        </span>
+                    </Tooltip>
                     <Tooltip v-if="!isMobile && chatMode !== 'standard'" :content="mergedFilePreviewI18n.openFileList" destroyOnClose showArrow theme="default">
                         <span class="open-file-list-btn" @click="toggleFilePreview">
                             <CustomizedIcon name="open_file_list" :theme="theme" />
@@ -1787,6 +1912,25 @@ defineExpose({
                     </slot>
                 </template>
             </MainLayout>
+            <CronTask
+                v-if="enableCronTask"
+                v-show="cronTaskVisible"
+                class="cron-task-overlay"
+                :application-id="currentApplicationId"
+                :space-id="resolvedSpaceId"
+                :theme="theme"
+                :language="props.language"
+                :i18n="cronTaskI18n"
+                :model-options="cronTaskModelOptions"
+                :folder-options="cronTaskFolderOptions"
+                :page-size="cronTaskPageSize"
+                :poll-interval="cronTaskPollInterval"
+                @run-and-view="(task: TimerTask | TimerTaskSummary) => emit('cronTaskRunAndView', task)"
+                @optimize-prompt="(content: string) => emit('cronTaskOptimizePrompt', content)"
+                @refresh="() => { /* 交由内部处理 */ }"
+                @switch-to-chat="handleCronTaskSwitchToChat"
+                @action-done="(action: string, task: TimerTask | TimerTaskSummary) => emit('cronTaskActionDone', action, task)"
+            />
             <FilePreviewLayout
                 ref="filePreviewLayoutRef"
                 :visible="filePreviewVisible"
@@ -1795,6 +1939,7 @@ defineExpose({
                 :i18n="mergedFilePreviewI18n"
                 @close="closeFilePreview"
             />
+            </div>
         </TContent>
     </TLayout>
 </template>
@@ -1841,5 +1986,50 @@ defineExpose({
 .open-file-list-btn:hover {
     color: var(--td-brand-color);
     background: var(--td-bg-color-container-hover);
+}
+
+/* 顶栏通用图标按钮（定时任务等） */
+.header-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--td-comp-size-m);
+    height: var(--td-comp-size-m);
+    border-radius: var(--td-radius-medium);
+    cursor: pointer;
+    color: var(--td-text-color-secondary);
+    transition: all 0.2s;
+    margin-right: 4px;
+}
+
+.header-action-btn:hover {
+    color: var(--td-brand-color);
+    background: var(--td-bg-color-container-hover);
+}
+
+.header-action-btn--active {
+    color: var(--td-brand-color);
+    background: var(--td-bg-color-container-active);
+}
+
+/* 主区容器：让 MainLayout 与 CronTask 覆盖层共享同一区域 */
+.main-area {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+/* 定时任务覆盖层：填充主区，覆盖会话窗口 */
+.cron-task-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--td-bg-color-container);
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 </style>

@@ -133,16 +133,12 @@ onMounted(async () => {
  * 2. url参数和store应该保持一致，优先级：url参数 > store
  */
 
-// URL 参数处理
+// URL 参数处理：/:applicationId?/:conversationId?
 const updateFromUrl = () => {
-    console.log('updateFromUrl',route.params)
-    if (!route.params.conversationId) {
-        currentApplicationId.value = route.params.applicationId as string || '';
-        currentConversationId.value = '';
-    } else {
-        currentConversationId.value = route.params.conversationId as string;
-    }
-}
+    console.log('updateFromUrl', route.params);
+    currentApplicationId.value = (route.params.applicationId as string) || '';
+    currentConversationId.value = (route.params.conversationId as string) || '';
+};
 
 // 监听路由参数变化
 watch(() => route.params.applicationId, () => updateFromUrl());
@@ -150,14 +146,16 @@ watch(() => route.params.conversationId, () => updateFromUrl());
 
 // 更新 URL
 const updateUrl = () => {
-    if (currentConversationId.value === '') {
-        if (currentApplicationId.value) {
-            router.push({ name: 'app', params: { applicationId: currentApplicationId.value } });
+    // 会话 id 必须依附在某个 applicationId 之下，避免出现无 app 的孤儿会话 URL
+    const params: Record<string, string> = {};
+    if (currentApplicationId.value) {
+        params.applicationId = currentApplicationId.value;
+        if (currentConversationId.value) {
+            params.conversationId = currentConversationId.value;
         }
-    } else {
-        router.push({ name: 'home', params: { conversationId: currentConversationId.value } });
     }
-}
+    router.push({ name: 'home', params });
+};
 
 // 事件处理函数
 const handleSelectApplication = (app: Application) => {

@@ -39,6 +39,8 @@ export { default as RecordIcon } from './components/Common/RecordIcon.vue'
 export { default as ADPChat } from './components/layout/Index.vue'
 export { default as MainLayout } from './components/layout/MainLayout.vue'
 export { default as SideLayout } from './components/layout/SideLayout.vue'
+export { default as SideActions } from './components/layout/SideActions.vue'
+export type { SideActionItem } from './components/layout/SideActions.vue'
 
 // 功能组件导出
 export { default as ShareChat } from './components/ShareChat.vue'
@@ -47,6 +49,14 @@ export { default as ShareChat } from './components/ShareChat.vue'
 export { SkillsPopover } from './components/Skills';
 export { SkillsInstallDialog } from './components/Skills';
 export { SkillManageDialog } from './components/Skills';
+
+// CronTask 组件导出
+export { default as CronTask } from './components/CronTask/CronTask.vue';
+export { default as CronTaskPanel } from './components/CronTask/CronTaskPanel.vue';
+export { default as CronTaskDetail } from './components/CronTask/CronTaskDetail.vue';
+export { default as CronTaskCard } from './components/CronTask/CronTaskCard.vue';
+export { default as CreateCronTaskDialog } from './components/CronTask/CreateTaskDialog/CreateTaskDialog.vue';
+export { default as DeleteCronTaskDialog } from './components/CronTask/DeleteTaskDialog.vue';
 
 // 类型导出
 export type {
@@ -173,6 +183,61 @@ export {
     fetchSkillSummaryList,
 } from './service/skillsApi'
 export type { SkillsApiConfig } from './service/skillsApi'
+
+// CronTask 类型导出
+export type {
+    CronTaskI18n,
+    TimerTask,
+    TimerTaskSummary,
+    TimerRunLog,
+    TimerProfile,
+    TimerConfig,
+    TimerStatus,
+    TimerScheduleConfig,
+    TimerPushConfig,
+    TimerInterval,
+    TimerTimeOfDay,
+    TimerTaskStatusValue,
+    TimerRunStatusValue,
+    TimerScheduleTypeValue,
+    TimerPushChannelValue,
+    TimerCreateSourceValue,
+} from './model/cronTask'
+export {
+    TimerTaskStatus,
+    TimerRunStatus,
+    TimerScheduleType,
+    TimerPushChannel,
+    TimerCreateSource,
+    defaultCronTaskI18n,
+    defaultCronTaskI18nEn,
+    getCronTaskI18nByLanguage,
+} from './model/cronTask'
+
+// CronTask API 服务导出
+export {
+    defaultCronTaskApiPaths,
+    createTimerTask,
+    modifyTimerTask,
+    describeTimerTask,
+    describeTimerTaskSummaryList,
+    pauseTimerTask,
+    resumeTimerTask,
+    deleteTimerTask,
+    runTimerTaskNow,
+    describeTimerTaskRunLogList,
+    markTimerTaskRunLogRead,
+} from './service/cronTaskApi'
+export type {
+    CronTaskApiPaths,
+    CreateTimerTaskPayload,
+    ModifyTimerTaskPayload,
+    DescribeTimerTaskPayload,
+    DescribeTimerTaskSummaryListPayload,
+    DescribeTimerTaskRunLogListPayload,
+    MarkTimerTaskRunLogReadPayload,
+    TimerIdPayload,
+} from './service/cronTaskApi'
 
 // Composables 导出
 export { useApiConfig } from './composables'
