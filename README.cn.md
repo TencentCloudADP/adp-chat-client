@@ -585,12 +585,12 @@ http {
 
 如果智能体回复时间较长，前端可能出现响应中途断开或内容被截断。可以按以下两步调整超时时间：
 
-1. 调整服务端 `SERVER_RESPONSE_TIMEOUT` 参数
+1. 调整服务端 `SSE_IDLE_TIMEOUT` 参数
 
 在 `.env` 中增加或修改该参数，单位为秒。建议设置为大于智能体最长回复耗时的值：
 
 ```bash
-SERVER_RESPONSE_TIMEOUT=600
+SSE_IDLE_TIMEOUT=5400
 ```
 
 2. 增加 nginx `proxy_read_timeout` 参数

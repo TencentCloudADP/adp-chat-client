@@ -25,6 +25,8 @@ interface Props extends CommonLayoutProps {
     conversations?: ChatConversation[];
     /** 当前选中的会话ID */
     currentConversationId?: string;
+    /** 正在进行中（流式请求未完成）的会话 Id 集合，透传给 HistoryList 显示 loading */
+    chattingConversationIds?: string[];
     /** 用户头像URL */
     userAvatarUrl?: string;
     /** 用户头像文字 */
@@ -47,6 +49,7 @@ const props = withDefaults(defineProps<Props>(), {
     currentApplicationId: '',
     conversations: () => [],
     currentConversationId: '',
+    chattingConversationIds: () => [],
     userAvatarUrl: '',
     userAvatarName: '',
     userName: '',
@@ -74,6 +77,7 @@ const emit = defineEmits<{
     (e: 'toggleSidebar'): void;
     (e: 'selectApplication', app: Application): void;
     (e: 'selectConversation', conversation: ChatConversation): void;
+    (e: 'deleteConversation', conversation: ChatConversation): void;
     (e: 'toggleTheme'): void;
     (e: 'changeLanguage', key: string): void;
     (e: 'logout'): void;
@@ -93,6 +97,10 @@ const handleSelectApplication = (app: Application) => {
 
 const handleSelectConversation = (conversation: ChatConversation) => {
     emit('selectConversation', conversation);
+};
+
+const handleDeleteConversation = (conversation: ChatConversation) => {
+    emit('deleteConversation', conversation);
 };
 
 const handleToggleTheme = () => {
@@ -138,9 +146,11 @@ const handleUserClick = () => {
                     <HistoryList 
                         :conversations="conversations" 
                         :currentConversationId="currentConversationId"
+                        :chattingConversationIds="chattingConversationIds"
                         :todayText="i18n.today"
                         :recentText="i18n.recent"
                         @select="handleSelectConversation"
+                        @delete="handleDeleteConversation"
                     />
                 </div>
             </div>

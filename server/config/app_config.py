@@ -67,8 +67,22 @@ class TAgenticConfig(
     )
 
     SERVER_RESPONSE_TIMEOUT: PositiveInt = Field(
-        description="Response timeout for the server in seconds.",
+        description=(
+            "Sanic RESPONSE_TIMEOUT for regular (non-streaming) API responses in seconds. "
+            "Does NOT affect SSE streaming responses once the first chunk is written. "
+            "SSE upstream idle timeout is controlled separately by SSE_IDLE_TIMEOUT."
+        ),
         default=300,
+    )
+
+    SSE_IDLE_TIMEOUT: PositiveInt = Field(
+        description=(
+            "Upstream SSE idle timeout in seconds (aiohttp sock_read). "
+            "Triggered when the upstream SSE service stops pushing new chunks for this long. "
+            "Only applies to server<->upstream SSE connections; regular APIs use SERVER_RESPONSE_TIMEOUT. "
+            "Default is 5400s (90 minutes) to accommodate long-running chat streams."
+        ),
+        default=5400,
     )
 
     RATE_LIMIT: str = Field(
