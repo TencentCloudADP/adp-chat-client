@@ -1,8 +1,8 @@
 from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, delete
 from sanic.exceptions import SanicException
-from model.chat import ChatConversation
+from model.chat import ChatConversation, ChatRecord
 
 
 class CoreConversation:
@@ -15,12 +15,19 @@ class CoreConversation:
 
     @staticmethod
     async def delete(db: AsyncSession, account_id: str, conversation_id: str):
+        # 先按 ownership 定位会话，防止越权删除他人会话
         conversation = (await db.execute(select(ChatConversation).where(
             ChatConversation.AccountId == account_id,
             ChatConversation.Id == conversation_id
         ).limit(1))).scalar()
         if conversation is None:
             raise SanicException("conversation not found", status_code=404)
+        # 级联清理该会话下的所有消息记录，避免孤儿数据
+        # 注：SharedConversation.Records 是 JSON 快照（分享时已冻结），
+        # 与原会话解耦，此处不联动删除，保留已分享链接的可访问性。
+        await db.execute(
+            delete(ChatRecord).where(ChatRecord.ConversationId == conversation_id)
+        )
         await db.delete(conversation)
         await db.commit()
 

@@ -1,7 +1,7 @@
 <!-- ADP 聊天布局主组件，支持 API 模式和 Props 模式 -->
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRefs, provide } from 'vue';
-import { Layout as TLayout, Content as TContent, MessagePlugin,Tooltip, Icon as TIcon } from 'tdesign-vue-next';
+import { Layout as TLayout, Content as TContent, MessagePlugin, DialogPlugin, Tooltip, Icon as TIcon } from 'tdesign-vue-next';
 
 // TLayout, TContent 已导入，模板中使用对应组件
 import MainLayout from './MainLayout.vue';
@@ -17,6 +17,7 @@ import type { ApiConfig } from '../../service/api';
 import {
     fetchApplicationList,
     fetchConversationList,
+    deleteConversation,
     fetchConversationDetail,
     fetchReferenceDetails,
     createConversation,
@@ -172,6 +173,8 @@ const { getAgentIdByAppId, watchApplicationId } = useAgentStore();
 const emit = defineEmits<{
     (e: 'selectApplication', app: Application): void;
     (e: 'selectConversation', conversation: ChatConversation): void;
+    /** 删除会话（用户在侧栏确认删除后触发；API 模式下删除已完成再 emit，非 API 模式仅透传） */
+    (e: 'deleteConversation', conversation: ChatConversation): void;
     (e: 'createConversation'): void;
     (e: 'toggleTheme'): void;
     (e: 'changeLanguage', key: string): void;
@@ -1169,6 +1172,93 @@ const handleCreateConversation = () => {
     emit('createConversation');
 };
 
+/**
+ * 侧栏删除会话
+ * 流程：
+ *   1) 保护：进行中会话不允许删（HistoryList 里已过滤，这里再兜底一次）
+ *   2) 弹二次确认（避免误操作）
+ *   3) 乐观 UI：先从侧栏移除 → 请求后端 → 失败则回滚 + 提示
+ *   4) 如果删的是当前会话，清空 chat 主区（视觉上退回到空态）
+ *   5) 对 pending 占位（未真正落库的乐观项）：跳过后端调用，本地移除即可
+ *   6) 清理 conversationRuntimeStates 中对应 key，避免残留状态影响 chattingConversationIds 计算
+ * 非 API 模式：仅向外 emit，由父组件自处理
+ */
+const handleDeleteConversation = (conversation: ChatConversation) => {
+    if (!conversation?.Id) return;
+
+    if (!useApiMode.value) {
+        emit('deleteConversation', conversation);
+        return;
+    }
+
+    // 兜底：进行中会话禁止删除
+    if (isConversationChatting(conversation.Id)) {
+        MessagePlugin.warning('会话正在进行中，请先停止后再删除');
+        return;
+    }
+
+    const isPendingPlaceholder = conversation.Id.startsWith('pending-conversation:');
+    const title = (conversation.Title || '').slice(0, 40) || '该会话';
+
+    const confirmDialog = DialogPlugin.confirm({
+        header: '删除会话',
+        body: `确认删除"${title}"？删除后不可恢复。`,
+        confirmBtn: { content: '删除', theme: 'danger' },
+        cancelBtn: '取消',
+        onConfirm: async () => {
+            confirmDialog.hide();
+
+            // 乐观 UI：立即从侧栏移除
+            const prevList = internalConversations.value;
+            const nextList = prevList.filter(c => c.Id !== conversation.Id);
+            internalConversations.value = nextList;
+
+            // 如果删的是当前会话，清空主区状态
+            const wasCurrent =
+                internalCurrentConversation.value?.Id === conversation.Id ||
+                currentConversationStateKey.value === conversation.Id;
+            if (wasCurrent) {
+                internalCurrentConversation.value = undefined;
+                currentConversationStateKey.value = '';
+                closeFilePreview();
+            }
+
+            // pending 占位：从未落库，仅清本地 runtime state
+            if (isPendingPlaceholder) {
+                delete conversationRuntimeStates.value[conversation.Id];
+                return;
+            }
+
+            try {
+                await deleteConversation(
+                    conversation.Id,
+                    mergedApiDetailConfig.value.conversationDeleteApi,
+                );
+                // 后端成功：清理对应 runtime state（历史 records / applicationId 等）
+                delete conversationRuntimeStates.value[conversation.Id];
+                emit('deleteConversation', conversation);
+            } catch (err: any) {
+                // 404：会话已经被其他端/其他 tab 删除，视为成功，UI 不回滚
+                // 避免"我看到的还在，但后端说不存在"这种拧巴的状态
+                const status = err?.response?.status ?? err?.status;
+                if (status === 404) {
+                    delete conversationRuntimeStates.value[conversation.Id];
+                    emit('deleteConversation', conversation);
+                    return;
+                }
+                // 其它错误：回滚，把这条塞回原位置
+                internalConversations.value = prevList;
+                if (wasCurrent) {
+                    internalCurrentConversation.value = conversation;
+                    currentConversationStateKey.value = conversation.Id;
+                }
+                MessagePlugin.error('删除失败，请稍后重试');
+                console.error('删除会话失败:', err);
+            }
+        },
+    });
+};
+
 const handleClose = () => {
     emit('close');
 };
@@ -1622,6 +1712,7 @@ defineExpose({
                 @toggleSidebar="handleToggleSidebar"
                 @selectApplication="handleSelectApplication"
                 @selectConversation="handleSelectConversation"
+                @deleteConversation="handleDeleteConversation"
                 @toggleTheme="emit('toggleTheme')"
                 @changeLanguage="(key) => emit('changeLanguage', key)"
                 @logout="emit('logout')"

@@ -4,7 +4,7 @@
 -->
 <script setup lang="tsx">
 import { computed } from 'vue';
-import { Loading as TLoading } from 'tdesign-vue-next';
+import { Loading as TLoading, Icon as TIcon } from 'tdesign-vue-next';
 import type { ChatConversation } from '../model/chat-v2';
 
 interface Props {
@@ -33,6 +33,11 @@ const chattingIdSet = computed(() => new Set(props.chattingConversationIds));
 
 const emit = defineEmits<{
     (e: 'select', conversation: ChatConversation): void;
+    /**
+     * 请求删除会话（由父组件负责弹确认框 + 调后端 + 更新列表）
+     * 组件本身不做删除动作，保持单一职责
+     */
+    (e: 'delete', conversation: ChatConversation): void;
 }>();
 
 /**
@@ -84,6 +89,18 @@ const formatUpdateTime = (time: number): string => {
 const handleClick = (detail: ChatConversation) => {
     emit('select', detail);
 };
+
+/**
+ * 点击删除按钮：阻止冒泡以免触发会话选中，向父组件抛出 delete 事件
+ * 正在进行中（chatting）的会话不允许删除，避免与 SSE 竞态
+ */
+const handleDeleteClick = (event: Event, detail: ChatConversation) => {
+    event.stopPropagation();
+    if (chattingIdSet.value.has(detail.Id)) {
+        return;
+    }
+    emit('delete', detail);
+};
 </script>
 
 <template>
@@ -101,13 +118,30 @@ const handleClick = (detail: ChatConversation) => {
             @click="handleClick(item)"
         >
             <div class="history-title" :title="item.Title">{{ item.Title }}</div>
-            <!-- 进行中：转圈；否则显示最近更新时间。二选一避免右侧拥挤 -->
+            <!--
+              右侧状态区展示优先级（互斥，避免拥挤）：
+              1. 进行中 → 转圈
+              2. hover / active 且非进行中 → 删除按钮
+              3. 否则 → 最近更新时间（hover / active 时才可见）
+            -->
             <span v-if="chattingIdSet.has(item.Id)" class="history-loading" aria-label="进行中">
                 <TLoading size="14px" />
             </span>
-            <span v-else-if="item.LastActiveAt" class="history-time">
-                {{ formatUpdateTime(item.LastActiveAt) }}
-            </span>
+            <template v-else>
+                <span
+                    class="history-delete"
+                    aria-label="删除会话"
+                    role="button"
+                    tabindex="0"
+                    @click="handleDeleteClick($event, item)"
+                    @keydown.enter.stop.prevent="handleDeleteClick($event, item)"
+                >
+                    <TIcon name="delete" size="14px" />
+                </span>
+                <span v-if="item.LastActiveAt" class="history-time">
+                    {{ formatUpdateTime(item.LastActiveAt) }}
+                </span>
+            </template>
         </div>
     </div>
 </template>
@@ -180,9 +214,10 @@ const handleClick = (detail: ChatConversation) => {
     transition: opacity 0.15s ease;
 }
 
+/* 默认展示时间；hover/active 时让位给删除按钮，避免右侧同时显示两个元素造成拥挤 */
 .history-item:hover .history-time,
 .history-item.active .history-time {
-    opacity: 1;
+    display: none;
 }
 
 /* 进行中的转圈：始终可见，颜色与主色一致，位置与 history-time 对齐 */
@@ -192,5 +227,35 @@ const handleClick = (detail: ChatConversation) => {
     display: inline-flex;
     align-items: center;
     color: var(--td-brand-color);
+}
+
+/* 删除按钮：默认隐藏，hover/active 时展示 */
+.history-delete {
+    flex-shrink: 0;
+    margin-left: 8px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--td-radius-small);
+    color: var(--td-text-color-placeholder);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.history-item:hover .history-delete,
+.history-item.active .history-delete {
+    display: inline-flex;
+}
+
+.history-delete:hover {
+    background: var(--td-bg-color-container-active);
+    color: var(--td-error-color);
+}
+
+.history-delete:focus-visible {
+    outline: 2px solid var(--td-brand-color);
+    outline-offset: 1px;
 }
 </style>

@@ -15,6 +15,8 @@ export interface ApiDetailConfig {
     applicationListApi?: string;
     /** 会话列表接口路径 */
     conversationListApi?: string;
+    /** 删除会话接口路径 */
+    conversationDeleteApi?: string;
     /** 会话详情接口路径 */
     conversationDetailApi?: string;
     /** 发送消息接口路径 */
@@ -71,6 +73,7 @@ export interface ApiConfig extends AxiosRequestConfig {
 export const defaultApiDetailConfig: ApiDetailConfig = {
     applicationListApi: '/application/list',
     conversationListApi: '/chat/conversations',
+    conversationDeleteApi: '/chat/conversation/delete',
     conversationDetailApi: '/chat/messages',
     sendMessageApi: '/chat/message',
     rateApi: '/feedback/rate',
@@ -126,6 +129,26 @@ export const fetchConversationList = async (apiPath?: string): Promise<ChatConve
         return response || [];
     } catch (error) {
         console.error('获取会话列表失败:', error);
+        throw error;
+    }
+};
+
+/**
+ * 删除会话
+ * @param conversationId 会话 ID
+ * @param apiPath API 路径（默认 /chat/conversation/delete）
+ * 后端已通过 login_required + account_id 做 ownership 校验，前端只需传 ConversationId
+ */
+export const deleteConversation = async (
+    conversationId: string,
+    apiPath?: string
+): Promise<void> => {
+    const path = apiPath || defaultApiDetailConfig.conversationDeleteApi!;
+    if (!conversationId) throw new Error('conversationId is required');
+    try {
+        await httpService.post(path, { ConversationId: conversationId });
+    } catch (error) {
+        console.error('删除会话失败:', error);
         throw error;
     }
 };
@@ -218,7 +241,10 @@ export const sendMessage = async (
     const _options = {
         responseType: 'stream',
         adapter: 'fetch',
-        timeout: 1000 * 600,
+        // 90 分钟：与服务端 SERVER_RESPONSE_TIMEOUT 对齐。
+        // 注意：fetch adapter 下该 timeout 仅约束"发起请求→收到响应头"阶段，
+        // 一旦拿到 Response 就会被 clearTimeout；SSE body 的 chunk 间空闲不受此限制。
+        timeout: 1000 * 60 * 90,
         ...options,
     } as AxiosRequestConfig;
     return httpService.post(apiPath, params, _options);

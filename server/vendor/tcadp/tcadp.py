@@ -842,7 +842,10 @@ class TCADP(BaseVendor):
         if not account_id:
             account_id = "anonymous"
 
-        timeout = aiohttp.ClientTimeout(total=None, sock_read=tagentic_config.SERVER_RESPONSE_TIMEOUT)
+        # SSE 场景使用独立的 idle 超时（sock_read），与普通 API 的 SERVER_RESPONSE_TIMEOUT 解耦。
+        # total=None：不限制整个请求生命周期，允许长时间对话。
+        # sock_read：两次读操作之间的最大空闲；上游持续吐 chunk 会不断刷新。
+        timeout = aiohttp.ClientTimeout(total=None, sock_read=tagentic_config.SSE_IDLE_TIMEOUT)
         async with aiohttp.ClientSession(read_bufsize=1*1024*1024, timeout=timeout) as session:
             param = {
                 "ConversationId": conversation_id,
@@ -901,6 +904,29 @@ class TCADP(BaseVendor):
                     resp.close()
                     await session.close()
                     raise
+                except asyncio.TimeoutError:
+                    # aiohttp sock_read idle 超时：上游 SSE 在 SSE_IDLE_TIMEOUT 秒内
+                    # 未再推送任何数据。给前端一个明确 error 事件，避免"响应静默中断"。
+                    idle_sec = tagentic_config.SSE_IDLE_TIMEOUT
+                    logging.warning(
+                        f"[TCADP.chat] upstream SSE idle timeout after {idle_sec}s "
+                        f"(ConversationId={conversation_id!r}, VisitorId={account_id!r})"
+                    )
+                    # 主动关闭上游连接，回收资源
+                    try:
+                        if resp.connection and resp.connection.transport:
+                            resp.connection.transport.abort()
+                        resp.close()
+                    except Exception as close_err:
+                        logging.warning(f"[TCADP.chat] error closing upstream after idle timeout: {close_err}")
+                    yield to_event(
+                        EventType.ERROR,
+                        error=ErrorInfo(
+                            Code=504,
+                            Message=f"Upstream SSE idle timeout after {idle_sec}s",
+                        ),
+                    )
+                    return
 
             logging.info("forward_request: done")
 
