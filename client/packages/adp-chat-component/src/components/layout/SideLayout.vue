@@ -102,6 +102,12 @@ interface Props extends CommonLayoutProps {
     remoteTerminalSpaceId?: string;
     /** 从远程终端接口响应到 RemoteTerminalItem[] 的适配器 */
     remoteTerminalResponseAdapter?: (raw: unknown) => RemoteTerminalItem[];
+    /** 渠道设置弹窗的应用 ID（传了才会在点击远程终端设置按钮时打开内置渠道设置弹窗） */
+    channelSettingAppId?: string;
+    /** 渠道设置弹窗：C 端归属用户 ID */
+    channelSettingUserId?: string;
+    /** 渠道设置弹窗：C 端 claw agent 运行态 ID */
+    channelSettingAgentId?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -133,10 +139,13 @@ const props = withDefaults(defineProps<Props>(), {
     currentRemoteTerminalId: '',
     showRemoteTerminalList: true,
     remoteTerminalDefaultCollapsed: false,
-    remoteTerminalUseInternalFetch: false,
+    remoteTerminalUseInternalFetch: true,
     remoteTerminalListApi: '',
     remoteTerminalSpaceId: '',
     remoteTerminalResponseAdapter: undefined,
+    channelSettingAppId: '',
+    channelSettingUserId: '',
+    channelSettingAgentId: '',
 });
 
 // 合并默认值和传入值
@@ -144,6 +153,11 @@ const i18n = computed(() => ({
     ...defaultSideI18n,
     ...props.i18n
 }));
+
+/** 渠道设置弹窗的 applicationId：优先取显式传入的 channelSettingAppId，否则 fallback 到 currentApplicationId */
+const resolvedChannelSettingAppId = computed(() => {
+    return props.channelSettingAppId || props.currentApplicationId || '';
+});
 
 // visible 的实际值：如果传入了 visible 则使用传入值，否则根据 isSidePanelOverlay 决定
 const actualVisible = computed(() => {
@@ -531,6 +545,9 @@ defineExpose({
                             :channel-list-api="remoteTerminalListApi"
                             :space-id="remoteTerminalSpaceId"
                             :response-adapter="remoteTerminalResponseAdapter"
+                            :channel-setting-app-id="resolvedChannelSettingAppId"
+                            :channel-setting-user-id="channelSettingUserId"
+                            :channel-setting-agent-id="channelSettingAgentId"
                             :theme="theme"
                             @select="handleSelectRemoteTerminal"
                             @setting="handleRemoteTerminalSetting"

@@ -286,11 +286,11 @@ export const createShare = async (params: object, apiPath?: string): Promise<any
  * 获取用户信息
  * @param apiPath API 路径
  */
-export const fetchUserInfo = async (apiPath?: string): Promise<{ Name: string; Avatar: string }> => {
+export const fetchUserInfo = async (apiPath?: string): Promise<{ Id: string; Name: string; Avatar: string }> => {
     if (!apiPath) throw new Error('apiPath is required');
     try {
-        const response: { Info: { Name: string; Avatar: string } } = await httpService.get(apiPath);
-        return response.Info || { Name: '', Avatar: '' };
+        const response: { Info: { Id: string; Name: string; Avatar: string } } = await httpService.get(apiPath);
+        return response.Info || { Id: '', Name: '', Avatar: '' };
     } catch (error) {
         console.error('获取用户信息失败:', error);
         throw error;

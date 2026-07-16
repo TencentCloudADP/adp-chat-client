@@ -40,6 +40,7 @@
     "markdown-it": "^14.1.0",
     "markdown-it-highlightjs": "^4.2.0",
     "monaco-editor": "^0.52.2",
+    "qrcode": "^1.5.4",
     "tdesign-vue-next": "^1.17.7",
     "vite-plugin-svg-icons": "^2.0.1"
   },

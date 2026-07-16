@@ -4,7 +4,7 @@
     专门用于侧边栏的"远程终端"分组，独立于通用 SideGroupList：
       1. 支持内部拉取渠道列表（useInternalFetch=true）—— 对齐 SideLayout 的 conversationListApi 用法
       2. 支持折叠 / 展开
-      3. 标题右侧带「设置」按钮（hover 时显示，参考 smart-webim conversation-list 的 header-setting-btn）
+      3. 标题右侧带「设置」按钮（始终显示，点击打开渠道设置弹窗）
       4. 空态占位（"暂无远程终端"），空数据也保留标题与设置入口
       5. UI 风格参考 HistoryList.vue（分组标题小号灰字 + 列表项 hover / active 态）
     交互结构参考：smart-webim/src/pages/assist-chat/component/conversation-list.vue 中的
@@ -13,9 +13,13 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
-import { httpService } from '../../service/httpService';
+import ChannelSettingsDialog from '../Channel/ChannelSettingsDialog.vue';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
+import type { ChannelApiConfig } from '../../service/channelApi';
+import { describeChannelList, type ChannelItem } from '../../service/channelApi';
+import type { ChannelSettingsI18n } from '../../model/channel';
+import { CHANNEL_ICON_MAP, CHANNEL_NAME_KEYS, ClawChannelStatus } from '../../model/channel';
 
 /** 远程终端项数据结构 */
 export interface RemoteTerminalItem {
@@ -75,6 +79,18 @@ interface Props extends ThemeProps {
     settingTip?: string;
     /** 设置按钮图标名（默认 basic_setting_line） */
     settingIcon?: string;
+
+    // ---- 渠道设置弹窗相关 ----
+    /** 应用 ID（渠道设置弹窗的 ApplicationId，传了才会在点设置按钮时弹出渠道设置弹窗） */
+    channelSettingAppId?: string;
+    /** C 端 claw 模式：归属用户 ID */
+    channelSettingUserId?: string;
+    /** C 端 claw 模式：agent 运行态 ID */
+    channelSettingAgentId?: string;
+    /** 渠道 API 配置覆盖 */
+    channelApiConfig?: ChannelApiConfig;
+    /** 渠道设置弹窗 i18n 覆盖 */
+    channelSettingsI18n?: Partial<ChannelSettingsI18n>;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -91,6 +107,11 @@ const props = withDefaults(defineProps<Props>(), {
     showSetting: true,
     settingTip: '渠道设置',
     settingIcon: 'basic_setting_line',
+    channelSettingAppId: '',
+    channelSettingUserId: '',
+    channelSettingAgentId: '',
+    channelApiConfig: () => ({}),
+    channelSettingsI18n: () => ({}),
 });
 
 const emit = defineEmits<{
@@ -111,6 +132,9 @@ const emit = defineEmits<{
 /** 折叠状态：受控于 defaultCollapsed 初值，之后由自身维护，并通过 emit 通知父层 */
 const collapsed = ref(props.defaultCollapsed);
 
+/** 渠道设置弹窗可见性 */
+const channelSettingsVisible = ref(false);
+
 /** 内部拉取到的列表（仅 useInternalFetch=true 时有值） */
 const internalList = ref<RemoteTerminalItem[]>([]);
 
@@ -126,44 +150,50 @@ const displayItems = computed<RemoteTerminalItem[]>(() => {
 // ---------------- 内部拉取 ----------------
 
 /**
- * 请求远程终端列表。
- * 仅在 useInternalFetch=true 且传了 channelListApi 时执行。
- * 需要 responseAdapter 显式声明字段映射，避免组件硬耦合具体后端 schema。
+ * 通过 DescribeChannelList 接口拉取已绑定的远程终端列表。
+ * 仅当 useInternalFetch=true 且 channelSettingAppId 存在时执行。
+ * 只展示已连接成功的渠道（connectStatus === SUCCESS），对齐 webim 的 terminalFieldMap 行为。
  */
 const fetchList = async () => {
     if (!props.useInternalFetch) return;
-    if (!props.channelListApi) return;
+    if (!props.channelSettingAppId) return;
     if (loading.value) return;
     loading.value = true;
     try {
-        const raw = await httpService.get(
-            props.channelListApi,
-            props.spaceId ? { spaceId: props.spaceId } : {}
+        const res = await describeChannelList(
+            { applicationId: props.channelSettingAppId, pageSize: 100 },
         );
-        const list = props.responseAdapter
-            ? (props.responseAdapter(raw) || [])
-            : (Array.isArray(raw) ? (raw as RemoteTerminalItem[]) : []);
-        internalList.value = list;
-        emit('loaded', list);
+        // 只展示已连接的渠道
+        const items: RemoteTerminalItem[] = res.channelList
+            .filter((ch: ChannelItem) => ch.connectStatus === ClawChannelStatus.SUCCESS)
+            .map((ch: ChannelItem) => {
+                const iconUrl = CHANNEL_ICON_MAP[ch.channelType] || '';
+                return {
+                    id: String(ch.channelId),
+                    label: ch.channelName,
+                    icon: iconUrl,
+                    iconRemote: false,  // 使用本地图片，非 iconfont
+                    raw: { ...ch, channelType: ch.channelType },
+                } as RemoteTerminalItem;
+            });
+        internalList.value = items;
+        emit('loaded', items);
     } catch (err) {
-        // 拉取失败保留旧列表，避免闪没
         emit('loadError', err);
-        // eslint-disable-next-line no-console
         console.error('[RemoteTerminalList] fetchList error:', err);
     } finally {
         loading.value = false;
     }
 };
 
-// 首次挂载 + spaceId 变化时自动拉取
+// 首次挂载 + channelSettingAppId 变化时自动拉取
 onMounted(() => {
-    if (props.useInternalFetch) fetchList();
+    if (props.useInternalFetch && props.channelSettingAppId) fetchList();
 });
 watch(
-    () => [props.useInternalFetch, props.spaceId, props.channelListApi],
+    () => [props.useInternalFetch, props.channelSettingAppId],
     ([enabledNew], [enabledOld]) => {
-        // 变为启用状态或参数变化时重拉
-        if (props.useInternalFetch) fetchList();
+        if (props.useInternalFetch && props.channelSettingAppId) fetchList();
         else if (enabledOld && !enabledNew) internalList.value = [];
     }
 );
@@ -182,6 +212,7 @@ const handleSelect = (item: RemoteTerminalItem) => {
 
 const handleSetting = (event: Event) => {
     event.stopPropagation();
+    channelSettingsVisible.value = true;
     emit('setting');
 };
 
@@ -257,8 +288,15 @@ defineExpose({
                 }"
                 @click="handleSelect(item)"
             >
+                <!-- 渠道图标：本地图片用 <img>，iconfont 用 CustomizedIcon -->
+                <img
+                    v-if="item.icon && item.iconRemote === false"
+                    class="rt-item__img"
+                    :src="item.icon"
+                    :alt="item.label"
+                />
                 <CustomizedIcon
-                    v-if="item.icon"
+                    v-else-if="item.icon"
                     :name="item.icon"
                     :remote="item.iconRemote !== false"
                     size="xs"
@@ -273,6 +311,18 @@ defineExpose({
             </div>
         </div>
     </div>
+
+    <!-- 渠道设置弹窗 -->
+    <ChannelSettingsDialog
+        v-model="channelSettingsVisible"
+        :application-id="channelSettingAppId"
+        :user-id="channelSettingUserId"
+        :agent-id="channelSettingAgentId"
+        :api-config="channelApiConfig"
+        :i18n="channelSettingsI18n"
+        :theme="theme"
+        @refreshed="fetchList"
+    />
 </template>
 
 <style scoped>
@@ -341,14 +391,8 @@ defineExpose({
     border-radius: var(--td-radius-small);
     color: var(--td-text-color-placeholder);
     cursor: pointer;
-    opacity: 0;
-    transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
-}
-
-/* hover 头部时才显现（参考 conversation-list 的 header-setting-btn） */
-.rt-header:hover .rt-header__setting,
-.rt-header__setting:focus-visible {
     opacity: 1;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
 .rt-header__setting:hover {
@@ -397,6 +441,15 @@ defineExpose({
 .rt-item__icon {
     flex-shrink: 0;
     margin-right: 8px;
+}
+
+.rt-item__img {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    border-radius: 4px;
+    object-fit: contain;
 }
 
 .rt-item__label {

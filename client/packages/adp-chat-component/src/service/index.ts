@@ -36,3 +36,30 @@ export type {
     SuggestionGroup,
     SuggestionListResponse,
 } from './api';
+
+// ============================================================
+// Channel API
+// ============================================================
+export {
+    defaultChannelApiConfig,
+    describeChannelList,
+    describeChannel,
+    createChannel,
+    modifyChannel,
+    deleteChannel,
+    ChannelScene,
+    ClawChannelStatus,
+    ChannelType,
+} from './channelApi';
+export type {
+    ChannelApiConfig,
+    ChannelRawItem,
+    ChannelSpecRaw,
+    ChannelItem,
+    DescribeChannelListParams,
+    DescribeChannelListResponse,
+    CreateChannelParams,
+    DescribeChannelParams,
+    DeleteChannelParams,
+    ModifyChannelParams,
+} from './channelApi';

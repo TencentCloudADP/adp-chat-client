@@ -190,7 +190,7 @@ const props = withDefaults(defineProps<Props>(), {
     enableCronTask: true,
 });
 
-const { getAgentIdByAppId, watchApplicationId } = useAgentStore();
+const { getAgentIdByAppId, watchApplicationId, agentIdMap } = useAgentStore();
 
 const emit = defineEmits<{
     (e: 'selectApplication', app: Application): void;
@@ -343,7 +343,7 @@ provide('isMobile', isMobile);
 // 内部数据状态（当使用 API 时）
 const internalApplications = ref<Application[]>([]);
 const internalConversations = ref<ChatConversation[]>([]);
-const internalUser = ref<{ avatarUrl?: string; avatarName?: string; name?: string }>({});
+const internalUser = ref<{ id?: string; avatarUrl?: string; avatarName?: string; name?: string }>({});
 const internalCurrentApplication = ref<Application | undefined>(undefined);
 const internalCurrentConversation = ref<ChatConversation | undefined>(undefined);
 
@@ -635,6 +635,11 @@ const currentApplicationId = computed(() => actualCurrentApplication.value?.Appl
 // 在最外层监听 currentApplicationId 变化，自动触发 Agent 拉取
 watchApplicationId(currentApplicationId);
 const currentApplicationAvatar = computed(() => actualCurrentApplication.value?.Avatar || '');
+
+/** 当前用户 ID（来自 /account/info 返回的 Id） */
+const currentUserId = computed(() => internalUser.value?.id || '');
+/** 当前应用的 agent ID（来自 useAgentStore 缓存，由 watchApplicationId 自动拉取） */
+const currentAgentId = computed(() => agentIdMap.value[currentApplicationId.value] || '');
 const currentApplicationName = computed(() => actualCurrentApplication.value?.Name || '');
 // Skills 的 ApplicationId 优先用显式配置，否则回退到当前应用 ID
 const skillsAppId = computed(() => props.skillsApplicationId || currentApplicationId.value);
@@ -749,6 +754,7 @@ const loadUserInfo = async () => {
     try {
         const data = await fetchUserInfo(mergedApiDetailConfig.value.userInfoApi);
         internalUser.value = {
+            id: data.Id || '',
             avatarUrl: data.Avatar,
             avatarName: data.Name?.charAt(0) || '',
             name: data.Name,
@@ -1819,6 +1825,8 @@ defineExpose({
                 :i18n="props.sideI18n"
                 :showCronTaskAction="enableCronTask"
                 :sideActionActiveKey="cronTaskVisible ? 'cron-task' : ''"
+                :channelSettingUserId="currentUserId"
+                :channelSettingAgentId="currentAgentId"
                 @toggleSidebar="handleToggleSidebar"
                 @selectApplication="handleSelectApplication"
                 @selectConversation="handleSelectConversation"

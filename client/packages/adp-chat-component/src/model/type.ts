@@ -20,6 +20,7 @@ export interface LanguageOption {
 
 /** 用户信息 */
 export interface UserInfo {
+  id?: string
   avatarUrl?: string
   avatarName?: string
   name?: string
