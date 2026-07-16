@@ -12,6 +12,10 @@ logger = logging.getLogger(__name__)
 
 
 class CoreChat:
+    # 通用占位名，不足以唯一标识用户，NAME 模式下需退回 customer_id 兜底，
+    # 避免 AUTO_CREATE_ACCOUNT 场景下所有自动账号共享同一 VisitorId。
+    _GENERIC_ACCOUNT_NAMES = frozenset({"", "user", "anonymous", "guest"})
+
     @staticmethod
     async def resolve_vendor_account_id(account_id: str) -> str:
         async with db_connection() as db:
@@ -26,7 +30,11 @@ class CoreChat:
         name = account.Name if account else ""
 
         if tagentic_config.ADP_VISITOR_ID_TYPE == "NAME":
-            return name or customer_id or account_id
+            # 仅当 name 具备可区分性时才用它；否则退回 customer_id / account_id，
+            # 防止不同账号被 vendor 侧视为同一访客（多轮上下文、限流、统计串号）。
+            if name and name.strip().lower() not in CoreChat._GENERIC_ACCOUNT_NAMES:
+                return name
+            return customer_id or account_id
         return customer_id or account_id
 
     @staticmethod

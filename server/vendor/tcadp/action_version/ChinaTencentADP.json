@@ -2,7 +2,7 @@
     "_comment": "ChinaTencentADP 场景的接口路由配置。ADP 场景所有接口走 adp endpoint。",
     "DescribeRobotBizIDByAppKey": {
         "service": "adp",
-        "headers.X-TC-Version": "2023-11-30"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "DescribeApp": {
         "service": "adp",
@@ -46,7 +46,7 @@
     },
     "ListModel": {
         "service": "adp",
-        "headers.X-TC-Version": "2025-11-12"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "CreateConversation": {
         "service": "adp",
@@ -60,27 +60,27 @@
     },
     "BindAgentTool": {
         "service": "adp",
-        "headers.X-TC-Version": "2025-11-12"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "UnbindAgentTool": {
         "service": "adp",
-        "headers.X-TC-Version": "2025-11-12"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "ModifyAgentToolList": {
         "service": "adp",
-        "headers.X-TC-Version": "2025-11-12"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "GetMsgRecord": {
         "service": "adp",
-        "headers.X-TC-Version": "2023-11-30"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "RateMsgRecord": {
         "service": "adp",
-        "headers.X-TC-Version": "2023-11-30"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "DescribeRefer": {
         "service": "adp",
-        "headers.X-TC-Version": "2023-11-30"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "ChatCompletions": {
         "service": "adp",
@@ -96,7 +96,7 @@
     },
     "ListReferShareKnowledge": {
         "service": "adp",
-        "headers.X-TC-Version": "2023-11-30"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "GetKBDefaultConfig": {
         "service": "adp",
@@ -125,6 +125,10 @@
     "DeleteChannel": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4070"
+        "headers.X-TC-Canary": "toe-test-4070"        
+    },
+    "DescribeTimerTaskSummaryList": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20"
     }
 }
