@@ -45,6 +45,8 @@ export interface ApiDetailConfig {
     fetchFileApi?: string;
     /** 会话消息列表接口路径（claw 模式） */
     describeConversationMessageListApi?: string;
+    /** CAPI 渠道会话列表接口路径（/adp/DescribeConversationList，按 ChannelId 精准过滤） */
+    describeConversationListApi?: string;
     /** 模型列表接口路径 */
     listModelApi?: string;
     /** Agent 摘要列表接口路径 */
@@ -88,6 +90,7 @@ export const defaultApiDetailConfig: ApiDetailConfig = {
     listDirApi: '/adp/ListDir',
     fetchFileApi: '/adp/FetchFile',
     describeConversationMessageListApi: '/adp/DescribeConversationMessageList',
+    describeConversationListApi: '/adp/DescribeConversationList',
     listModelApi: '/adp/ListModel',
     describeAgentSummaryListApi: '/adp/DescribeAgentSummaryList',
     copyAgentFromAppApi: '/adp/CopyAgentFromApp',
@@ -533,6 +536,111 @@ export const describeConversation = async (
         console.error('获取会话详情失败:', error);
         throw error;
     }
+};
+
+// ============================================================
+// DescribeConversationList（CAPI 渠道会话列表）
+// ============================================================
+
+/**
+ * DescribeConversationList 请求参数
+ * 对齐 proto chat/chat_manage/v2 DescribeConversationListReq，字段命名与 adp-b2c
+ * DescribeConversationListReq 保持一致（UserId/AgentId/AppId/AppKey/Keyword/Limit/Offset）。
+ * - Type：CONVERSATION_TYPE_UNSPECIFIED(0) 表示全部；渠道场景通常传 0 即可
+ * - UserId：**渠道过滤的核心字段**。ADP 里每个渠道绑定一个 UserAgent（{UserId, AgentId}），
+ *          传该 UserId 后 CAPI 只返回属于这个渠道用户的会话（webim 通过 UserAgent.UserId 建立
+ *          会话 → 拿 UserId 反查就能得到"该渠道的会话列表"）。
+ * - AgentId：可选，进一步限定到某个 Agent
+ * - ChannelId：proto v2 已定义，但线上 CAPI SDK 尚未开放；启用后可替代 UserId 过滤
+ * - AppKey：后端 action_version 会以 {{APP_KEY}} 兜底注入（前端不传即可）
+ */
+export interface DescribeConversationListParams {
+    /** 会话类型，默认 0（全部） */
+    Type?: number;
+    /** 应用 ID */
+    AppId?: string;
+    /** Agent ID（可选，配合 UserId 精准过滤某个 Agent 下的会话） */
+    AgentId?: string;
+    /**
+     * 用户 ID（渠道过滤核心）。传该字段后，action_version 里的 {{ACCOUNT_ID}} 默认注入
+     * 不会覆盖此值（inject_action_payload 只在 payload 无该字段时才注入）。
+     */
+    UserId?: string;
+    /** 渠道 ID（proto v2 已定义，线上 CAPI SDK 未开放，先保留字段） */
+    ChannelId?: string;
+    /** 关键词 */
+    Keyword?: string;
+    /** 偏移量 */
+    Offset?: number;
+    /** 限制数目 */
+    Limit?: number;
+}
+
+/** DescribeConversationList 返回的单条会话 */
+export interface CapiConversationItem {
+    ConversationId: string;
+    AppId?: string;
+    Type?: number;
+    Title?: string;
+    AgentId?: string;
+    CreateTime?: string;
+    UpdateTime?: string;
+    [key: string]: unknown;
+}
+
+/** DescribeConversationList 响应 */
+export interface DescribeConversationListResponse {
+    Response: {
+        Conversations?: CapiConversationItem[];
+        ConversationList?: CapiConversationItem[];
+        TotalCount?: string | number;
+        RequestId?: string;
+        Error?: { Code?: string; Message?: string };
+    };
+}
+
+/**
+ * 通过 CAPI DescribeConversationList 拉取渠道会话列表
+ * 走 /adp/DescribeConversationList 转发，可携带 ChannelId 精准过滤（对齐 webim/adp-b2c 但去掉 corp 语义）
+ */
+export const describeConversationList = async (
+    params: DescribeConversationListParams,
+    applicationId: string,
+    apiPath?: string,
+): Promise<{
+    conversations: CapiConversationItem[];
+    totalCount: number;
+}> => {
+    const path = apiPath || defaultApiDetailConfig.describeConversationListApi!;
+    // 组装 Payload：
+    // Type 默认 1（CONVERSATION_TYPE_VISITOR，访客端体验）——对齐 adp-b2c capi.go conversationType()：
+    // 虽然 proto 注释说 Type=0(UNSPECIFIED) 表示全部，但线上 CAPI SDK 实际行为并非"全部"，
+    // 传 0 常常拿到空列表；adp-b2c 亲测强制把 0→1 才能返回渠道产生的访客会话。
+    const payload: Record<string, unknown> = { Type: params.Type || 1 };
+    if (params.AppId) payload.AppId = params.AppId;
+    if (params.AgentId) payload.AgentId = params.AgentId;
+    // 渠道过滤：UserId 是核心，值来自 channel.spec.UserAgent.UserId（对齐 adp-b2c）。
+    // 传值后 action_version 中的 {{ACCOUNT_ID}} 默认注入会被跳过。
+    if (params.UserId) payload.UserId = params.UserId;
+    // 注意：ChannelId 已在 proto v2 定义但线上 CAPI (2026-05-20) SDK 尚未开放，直接透传会报
+    // UnknownParameter: The parameter `ChannelId` is not recognized。因此暂缓发送，等 CAPI SDK
+    // 版本同步 proto 后再启用。目前渠道过滤走 UserId 兜底。
+    // if (params.ChannelId) payload.ChannelId = params.ChannelId;
+    if (params.Keyword) payload.Keyword = params.Keyword;
+    if (typeof params.Offset === 'number') payload.Offset = params.Offset;
+    if (typeof params.Limit === 'number') payload.Limit = params.Limit;
+
+    const response: DescribeConversationListResponse = await httpService.post(path, {
+        ApplicationId: applicationId,
+        Payload: payload,
+    });
+    const data = response?.Response || ({} as DescribeConversationListResponse['Response']);
+    if (data?.Error?.Code) {
+        throw new Error(data.Error.Message || String(data.Error.Code));
+    }
+    const list = (data.Conversations || data.ConversationList || []) as CapiConversationItem[];
+    const total = Number(data.TotalCount ?? list.length) || list.length;
+    return { conversations: list, totalCount: total };
 };
 
 /** ListDir 请求参数 */

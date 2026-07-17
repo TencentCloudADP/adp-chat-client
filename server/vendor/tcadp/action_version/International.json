@@ -27,6 +27,13 @@
         "payload.AppKey": "{{APP_KEY}}",
         "payload.UserId": "{{ACCOUNT_ID}}"
     },
+    "DescribeConversationList": {
+        "service": "adp",
+        "headers.X-TC-Version": "2026-05-20",
+        "headers.X-TC-Region": "ap-jakarta",
+        "payload.AppKey": "{{APP_KEY}}",
+        "payload.UserId": "{{ACCOUNT_ID}}"
+    },
     "DescribeConversationMessageList": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",

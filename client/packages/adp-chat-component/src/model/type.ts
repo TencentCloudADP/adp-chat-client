@@ -71,6 +71,8 @@ export interface SideI18n {
   remoteTerminalSetting?: string
   /** 切换应用按钮文案（tooltip） */
   switchApplication?: string
+  /** 渠道展开列表按钮文案 */
+  channelList?: string
 }
 
 /** 聊天国际化文本 */
@@ -288,6 +290,7 @@ export const defaultSideI18n: Required<SideI18n> = {
   remoteTerminalEmpty: '暂无远程终端',
   remoteTerminalSetting: '渠道设置',
   switchApplication: '切换应用',
+  channelList: '展开列表',
 }
 
 /** 聊天 i18n 默认值 */
@@ -412,6 +415,7 @@ export const defaultSideI18nEn: Required<SideI18n> = {
   remoteTerminalEmpty: 'No remote terminals',
   remoteTerminalSetting: 'Channel settings',
   switchApplication: 'Switch Application',
+  channelList: 'Expand list',
 }
 
 /** 聊天 i18n 英文默认值 */

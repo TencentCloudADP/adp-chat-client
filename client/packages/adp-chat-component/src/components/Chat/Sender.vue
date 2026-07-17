@@ -50,6 +50,8 @@ export interface Props extends ChatRelatedProps {
     enableVoiceInput?: boolean;
     /** 是否正在上传/解析文件（禁止发送和继续上传） */
     isUploading?: boolean;
+    /** 渠道模式下无对话时禁用输入 */
+    channelInputDisabled?: boolean;
     /** 当前应用 ID（用于初始化时创建用户 Agent） */
     currentApplicationId?: string;
 
@@ -94,6 +96,7 @@ const props = withDefaults(defineProps<Props>(), {
     asrUrlApi: '',
     enableVoiceInput: true,
     isUploading: false,
+    channelInputDisabled: false,
     currentApplicationId: '',
 
     selectedModel: () => ({} as SelectedModel),
@@ -131,7 +134,7 @@ const i18n = computed(() => {
 /**
  * 是否禁止发送和上传（上传/解析中或流式加载中）
  */
-const sendDisabled = computed(() => props.isUploading || props.isStreamLoad);
+const sendDisabled = computed(() => props.isUploading || props.isStreamLoad || props.channelInputDisabled);
 
 /**
  * 是否有可发送内容
@@ -834,6 +837,7 @@ const imageAccept = ALLOWED_IMAGE_TYPES.map(t => {
 const fileAccept = '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.md,.csv,.json';
 
 const placeholder = computed(() => {
+    if (props.channelInputDisabled) return '请先选择渠道会话';
     return props.isMobile ? (i18n.value.placeholderMobile || '') : (i18n.value.placeholder || '');
 });
 
@@ -1262,8 +1266,8 @@ defineExpose({
                 ref="qaEditorRef"
                 :value="editorHtml"
                 :placeholder="placeholder"
-                :readOnly="isUploading"
-                :disabled="false"
+                :readOnly="isUploading || channelInputDisabled"
+                :disabled="channelInputDisabled"
                 :hideToolBar="true"
                 :allowPasteImage="true"
                 :theme="theme"

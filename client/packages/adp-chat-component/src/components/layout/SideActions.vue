@@ -37,6 +37,7 @@ interface Props extends ThemeProps {
      * 自定义按钮列表。若不传，则使用 i18n 生成默认按钮：
      *   - key: 'new-task'         icon: 'basic_newchat_line'   （始终显示）
      *   - key: 'cron-task'        icon: 'basic_time_line'      （showCronTask=true 时显示，默认 true）
+     *   - key: 'channel-list'     icon: 'basic_time_line'      （showChannelList=true 时显示）
      *
      * 注：远程终端不再作为快捷入口，改为下方 SideLayout 的分组列表呈现。
      */
@@ -45,6 +46,8 @@ interface Props extends ThemeProps {
     activeKey?: string;
     /** 是否显示"定时任务"入口（在使用默认按钮时生效） */
     showCronTask?: boolean;
+    /** 是否显示"展开列表"入口（远程终端选中时生效） */
+    showChannelList?: boolean;
     /** 侧边栏国际化文本（用于默认按钮文案） */
     i18n?: SideI18n;
 }
@@ -54,6 +57,7 @@ const props = withDefaults(defineProps<Props>(), {
     items: undefined,
     activeKey: '',
     showCronTask: true,
+    showChannelList: false,
     i18n: () => ({}),
 });
 
@@ -86,6 +90,15 @@ const displayItems = computed<SideActionItem[]>(() => {
         list.push({
             key: 'cron-task',
             label: mergedI18n.value.cronTask,
+            icon: 'basic_time_line',
+            remote: true,
+            iconSize: 'xs',
+        });
+    }
+    if (props.showChannelList) {
+        list.push({
+            key: 'channel-list',
+            label: mergedI18n.value.channelList || '展开列表',
             icon: 'basic_time_line',
             remote: true,
             iconSize: 'xs',

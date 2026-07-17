@@ -16,6 +16,7 @@ export {
     parseFile,
     getFileDownloadUrl,
     describeConversation,
+    describeConversationList,
     listDir,
     fetchFile,
     fetchModelList,
@@ -35,6 +36,9 @@ export type {
     SuggestionItem,
     SuggestionGroup,
     SuggestionListResponse,
+    DescribeConversationListParams,
+    DescribeConversationListResponse,
+    CapiConversationItem,
 } from './api';
 
 // ============================================================

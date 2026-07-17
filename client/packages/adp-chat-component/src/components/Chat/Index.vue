@@ -72,6 +72,16 @@
                                 @widgetEvent="onWidgetEvent"
                             />
                         </div>
+                        <!-- 渠道对话分割线（对齐 webim ChannelDivider）：
+                             插入在"历史消息"最后一条之后，用户后续发送的新消息自然出现在分割线下方 -->
+                        <div
+                            v-if="channelDividerText && channelDividerIndex >= 0 && index === channelDividerIndex"
+                            class="channel-divider"
+                        >
+                            <div class="channel-divider__line"></div>
+                            <div class="channel-divider__text">{{ channelDividerText }}</div>
+                            <div class="channel-divider__line"></div>
+                        </div>
                     </div>
                 </div>
             </template>
@@ -117,6 +127,7 @@
                     :asrUrlApi="asrUrlApi"
                     :enableVoiceInput="props.enableVoiceInput"
                     :isUploading="props.isUploading"
+                    :channelInputDisabled="props.channelInputDisabled"
                     :currentApplicationId="props.currentApplicationId"
                     :enableSkills="props.enableSkills && agentDetailAvailable"
                     :enableModelSelector="props.enableModelSelector && agentDetailAvailable"
@@ -201,6 +212,10 @@ export interface Props extends ChatRelatedProps {
     enableVoiceInput?: boolean;
     /** 是否正在上传文件 */
     isUploading?: boolean;
+    /** 渠道模式下无对话时禁用输入 */
+    channelInputDisabled?: boolean;
+    /** 渠道模式下显示的提示文本 */
+    channelDividerText?: string;
     /** 是否显示遮罩层 */
     isOverlay?: boolean;
     /** 是否启用 Skills 功能 */
@@ -238,6 +253,8 @@ const props = withDefaults(defineProps<Props>(), {
     asrUrlApi: '',
     enableVoiceInput: true,
     isUploading: false,
+    channelInputDisabled: false,
+    channelDividerText: '',
     isOverlay: false,
     enableSkills: false,
     enableModelSelector: false,
@@ -847,6 +864,22 @@ const handleMessage = (code: MessageCode, message: string) => {
     emit('message', code, message);
 }
 
+/**
+ * 渠道对话分割线索引（对齐 webim ChannelDivider）
+ * 语义：在"最后一条历史消息"之后插入分割线，指示用户"下方为本次会话新消息"
+ * 实现：
+ *   1) chatId 变化时重置为 -1（未锁定）
+ *   2) 首次 chatList 从 0 变为 >0（历史消息加载完成），锁定为 chatList.length - 1
+ *   3) 用户发送新消息后 chatList 长度增加，索引保持不变，分割线正确停留在历史与新消息之间
+ *   4) 无渠道场景（channelDividerText 为空）不显示，本变量始终无副作用
+ *
+ * 注意：ref 声明必须在下方 watch(props.chatId) 之前，
+ * 因为该 watch 使用 immediate: true 会立即执行并读取本变量，
+ * 若声明在后会触发 ReferenceError（TDZ）。
+ */
+const channelDividerIndex = ref(-1);
+const channelDividerLocked = ref(false);
+
 // 监听chatId变化
 watch(
     () => props.chatId,
@@ -855,10 +888,42 @@ watch(
         selectedIds.value = [];
         isLoadingMore.value = false;
         infiniteLoadingState.value = null;
+        // 切换会话时重置渠道分割线定位；等历史消息加载完毕后由下方 watch(chatList) 锁定
+        channelDividerIndex.value = -1;
+        channelDividerLocked.value = false;
         emit('conversationChange', newId);
     },
     { immediate: true },
 )
+
+watch(
+    () => (props.chatList || []).length,
+    (len) => {
+        // 仅在有渠道分割线文案的场景锁定索引，避免非渠道场景计算开销
+        if (!props.channelDividerText) return;
+        if (!channelDividerLocked.value && len > 0) {
+            channelDividerIndex.value = len - 1;
+            channelDividerLocked.value = true;
+        }
+    },
+    { immediate: true },
+);
+// channelDividerText 由 false → 有值时（进入渠道会话），若 chatList 已有历史，立即锁定
+watch(
+    () => props.channelDividerText,
+    (text) => {
+        if (!text) {
+            channelDividerLocked.value = false;
+            channelDividerIndex.value = -1;
+            return;
+        }
+        const len = (props.chatList || []).length;
+        if (len > 0 && !channelDividerLocked.value) {
+            channelDividerIndex.value = len - 1;
+            channelDividerLocked.value = true;
+        }
+    },
+);
 
 /**
  * 暴露给父组件的方法
@@ -1093,5 +1158,28 @@ defineExpose({
     .thinking-icon {
         animation: none;
     }
+}
+
+/* ---- 渠道对话提示（对齐 webim ChannelDivider） ---- */
+.channel-divider {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    user-select: none;
+}
+
+.channel-divider__line {
+    width: 73px;
+    height: 0;
+    flex-shrink: 0;
+    border-top: 1px solid var(--td-component-stroke);
+}
+
+.channel-divider__text {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+    line-height: 22px;
+    color: var(--td-text-color-placeholder);
 }
 </style>

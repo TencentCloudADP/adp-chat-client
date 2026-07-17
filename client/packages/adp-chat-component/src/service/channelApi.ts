@@ -294,6 +294,23 @@ export async function modifyChannel(
     apiPath?: string,
 ): Promise<void> {
     const spec: Record<string, unknown> = {};
+    /** Spec JSON name → UpdateMask Path（proto snake_case，对齐协议注释） */
+    const SPEC_FIELD_MASK_PATHS: Record<string, string> = {
+        ChannelType: 'spec.channel_type',
+        ChannelName: 'spec.channel_name',
+        Description: 'spec.description',
+        UserAgent: 'spec.user_agent',
+        WecomRobot: 'spec.wecom_robot',
+        WechatClawBot: 'spec.wechat_clawbot',
+        Wechatapp: 'spec.wechat',
+        WecomApp: 'spec.wecom_app',
+        Lark: 'spec.lark',
+        Line: 'spec.line',
+        Telegram: 'spec.telegram',
+        DingTalk: 'spec.ding_talk',
+        WechatCustomerService: 'spec.wechat_customer_service',
+    };
+
     if (params.channelType !== undefined) spec.ChannelType = params.channelType;
     if (params.channelName !== undefined) spec.ChannelName = params.channelName;
     if (params.description !== undefined) spec.Description = params.description;
@@ -305,6 +322,17 @@ export async function modifyChannel(
     }
     if (params.channelConfig) Object.assign(spec, params.channelConfig);
 
+    // 自动生成 UpdateMask：遍历 spec 中的 key，映射为 PascalCase 字段路径
+    const maskPaths: string[] = params.updateMask || [];
+    if (maskPaths.length === 0) {
+        for (const key of Object.keys(spec)) {
+            const maskPath = SPEC_FIELD_MASK_PATHS[key];
+            if (maskPath) {
+                maskPaths.push(maskPath);
+            }
+        }
+    }
+
     await forwardRequest(
         apiPath || defaultChannelApiConfig.modifyChannelApi!,
         params.applicationId,
@@ -313,9 +341,7 @@ export async function modifyChannel(
             ChannelId: params.channelId,
             Scene: ChannelScene.C_END,
             Spec: spec,
-            UpdateMask: params.updateMask
-                ? { Paths: params.updateMask }
-                : undefined,
+            UpdateMask: maskPaths.length > 0 ? { Paths: maskPaths } : undefined,
         },
     );
 }

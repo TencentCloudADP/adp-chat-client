@@ -89,6 +89,8 @@ interface Props extends CommonLayoutProps {
     currentRemoteTerminalId?: string;
     /** 是否显示"远程终端"分组 */
     showRemoteTerminalList?: boolean;
+    /** 是否显示"展开列表"入口（已弃用，改为 header actions 中管理） */
+    showChannelActions?: boolean;
     /** 远程终端分组是否默认折叠 */
     remoteTerminalDefaultCollapsed?: boolean;
     /**
@@ -138,6 +140,7 @@ const props = withDefaults(defineProps<Props>(), {
     remoteTerminalItems: () => [],
     currentRemoteTerminalId: '',
     showRemoteTerminalList: true,
+    showChannelActions: false,
     remoteTerminalDefaultCollapsed: false,
     remoteTerminalUseInternalFetch: true,
     remoteTerminalListApi: '',
@@ -520,6 +523,7 @@ defineExpose({
                             :items="sideActionItems"
                             :active-key="sideActionActiveKey"
                             :show-cron-task="showCronTaskAction"
+                            :show-channel-list="showChannelActions"
                             :i18n="i18n"
                             :theme="theme"
                             class="side-actions-slot"
