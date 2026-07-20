@@ -354,7 +354,7 @@ const actualAutoLoad = computed(() => props.autoLoad);
   background-repeat: no-repeat;
   animation: rotate 2s linear infinite;
   z-index: 2;
-  border-radius: 9999px;
+  border-radius: var(--td-radius-round);
 }
 
 @keyframes rotate {
@@ -398,7 +398,7 @@ const actualAutoLoad = computed(() => props.autoLoad);
     z-index: 999;
     bottom: 0%;
     right: 0%;
-    margin: 24px;
+    margin: var(--td-size-8);
     width: 48px;
     height: 48px;
     cursor: pointer;
@@ -435,7 +435,7 @@ const actualAutoLoad = computed(() => props.autoLoad);
     z-index: 999;
     bottom: 0%;
     right: 0%;
-    margin: 24px;
+    margin: var(--td-size-8);
     background-color: var(--td-bg-color-container);
     border-radius: var(--td-radius-xl);
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);

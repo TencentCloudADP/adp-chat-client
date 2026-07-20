@@ -138,7 +138,7 @@ onMounted(() => {
 .assist-quick-buttons {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--td-size-5);
   padding: 12px 0;
   flex-wrap: nowrap;
   overflow-x: auto;
@@ -157,10 +157,10 @@ onMounted(() => {
 .assist-quick-buttons__item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--td-size-2);
   padding: 8px 12px;
   background: #F4F5F7;
-  border-radius: 6px;
+  border-radius: var(--td-radius-default);
   font-size: 13px;
   color: var(--td-text-color-primary, rgba(0, 0, 0, 0.9));
   cursor: pointer;
@@ -178,7 +178,7 @@ onMounted(() => {
 .assist-quick-buttons__secondary {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--td-size-5);
   width: 100%;
 }
 
@@ -186,7 +186,7 @@ onMounted(() => {
 .assist-quick-buttons__header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--td-size-4);
   font-size: 13px;
   height: 20px;
   cursor: pointer;
@@ -201,7 +201,7 @@ onMounted(() => {
 /* ── 二级：建议卡片行（水平滚动，与 webim 一致） ── */
 .assist-quick-buttons__suggestions {
   display: flex;
-  gap: 12px;
+  gap: var(--td-size-5);
   flex: 1;
   min-width: 0;
   flex-wrap: nowrap;
@@ -219,10 +219,10 @@ onMounted(() => {
   flex: 1;
   min-width: 200px;
   box-sizing: border-box;
-  padding: 16px 12px;
+  padding: var(--td-size-6) var(--td-size-5);
   gap: 4px;
   height: 88px;
-  border-radius: 6px;
+  border-radius: var(--td-radius-default);
   background: #F4F5F7;
   cursor: pointer;
   transition: background .2s;
@@ -249,12 +249,12 @@ onMounted(() => {
   font-weight: 500;
   line-height: 18px;
   color: rgba(0, 1, 11, .93);
-  margin-bottom: 4px;
+  margin-bottom: var(--td-size-2);
 }
 
 /* ── 二级：建议卡片描述（最多两行省略） ── */
 .assist-quick-buttons__suggestion-desc {
-  font-size: 12px;
+  font-size: var(--td-font-size-body-small);
   line-height: 17px;
   color: rgba(1, 10, 40, .65);
   display: -webkit-box;

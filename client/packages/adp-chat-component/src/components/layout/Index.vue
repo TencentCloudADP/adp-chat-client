@@ -22,6 +22,7 @@ import {
     // fetchConversationList 已移入 SideLayout 内部使用（方案 B：SideLayout 按 appId 主动拉取）
     deleteConversation,
     fetchConversationDetail,
+    fetchConversationDetailV2,
     fetchReferenceDetails,
     createConversation,
     ConversationType,
@@ -35,6 +36,7 @@ import {
     describeConversationList,
 } from '../../service/api';
 import type { SystemConfig } from '../../service/api';
+import { describeChannel } from '../../service/channelApi';
 import { MessageCode } from '../../model/messages';
 import { fetchSSE } from '../../model/sseRequest-reasoning';
 import { applySseEventToRecord } from '../../utils/mergeRecord-v2';
@@ -257,6 +259,9 @@ const channelDrawerVisible = ref(false);
  */
 const openCronTask = () => {
     if (cronTaskVisible.value) return;
+    // 打开定时任务面板时，清除远程终端（渠道）选中态与历史对话列表选中态，避免多个选中态并存
+    clearChannelSelection();
+    clearConversationSelection();
     cronTaskVisible.value = true;
     filePreviewVisible.value = false;
     emit('cronTaskVisibleChange', true);
@@ -377,6 +382,13 @@ type ConversationRuntimeStateMap = {
 
 const conversationRuntimeStates = ref<ConversationRuntimeStateMap>({});
 const currentConversationStateKey = ref('');
+/**
+ * 渠道会话 → 渠道 UserId 映射
+ * 渠道（访客）会话的历史消息必须走 CAPI DescribeConversationMessageList 且携带该渠道的 UserId + Type=1
+ * （对齐 adp-b2c DescribeConversationMessages）。普通会话不在此表中，仍走标准 /chat/messages。
+ * key = ConversationId，value = 该渠道绑定的 UserAgent.UserId
+ */
+const channelConversationUserId = ref<{ [conversationId: string]: string }>({});
 let pendingConversationSeq = 0;
 
 const createPendingConversationKey = () => `pending-conversation:${Date.now()}:${pendingConversationSeq++}`;
@@ -1109,6 +1121,16 @@ const handleInternalLoadMore = async (conversationId: string, lastRecordId: stri
     // 确保 applications 列表已加载完成
     await applicationsReadyPromise;
 
+    // 渠道（访客）会话：历史消息由 loadChannelHistory 主动加载（对齐 adp-b2c selectConversation → loadConversationHistory，
+    // 仅拉取一屏 50 条、不做滚动分页），因此 Chat 组件被动的 InfiniteLoading 不再重复拉取，直接结束即可，
+    // 避免与主动加载产生重复消息 / vue-infinite-loading 空内容重复触发。
+    // 之所以不能走下方标准 /chat/messages：该接口按登录账号在本地库查会话，渠道访客会话不在本地库、
+    // 且 UserId 会被强制成账号 ID，无法拉到渠道历史。
+    if (channelConversationUserId.value[conversationId]) {
+        mainLayoutRef.value?.notifyComplete();
+        return;
+    }
+
     try {
         const response = await fetchConversationDetail(
             { ConversationId: conversationId, LastRecordId: lastRecordId },
@@ -1140,6 +1162,101 @@ const handleInternalLoadMore = async (conversationId: string, lastRecordId: stri
         const text = mergedChatI18n.value.loadMoreFailed;
         MessagePlugin.error(text);
         emit('message', MessageCode.LOAD_MORE_FAILED, text);
+    }
+};
+
+/**
+ * 将 DescribeConversationMessageList 返回的消息分组为前端 V2 Record 列表。
+ * 兼容两种上游返回：
+ *   1) 已分组的 Record 格式（后端 describe_conversation_message_list 方法返回，含 Messages 数组）→ 直接用；
+ *   2) 扁平 ConversationMessage 列表（后端未加载专属方法、走 forward_request 直连 CAPI 时返回）→ 按 RecordId 分组。
+ * 逻辑对齐后端 tcadp.py 的 _convert_messages_to_records，确保任一后端状态下都能正确渲染。
+ */
+const groupChannelMessagesToRecords = (messages: any[], conversationId: string): Record[] => {
+    if (!messages || messages.length === 0) return [];
+    const first = messages[0];
+    // 已是分组的 Record 格式
+    if (first && Array.isArray(first.Messages)) return messages as Record[];
+    // 扁平格式：按 RecordId 分组
+    const groups = new Map<string, any>();
+    for (const msg of messages) {
+        const recordId = msg?.RecordId || '';
+        if (!recordId) continue;
+        if (!groups.has(recordId)) {
+            groups.set(recordId, {
+                Role: msg.Role || 'assistant',
+                RecordId: recordId,
+                ConversationId: msg.ConversationId || conversationId,
+                Status: msg.Status || 'completed',
+                StatusDesc: msg.StatusDesc || '',
+                Messages: [],
+                ExtraInfo: msg.ExtraInfo,
+            });
+        }
+        groups.get(recordId).Messages.push({
+            Type: msg.Type || 'reply',
+            MessageId: msg.MessageId || '',
+            Name: msg.Name || '',
+            Title: msg.Title || '',
+            Icon: msg.Icon || '',
+            Status: msg.Status || 'completed',
+            StatusDesc: msg.StatusDesc || '',
+            Contents: msg.Contents || [],
+            ExtraInfo: msg.ExtraInfo,
+            RecordId: recordId,
+        });
+    }
+    return Array.from(groups.values()) as Record[];
+};
+
+/**
+ * 主动加载渠道会话首屏历史（对齐 adp-b2c selectConversation → loadConversationHistory）。
+ * 渠道（访客）会话选中后立即调用，直接通过 CAPI DescribeConversationMessageList 拉取历史并填充，
+ * 不依赖 Chat 组件被动的 InfiniteLoading，确保"选中即出历史"。
+ * 首屏结果覆盖写入 runtime state。对齐 adp-b2c：渠道历史仅拉取一屏（50 条），不做滚动分页。
+ */
+const loadChannelHistory = async (conversationId: string, userId: string, applicationId: string) => {
+    if (!conversationId || !userId) return;
+    const appId = applicationId || currentApplicationId.value || internalCurrentApplication.value?.ApplicationId || '';
+    try {
+        const resp = await fetchConversationDetailV2(
+            {
+                ConversationId: conversationId,
+                Limit: 50,
+                // Type=1（CONVERSATION_TYPE_VISITOR）：渠道会话即访客会话
+                Type: 1,
+                // 携带渠道 UserId（对齐 adp-b2c loadConversationHistory 的 UserId 参数）
+                UserId: userId,
+                // 1=向前（从最新往更早取）
+                RecordQueryDirection: 1,
+            },
+            appId,
+            mergedApiDetailConfig.value.describeConversationMessageListApi,
+        );
+        const data = resp?.Response || ({} as NonNullable<typeof resp>['Response']);
+        // 兼容后端返回已分组 Records（专属方法）或扁平 Messages（forward 直连）
+        const records: Record[] = (data.Records && data.Records.length)
+            ? data.Records
+            : groupChannelMessagesToRecords((data.Messages as any[]) || [], conversationId);
+        // 标记为渠道历史消息（供 Chat 组件 channelDividerIndex 计算：
+        // 仅当用户后续发送"非历史"新消息时，才在其前显示渠道分割线，对齐 webim _is_history 语义）
+        records.forEach((r) => { (r as any)._isChannelHistory = true; });
+        console.debug('[loadChannelHistory] loaded', {
+            conversationId,
+            userId,
+            count: records.length,
+            raw: data,
+        });
+        if (records.length > 0) {
+            await hydrateReferences(records, { applicationId: appId });
+        }
+        // 首屏：覆盖写入（而非 prepend），确保切换会话后展示的是本会话历史
+        setConversationRecords(conversationId, records, appId);
+        nextTick(() => {
+            mainLayoutRef.value?.getChatRef()?.backToBottom();
+        });
+    } catch (error) {
+        console.error('[loadChannelHistory] failed:', error);
     }
 };
 
@@ -1228,7 +1345,7 @@ const handleSelectApplication = (app: Application) => {
     emit('selectApplication', app);
 };
 
-const handleSelectConversation = async (conversation: ChatConversation) => {
+const handleSelectConversation = async (conversation: ChatConversation, fromChannel = false) => {
     const isSameConversation =
         conversation.Id === internalCurrentConversation.value?.Id &&
         currentConversationStateKey.value === conversation.Id;
@@ -1244,6 +1361,11 @@ const handleSelectConversation = async (conversation: ChatConversation) => {
         internalCurrentConversation.value = conversation;
         currentConversationStateKey.value = conversation.Id;
         setConversationApplicationId(conversation.Id, conversation.ApplicationId);
+        // 点击历史对话列表（非渠道入口）选中会话时，无条件清空渠道选中态：
+        // 取消渠道高亮、恢复输入框可用。渠道会话选中走 handleChannelConversationSelect（fromChannel=true），不清。
+        if (!fromChannel) {
+            clearChannelSelection();
+        }
     }
     // 切换会话时关闭文件预览面板 & 定时任务面板
     closeFilePreview();
@@ -1282,9 +1404,8 @@ const handleCronTaskSwitchToChat = (payload: { task: TimerTask | TimerTaskSummar
 /**
  * 渠道会话列表面板中选中一条会话：
  * 对齐 adp-b2c selectConversation / webim handleAutoSelectSession，
- * 复用 handleSelectConversation 完整逻辑（切换 currentConversationStateKey → 触发 chatId 变化
- * → Chat 组件内部 InfiniteLoading 首次触发 loadMore → fetchConversationDetail 加载历史消息）。
- * 直接从 internalConversations 拿到完整 ChatConversation 对象，复用主流程即可。
+ * 复用 handleSelectConversation 切换当前会话，随后主动调用 loadChannelHistory
+ * 通过 CAPI DescribeConversationMessageList（带渠道 UserId + Type=1）拉取该会话历史消息。
  */
 const handleChannelConversationSelect = async (conversationId: string) => {
     if (!conversationId) return;
@@ -1297,10 +1418,24 @@ const handleChannelConversationSelect = async (conversationId: string) => {
     // 找到目标会话（列表 + Panel 内部拉取共享一份 API，最坏情况兜底 stub）
     const matched = internalConversations.value.find(c => c.Id === conversationId)
         || { Id: conversationId, AccountId: '', ApplicationId: currentApplicationId.value, Title: '', LastActiveAt: 0, CreatedAt: 0 } as ChatConversation;
-    await handleSelectConversation(matched);
+    const channelUserId = remoteTerminalActiveUserId.value;
+    // 记录该会话属于当前渠道，历史消息走 CAPI（带渠道 UserId + Type=1）
+    if (channelUserId) {
+        channelConversationUserId.value[conversationId] = channelUserId;
+    }
+    await handleSelectConversation(matched, true);
+    // 主动加载该会话首屏历史（对齐 adp-b2c selectConversation → loadConversationHistory）
+    if (channelUserId) {
+        await loadChannelHistory(conversationId, channelUserId, matched.ApplicationId || currentApplicationId.value);
+    }
 };
 
 const handleSideAction = (key: string) => {
+    if (key === 'new-task') {
+        // 新建对话（"新建任务"入口）：清空渠道 / 定时任务选中态，回到"选中应用后的全新对话"状态
+        clearChannelSelection();
+        handleCreateConversation();
+    }
     if (key === 'cron-task') {
         openCronTask();
     }
@@ -1324,6 +1459,34 @@ const remoteTerminalActiveChannelId = ref('');
 const remoteTerminalActiveUserId = ref('');
 /** 当前选中渠道绑定的 AgentId（来自 channel.spec.UserAgent.AgentId） */
 const remoteTerminalActiveAgentId = ref('');
+
+/**
+ * 清空渠道选中态：取消远程终端高亮、隐藏"展开列表"入口、关闭渠道会话面板、
+ * 恢复输入框可用（channelInputDisabled 依赖 remoteTerminalActiveId）。
+ * 用于「新建对话」以及选中普通会话时，确保回到无渠道上下文的干净状态。
+ * 注意：不清空 channelConversationUserId 映射——历史加载仍需按会话 Id 判断是否走 CAPI。
+ */
+const clearChannelSelection = () => {
+    remoteTerminalActiveId.value = '';
+    remoteTerminalActiveLabel.value = '';
+    remoteTerminalActiveChannelId.value = '';
+    remoteTerminalActiveUserId.value = '';
+    remoteTerminalActiveAgentId.value = '';
+    channelDrawerVisible.value = false;
+};
+
+/**
+ * 重置为「新建对话」态：清除历史对话列表选中态，并通知外层（清除 URL、取消列表高亮、显示欢迎页）。
+ * 用于点击远程终端（渠道）/ 定时任务时，让对话区回到与「新建对话」完全一致的欢迎页状态。
+ * 注意：列表高亮取 props.currentConversationId，仅清内部 state 不够，必须 emit('createConversation') 让外层同步。
+ */
+const clearConversationSelection = () => {
+    if (useApiMode.value) {
+        internalCurrentConversation.value = undefined;
+        currentConversationStateKey.value = '';
+    }
+    emit('createConversation');
+};
 /** 渠道模式下无对话时禁用输入（对齐 webim：渠道下只能继续已有对话，不可新建） */
 const channelInputDisabled = computed(() => !!remoteTerminalActiveId.value && !currentConversationStateKey.value);
 
@@ -1343,24 +1506,41 @@ const channelDividerText = computed(() => {
  * 4) 展开面板供用户切换其他会话
  * 5) 若列表为空则保持输入禁用（对齐 webim：渠道下不可新建）
  */
-const handleSelectRemoteTerminal = async (item: { id: string; label?: string; raw?: Record<string, any> }) => {
+const handleSelectRemoteTerminal = async (item: { id: string; label?: string; raw?: { [key: string]: any } }) => {
     remoteTerminalActiveId.value = item.id;
     remoteTerminalActiveLabel.value = item.label || '';
+    // 点击渠道时，先清除历史对话列表的选中态（若该渠道下有会话，会在随后自动选中时覆盖）
+    clearConversationSelection();
 
     // 提取 CAPI ChannelId（暂作语义标记，SDK 未开放不透传）
     const rawChannelId = item.raw?.channelId ?? item.raw?.ChannelId ?? item.id;
     remoteTerminalActiveChannelId.value = rawChannelId !== undefined && rawChannelId !== null ? String(rawChannelId) : '';
 
     // 从 channel.spec.UserAgent 中提取过滤字段（RemoteTerminalList 已把 ChannelItem 全字段透传到 raw）
-    // raw 里的 spec 是 ChannelSpecRaw 原始 CAPI 数据；小写 spec 是 normalizeChannelItem 后的引用
-    const spec = (item.raw?.spec || {}) as Record<string, any>;
-    const userAgent = (spec.UserAgent || {}) as Record<string, any>;
+    // raw 里的 spec 是 ChannelSpecRaw 原始 CAPI 数据；小写 spec 是 normalizeChannelItem 后的引用。
+    // 【方案1】渠道会话按 UserAgent.UserId 过滤——该值在创建时绑成 custom-<账号id>（见 buildChannelUserId）：
+    // 稳定唯一、该用户所有渠道共用、与账号自身应用会话隔离。这里直接读取渠道绑定的值即可。
+    let spec = (item.raw?.spec || {}) as { [key: string]: any };
+    let userAgent = (spec.UserAgent || {}) as { [key: string]: any };
     remoteTerminalActiveUserId.value = String(userAgent.UserId || '');
     remoteTerminalActiveAgentId.value = String(userAgent.AgentId || '');
-    // 调试日志：如果拿到空列表，先看 UserId/AgentId 是否成功取到
-    console.debug('[handleSelectRemoteTerminal] channel raw:', {
+
+    // DescribeChannelList 的 spec 可能是摘要、缺 UserAgent；此时拉取渠道完整详情补齐。
+    if (!remoteTerminalActiveUserId.value && item.id && currentApplicationId.value) {
+        try {
+            const detail = await describeChannel({ applicationId: currentApplicationId.value, channelId: Number(item.id) });
+            spec = (detail?.spec || {}) as { [key: string]: any };
+            userAgent = (spec.UserAgent || {}) as { [key: string]: any };
+            remoteTerminalActiveUserId.value = String(userAgent.UserId || '');
+            remoteTerminalActiveAgentId.value = String(userAgent.AgentId || remoteTerminalActiveAgentId.value || '');
+        } catch (e) {
+            console.warn('[handleSelectRemoteTerminal] describeChannel 补齐 UserAgent 失败:', e);
+        }
+    }
+    // 调试日志：确认用于过滤的渠道 UserId（应为 custom-<账号id>）
+    console.debug('[handleSelectRemoteTerminal] channel filter:', {
         channelId: remoteTerminalActiveChannelId.value,
-        userId: remoteTerminalActiveUserId.value,
+        使用的filterUserId: remoteTerminalActiveUserId.value,
         agentId: remoteTerminalActiveAgentId.value,
         rawSpec: spec,
     });
@@ -1379,27 +1559,35 @@ const handleSelectRemoteTerminal = async (item: { id: string; label?: string; ra
         prevState.isChatting = false;
     }
 
-    // 无 UserId 时无法精准过滤该渠道会话（防止拿到全应用会话回填），保持输入禁用即可
-    if (!remoteTerminalActiveUserId.value) {
-        console.warn('[handleSelectRemoteTerminal] 渠道未绑定 UserAgent.UserId，无法按渠道过滤会话');
+    // 无 ChannelId 时无法按渠道过滤会话（后台确认 DescribeConversationList 按 channel_id 查询），
+    // 保持输入禁用即可
+    if (!remoteTerminalActiveChannelId.value) {
+        console.warn('[handleSelectRemoteTerminal] 渠道无 ChannelId，无法按渠道过滤会话');
         channelDrawerVisible.value = true;
         return;
     }
 
     try {
-        // 通过 CAPI 按 UserId 精准过滤拉取该渠道会话（对齐 adp-b2c capiService.DescribeConversationList）
-        // 不显式传 Type，让底层默认为 1（VISITOR）；传 0 时 CAPI 常拿到空列表
+        // 后台确认：DescribeConversationList 在原有传参基础上「新增 ChannelId」按渠道过滤
+        //（CAPI v2 / X-TC-Version 2026-05-20）。
         const { conversations: capiList } = await describeConversationList(
             {
                 AppId: applicationId,
-                UserId: remoteTerminalActiveUserId.value,
+                UserId: remoteTerminalActiveUserId.value || undefined,
                 AgentId: remoteTerminalActiveAgentId.value || undefined,
+                ChannelId: remoteTerminalActiveChannelId.value,
                 Offset: 0,
                 Limit: 50,
             },
             applicationId,
             mergedApiDetailConfig.value.describeConversationListApi,
         );
+        console.debug('[handleSelectRemoteTerminal] describeConversationList 结果:', {
+            channelId: remoteTerminalActiveChannelId.value,
+            filterUserId: remoteTerminalActiveUserId.value,
+            count: capiList.length,
+            list: capiList,
+        });
 
         if (capiList.length > 0) {
             // 自动选中最近一条：按 UpdateTime / CreateTime 排序
@@ -1409,17 +1597,22 @@ const handleSelectRemoteTerminal = async (item: { id: string; label?: string; ra
                 return tb - ta;
             });
             const first = sorted[0];
-            // 构造 ChatConversation stub：handleSelectConversation 只需 Id + ApplicationId 即可，
-            // Chat 组件 InfiniteLoading 会用 ConversationId 自行调 fetchConversationDetail 拉历史消息
-            const stub: ChatConversation = {
-                Id: first.ConversationId,
-                AccountId: '',
-                ApplicationId: applicationId,
-                Title: (first.Title as string) || '',
-                LastActiveAt: Number(first.UpdateTime || first.CreateTime || 0),
-                CreatedAt: Number(first.CreateTime || 0),
-            } as ChatConversation;
-            await handleSelectConversation(stub);
+            if (first && first.ConversationId) {
+                // 构造 ChatConversation stub：handleSelectConversation 只需 Id + ApplicationId 即可
+                const stub: ChatConversation = {
+                    Id: first.ConversationId,
+                    AccountId: '',
+                    ApplicationId: applicationId,
+                    Title: (first.Title as string) || '',
+                    LastActiveAt: Number(first.UpdateTime || first.CreateTime || 0),
+                    CreatedAt: Number(first.CreateTime || 0),
+                } as ChatConversation;
+                // 登记该会话属于当前渠道，历史消息走 CAPI（带渠道 UserId + Type=1）
+                channelConversationUserId.value[first.ConversationId] = remoteTerminalActiveUserId.value;
+                await handleSelectConversation(stub);
+                // 主动加载首屏历史（对齐 adp-b2c selectConversation → loadConversationHistory）
+                await loadChannelHistory(first.ConversationId, remoteTerminalActiveUserId.value, applicationId);
+            }
         }
         // 空列表 → 不新建，保持输入禁用，对齐 webim：渠道下只能继续已有对话
 
@@ -1975,7 +2168,6 @@ defineExpose({
                 :maxAppLen="maxAppLen"
                 :i18n="props.sideI18n"
                 :showCronTaskAction="enableCronTask"
-                :showChannelActions="!!remoteTerminalActiveId"
                 :currentRemoteTerminalId="remoteTerminalActiveId"
                 :sideActionActiveKey="cronTaskVisible ? 'cron-task' : ''"
                 :channelSettingUserId="currentUserId"
@@ -2184,7 +2376,7 @@ defineExpose({
     cursor: pointer;
     color: var(--td-text-color-secondary);
     transition: all 0.2s;
-    margin-right: 4px;
+    margin-right: var(--td-size-2);
 }
 
 .header-action-btn:hover {

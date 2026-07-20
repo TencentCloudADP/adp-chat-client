@@ -237,7 +237,7 @@ function extractText(msg: Message): string {
 /* ── 折叠组容器 ── */
 .collapsible-group {
     width: 100%;
-    border-radius: 8px;
+    border-radius: var(--td-radius-medium);
 }
 
 /* ── 标题栏 ── */
@@ -331,7 +331,7 @@ function extractText(msg: Message): string {
     display: inline-block;
     width: var(--td-size-3);
     height: var(--td-size-3);
-    border-radius: 50%;
+    border-radius: var(--td-radius-circle);
     background: var(--td-brand-color);
     margin-left: var(--td-comp-margin-xs);
     animation: pulse-dot 1.4s ease-in-out infinite;

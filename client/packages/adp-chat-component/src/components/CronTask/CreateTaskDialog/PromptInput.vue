@@ -130,37 +130,37 @@ defineExpose({ validate, getFormData, setFormData, resetForm });
 .cron-prompt-input {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--td-size-4);
 }
 
 .cron-prompt-input__label {
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     font-weight: 500;
     color: var(--td-text-color-primary);
-    line-height: 22px;
+    line-height: var(--td-line-height-body-medium);
 }
 
 .cron-prompt-input__required {
     color: var(--td-error-color, #e54545);
-    margin-left: 2px;
+    margin-left: var(--td-size-1);
 }
 
 .cron-prompt-input__extra {
     display: flex;
-    gap: 12px;
+    gap: var(--td-size-5);
     flex-wrap: wrap;
 }
 
 .cron-prompt-input__field {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--td-size-3);
     flex: 1;
     min-width: 200px;
 }
 
 .cron-prompt-input__field-label {
-    font-size: 12px;
+    font-size: var(--td-font-size-body-small);
     color: var(--td-text-color-secondary);
     flex-shrink: 0;
 }

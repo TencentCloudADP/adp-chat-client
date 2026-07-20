@@ -238,8 +238,8 @@
   color: var(--fgColor-default);
   background-color: var(--bgColor-default);
   font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
-  font-size: 14px;
-  line-height: 22px;
+  font-size: var(--td-font-size-body-medium);
+  line-height: var(--td-line-height-body-medium);
   word-wrap: break-word;
 }
 
@@ -577,14 +577,14 @@
 .markdown-body code,
 .markdown-body samp {
   font-family: var(--fontStack-monospace, ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace);
-  font-size: 12px;
+  font-size: var(--td-font-size-body-small);
 }
 
 .markdown-body pre {
   margin-top: 0;
   margin-bottom: 0;
   font-family: var(--fontStack-monospace, ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace);
-  font-size: 12px;
+  font-size: var(--td-font-size-body-small);
   word-wrap: normal;
 }
 
@@ -739,7 +739,7 @@
 .markdown-body summary h4 .anchor,
 .markdown-body summary h5 .anchor,
 .markdown-body summary h6 .anchor {
-  margin-left: -40px;
+  margin-left: calc(-1 * var(--td-size-12));
 }
 
 .markdown-body summary h1,
@@ -817,7 +817,7 @@
 
 .markdown-body table th,
 .markdown-body table td {
-  padding: 6px 13px;
+  padding: var(--td-size-3) 13px;
   border: 1px solid var(--borderColor-default);
 }
 
@@ -839,11 +839,11 @@
 }
 
 .markdown-body img[align=right] {
-  padding-left: 20px;
+  padding-left: var(--td-size-7);
 }
 
 .markdown-body img[align=left] {
-  padding-right: 20px;
+  padding-right: var(--td-size-7);
 }
 
 .markdown-body .emoji {
@@ -1015,7 +1015,7 @@
 .markdown-body .csv-data th {
   padding: 5px;
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--td-font-size-body-small);
   line-height: 1;
   text-align: left;
   white-space: nowrap;
@@ -1047,7 +1047,7 @@
 }
 
 .markdown-body .footnotes {
-  font-size: 12px;
+  font-size: var(--td-font-size-body-small);
   color: var(--fgColor-muted);
   border-top: 1px solid var(--borderColor-default);
 }
@@ -1378,8 +1378,8 @@
   position: absolute;
   top: 0;
   right: 0;
-  padding: 2px 8px;
-  font-size: 12px;
+  padding: var(--td-size-1) var(--td-size-4);
+  font-size: var(--td-font-size-body-small);
   border-bottom-left-radius: 4px;
 }
 
@@ -1448,7 +1448,7 @@
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-  font-size: 16px;
+  font-size: var(--td-font-size-body-large);
 }
 
 
@@ -1459,7 +1459,7 @@
 }
 
 .markdown-body table:not(.hljs-ln) td {
-  padding: 8px 12px;
+  padding: var(--td-size-4) var(--td-size-5);
   min-width: 20px;
 }
 
@@ -1470,12 +1470,12 @@
 }
 
 .markdown-body .table-style:not(.hljs-ln) th {
-  padding: 12px;
+  padding: var(--td-size-5);
   font-weight: 400;
 }
 
 .markdown-body .table-style:not(.hljs-ln) td {
-  padding: 8px 4px;
+  padding: var(--td-size-4) var(--td-size-2);
   min-width: 45px;
   overflow-wrap: break-word;
   white-space: break-spaces;
@@ -1500,7 +1500,7 @@
 .markdown-body:not(.dark) .hljs-doctag,
 .markdown-body:not(.dark) .hljs-keyword,
 .markdown-body:not(.dark) .hljs-formula {
-  color: #4A70FF;
+  color: var(--td-brand-color);
 }
 
 .markdown-body:not(.dark) .hljs-section,
@@ -1520,7 +1520,7 @@
 .markdown-body:not(.dark) .hljs-addition,
 .markdown-body:not(.dark) .hljs-attribute,
 .markdown-body:not(.dark) .hljs-meta .hljs-string {
-  color: #0FB87F;
+  color: var(--td-success-color-4);
 }
 
 .markdown-body:not(.dark) .hljs-attr,
@@ -1627,9 +1627,9 @@ mjx-assistive-mml {
 .video-placeholder {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--td-size-3);
   padding: 6px 12px;
   color: rgba(1, 11, 50, 0.41);
-  font-size: 14px;
+  font-size: var(--td-font-size-body-medium);
 }
 

@@ -36,9 +36,9 @@ function onSelect(value: string) {
 .divider-tabs {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--td-size-5);
     flex-shrink: 0;
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
 }
 .divider-tabs__item {
     cursor: pointer;

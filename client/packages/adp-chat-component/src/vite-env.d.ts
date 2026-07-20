@@ -36,3 +36,6 @@ declare module 'virtual:svg-icons-names' {
   const names: string[]
   export default names
 }
+
+// qrcode 无官方类型声明，按 any 使用
+declare module 'qrcode';

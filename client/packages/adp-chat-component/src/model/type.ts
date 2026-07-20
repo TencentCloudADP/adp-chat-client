@@ -59,6 +59,8 @@ export interface SideI18n {
   logout?: string
   /** 新建任务按钮文案 */
   newTask?: string
+  /** 新建对话按钮文案 */
+  newConversation?: string
   /** 定时任务按钮文案 */
   cronTask?: string
   /** 远程终端按钮文案 */
@@ -284,6 +286,7 @@ export const defaultSideI18n: Required<SideI18n> = {
   selectLanguage: '选择语言',
   logout: '退出登录',
   newTask: '新建任务',
+  newConversation: '新建对话',
   cronTask: '定时任务',
   remoteTerminal: '远程终端',
   cronTaskEmpty: '暂无定时任务',
@@ -409,6 +412,7 @@ export const defaultSideI18nEn: Required<SideI18n> = {
   selectLanguage: 'Select Language',
   logout: 'Logout',
   newTask: 'New Task',
+  newConversation: 'New Chat',
   cronTask: 'Scheduled Tasks',
   remoteTerminal: 'Remote Terminal',
   cronTaskEmpty: 'No scheduled tasks',

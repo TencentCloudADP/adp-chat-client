@@ -611,7 +611,7 @@ function onClose() {
 .skills-install {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--td-size-5);
     max-height: 560px;
     overflow-y: auto;
 }

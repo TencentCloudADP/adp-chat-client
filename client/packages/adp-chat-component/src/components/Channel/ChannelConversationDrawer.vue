@@ -134,9 +134,9 @@ const formatTime = (ts: number): string => {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 40px 0;
+    padding: var(--td-size-12) 0;
     color: var(--td-text-color-placeholder);
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
 }
 
 .ccd-list {
@@ -148,7 +148,7 @@ const formatTime = (ts: number): string => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    padding: var(--td-size-5) var(--td-size-6);
     cursor: pointer;
     border-radius: var(--td-radius-medium);
     transition: background 0.15s;
@@ -159,7 +159,7 @@ const formatTime = (ts: number): string => {
 }
 
 .ccd-item__title {
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     color: var(--td-text-color-primary);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -169,9 +169,9 @@ const formatTime = (ts: number): string => {
 }
 
 .ccd-item__time {
-    font-size: 12px;
+    font-size: var(--td-font-size-body-small);
     color: var(--td-text-color-placeholder);
     flex-shrink: 0;
-    margin-left: 12px;
+    margin-left: var(--td-size-5);
 }
 </style>

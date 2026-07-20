@@ -1,23 +1,25 @@
 <!--
   渠道详情弹窗
   @description
-    展示已配置渠道的详细信息（只读）
-    对齐 webim 的 channel-detail-dialog
+    展示已配置渠道的详细信息（只读），样式对齐 webim channel-detail-dialog：
+      - 标题："{渠道名} 渠道配置"
+      - 表单式只读字段：
+          * 企微智能机器人（10014）：Bot ID + Secret（脱敏展示）
+          * 微信 ClawBot（10015）：iLink 账号 ID
+      - 底部单个居中「知道了」按钮
 -->
 <script setup lang="ts">
 import { computed } from 'vue';
 import {
     Dialog as TDialog,
     Button as TButton,
-    Descriptions as TDescriptions,
-    DescriptionsItem as TDescriptionsItem,
+    Input as TInput,
 } from 'tdesign-vue-next';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
 import {
     type ChannelRow,
     type ChannelSettingsI18n,
-    ClawChannelStatus,
     ChannelType,
     defaultChannelSettingsI18n,
     defaultChannelSettingsI18nEn,
@@ -71,117 +73,137 @@ const visible = computed({
 // 显示数据
 // ============================================================
 
-const getStatusLabel = (status: ClawChannelStatus): string => {
-    if (status === ClawChannelStatus.SUCCESS) return mergedI18n.value.statusConfigured;
-    if (status === ClawChannelStatus.FAIL) return mergedI18n.value.statusInvalid;
-    return mergedI18n.value.statusUnconfigured;
-};
+/** 弹窗标题："{渠道名} 渠道配置"（对齐 webim titleText） */
+const titleText = computed(() => {
+    const name = props.channelRow?.label || '';
+    return `${name} ${mergedI18n.value.detailTitleSuffix}`.trim();
+});
 
 /** WecomRobot websocket 相关信息 */
 const wecomRobotInfo = computed(() => {
-    if (!props.channelRow?.raw) return null;
+    if (!props.channelRow?.raw) return { botId: '' };
     const spec = props.channelRow.raw.spec || {};
     const wecomRobot = (spec as any).WecomRobot || (spec as any).wecom_robot || {};
     const ws = wecomRobot.Websocket || wecomRobot.websocket || {};
     return {
-        botId: (ws.BotId || ws.bot_id || '-') as string,
+        botId: (ws.BotId || ws.bot_id || '') as string,
     };
 });
 
 /** WechatClawBot 相关信息 */
 const wechatClawbotInfo = computed(() => {
-    if (!props.channelRow?.raw) return null;
+    if (!props.channelRow?.raw) return { botId: '', wechatUserId: '' };
     const spec = props.channelRow.raw.spec || {};
     const clawbot = (spec as any).WechatClawBot || (spec as any).wechat_clawbot || {};
     return {
-        botId: (clawbot.BotId || clawbot.bot_id || '-') as string,
-        wechatUserId: (clawbot.WechatUserId || clawbot.wechat_user_id || '-') as string,
+        botId: (clawbot.BotId || clawbot.bot_id || '') as string,
+        wechatUserId: (clawbot.WechatUserId || clawbot.wechat_user_id || clawbot.UserId || clawbot.user_id || '') as string,
     };
 });
+
+/** Secret 后端不返回，有 botId 时做脱敏占位展示（对齐 webim secretDisplay） */
+const secretDisplay = computed(() => (wecomRobotInfo.value.botId ? '*******************************************' : ''));
+
+const handleClose = () => {
+    visible.value = false;
+};
 </script>
 
 <template>
     <Teleport to="body">
         <t-dialog
             v-model:visible="visible"
-            :header="mergedI18n.actionDetail"
+            :header="titleText"
             :footer="false"
-            width="500px"
+            width="508px"
+            :placement="'center'"
             class="channel-detail-dialog"
         >
-            <div v-if="channelRow" class="cdd-body">
-                <t-descriptions :column="1" bordered>
-                    <t-descriptions-item :label="mergedI18n.columnChannelType">
-                        <div class="cdd-channel-cell">
-                            <img
-                                v-if="channelRow.icon"
-                                class="cdd-channel-icon"
-                                :src="channelRow.icon"
-                                :alt="channelRow.label"
-                            />
-                            <span>{{ channelRow.label }}</span>
+            <div class="cdd-body">
+                <!-- 企微智能机器人：Bot ID + Secret（脱敏） -->
+                <template v-if="channelRow && channelRow.channelType === ChannelType.WECOM_ROBOT_WS">
+                    <div class="cdd-form-item">
+                        <div class="cdd-label">
+                            {{ mergedI18n.detailBotIdLabel }}<span class="cdd-required">*</span>
                         </div>
-                    </t-descriptions-item>
-                    <t-descriptions-item :label="mergedI18n.columnStatus">
-                        {{ getStatusLabel(channelRow.connectStatus) }}
-                    </t-descriptions-item>
-                    <t-descriptions-item label="Channel ID">
-                        {{ channelRow.channelId || '-' }}
-                    </t-descriptions-item>
+                        <t-input
+                            :value="wecomRobotInfo.botId"
+                            :placeholder="mergedI18n.detailEmptyValue"
+                            readonly
+                            disabled
+                        />
+                    </div>
+                    <div class="cdd-form-item">
+                        <div class="cdd-label">
+                            {{ mergedI18n.detailSecretLabel }}<span class="cdd-required">*</span>
+                        </div>
+                        <t-input
+                            :value="secretDisplay"
+                            :placeholder="mergedI18n.detailEmptyValue"
+                            type="password"
+                            readonly
+                            disabled
+                        />
+                    </div>
+                </template>
 
-                    <!-- 企微机器人特有信息 -->
-                    <template v-if="channelRow.channelType === ChannelType.WECOM_ROBOT_WS && wecomRobotInfo">
-                        <t-descriptions-item label="Bot ID">
-                            {{ wecomRobotInfo.botId }}
-                        </t-descriptions-item>
-                    </template>
-
-                    <!-- 微信 ClawBot 特有信息 -->
-                    <template v-if="channelRow.channelType === ChannelType.WECHAT_CLAWBOT && wechatClawbotInfo">
-                        <t-descriptions-item label="Bot ID">
-                            {{ wechatClawbotInfo.botId }}
-                        </t-descriptions-item>
-                        <t-descriptions-item label="WeChat User ID">
-                            {{ wechatClawbotInfo.wechatUserId }}
-                        </t-descriptions-item>
-                    </template>
-
-                    <t-descriptions-item label="Create Time">
-                        {{ channelRow.raw?.createTime ? new Date(channelRow.raw.createTime * 1000).toLocaleString() : '-' }}
-                    </t-descriptions-item>
-                    <t-descriptions-item label="Update Time">
-                        {{ channelRow.raw?.updateTime ? new Date(channelRow.raw.updateTime * 1000).toLocaleString() : '-' }}
-                    </t-descriptions-item>
-                </t-descriptions>
+                <!-- 微信 ClawBot：iLink 账号 ID -->
+                <template v-else-if="channelRow && channelRow.channelType === ChannelType.WECHAT_CLAWBOT">
+                    <div class="cdd-form-item">
+                        <div class="cdd-label">{{ mergedI18n.detailIlinkIdLabel }}</div>
+                        <t-input
+                            :value="wechatClawbotInfo.wechatUserId"
+                            :placeholder="mergedI18n.detailEmptyValue"
+                            readonly
+                            disabled
+                        />
+                    </div>
+                </template>
             </div>
-            <div v-else class="cdd-empty">
-                暂无数据
-            </div>
+
+            <template #footer>
+                <div class="cdd-footer">
+                    <t-button theme="primary" size="large" @click="handleClose">
+                        {{ mergedI18n.detailGotIt }}
+                    </t-button>
+                </div>
+            </template>
         </t-dialog>
     </Teleport>
 </template>
 
 <style scoped>
-.cdd-body {
-    padding: 4px 0;
+/* 对齐 webim：左对齐、表单式字段 */
+.channel-detail-dialog :deep(.t-dialog__body) {
+    text-align: left;
 }
 
-.cdd-channel-cell {
+.cdd-body {
+    padding: var(--td-size-2) 0 var(--td-size-4);
+}
+
+.cdd-form-item {
+    margin-bottom: var(--td-size-7);
+}
+
+.cdd-form-item:last-child {
+    margin-bottom: 0;
+}
+
+.cdd-label {
+    font-size: 13px;
+    color: var(--td-text-color-primary);
+    margin-bottom: var(--td-size-3);
+}
+
+.cdd-required {
+    color: var(--td-error-color, #e34d59);
+    margin-left: var(--td-size-1);
+}
+
+.cdd-footer {
     display: flex;
     align-items: center;
-    gap: 8px;
-}
-
-.cdd-channel-icon {
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
-    object-fit: contain;
-}
-
-.cdd-empty {
-    padding: 40px 0;
-    text-align: center;
-    color: var(--td-text-color-placeholder);
+    justify-content: center;
 }
 </style>

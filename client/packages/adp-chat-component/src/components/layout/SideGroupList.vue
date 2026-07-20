@@ -168,7 +168,7 @@ const handleHeaderAction = (event: Event) => {
 <style scoped>
 .side-group-list {
     width: 100%;
-    padding: 0 4px;
+    padding: 0 var(--td-size-2);
     margin-bottom: var(--td-comp-margin-xs, 4px);
 }
 
@@ -223,16 +223,16 @@ const handleHeaderAction = (event: Event) => {
 
 .side-group-item {
     min-height: 36px;
-    line-height: 20px;
+    line-height: var(--td-line-height-body-small);
     cursor: pointer;
-    padding: 8px 10px;
+    padding: var(--td-size-4) 10px;
     border-radius: var(--td-radius-medium);
     transition: background 0.15s ease, color 0.15s ease;
     color: var(--td-text-color-primary);
     display: flex;
     align-items: center;
     font-size: var(--td-font-size-body-medium);
-    margin-bottom: 2px;
+    margin-bottom: var(--td-size-1);
 }
 
 .side-group-item.active {
@@ -251,7 +251,7 @@ const handleHeaderAction = (event: Event) => {
 
 .side-group-item__icon {
     flex-shrink: 0;
-    margin-right: 8px;
+    margin-right: var(--td-size-4);
 }
 
 .side-group-item__label {
@@ -264,7 +264,7 @@ const handleHeaderAction = (event: Event) => {
 
 .side-group-item__extra {
     flex-shrink: 0;
-    margin-left: 8px;
+    margin-left: var(--td-size-4);
     font-size: 11px;
     color: var(--td-text-color-placeholder);
     opacity: 0;
@@ -283,7 +283,7 @@ const handleHeaderAction = (event: Event) => {
 
 .side-group-item__delete {
     flex-shrink: 0;
-    margin-left: 8px;
+    margin-left: var(--td-size-4);
     display: none;
     align-items: center;
     justify-content: center;
@@ -314,6 +314,6 @@ const handleHeaderAction = (event: Event) => {
     padding: 8px var(--td-comp-paddingLR-s, 10px);
     font-size: var(--td-font-size-body-small, 12px);
     color: var(--td-text-color-placeholder);
-    line-height: 20px;
+    line-height: var(--td-line-height-body-small);
 }
 </style>

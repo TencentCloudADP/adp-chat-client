@@ -462,7 +462,7 @@ defineExpose({
 
 :deep(.w-e-text-container [data-slate-editor]) {
     min-height: 20px;
-    padding: 8px 12px;
+    padding: var(--td-size-4) var(--td-size-5);
 }
 
 :deep(.w-e-text-container [data-slate-editor] p) {

@@ -68,7 +68,7 @@ const handleClick = () => {
 .msg-file-card {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--td-size-4);
     padding: 8px 12px;
     border: 1px solid rgba(16, 32, 69, 0.08);
     border-radius: var(--td-radius-large);
@@ -94,7 +94,7 @@ const handleClick = () => {
     justify-content: center;
     align-items: center;
     flex-shrink: 0;
-    border-radius: 4px;
+    border-radius: var(--td-radius-small);
     overflow: hidden;
 }
 
@@ -102,7 +102,7 @@ const handleClick = () => {
     width: 32px;
     height: 32px;
     object-fit: cover;
-    border-radius: 4px;
+    border-radius: var(--td-radius-small);
 }
 
 .msg-file-info {
@@ -116,7 +116,7 @@ const handleClick = () => {
     color: rgba(0, 1, 10, 0.9);
     font-size: var(--td-font-size-body-small);
     font-weight: 400;
-    line-height: 20px;
+    line-height: var(--td-line-height-body-small);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

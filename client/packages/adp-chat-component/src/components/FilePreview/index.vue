@@ -243,7 +243,7 @@ defineExpose({
     justify-content: center;
     width: 100%;
     height: 100%;
-    gap: 12px;
+    gap: var(--td-size-5);
 }
 
 .unsupported-icon {

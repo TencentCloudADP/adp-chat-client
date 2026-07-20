@@ -111,8 +111,7 @@
     "CreateChannel": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4070",
-        "payload.UserId": "{{ACCOUNT_ID}}"
+        "headers.X-TC-Canary": "toe-test-4070"
     },
     "DescribeChannel": {
         "service": "adp",
@@ -123,8 +122,7 @@
     "DescribeChannelList": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4070",
-        "payload.UserId": "{{ACCOUNT_ID}}"
+        "headers.X-TC-Canary": "toe-test-4070"
     },
     "ModifyChannel": {
         "service": "adp",

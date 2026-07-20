@@ -295,7 +295,25 @@ const handleReconfigureDirect = (row: ChannelRow) => {
 const handleConfigSubmitted = async () => {
     subDialogType.value = 'none';
     editingChannelItem.value = null;
+    await refreshListWithPolling();
+};
+
+/**
+ * 刷新并轮询等待渠道连接状态落定（对齐 webim 轮询）。
+ * 绑定/重配后后端异步建连，ConnectStatus 可能仍为 INIT，故立即刷新后再轮询若干次。
+ */
+const refreshListWithPolling = async () => {
     await refreshList();
+    for (let i = 0; i < 5; i++) {
+        const pending = rawChannelList.value.some(
+            (ch) => ch.connectStatus !== ClawChannelStatus.SUCCESS
+                && ch.connectStatus !== ClawChannelStatus.FAIL,
+        );
+        if (!pending) break;
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        if (!props.modelValue) break;
+        await refreshList();
+    }
 };
 
 /** 子配置弹窗关闭 */
@@ -348,7 +366,7 @@ const getStatusDotClass = (connectStatus: ClawChannelStatus) => {
         :header="mergedI18n.title"
         :footer="false"
         :close-on-overlay-click="false"
-        width="560px"
+        width="680px"
         :placement="'center'"
         class="channel-settings-dialog"
     >
@@ -362,9 +380,9 @@ const getStatusDotClass = (connectStatus: ClawChannelStatus) => {
                 class="csd-table"
                 :data="channelRows"
                 :columns="[
-                    { colKey: 'channelType', title: mergedI18n.columnChannelType, width: 240 },
-                    { colKey: 'connectStatus', title: mergedI18n.columnStatus, width: 120 },
-                    { colKey: 'action', title: mergedI18n.columnAction },
+                    { colKey: 'channelType', title: mergedI18n.columnChannelType, width: 200 },
+                    { colKey: 'connectStatus', title: mergedI18n.columnStatus, width: 110 },
+                    { colKey: 'action', title: mergedI18n.columnAction, width: 260, minWidth: 260 },
                 ]"
                 row-key="channelType"
                 :bordered="false"
@@ -493,7 +511,7 @@ const getStatusDotClass = (connectStatus: ClawChannelStatus) => {
 <style scoped>
 /* ---- 弹窗主体对齐 webim ---- */
 .channel-settings-dialog :deep(.t-dialog__body) {
-    padding: 0 24px 24px;
+    padding: 0 var(--td-size-8) var(--td-size-8);
 }
 
 .csd-body {
@@ -504,7 +522,7 @@ const getStatusDotClass = (connectStatus: ClawChannelStatus) => {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 48px 0;
+    padding: var(--td-size-13) 0;
 }
 
 /* ---- 表格（对齐 webim 原生 table 样式） ---- */
@@ -512,13 +530,13 @@ const getStatusDotClass = (connectStatus: ClawChannelStatus) => {
     background: rgba(36, 56, 97, 0.04);
     color: rgba(1, 11, 50, 0.61);
     font-weight: 400;
-    font-size: 12px;
-    padding: 8px 12px;
+    font-size: var(--td-font-size-body-small);
+    padding: var(--td-size-4) var(--td-size-5);
     border: none;
 }
 
 .csd-table :deep(.t-table__body td) {
-    padding: 14px 12px;
+    padding: 14px var(--td-size-5);
     font-size: 13px;
     vertical-align: middle;
     border-bottom: 1px solid rgba(18, 42, 79, 0.06);
@@ -537,7 +555,7 @@ const getStatusDotClass = (connectStatus: ClawChannelStatus) => {
 .csd-channel-cell {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--td-size-4);
 }
 
 .csd-channel-icon {
@@ -559,14 +577,14 @@ const getStatusDotClass = (connectStatus: ClawChannelStatus) => {
 .csd-status-cell {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--td-size-3);
 }
 
 .csd-status-dot {
     display: inline-block;
     width: 6px;
     height: 6px;
-    border-radius: 50%;
+    border-radius: var(--td-radius-circle);
     flex-shrink: 0;
 }
 
@@ -583,14 +601,17 @@ const getStatusDotClass = (connectStatus: ClawChannelStatus) => {
 .csd-action-cell {
     display: flex;
     align-items: center;
+    flex-wrap: nowrap;
+    white-space: nowrap;
 }
 
 .csd-action-link {
     font-size: 13px;
     color: #3370ff;
     cursor: pointer;
-    margin-right: 12px;
+    margin-right: var(--td-size-5);
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .csd-action-link:hover { opacity: 0.8; }

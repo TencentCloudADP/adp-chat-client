@@ -35,7 +35,7 @@ export interface SideActionItem {
 interface Props extends ThemeProps {
     /**
      * 自定义按钮列表。若不传，则使用 i18n 生成默认按钮：
-     *   - key: 'new-task'         icon: 'basic_newchat_line'   （始终显示）
+     *   - key: 'new-task'         icon: 'basic_newchat_line'   （始终显示，新建对话）
      *   - key: 'cron-task'        icon: 'basic_time_line'      （showCronTask=true 时显示，默认 true）
      *   - key: 'channel-list'     icon: 'basic_time_line'      （showChannelList=true 时显示）
      *
@@ -142,7 +142,7 @@ const handleClick = (item: SideActionItem) => {
 .side-actions {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--td-size-1);
     padding: 0 4px;
     box-sizing: border-box;
 }
@@ -151,7 +151,7 @@ const handleClick = (item: SideActionItem) => {
     display: flex;
     align-items: center;
     height: 32px;
-    padding: 0 8px;
+    padding: 0 var(--td-size-4);
     border-radius: var(--td-radius-default, 4px);
     cursor: pointer;
     box-sizing: border-box;
@@ -166,7 +166,6 @@ const handleClick = (item: SideActionItem) => {
 
 .side-action-btn.active {
     background-color: var(--td-bg-color-container-active, rgba(0, 0, 0, 0.06));
-    color: var(--td-brand-color, #0052d9);
 }
 
 .side-action-btn:focus-visible {
@@ -179,7 +178,7 @@ const handleClick = (item: SideActionItem) => {
 }
 
 .side-action-text {
-    margin-left: 8px;
+    margin-left: var(--td-size-4);
     font-size: 13px;
     font-weight: 500;
     line-height: 1;

@@ -40,7 +40,7 @@ const handleClick = () => {
     background: var(--td-bg-color-container);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.06);
     border: 1px solid var(--td-component-stroke);
-    border-radius: 9999px;
+    border-radius: var(--td-radius-round);
     transition: box-shadow 0.15s ease, transform 0.1s ease;
 }
 

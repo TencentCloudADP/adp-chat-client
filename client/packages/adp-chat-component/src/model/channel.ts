@@ -110,6 +110,18 @@ export interface ChannelSettingsI18n {
     channelNameWechatClawBot?: string;
     /** 加载中 */
     loading?: string;
+    /** 详情弹窗标题后缀（对齐 webim："{渠道名} 渠道配置"） */
+    detailTitleSuffix?: string;
+    /** 详情：Bot ID 字段标签 */
+    detailBotIdLabel?: string;
+    /** 详情：Secret 字段标签 */
+    detailSecretLabel?: string;
+    /** 详情：iLink 账号 ID 字段标签（微信 ClawBot） */
+    detailIlinkIdLabel?: string;
+    /** 详情：空值占位文案 */
+    detailEmptyValue?: string;
+    /** 详情：关闭按钮文案（知道了） */
+    detailGotIt?: string;
 }
 
 /** 渠道设置弹窗 i18n 中文默认值 */
@@ -132,6 +144,12 @@ export const defaultChannelSettingsI18n: Required<ChannelSettingsI18n> = {
     channelNameWecomRobot: '企微智能机器人',
     channelNameWechatClawBot: '微信',
     loading: '加载中...',
+    detailTitleSuffix: '渠道配置',
+    detailBotIdLabel: 'Bot ID',
+    detailSecretLabel: 'Secret',
+    detailIlinkIdLabel: 'iLink 账号 ID',
+    detailEmptyValue: '暂无',
+    detailGotIt: '知道了',
 };
 
 /** 渠道设置弹窗 i18n 英文默认值 */
@@ -154,4 +172,10 @@ export const defaultChannelSettingsI18nEn: Required<ChannelSettingsI18n> = {
     channelNameWecomRobot: 'WeCom Bot',
     channelNameWechatClawBot: 'WeChat',
     loading: 'Loading...',
+    detailTitleSuffix: 'Channel Config',
+    detailBotIdLabel: 'Bot ID',
+    detailSecretLabel: 'Secret',
+    detailIlinkIdLabel: 'iLink Account ID',
+    detailEmptyValue: 'None',
+    detailGotIt: 'Got it',
 };

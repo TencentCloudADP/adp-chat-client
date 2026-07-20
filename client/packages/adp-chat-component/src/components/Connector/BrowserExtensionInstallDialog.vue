@@ -185,7 +185,7 @@ function onClose() {
 
 <style scoped>
 .browser-extension-install-dialog__body {
-    padding: 0 4px 4px;
+    padding: 0 var(--td-size-2) var(--td-size-2);
     text-align: left;
 }
 
@@ -193,33 +193,33 @@ function onClose() {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: var(--td-size-6);
 }
 
 .browser-extension-install-dialog__header-icon {
     color: var(--td-brand-color, #4a70ff);
-    margin-bottom: 8px;
+    margin-bottom: var(--td-size-4);
 }
 
 .browser-extension-install-dialog__header-title {
-    font-size: 16px;
-    line-height: 24px;
+    font-size: var(--td-font-size-body-large);
+    line-height: var(--td-line-height-body-large);
     font-weight: 500;
     color: var(--td-text-color-primary);
     text-align: center;
 }
 
 .browser-extension-install-dialog__intro {
-    padding: 12px;
+    padding: var(--td-size-5);
     background: var(--td-bg-color-component, #f7f8fa);
     border-radius: var(--td-radius-default, 4px);
-    font-size: 12px;
+    font-size: var(--td-font-size-body-small);
     line-height: 18px;
     color: var(--td-text-color-secondary);
 }
 
 .browser-extension-install-dialog__intro p {
-    margin: 0 0 8px;
+    margin: 0 0 var(--td-size-4);
 }
 
 .browser-extension-install-dialog__intro p:last-child {
@@ -227,14 +227,14 @@ function onClose() {
 }
 
 .browser-extension-install-dialog__intro ul {
-    margin: 0 0 8px;
+    margin: 0 0 var(--td-size-4);
     padding-left: 0;
     list-style: none;
 }
 
 .browser-extension-install-dialog__intro li {
     position: relative;
-    padding-left: 12px;
+    padding-left: var(--td-size-5);
     margin-bottom: 4px;
 }
 
@@ -254,8 +254,8 @@ function onClose() {
 .browser-extension-install-dialog__agree {
     display: flex;
     align-items: flex-start;
-    margin-top: 16px;
-    font-size: 12px;
+    margin-top: var(--td-size-6);
+    font-size: var(--td-font-size-body-small);
     line-height: 18px;
     color: var(--td-text-color-primary);
 }

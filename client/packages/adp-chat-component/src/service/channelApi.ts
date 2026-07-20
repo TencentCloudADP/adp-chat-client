@@ -38,31 +38,34 @@ export const defaultChannelApiConfig: ChannelApiConfig = {
 // ============================================================
 
 /** 渠道场景（proto ChannelScene） */
-export enum ChannelScene {
-    B_END = 0,  // B 端场景（应用发布渠道）
-    C_END = 1,  // C 端场景（claw 模式 IM 渠道）
-}
+export const ChannelScene = {
+    B_END: 0,  // B 端场景（应用发布渠道）
+    C_END: 1,  // C 端场景（claw 模式 IM 渠道）
+} as const;
+export type ChannelScene = typeof ChannelScene[keyof typeof ChannelScene];
 
 /** C 端渠道连接状态（proto ClawChannelStatus） */
-export enum ClawChannelStatus {
-    UNSPECIFIED = 0,
-    INIT = 1,    // 初始
-    SUCCESS = 2, // 连接成功
-    FAIL = 3,    // 连接失败
-}
+export const ClawChannelStatus = {
+    UNSPECIFIED: 0,
+    INIT: 1,    // 初始
+    SUCCESS: 2, // 连接成功
+    FAIL: 3,    // 连接失败
+} as const;
+export type ClawChannelStatus = typeof ClawChannelStatus[keyof typeof ClawChannelStatus];
 
 /** 渠道类型枚举（proto common/v2 ChannelType） */
-export enum ChannelType {
-    UNSPECIFIED = 0,
-    WECOM = 10002,               // 企微应用
-    WXKF = 10004,                // 微信客服
-    YUANBAO_WECOM_ROBOT = 10009, // 企微智能机器人
-    LINE = 10011,                // LINE
-    TELEGRAM = 10012,            // Telegram
-    DINGTALK = 10013,            // 钉钉机器人
-    WECOM_ROBOT_WS = 10014,      // 企微智能机器人（WebSocket 长连接）
-    WECHAT_CLAWBOT = 10015,      // 微信 iLink ClawBot
-}
+export const ChannelType = {
+    UNSPECIFIED: 0,
+    WECOM: 10002,               // 企微应用
+    WXKF: 10004,                // 微信客服
+    YUANBAO_WECOM_ROBOT: 10009, // 企微智能机器人
+    LINE: 10011,                // LINE
+    TELEGRAM: 10012,            // Telegram
+    DINGTALK: 10013,            // 钉钉机器人
+    WECOM_ROBOT_WS: 10014,      // 企微智能机器人（WebSocket 长连接）
+    WECHAT_CLAWBOT: 10015,      // 微信 iLink ClawBot
+} as const;
+export type ChannelType = typeof ChannelType[keyof typeof ChannelType];
 
 /** 接口返回的原始渠道项 */
 export interface ChannelRawItem {
@@ -185,6 +188,25 @@ async function forwardRequest(
 // ============================================================
 // 数据转换
 // ============================================================
+
+/**
+ * 生成渠道归属用户 ID（写入 spec.UserAgent.UserId）。
+ *
+ * 需求（对齐 adp-b2c C 端用户模型）：
+ *   - 每个登录用户「稳定唯一」：同一账号任何时候派生结果都一致；
+ *   - 该用户「所有渠道共用同一个」：便于按此 UserId 聚合该用户名下的渠道会话；
+ *   - 不用 bot_id（bot_id 是机器人标识，且实测渠道会话未归到 bot_id 下）；
+ *   - 与账号自身应用会话隔离：加 `chatclient_` 前缀，使其区别于账号 chat 用的原始 id。
+ *
+ * 实现：从登录账号 id 派生 `chatclient_<accountId>`。
+ *   - 唯一性：账号 id 全局唯一 → 派生值必然唯一（比自增 count 更可靠，count 需中心协调防重）；
+ *   - 存储：无需像 AgentId 那样单独持久化——账号 id 已存在后端 /account/info，
+ *     随时可复现同一个 UserId，天然稳定。
+ */
+export function buildChannelUserId(accountId: string): string {
+    const id = (accountId || '').trim();
+    return id ? `chatclient_${id}` : '';
+}
 
 /** 将原始渠道数据标准化为 ChannelItem */
 function normalizeChannelItem(raw: ChannelRawItem): ChannelItem {

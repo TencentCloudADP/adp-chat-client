@@ -316,12 +316,12 @@ onUnmounted(() => {
 }
 
 .retry-btn {
-    padding: 6px 20px;
+    padding: var(--td-size-3) var(--td-size-7);
     font-size: var(--td-font-size-body-medium);
     color: var(--td-text-color-anti);
     background-color: var(--td-brand-color);
     border: none;
-    border-radius: 4px;
+    border-radius: var(--td-radius-small);
     cursor: pointer;
     transition: background-color 0.2s;
 }

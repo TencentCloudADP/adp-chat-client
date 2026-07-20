@@ -284,7 +284,7 @@ function _formatTime(v: unknown): string {
     }
     const str = String(v);
     const m = str.match(/(\d{1,2}):(\d{2})/);
-    if (m) return `${m[1].padStart(2, '0')}:${m[2]}`;
+    if (m) return `${m[1]!.padStart(2, '0')}:${m[2]}`;
     const d = new Date(str);
     if (!isNaN(d.getTime())) {
         return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -301,7 +301,7 @@ function _formatDate(v: unknown): string {
     }
     const str = String(v);
     const m = str.match(/^(\d{4}-\d{2}-\d{2})/);
-    if (m) return m[1];
+    if (m) return m[1]!;
     const d = new Date(str);
     if (!isNaN(d.getTime())) {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -311,7 +311,7 @@ function _formatDate(v: unknown): string {
 
 function _parseTime(timeStr: string): { hour: number; minute: number } {
     const normalized = _formatTime(timeStr) || '18:00';
-    const [hour, minute] = normalized.split(':').map(Number);
+    const [hour = 0, minute = 0] = normalized.split(':').map(Number);
     return { hour, minute };
 }
 
@@ -327,12 +327,12 @@ function _isValidCronField(field: string, min: number, max: number): boolean {
         if (item.indexOf('/') >= 0) {
             const segs = item.split('/');
             if (segs.length !== 2) return false;
-            rangePart = segs[0];
-            if (!/^\d+$/.test(segs[1]) || Number(segs[1]) <= 0) return false;
+            rangePart = segs[0]!;
+            if (!/^\d+$/.test(segs[1]!) || Number(segs[1]) <= 0) return false;
         }
         if (rangePart === '*') continue;
         if (rangePart.indexOf('-') >= 0) {
-            const [a, b] = rangePart.split('-');
+            const [a = '', b = ''] = rangePart.split('-');
             if (!/^\d+$/.test(a) || !/^\d+$/.test(b)) return false;
             const na = Number(a);
             const nb = Number(b);
@@ -357,7 +357,7 @@ function _isValidCronExpression(expr: string): boolean {
         [1, 12],
         [0, 7],
     ];
-    return fields.every((f, i) => _isValidCronField(f, ranges[i][0], ranges[i][1]));
+    return fields.every((f, i) => _isValidCronField(f, ranges[i]![0], ranges[i]![1]));
 }
 
 function _describeCronTime(minute: string, hour: string): string {
@@ -372,9 +372,9 @@ function _describeCronTime(minute: string, hour: string): string {
     if (minute === '*' && /^\d+$/.test(hour))
         return (extraI18n.value.cronDescHourEveryMinute as (h: string) => string)(String(Number(hour)).padStart(2, '0'));
     if (/^\*\/\d+$/.test(minute) && hour === '*')
-        return (extraI18n.value.cronDescEveryNMinute as (n: string) => string)(minute.split('/')[1]);
+        return (extraI18n.value.cronDescEveryNMinute as (n: string) => string)(minute.split('/')[1]!);
     if (minute === '0' && /^\*\/\d+$/.test(hour))
-        return (extraI18n.value.cronDescEveryNHour as (n: string) => string)(hour.split('/')[1]);
+        return (extraI18n.value.cronDescEveryNHour as (n: string) => string)(hour.split('/')[1]!);
     return ` ${hour}:${minute} `;
 }
 
@@ -404,7 +404,7 @@ function _describeCronDate(dom: string, month: string, dow: string): string {
 }
 
 function _describeCron(expr: string): string {
-    const [minute, hour, dom, month, dow] = expr.trim().split(/\s+/);
+    const [minute = '', hour = '', dom = '', month = '', dow = ''] = expr.trim().split(/\s+/);
     const time = _describeCronTime(minute, hour);
     const date = _describeCronDate(dom, month, dow);
     return (extraI18n.value.cronDescExecute as (d: string, t: string) => string)(date, time);
@@ -657,25 +657,25 @@ defineExpose({ validate, getFormData, setFormData, resetForm });
 .cron-frequency-selector {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--td-size-4);
 }
 
 .cron-frequency-selector__label {
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     font-weight: 500;
     color: var(--td-text-color-primary);
-    line-height: 22px;
+    line-height: var(--td-line-height-body-medium);
 }
 
 .cron-frequency-selector__required {
     color: var(--td-error-color, #e54545);
-    margin-left: 2px;
+    margin-left: var(--td-size-1);
 }
 
 .cron-frequency-selector__tabs-row {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--td-size-5);
     flex-wrap: wrap;
 }
 
@@ -684,16 +684,16 @@ defineExpose({ validate, getFormData, setFormData, resetForm });
 }
 
 .cron-frequency-selector__content {
-    margin-top: 4px;
+    margin-top: var(--td-size-2);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--td-size-4);
 }
 
 .cron-frequency-selector__row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--td-size-4);
 }
 
 .cron-frequency-selector__row--wrap {
@@ -706,7 +706,7 @@ defineExpose({ validate, getFormData, setFormData, resetForm });
 }
 
 .cron-frequency-selector__inline-label {
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     color: var(--td-text-color-primary);
     white-space: nowrap;
 }
@@ -716,9 +716,9 @@ defineExpose({ validate, getFormData, setFormData, resetForm });
 }
 
 .cron-frequency-selector__cron-hint {
-    font-size: 12px;
+    font-size: var(--td-font-size-body-small);
     color: var(--td-text-color-placeholder);
-    line-height: 20px;
+    line-height: var(--td-line-height-body-small);
 }
 
 .cron-frequency-selector__cron-hint--desc {
@@ -727,7 +727,7 @@ defineExpose({ validate, getFormData, setFormData, resetForm });
 
 .cron-frequency-selector__cron-hint--error {
     color: var(--td-error-color, #e54545);
-    font-size: 12px;
-    line-height: 20px;
+    font-size: var(--td-font-size-body-small);
+    line-height: var(--td-line-height-body-small);
 }
 </style>

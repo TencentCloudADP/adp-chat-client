@@ -328,7 +328,7 @@ defineExpose({
 <style scoped>
 .remote-terminal-list {
     width: 100%;
-    padding: 0 4px;
+    padding: 0 var(--td-size-2);
     margin-bottom: var(--td-comp-margin-xs, 4px);
 }
 
@@ -363,7 +363,7 @@ defineExpose({
 
 .rt-header__caret {
     flex-shrink: 0;
-    margin-right: 4px;
+    margin-right: var(--td-size-2);
     transition: transform 0.2s ease;
 }
 
@@ -387,7 +387,7 @@ defineExpose({
     justify-content: center;
     width: 20px;
     height: 20px;
-    margin-left: 4px;
+    margin-left: var(--td-size-2);
     border-radius: var(--td-radius-small);
     color: var(--td-text-color-placeholder);
     cursor: pointer;
@@ -412,16 +412,16 @@ defineExpose({
 
 .rt-item {
     min-height: 36px;
-    line-height: 20px;
+    line-height: var(--td-line-height-body-small);
     cursor: pointer;
-    padding: 8px 10px;
+    padding: var(--td-size-4) 10px;
     border-radius: var(--td-radius-medium);
     transition: background 0.15s ease, color 0.15s ease;
     color: var(--td-text-color-primary);
     display: flex;
     align-items: center;
     font-size: var(--td-font-size-body-medium);
-    margin-bottom: 2px;
+    margin-bottom: var(--td-size-1);
 }
 
 .rt-item.active {
@@ -440,15 +440,15 @@ defineExpose({
 
 .rt-item__icon {
     flex-shrink: 0;
-    margin-right: 8px;
+    margin-right: var(--td-size-4);
 }
 
 .rt-item__img {
     flex-shrink: 0;
     width: 20px;
     height: 20px;
-    margin-right: 8px;
-    border-radius: 4px;
+    margin-right: var(--td-size-4);
+    border-radius: var(--td-radius-small);
     object-fit: contain;
 }
 
@@ -464,6 +464,6 @@ defineExpose({
     padding: 8px var(--td-comp-paddingLR-s, 10px);
     font-size: var(--td-font-size-body-small, 12px);
     color: var(--td-text-color-placeholder);
-    line-height: 20px;
+    line-height: var(--td-line-height-body-small);
 }
 </style>

@@ -265,10 +265,10 @@ watch(() => props.modelValue, (val) => {
 </script>
 
 <style scoped>
-.manage-tool-dialog { display: flex; flex-direction: column; gap: 12px; height: 480px; overflow: hidden; }
-.manage-tool-dialog__action-bar { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.manage-tool-dialog { display: flex; flex-direction: column; gap: var(--td-size-5); height: 480px; overflow: hidden; }
+.manage-tool-dialog__action-bar { display: flex; align-items: center; gap: var(--td-size-4); flex-shrink: 0; }
 .manage-tool-dialog__action-bar  .customeized-icon{
-    margin-right: 4px;
+    margin-right: var(--td-size-2);
 }
 .manage-tool-dialog__search { width: 200px; margin-left: auto; }
 .manage-tool-dialog__loading { display: flex; align-items: center; justify-content: center; flex: 1; }
@@ -277,16 +277,16 @@ watch(() => props.modelValue, (val) => {
 .manage-tool-dialog__list::-webkit-scrollbar { width: 4px; }
 .manage-tool-dialog__list::-webkit-scrollbar-thumb { border-radius: 2px; background: rgba(17, 32, 70, 0.13); }
 
-.manage-tool-item { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid rgba(0, 44, 85, 0.08); transition: background 0.15s; }
+.manage-tool-item { display: flex; align-items: center; gap: var(--td-size-6); padding: 14px 0; border-bottom: 1px solid rgba(0, 44, 85, 0.08); transition: background 0.15s; }
 .manage-tool-item:last-child { border-bottom: none; }
 .manage-tool-item__icon { flex-shrink: 0; width: 40px; }
-.manage-tool-item__icon img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
-.manage-tool-item__icon-fb { width: 40px; height: 40px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: var(--td-bg-color-secondarycontainer); color: var(--td-text-color-placeholder); border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
+.manage-tool-item__icon img { width: 40px; height: 40px; border-radius: var(--td-radius-medium); object-fit: cover; border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
+.manage-tool-item__icon-fb { width: 40px; height: 40px; border-radius: var(--td-radius-medium); display: inline-flex; align-items: center; justify-content: center; background: var(--td-bg-color-secondarycontainer); color: var(--td-text-color-placeholder); border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
 .manage-tool-item__info { flex: 1; min-width: 0; overflow: hidden; }
-.manage-tool-item__title { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
-.manage-tool-item__name { font-size: 15px; font-weight: 500; color: var(--td-text-color-primary); line-height: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
-.manage-tool-item__desc { font-size: 13px; color: var(--td-text-color-placeholder); line-height: 20px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.manage-tool-item__actions { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+.manage-tool-item__title { display: flex; align-items: center; gap: var(--td-size-3); flex-wrap: nowrap; overflow: hidden; }
+.manage-tool-item__name { font-size: 15px; font-weight: 500; color: var(--td-text-color-primary); line-height: var(--td-line-height-body-large); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
+.manage-tool-item__desc { font-size: 13px; color: var(--td-text-color-placeholder); line-height: var(--td-line-height-body-small); margin-top: var(--td-size-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.manage-tool-item__actions { flex-shrink: 0; display: flex; align-items: center; gap: var(--td-size-2); }
 /* 禁用状态删除按钮 */
 .manage-tool-item__actions :deep(.t-button.t-is-disabled) { opacity: 0.35; cursor: not-allowed; }
 </style>

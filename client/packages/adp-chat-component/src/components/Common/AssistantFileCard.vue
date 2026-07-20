@@ -161,7 +161,7 @@ function handleDownload(file: FileInfo) {
 .assistant-file-cards {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--td-size-4);
     margin: 8px 0;
 }
 
@@ -170,7 +170,7 @@ function handleDownload(file: FileInfo) {
     align-items: center;
     width: 220px;
     height: 50px;
-    padding: 8px 10px;
+    padding: var(--td-size-4) 10px;
     background: var(--td-bg-color-container, #fff);
     border: 1px solid var(--td-component-border, rgba(16, 32, 69, 0.1));
     border-radius: var(--td-radius-medium);
@@ -200,7 +200,7 @@ function handleDownload(file: FileInfo) {
     overflow: hidden;
     flex: 1;
     min-width: 0;
-    margin-left: 8px;
+    margin-left: var(--td-size-4);
 }
 
 .assistant-file-card__name {
@@ -209,7 +209,7 @@ function handleDownload(file: FileInfo) {
     white-space: nowrap;
     font-size: var(--td-font-size-body-medium);
     font-weight: 400;
-    line-height: 20px;
+    line-height: var(--td-line-height-body-small);
     color: var(--td-text-color-primary, rgba(0, 1, 10, 0.93));
 }
 
@@ -228,7 +228,7 @@ function handleDownload(file: FileInfo) {
     font-size: var(--td-font-size-link-small);
     line-height: 16px;
     color: var(--td-text-color-placeholder, rgba(1, 11, 50, 0.41));
-    margin-top: 4px;
+    margin-top: var(--td-size-2);
 }
 
 .assistant-file-card__download {
@@ -238,7 +238,7 @@ function handleDownload(file: FileInfo) {
     flex-shrink: 0;
     width: 24px;
     height: 24px;
-    border-radius: 4px;
+    border-radius: var(--td-radius-small);
     cursor: pointer;
     color: var(--td-text-color-secondary, #666);
     font-size: var(--td-font-size-body-medium);

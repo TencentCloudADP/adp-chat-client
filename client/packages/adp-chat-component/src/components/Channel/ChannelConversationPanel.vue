@@ -116,21 +116,22 @@ const fetchConversations = async (silent = false) => {
         conversations.value = [];
         return;
     }
-    // 渠道过滤：必须有 userId 才能精准拉取该渠道会话，否则会拿到全应用会话（对齐 adp-b2c 要求 UserId 必填）
-    if (!props.userId) {
+    // 渠道过滤：后台确认 DescribeConversationList 按 channel_id 查询，必须有 channelId
+    if (!props.channelId) {
         conversations.value = [];
         return;
     }
     const fetchId = ++lastFetchId;
     if (!silent) loading.value = true;
     try {
-        // 不显式传 Type，让底层默认为 1（CONVERSATION_TYPE_VISITOR），对齐 adp-b2c；
-        // 传 0 时线上 CAPI SDK 常返回空列表。
+        // 后台确认：在原有传参基础上「新增 ChannelId」按渠道过滤（CAPI v2 / X-TC-Version 2026-05-20）。
+        // 原有 UserId / AgentId 传参保持不变。
         const { conversations: list } = await describeConversationList(
             {
                 AppId: props.applicationId,
-                UserId: props.userId,
+                UserId: props.userId || undefined,
                 AgentId: props.agentId || undefined,
+                ChannelId: props.channelId,
                 Offset: 0,
                 Limit: props.pageSize,
             },
@@ -144,11 +145,10 @@ const fetchConversations = async (silent = false) => {
             .filter((c) => c.id)
             .sort((a, b) => b.lastActiveAt - a.lastActiveAt);
         conversations.value = next;
-        // 调试日志：便于排查"UserId 传了但拿到空"场景（对照后端 CAPI 日志）
+        // 调试日志：便于排查"ChannelId 传了但拿到空"场景（对照后端 CAPI 日志）
         console.debug('[ChannelConversationPanel] fetched', {
-            userId: props.userId,
-            agentId: props.agentId,
             channelId: props.channelId,
+            userId: props.userId,
             count: next.length,
             raw: list,
         });
@@ -190,16 +190,16 @@ const stopPolling = () => {
     }
 };
 
-// visible / applicationId / userId / agentId 变化时重新拉取 + 启停轮询
+// visible / applicationId / channelId 变化时重新拉取 + 启停轮询
 watch(
-    [() => props.visible, () => props.applicationId, () => props.userId, () => props.agentId],
-    ([vis, appId, uid]) => {
-        if (vis && appId && uid) {
+    [() => props.visible, () => props.applicationId, () => props.channelId],
+    ([vis, appId, cid]) => {
+        if (vis && appId && cid) {
             fetchConversations();
             startPolling();
         } else {
             stopPolling();
-            if (!uid) conversations.value = [];
+            if (!cid) conversations.value = [];
         }
     },
     { immediate: true },
@@ -267,7 +267,15 @@ defineExpose({
                 <span>加载中...</span>
             </div>
             <div v-else-if="conversations.length === 0" class="ccp-empty">
-                暂无会话
+                <CustomizedIcon
+                    remote
+                    nativeIcon
+                    name="default_wait"
+                    class="ccp-empty__icon"
+                    :showHoverBg="false"
+                    :theme="theme"
+                />
+                <p class="ccp-empty__text">暂无会话</p>
             </div>
             <div v-else class="ccp-list">
                 <div
@@ -359,8 +367,7 @@ defineExpose({
     padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-s);
 }
 
-.ccp-loading,
-.ccp-empty {
+.ccp-loading {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -370,10 +377,34 @@ defineExpose({
     font-size: var(--td-font-size-body-small);
 }
 
+/* 空状态：对齐 webim channel-drawer（占满面板、垂直居中的插画 + 灰字） */
+.ccp-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: var(--td-comp-margin-xl, 16px);
+}
+
+/* 空状态插画：对齐 webim task-list-panel 的 120px default_wait（覆盖 CustomizedIcon 默认 size 尺寸/内边距） */
+.ccp-empty :deep(.customeized-icon.ccp-empty__icon) {
+    width: 120px;
+    height: 120px;
+    padding: 0;
+}
+
+.ccp-empty__text {
+    margin: 0;
+    font-size: var(--td-font-size-body-small, 13px);
+    line-height: var(--td-line-height-body-small);
+    color: var(--td-text-color-placeholder);
+}
+
 .ccp-list {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--td-size-1);
 }
 
 /* ---------------- 列表项（对齐 .rt-item / t-tree__item hover 效果） ---------------- */
@@ -411,6 +442,6 @@ defineExpose({
     font-size: var(--td-font-size-body-small);
     color: var(--td-text-color-placeholder);
     flex-shrink: 0;
-    margin-left: 12px;
+    margin-left: var(--td-size-5);
 }
 </style>

@@ -20,7 +20,7 @@
     height: var(--td-comp-size-m);
     border: 3px solid var(--td-gray-color-3);
     border-top-color: var(--td-brand-color);
-    border-radius: 50%;
+    border-radius: var(--td-radius-circle);
     animation: preview-spin 0.8s linear infinite;
 }
 
@@ -50,7 +50,7 @@
 }
 
 .preview-error__icon {
-    font-size: 36px;
+    font-size: var(--td-font-size-headline-large);
 }
 
 .preview-error__icon--lg {

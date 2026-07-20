@@ -405,20 +405,20 @@ defineExpose({
     display: flex;
     align-items: center;
     height: 56px;
-    padding: 0 24px;
+    padding: 0 var(--td-size-8);
     flex-shrink: 0;
 }
 
 .header-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--td-size-4);
 }
 
 .panel-title {
-    font-size: 20px;
+    font-size: var(--td-font-size-title-large);
     font-weight: 600;
-    line-height: 28px;
+    line-height: var(--td-line-height-title-large);
     color: var(--td-text-color-primary, rgba(0, 1, 10, 0.93));
 }
 
@@ -433,7 +433,7 @@ defineExpose({
     display: flex;
     align-items: flex-start;
     height: 44px;
-    padding: 0 24px;
+    padding: 0 var(--td-size-8);
     flex-shrink: 0;
 }
 
@@ -441,7 +441,7 @@ defineExpose({
 .panel-body {
     flex: 1;
     overflow-y: auto;
-    padding: 0 24px 16px;
+    padding: 0 var(--td-size-8) var(--td-size-6);
 }
 
 .panel-body::-webkit-scrollbar {
@@ -473,7 +473,7 @@ defineExpose({
 
 .empty-text {
     font-size: 13px;
-    line-height: 20px;
+    line-height: var(--td-line-height-body-small);
     color: var(--td-text-color-placeholder, rgba(1, 11, 50, 0.41));
     text-align: center;
     margin: 0;
@@ -482,14 +482,14 @@ defineExpose({
 .empty-text--highlight {
     color: var(--td-brand-color, #4a70ff);
     cursor: pointer;
-    margin-left: 4px;
+    margin-left: var(--td-size-2);
 }
 
 /* 卡片网格 */
 .task-card-list {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
+    gap: var(--td-size-6);
 }
 
 @media (max-width: 900px) {
@@ -508,6 +508,6 @@ defineExpose({
 .load-more {
     display: flex;
     justify-content: center;
-    padding: 16px 0;
+    padding: var(--td-size-6) 0;
 }
 </style>

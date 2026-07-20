@@ -438,14 +438,14 @@ defineExpose({ resetForm, fillFormWithTask });
 
 <style scoped>
 .cron-create-task-dialog__body {
-    padding: 0 4px 4px;
+    padding: 0 var(--td-size-2) var(--td-size-2);
     max-height: min(450px, calc(100vh - 240px));
     overflow-y: auto;
     position: relative;
 }
 
 .cron-create-task-dialog__form-item {
-    margin-bottom: 20px;
+    margin-bottom: var(--td-size-7);
 }
 
 .cron-create-task-dialog__form-item:last-child {
@@ -453,16 +453,16 @@ defineExpose({ resetForm, fillFormWithTask });
 }
 
 .cron-create-task-dialog__label {
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     font-weight: 500;
     color: var(--td-text-color-primary);
-    line-height: 22px;
-    margin-bottom: 8px;
+    line-height: var(--td-line-height-body-medium);
+    margin-bottom: var(--td-size-4);
 }
 
 .cron-create-task-dialog__required {
     color: var(--td-error-color, #e54545);
-    margin-left: 2px;
+    margin-left: var(--td-size-1);
 }
 
 .cron-create-task-dialog__loading-mask {
@@ -481,9 +481,9 @@ defineExpose({ resetForm, fillFormWithTask });
 .cron-create-task-dialog__footer {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: var(--td-size-4);
     padding-top: 12px;
     border-top: 1px solid var(--td-component-border, rgba(0, 0, 0, 0.08));
-    margin-top: 12px;
+    margin-top: var(--td-size-5);
 }
 </style>

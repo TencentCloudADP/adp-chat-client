@@ -185,6 +185,12 @@ export interface DescribeConversationMessageListParams {
     Limit?: number;
     /** 会话类型：1-访客 2-评测 5-API 10-工作流 20-分享 */
     Type: number;
+    /**
+     * 用户 ID：渠道（访客）会话历史必须携带该渠道绑定的 UserAgent.UserId
+     * 才能拉到属于该渠道用户的消息（对齐 adp-b2c DescribeConversationMessages）。
+     * 后端 action_version 仅在缺省时才注入 {{ACCOUNT_ID}}，前端显式传入即以此为准。
+     */
+    UserId?: string;
     /** 查询方向：1-向前（更早） */
     RecordQueryDirection?: number;
 }
@@ -192,6 +198,9 @@ export interface DescribeConversationMessageListParams {
 /** DescribeConversationMessageList 响应 */
 export interface DescribeConversationMessageListResponse {
     Response: {
+        /** 后端已按 RecordId 分组的 V2 Record 列表（describe_conversation_message_list 方法返回） */
+        Records?: Record[];
+        /** 未分组的扁平消息列表（forward_request 直连时返回） */
         Messages?: Record[];
         HasMoreBefore?: boolean;
         HasMoreAfter?: boolean;
@@ -616,16 +625,16 @@ export const describeConversationList = async (
     // Type 默认 1（CONVERSATION_TYPE_VISITOR，访客端体验）——对齐 adp-b2c capi.go conversationType()：
     // 虽然 proto 注释说 Type=0(UNSPECIFIED) 表示全部，但线上 CAPI SDK 实际行为并非"全部"，
     // 传 0 常常拿到空列表；adp-b2c 亲测强制把 0→1 才能返回渠道产生的访客会话。
-    const payload: Record<string, unknown> = { Type: params.Type || 1 };
+    const payload: { [key: string]: unknown } = { Type: params.Type || 1 };
     if (params.AppId) payload.AppId = params.AppId;
     if (params.AgentId) payload.AgentId = params.AgentId;
     // 渠道过滤：UserId 是核心，值来自 channel.spec.UserAgent.UserId（对齐 adp-b2c）。
     // 传值后 action_version 中的 {{ACCOUNT_ID}} 默认注入会被跳过。
     if (params.UserId) payload.UserId = params.UserId;
-    // 注意：ChannelId 已在 proto v2 定义但线上 CAPI (2026-05-20) SDK 尚未开放，直接透传会报
-    // UnknownParameter: The parameter `ChannelId` is not recognized。因此暂缓发送，等 CAPI SDK
-    // 版本同步 proto 后再启用。目前渠道过滤走 UserId 兜底。
-    // if (params.ChannelId) payload.ChannelId = params.ChannelId;
+    // ChannelId：proto v2 已定义的按渠道过滤维度。企微渠道会话存于独立映射表，
+    // 无法用 UserId/bot_id 从 DescribeConversationList 查到，只能靠 ChannelId。
+    // 若线上 CAPI SDK 不认，会返回 UnknownParameter（据此判断是否需后端/SDK 升级）。
+    if (params.ChannelId) payload.ChannelId = params.ChannelId;
     if (params.Keyword) payload.Keyword = params.Keyword;
     if (typeof params.Offset === 'number') payload.Offset = params.Offset;
     if (typeof params.Limit === 'number') payload.Limit = params.Limit;

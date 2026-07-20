@@ -42,7 +42,7 @@ const handleDelete = (index: number) => {
 .file-inline-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--td-size-4);
     padding: 8px 12px;
     align-items: flex-end;
 }

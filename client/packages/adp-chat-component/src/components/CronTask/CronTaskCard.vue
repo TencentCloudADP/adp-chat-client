@@ -232,7 +232,7 @@ function onCardClick() {
     display: flex;
     flex-direction: column;
     height: 120px;
-    padding: 16px;
+    padding: var(--td-size-6);
     background: var(--td-bg-color-container, #fff);
     border: 1px solid var(--td-border-level-2-color, rgba(17, 32, 70, 0.13));
     border-radius: var(--td-radius-medium, 6px);
@@ -257,9 +257,9 @@ function onCardClick() {
 .card-title {
     flex: 1;
     min-width: 0;
-    font-size: 16px;
+    font-size: var(--td-font-size-body-large);
     font-weight: 500;
-    line-height: 24px;
+    line-height: var(--td-line-height-body-large);
     color: var(--td-text-color-primary, rgba(0, 1, 10, 0.93));
     white-space: nowrap;
     overflow: hidden;
@@ -270,17 +270,17 @@ function onCardClick() {
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    margin-left: 12px;
+    margin-left: var(--td-size-5);
     font-size: 13px;
-    line-height: 20px;
+    line-height: var(--td-line-height-body-small);
     color: var(--td-text-color-secondary, rgba(1, 11, 50, 0.41));
 }
 
 .card-status .status-dot {
     width: 8px;
     height: 8px;
-    margin-right: 4px;
-    border-radius: 50%;
+    margin-right: var(--td-size-2);
+    border-radius: var(--td-radius-circle);
     background: rgba(1, 11, 50, 0.25);
 }
 
@@ -301,7 +301,7 @@ function onCardClick() {
     display: flex;
     align-items: center;
     flex-wrap: nowrap;
-    gap: 6px;
+    gap: var(--td-size-3);
     margin-top: 4px;
     overflow: hidden;
 }
@@ -311,12 +311,12 @@ function onCardClick() {
     min-width: 0;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--td-size-2);
     padding: 2px 8px;
     background: var(--td-bg-color-component, rgba(0, 0, 0, 0.04));
     color: var(--td-text-color-secondary, rgba(1, 11, 50, 0.6));
     border-radius: var(--td-radius-default, 4px);
-    font-size: 12px;
+    font-size: var(--td-font-size-body-small);
     line-height: 18px;
     overflow: hidden;
 }
@@ -333,10 +333,10 @@ function onCardClick() {
     flex-shrink: 0;
     display: inline-flex;
     align-items: center;
-    gap: 2px;
+    gap: var(--td-size-1);
     padding: 2px 8px;
     border-radius: var(--td-radius-default, 4px);
-    font-size: 12px;
+    font-size: var(--td-font-size-body-small);
     line-height: 18px;
 }
 
@@ -355,7 +355,7 @@ function onCardClick() {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 6px;
+    gap: var(--td-size-3);
     margin-top: auto;
 }
 </style>

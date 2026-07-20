@@ -96,9 +96,9 @@ function onClose() {
 
 <style scoped>
 .delete-task-dialog__content {
-    font-size: 14px;
-    line-height: 22px;
+    font-size: var(--td-font-size-body-medium);
+    line-height: var(--td-line-height-body-medium);
     color: var(--td-text-color-secondary);
-    padding: 8px 0;
+    padding: var(--td-size-4) 0;
 }
 </style>

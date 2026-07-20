@@ -375,10 +375,10 @@ defineExpose({
 .file-preview-panel__preview-header {
     display: flex;
     align-items: center;
-    padding: 12px 16px;
+    padding: var(--td-size-5) var(--td-size-6);
     border-bottom: 1px solid var(--td-border-level-1-color, #e7e7e7);
     flex-shrink: 0;
-    gap: 4px;
+    gap: var(--td-size-2);
     line-height: 31px;
 }
 
@@ -386,10 +386,10 @@ defineExpose({
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px;
-    border-radius: 4px;
+    padding: var(--td-size-2);
+    border-radius: var(--td-radius-small);
     cursor: pointer;
-    font-size: 16px;
+    font-size: var(--td-font-size-body-large);
     color: var(--td-text-color-secondary, #666);
     transition: background-color 0.2s, color 0.2s;
     flex-shrink: 0;
@@ -412,11 +412,11 @@ defineExpose({
 
 .file-preview-panel__close {
     cursor: pointer;
-    font-size: 16px;
+    font-size: var(--td-font-size-body-large);
     color: var(--td-text-color-secondary);
     line-height: 1;
-    padding: 4px;
-    border-radius: 4px;
+    padding: var(--td-size-2);
+    border-radius: var(--td-radius-small);
     display: flex;
     align-items: center;
     justify-content: center;

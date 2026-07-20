@@ -333,7 +333,7 @@ function detectLanguage(): string {
 /* ── 工具调用项 ── */
 .tool-call-item {
     width: 100%;
-    border-radius: 8px;
+    border-radius: var(--td-radius-medium);
     overflow: hidden;
 }
 
@@ -347,8 +347,8 @@ function detectLanguage(): string {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 10px;
-    border-radius: 6px;
+    padding: var(--td-size-3) 10px;
+    border-radius: var(--td-radius-default);
     user-select: none;
     transition: background 0.15s ease;
 }
@@ -365,7 +365,7 @@ function detectLanguage(): string {
 .tool-call-item__header-left {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--td-size-3);
     min-width: 0;
     overflow: hidden;
     flex: 1;
@@ -374,9 +374,9 @@ function detectLanguage(): string {
 .tool-call-item__header-right {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--td-size-2);
     flex-shrink: 0;
-    margin-left: 8px;
+    margin-left: var(--td-size-4);
 }
 
 /* ── 工具图标 ── */
@@ -398,7 +398,7 @@ function detectLanguage(): string {
 .tool-call-item__text {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--td-size-3);
     font-size: var(--td-font-size-link-small);
     line-height: 18px;
     min-width: 0;
@@ -428,7 +428,7 @@ function detectLanguage(): string {
     height: 12px;
     border: 1.5px solid var(--td-brand-color-light, #bbd3fb);
     border-top-color: var(--td-brand-color, #0052d9);
-    border-radius: 50%;
+    border-radius: var(--td-radius-circle);
     animation: tool-spin 0.8s linear infinite;
 }
 
@@ -444,7 +444,7 @@ function detectLanguage(): string {
     justify-content: center;
     width: 20px;
     height: 20px;
-    border-radius: 4px;
+    border-radius: var(--td-radius-small);
     cursor: pointer;
     color: var(--td-text-color-placeholder);
     transition: color 0.15s ease, background 0.15s ease;
@@ -482,7 +482,7 @@ function detectLanguage(): string {
     height: 20px;
     padding: 0;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--td-radius-small);
     cursor: pointer;
     color: var(--td-text-color-placeholder);
     background: transparent;
@@ -553,7 +553,7 @@ function detectLanguage(): string {
 
 .tool-call-item__code-area::-webkit-scrollbar-thumb {
     background-color: var(--td-scrollbar-color, rgba(0,0,0,.12));
-    border-radius: 4px;
+    border-radius: var(--td-radius-small);
 }
 
 .tool-call-item__code-area::-webkit-scrollbar-thumb:hover {
@@ -562,7 +562,7 @@ function detectLanguage(): string {
 
 /* ── 文本结果区域 ── */
 .tool-call-item__text-area {
-    padding: 8px 12px;
+    padding: var(--td-size-4) var(--td-size-5);
     font-size: var(--td-font-size-link-small);
     line-height: 1.6;
     color: var(--td-text-color-secondary);
@@ -580,7 +580,7 @@ function detectLanguage(): string {
 
 .tool-call-item__text-area::-webkit-scrollbar-thumb {
     background-color: var(--td-scrollbar-color, rgba(0,0,0,.12));
-    border-radius: 4px;
+    border-radius: var(--td-radius-small);
 }
 
 .tool-call-item__text-area::-webkit-scrollbar-thumb:hover {

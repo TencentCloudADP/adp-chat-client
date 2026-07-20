@@ -604,7 +604,7 @@ onBeforeUnmount(() => {
 .cron-task-detail__header {
     display: flex;
     align-items: center;
-    padding: 16px 20px;
+    padding: var(--td-size-6) var(--td-size-7);
     border-bottom: 1px solid var(--td-component-border, rgba(18, 42, 79, 0.08));
     flex-shrink: 0;
 }
@@ -615,9 +615,9 @@ onBeforeUnmount(() => {
     justify-content: center;
     width: 28px;
     height: 28px;
-    border-radius: 4px;
+    border-radius: var(--td-radius-small);
     cursor: pointer;
-    margin-right: 8px;
+    margin-right: var(--td-size-4);
     transition: background-color 0.2s ease;
 }
 
@@ -626,9 +626,9 @@ onBeforeUnmount(() => {
 }
 
 .cron-task-detail__title {
-    font-size: 16px;
+    font-size: var(--td-font-size-body-large);
     font-weight: 600;
-    line-height: 24px;
+    line-height: var(--td-line-height-body-large);
     color: var(--td-text-color-primary);
     max-width: 70%;
     white-space: nowrap;
@@ -642,28 +642,28 @@ onBeforeUnmount(() => {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding: 20px 24px;
+    padding: var(--td-size-7) var(--td-size-8);
 }
 
 .cron-task-detail__section {
     flex-shrink: 0;
-    margin-bottom: 24px;
+    margin-bottom: var(--td-size-8);
 }
 
 .cron-task-detail__section-title {
     font-size: 15px;
     font-weight: 600;
     color: var(--td-text-color-primary);
-    margin-bottom: 12px;
+    margin-bottom: var(--td-size-5);
 }
 
 .cron-task-detail__section-content {
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     color: var(--td-text-color-secondary);
     line-height: 1.8;
     background: var(--td-bg-color-container-hover, rgba(36, 56, 97, 0.03));
-    border-radius: 8px;
-    padding: 12px 16px;
+    border-radius: var(--td-radius-medium);
+    padding: var(--td-size-5) var(--td-size-6);
     max-height: 156px;
     overflow-y: auto;
 }
@@ -678,22 +678,22 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 24px;
+    margin-bottom: var(--td-size-8);
     font-size: 13px;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: var(--td-size-5);
 }
 
 .cron-task-detail__schedule-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--td-size-4);
 }
 
 .cron-task-detail__actions {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--td-size-2);
     flex-shrink: 0;
 }
 
@@ -706,8 +706,8 @@ onBeforeUnmount(() => {
 .cron-task-detail__status-dot {
     width: 8px;
     height: 8px;
-    border-radius: 50%;
-    margin-right: 4px;
+    border-radius: var(--td-radius-circle);
+    margin-right: var(--td-size-2);
     background: rgba(1, 11, 50, 0.25);
     flex-shrink: 0;
 }
@@ -738,7 +738,7 @@ onBeforeUnmount(() => {
 
 .cron-task-detail__log-list {
     position: relative;
-    border-radius: 6px;
+    border-radius: var(--td-radius-default);
     overflow-y: auto;
     flex: 1;
     min-height: 0;
@@ -746,7 +746,7 @@ onBeforeUnmount(() => {
 
 .cron-task-detail__log-item {
     position: relative;
-    padding: 16px 8px;
+    padding: var(--td-size-6) var(--td-size-4);
     border-bottom: 1px solid var(--td-component-border, rgba(18, 42, 79, 0.08));
     cursor: pointer;
     transition: background-color 0.2s ease;
@@ -763,18 +763,18 @@ onBeforeUnmount(() => {
 .cron-task-detail__log-header {
     display: flex;
     align-items: center;
-    margin-bottom: 4px;
+    margin-bottom: var(--td-size-2);
 }
 
 .cron-task-detail__log-time {
-    font-size: 12px;
+    font-size: var(--td-font-size-body-small);
     font-weight: 500;
     color: var(--td-text-color-secondary);
-    margin-right: 8px;
+    margin-right: var(--td-size-4);
 }
 
 .cron-task-detail__log-status {
-    font-size: 12px;
+    font-size: var(--td-font-size-body-small);
     color: var(--td-text-color-placeholder);
 }
 
@@ -793,7 +793,7 @@ onBeforeUnmount(() => {
 .cron-task-detail__log-content {
     font-size: 13px;
     color: var(--td-text-color-placeholder);
-    line-height: 20px;
+    line-height: var(--td-line-height-body-small);
     word-break: break-word;
     white-space: nowrap;
     overflow: hidden;
@@ -803,7 +803,7 @@ onBeforeUnmount(() => {
 .cron-task-detail__log-dot {
     width: 8px;
     height: 8px;
-    border-radius: 50%;
+    border-radius: var(--td-radius-circle);
     background: var(--td-error-color, #f75559);
     margin-left: auto;
     flex-shrink: 0;
@@ -811,9 +811,9 @@ onBeforeUnmount(() => {
 
 .cron-task-detail__log-empty,
 .cron-task-detail__log-tip {
-    padding: 12px 0;
+    padding: var(--td-size-5) 0;
     text-align: center;
-    font-size: 12px;
+    font-size: var(--td-font-size-body-small);
     color: var(--td-text-color-placeholder);
 }
 
@@ -824,6 +824,6 @@ onBeforeUnmount(() => {
     justify-content: center;
     height: 100%;
     color: var(--td-text-color-placeholder);
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
 }
 </style>

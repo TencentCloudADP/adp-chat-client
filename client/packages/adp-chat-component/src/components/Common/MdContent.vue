@@ -625,7 +625,7 @@ onBeforeUnmount(() => {
   max-width: 100%;
   max-height: 400px;
   border-radius: var(--td-radius-large);
-  margin: 8px 0;
+  margin: var(--td-size-4) 0;
   object-fit: contain;
   cursor: pointer;
 }
@@ -651,7 +651,7 @@ onBeforeUnmount(() => {
 .md-img-preview-tooltip {
   position: absolute;
   z-index: 1000;
-  padding: 4px;
+  padding: var(--td-size-2);
   background: #FFFFFF;
   border-radius: var(--td-radius-large);
   border: 1px solid rgba(16, 32, 69, 0.10);
@@ -690,7 +690,7 @@ onBeforeUnmount(() => {
 :deep(.md-file-card) {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--td-size-3);
   padding: 4px 10px;
   border-radius: var(--td-radius-large);
   border: 1px solid rgba(16, 32, 69, 0.10);
@@ -737,15 +737,15 @@ onBeforeUnmount(() => {
   color: rgba(0, 1, 10, 0.93);
   font-size: var(--td-font-size-body-small);
   font-weight: 400;
-  line-height: 20px;
+  line-height: var(--td-line-height-body-small);
   max-width: 170px;
 }
 
 /* ===== 文件卡片 claw 模式 ===== */
 :deep(.md-file-card.claw-mode) {
-  padding: 0 4px;
+  padding: 0 var(--td-size-2);
   border-radius: 3px;
-  gap: 6px;
+  gap: var(--td-size-3);
   max-width: 220px;
   background: #f4eefc;
     border-color: #e2d5f8;
@@ -785,7 +785,7 @@ onBeforeUnmount(() => {
 :deep(.adp-widget-fallback .fallback-header) {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--td-size-4);
   padding: 12px 16px;
   background-color: var(--td-warning-color-light, #fff7e6);
   border-bottom: 1px solid var(--td-component-stroke, #e0e0e0);
@@ -794,7 +794,7 @@ onBeforeUnmount(() => {
 }
 
 :deep(.adp-widget-fallback .fallback-icon) {
-  font-size: 16px;
+  font-size: var(--td-font-size-body-large);
 }
 
 :deep(.adp-widget-fallback .fallback-title) {
@@ -802,7 +802,7 @@ onBeforeUnmount(() => {
 }
 
 :deep(.adp-widget-fallback .fallback-content) {
-  padding: 12px 16px;
+  padding: var(--td-size-5) var(--td-size-6);
   max-height: 400px;
   overflow: auto;
 }

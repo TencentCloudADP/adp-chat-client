@@ -629,7 +629,7 @@ defineExpose({
     overflow-x: hidden;
     scrollbar-color: var(--td-scrollbar-color) transparent;
     scrollbar-width: thin;
-    padding-right: 8px;
+    padding-right: var(--td-size-4);
     padding-left: 4px;
 }
 
@@ -703,7 +703,7 @@ defineExpose({
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding-top: 8px;
+    padding-top: var(--td-size-4);
     border-top: 1px solid var(--td-component-stroke);
 }
 
@@ -747,7 +747,7 @@ defineExpose({
 }
 :deep(.t-drawer__header ){
     border-bottom: none !important;
-    padding-bottom: 4px;
+    padding-bottom: var(--td-size-2);
 }
 :deep(.t-drawer__body) {
     padding-right: 0;

@@ -104,25 +104,25 @@ defineExpose({ validate, getFormData, setFormData, resetForm });
 .cron-push-channel {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--td-size-4);
 }
 
 .cron-push-channel__label {
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     font-weight: 500;
     color: var(--td-text-color-primary);
-    line-height: 22px;
+    line-height: var(--td-line-height-body-medium);
 }
 
 .cron-push-channel__extra {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--td-size-3);
     margin-top: 4px;
 }
 
 .cron-push-channel__field-label {
-    font-size: 12px;
+    font-size: var(--td-font-size-body-small);
     color: var(--td-text-color-secondary);
 }
 </style>

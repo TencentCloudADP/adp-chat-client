@@ -760,6 +760,58 @@ class TCADP(BaseVendor):
             'LastRecordId': response.get('LastRecordId', ''),
         }
 
+    async def describe_conversation_message_list(
+        self,
+        ConversationId: str,
+        UserId: str = None,
+        Type: int = 1,
+        Limit: int = 50,
+        RecordId: str = None,
+        RecordQueryDirection: int = 1,
+        **kwargs,
+    ) -> dict:
+        """渠道（访客）会话历史消息拉取，供 /adp/DescribeConversationMessageList 转发端点直接调度。
+
+        与 get_messages_v2 的区别：
+        - get_messages_v2 面向登录账号自己的会话，硬编码 Type=5(API) + UserId=account_id；
+        - 本方法面向渠道会话，Type 默认 1(CONVERSATION_TYPE_VISITOR)，并允许调用方显式传入
+          渠道绑定的 UserId（对齐 adp-b2c capiService.DescribeConversationMessages）。
+          渠道会话不属于登录账号、也不在本地库，因此不能走 /chat/messages。
+
+        参数使用 PascalCase 以匹配 ForwardApi 直接透传的 Payload 键。
+        返回值按 RecordId 分组为前端 V2 Record 格式。
+        """
+        action = "DescribeConversationMessageList"
+        payload = {
+            "ConversationId": ConversationId,
+            # Type=0 时下游 SDK 常返回空，兜底成 1(VISITOR)，对齐 adp-b2c conversationType()
+            "Type": Type or 1,
+            "Limit": Limit or 50,
+            "AppKey": self.config['AppKey'],
+            "RecordQueryDirection": RecordQueryDirection or 1,
+        }
+        # 显式携带渠道 UserId：action_version 仅在缺省时才注入 {{ACCOUNT_ID}}，此处传入即以渠道 UserId 为准
+        if UserId:
+            payload["UserId"] = UserId
+        if RecordId:
+            payload["RecordId"] = RecordId
+
+        resp = await tc_request(self.tc_config(), action, payload, action_overrides=self._action_overrides)
+        response = resp.get('Response', resp)
+        if 'Error' in response:
+            raise Exception(response['Error'])
+
+        raw_messages = response.get('Messages', [])
+        records = self._convert_messages_to_records(raw_messages, ConversationId)
+
+        return {
+            'Records': records,
+            'HasMoreBefore': response.get('HasMoreBefore', False),
+            'HasMoreAfter': response.get('HasMoreAfter', False),
+            'FirstRecordId': response.get('FirstRecordId', ''),
+            'LastRecordId': response.get('LastRecordId', ''),
+        }
+
     @staticmethod
     def _convert_messages_to_records(messages: list, conversation_id: str) -> list:
         """将 DescribeConversationMessageList 返回的消息列表转换为 V2 Record 格式

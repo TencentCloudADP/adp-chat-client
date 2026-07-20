@@ -16,6 +16,7 @@ import {
     Button as TButton,
     MessagePlugin,
 } from 'tdesign-vue-next';
+import type { FormInstanceFunctions, FormRules } from 'tdesign-vue-next';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
 import {
@@ -25,7 +26,7 @@ import {
     defaultChannelSettingsI18n,
     defaultChannelSettingsI18nEn,
 } from '../../model/channel';
-import { createChannel, modifyChannel } from '../../service/channelApi';
+import { createChannel, modifyChannel, buildChannelUserId } from '../../service/channelApi';
 
 // ============================================================
 // Props / Emits
@@ -90,7 +91,7 @@ const visible = computed({
 // 表单
 // ============================================================
 
-const formRef = ref<InstanceType<typeof TForm> | null>(null);
+const formRef = ref<FormInstanceFunctions | null>(null);
 
 const formData = ref({
     botId: '',
@@ -146,6 +147,10 @@ const handleSubmit = async () => {
 
         if (isModify.value) {
             // 重新配置：调用 ModifyChannel
+            // UpdateMask 必须指定到具体字段路径（proto FieldMask 语义）：
+            // C 端企微机器人 WebSocket 仅修改 BotId / BotSecret，对齐 proto 注释示例
+            //   spec.wecom_robot.websocket.bot_id / spec.wecom_robot.websocket.bot_secret
+            // 若只传顶层 spec.wecom_robot 会整体覆盖（含未变更字段），故精确到嵌套字段。
             await modifyChannel(
                 {
                     applicationId: props.applicationId,
@@ -154,14 +159,21 @@ const handleSubmit = async () => {
                     channelName: '企微智能机器人',
                     channelConfig,
                     userAgent: {
-                        userId: props.userId || '',
+                        userId: buildChannelUserId(props.userId || ''),
                         agentId: props.agentId || '',
                     },
+                    updateMask: [
+                        'spec.wecom_robot.websocket.bot_id',
+                        'spec.wecom_robot.websocket.bot_secret',
+                    ],
                 },
             );
             MessagePlugin.success('重新配置成功');
         } else {
             // 首次配置：调用 CreateChannel
+            // 【方案1】UserAgent.UserId 绑「派生的稳定渠道用户 id」（custom-<账号id>），而不是登录账号 id：
+            // 登录账号 id = 后端默认注入的 {{ACCOUNT_ID}}，会让渠道会话与账号会话混在一起、无法隔离；
+            // custom-<账号id> 稳定唯一、该用户所有渠道共用同一个，且与账号自身会话隔离。
             await createChannel(
                 {
                     applicationId: props.applicationId,
@@ -169,7 +181,7 @@ const handleSubmit = async () => {
                     channelName: '企微智能机器人',
                     channelConfig,
                     userAgent: {
-                        userId: props.userId || '',
+                        userId: buildChannelUserId(props.userId || ''),
                         agentId: props.agentId || '',
                     },
                 },
@@ -191,7 +203,7 @@ const handleClose = () => {
 };
 
 // 表单校验规则
-const rules = {
+const rules: FormRules = {
     botId: [{ required: true, message: '请输入 Bot ID', trigger: 'blur' }],
     botSecret: [{ required: true, message: '请输入 Bot Secret', trigger: 'blur' }],
 };
@@ -258,7 +270,7 @@ const rules = {
 <style scoped>
 /* ---- 弹窗主体对齐 webim ---- */
 .wecom-bot-config-dialog :deep(.t-dialog__body) {
-    padding: 0 24px 0;
+    padding: 0 var(--td-size-8) 0;
 }
 
 .wbc-body {
@@ -269,9 +281,9 @@ const rules = {
 .wbc-tip {
     display: flex;
     align-items: flex-start;
-    gap: 6px;
+    gap: var(--td-size-3);
     padding: 10px 12px;
-    margin-bottom: 20px;
+    margin-bottom: var(--td-size-7);
     background: #ECF9FF;
     border-radius: 3px;
 }
@@ -280,15 +292,15 @@ const rules = {
     width: 14px;
     height: 14px;
     flex-shrink: 0;
-    margin-top: 2px;
+    margin-top: var(--td-size-1);
     background: #1492FF;
-    border-radius: 50%;
+    border-radius: var(--td-radius-circle);
 }
 
 .wbc-tip__text {
-    font-size: 12px;
+    font-size: var(--td-font-size-body-small);
     color: rgba(1, 11, 50, 0.61);
-    line-height: 20px;
+    line-height: var(--td-line-height-body-small);
 }
 
 .wbc-tip__link {
@@ -303,11 +315,11 @@ const rules = {
 
 /* ---- 表单（对齐 webim credential-form） ---- */
 .wbc-form {
-    margin-bottom: 8px;
+    margin-bottom: var(--td-size-4);
 }
 
 .wbc-form :deep(.t-form__item) {
-    margin-bottom: 20px;
+    margin-bottom: var(--td-size-7);
 }
 
 .wbc-form :deep(.t-form__label) {
@@ -320,7 +332,7 @@ const rules = {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: var(--td-size-5);
     padding: 16px 0 0;
 }
 </style>

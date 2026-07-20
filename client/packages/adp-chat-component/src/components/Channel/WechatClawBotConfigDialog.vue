@@ -27,7 +27,7 @@ import {
     defaultChannelSettingsI18n,
     defaultChannelSettingsI18nEn,
 } from '../../model/channel';
-import { createChannel, describeChannel } from '../../service/channelApi';
+import { createChannel, describeChannel, buildChannelUserId } from '../../service/channelApi';
 
 // ============================================================
 // Props / Emits
@@ -210,7 +210,7 @@ const initFlow = async () => {
             description: '',
             channelConfig: { WechatClawBot: {} },
             userAgent: {
-                userId: props.userId || '',
+                userId: buildChannelUserId(props.userId || ''),
                 agentId: props.agentId || '',
             },
         });
@@ -371,7 +371,7 @@ const handleClose = () => {
 <style scoped>
 /* ---- 弹窗对齐 webim ---- */
 .wechat-clawbot-config-dialog :deep(.t-dialog__body) {
-    padding: 24px;
+    padding: var(--td-size-8);
     text-align: center;
 }
 
@@ -379,18 +379,18 @@ const handleClose = () => {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 16px 0;
+    padding: var(--td-size-6) 0;
 }
 
 .wcc-status {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: var(--td-size-5);
     flex: 1;
     justify-content: center;
     color: rgba(1, 11, 50, 0.61);
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
 }
 
 /* ---- 二维码容器（对齐 webim .qrcode-wrapper 240x240） ---- */
@@ -406,7 +406,7 @@ const handleClose = () => {
 .wcc-qrcode-wrapper--expired {
     cursor: pointer;
     background: rgba(1, 11, 50, 0.04);
-    border-radius: 4px;
+    border-radius: var(--td-radius-small);
     transition: background 0.2s;
 }
 
@@ -428,7 +428,7 @@ const handleClose = () => {
 .wcc-qrcode-wrapper .wcc-success-icon {
     width: 64px;
     height: 64px;
-    border-radius: 50%;
+    border-radius: var(--td-radius-circle);
     background: #34c759;
     color: #fff;
     display: flex;
@@ -439,7 +439,7 @@ const handleClose = () => {
 
 /* ---- 提示文案 ---- */
 .wcc-qrcode-tip {
-    margin-top: 16px;
+    margin-top: var(--td-size-6);
     font-size: 13px;
     color: rgba(1, 11, 50, 0.61);
     text-align: center;
@@ -447,7 +447,7 @@ const handleClose = () => {
 
 .wcc-error-text {
     color: #e54545;
-    font-size: 14px;
+    font-size: var(--td-font-size-body-medium);
     text-align: center;
 }
 
@@ -455,7 +455,7 @@ const handleClose = () => {
 .wcc-footer {
     display: flex;
     justify-content: center;
-    gap: 8px;
+    gap: var(--td-size-4);
     margin-top: 16px;
     width: 100%;
 }
