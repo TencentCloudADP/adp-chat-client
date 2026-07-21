@@ -17,6 +17,10 @@ const { t } = useI18n();
 // 当前选中的应用和会话（用于 URL 同步）
 const currentApplicationId = ref<string>('');
 const currentConversationId = ref<string>('');
+// 当前会话是否为渠道（访客）会话：由 URL 中是否包含 /channel/ 段判定。
+// 渠道会话不落地本地 chat_conversation 表（权威源在 CAPI DescribeConversationList），
+// 通过该 flag 传给 ADPChat，让其直接走「渠道恢复」流程，避免走普通 /chat/messages 导致 404。
+const currentConversationChannel = ref<boolean>(false);
 
 // API 配置 - 使用组件自动加载数据
 
@@ -133,19 +137,25 @@ onMounted(async () => {
  * 2. url参数和store应该保持一致，优先级：url参数 > store
  */
 
-// URL 参数处理：/:applicationId?/:conversationId?
+// URL 参数处理：
+//   普通会话：/:applicationId?/:conversationId?
+//   渠道会话：/:applicationId/channel/:conversationId  （route.name === 'home-channel'）
 const updateFromUrl = () => {
-    console.log('updateFromUrl', route.params);
+    console.log('updateFromUrl', route.name, route.params);
     currentApplicationId.value = (route.params.applicationId as string) || '';
     currentConversationId.value = (route.params.conversationId as string) || '';
+    currentConversationChannel.value = route.name === 'home-channel';
 };
 
 // 监听路由参数变化
 watch(() => route.params.applicationId, () => updateFromUrl());
 watch(() => route.params.conversationId, () => updateFromUrl());
+// 路由名变化（普通 <-> 渠道）也要重新同步 flag
+watch(() => route.name, () => updateFromUrl());
 
 // 更新 URL
-const updateUrl = () => {
+// fromChannel=true 时使用 home-channel 路由（/:appId/channel/:convId），保留刷新可复原能力
+const updateUrl = (fromChannel = false) => {
     // 会话 id 必须依附在某个 applicationId 之下，避免出现无 app 的孤儿会话 URL
     const params: Record<string, string> = {};
     if (currentApplicationId.value) {
@@ -154,24 +164,34 @@ const updateUrl = () => {
             params.conversationId = currentConversationId.value;
         }
     }
-    router.push({ name: 'home', params });
+    // 渠道会话必须有 conversationId 才能走 home-channel 路由；否则回退到 home
+    const routeName = fromChannel && params.conversationId ? 'home-channel' : 'home';
+    router.push({ name: routeName, params });
 };
 
 // 事件处理函数
 const handleSelectApplication = (app: Application) => {
     currentApplicationId.value = app.ApplicationId || '';
     currentConversationId.value = '';
+    currentConversationChannel.value = false;
     updateUrl();
 };
 
-const handleSelectConversation = (conversation: ChatConversation) => {
+/**
+ * 选中会话（普通 / 渠道）
+ * Index.vue 内部 emit 时会带 fromChannel 标识：渠道会话使用 home-channel 路由，
+ * 这样刷新后能通过 URL 直接判定为渠道会话，走渠道恢复流程。
+ */
+const handleSelectConversation = (conversation: ChatConversation, fromChannel = false) => {
     currentConversationId.value = conversation.Id;
     currentApplicationId.value = conversation.ApplicationId;
-    updateUrl();
+    currentConversationChannel.value = !!fromChannel;
+    updateUrl(fromChannel);
 };
 
 const handleCreateConversation = () => {
     currentConversationId.value = '';
+    currentConversationChannel.value = false;
     updateUrl();
 };
 
@@ -200,10 +220,18 @@ const handleDataLoaded = (type: 'applications' | 'conversations' | 'chatList' | 
     }
 };
 
-// 会话变化回调
+// 会话变化回调（由 Chat 组件内部 watch(chatId) 触发，用于新建会话后同步 URL）
+// 注意：不要重置 currentConversationChannel —— 点击渠道会话时，selectConversation 已把
+// channel flag 设为 true 并 push 到 home-channel 路由；随后 Chat 组件 chatId prop 变化
+// 会再次触发本回调，若这里不带 fromChannel 调用 updateUrl，会立刻把 URL 覆盖回普通路径，
+// 导致渠道会话选中后 URL 缺少 /channel/ 段、刷新掉会话 404。
 const handleConversationChange = (conversationId: string) => {
+    // 相同 id 无需重复 push（大部分场景就是同一次点击带来的回声，跳过避免覆盖）
+    if (conversationId === currentConversationId.value) return;
     currentConversationId.value = conversationId;
-    updateUrl();
+    // 由外部（selectConversation / createConversation）的显式回调负责调整 channel flag，
+    // 这里保持现状，用当前 flag 更新 URL。
+    updateUrl(currentConversationChannel.value);
 };
 </script>
 
@@ -220,6 +248,7 @@ const handleConversationChange = (conversationId: string) => {
         :logoUrl="Logo"
         :currentApplicationId="currentApplicationId"
         :currentConversationId="currentConversationId"
+        :currentConversationChannel="currentConversationChannel"
         :aiWarningText="t('common.aiWarning')"
         :createConversationText="t('conversation.createConversation')"
         :sideI18n="sideI18n"

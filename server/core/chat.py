@@ -45,16 +45,53 @@ class CoreChat:
         conversation_id: str,
         search_network: bool,
         custom_variables: dict,
+        is_channel: bool = False,
     ):
+        """
+        发送聊天消息。
+
+        is_channel:
+            标识本次会话是否为"渠道会话"（企微 / 微信 Bot 等，vendor 侧已存在的会话）。
+            渠道会话的权威数据源在 vendor 侧（CAPI DescribeConversationList），
+            不应在本地 chat_conversation 表落地，否则会污染 /chat/conversations 侧栏列表
+            （用户点渠道 → 发送 → 侧栏冒出一条"新对话"）。
+            规则：
+              - is_channel=True 时，callback.create/update 若发现本地不存在该会话，
+                跳过 DB 写入，返回一个仅带 Id/Title 的临时 ChatConversation 实例
+                供 vendor 层与 SSE conversation 事件使用；
+              - is_channel=True 时，入口预检也不再补写本地记录。
+              - 若渠道会话恰巧已存在于本地 DB（历史脏数据），update 仍走正常更新分支，
+                但不会新增，语义安全。
+        """
         title_source = extract_text_from_contents(contents).strip()
         if not title_source:
             title_source = "New Chat"
+
+        def _make_transient_conversation(cid: str, title: str) -> ChatConversation:
+            """构造一个未持久化的 ChatConversation 供渠道场景返回给 vendor / SSE payload 使用。
+
+            仅设置 Id / AccountId / ApplicationId / Title，不 add 到 session，也不 commit，
+            因此不会写入本地 chat_conversation 表。带 _sa_instance_state 以便 to_dict() 正常。
+            """
+            return ChatConversation(
+                Id=cid,
+                AccountId=account_id,
+                ApplicationId=vendor_app.application_id,
+                Title=title,
+            )
 
         class CoreConversationCallback(ConversationCallback):
             async def create(self, title: str = None, conversation_id: str = None) -> ChatConversation:
                 # create
                 if title is None:
                     title = title_source[:10]
+                # 渠道会话：不落地本地 DB，返回临时对象即可（vendor 只用 .Id）
+                if is_channel:
+                    logger.info(
+                        "[CoreChat.message] skip local create for channel conversation %s (account %s)",
+                        conversation_id, account_id,
+                    )
+                    return _make_transient_conversation(conversation_id, title)
                 async with db_connection() as db:
                     conversation = await CoreConversation.create(
                         db,
@@ -70,7 +107,18 @@ class CoreChat:
                 async with db_connection() as db:
                     conversation = await CoreConversation.get(db, conversation_id)
                     if conversation is None:
-                        # 本地不存在则补写一条记录（兼容跨设备 / 本地数据被清理 / 直接传 vendor 侧 conversation_id 等场景）
+                        # 渠道会话：本地不存在属于预期（vendor 侧才是权威数据源），不补写，
+                        # 返回临时对象即可（vendor 仅用其 Id / SSE payload 展示）。
+                        if is_channel:
+                            logger.info(
+                                "[CoreChat.message] skip local upsert for channel conversation %s (account %s)",
+                                conversation_id, account_id,
+                            )
+                            return _make_transient_conversation(
+                                conversation_id, title or title_source[:10]
+                            )
+                        # 非渠道会话本地不存在：补写一条记录（兼容跨设备 / 本地数据被清理 /
+                        # 直接传 vendor 侧 conversation_id 等场景）
                         logger.info(
                             "[CoreChat.message] conversation %s missing on update, auto-create for account %s",
                             conversation_id, account_id,
@@ -82,6 +130,8 @@ class CoreChat:
                             title=title or title_source[:10],
                             conversation_id=conversation_id,
                         )
+                    # 已存在（含"渠道会话恰有历史脏数据落到本地"的情况）：正常更新，
+                    # 不会新增 → 语义安全
                     await CoreConversation.update(db, conversation, title=title)
                     return conversation
 
@@ -90,10 +140,15 @@ class CoreChat:
         # 2) 前端传了 ConversationId 但本地 DB 不存在该 (account_id, conversation_id) -> 也视为新会话，
         #    需要补写一条记录（跨设备 / 本地 DB 被清理 / 用户从 vendor 侧拿到 ConversationId 等场景），
         #    并把已有 conversation_id 透传给 create，避免 DB 自动生成新 UUID 与 vendor 端不一致。
+        # 3) 渠道会话（is_channel=True）：conversation_id 一定由前端传入（来自 CAPI 拉取到的
+        #    vendor 侧渠道会话 Id），本地不存在属于预期 → 不补写，直接以"已有会话继续对话"进入 vendor。
         is_new_conversation = False
         if conversation_id is None or conversation_id == '':
+            if is_channel:
+                # 渠道会话必须携带既有 ConversationId，否则语义错误
+                raise ValueError("channel conversation requires an existing ConversationId")
             is_new_conversation = True
-        else:
+        elif not is_channel:
             async with db_connection() as db:
                 if not await CoreConversation.exists(db, account_id, conversation_id):
                     logger.info(

@@ -25,6 +25,9 @@ class ChatMessageApi(HTTPMethodView):
         parser.add_argument("ApplicationId", type=str, location="json")
         parser.add_argument("SearchNetwork", type=bool, default=True, location="json")
         parser.add_argument("CustomVariables", type=dict, default={}, location="json")
+        # 渠道会话（企微 / 微信 Bot 等）：vendor 侧才是权威数据源，
+        # 本地不落地 chat_conversation，避免污染 /chat/conversations 侧栏列表。
+        parser.add_argument("IsChannel", type=bool, default=False, location="json")
         args = parser.parse_args(request)
         logging.info(f"ChatMessageApi: {args}")
 
@@ -33,6 +36,7 @@ class ChatMessageApi(HTTPMethodView):
 
         logging.info(f"[ChatMessageApi] ApplicationId: {application_id},\n\
             CustomVariables: {args['CustomVariables']},\n\
+            IsChannel: {args['IsChannel']},\n\
             vendor_app: {vendor_app}")
 
         async def streaming_fn(response):
@@ -42,7 +46,8 @@ class ChatMessageApi(HTTPMethodView):
                 args['Contents'],
                 args['ConversationId'],
                 args['SearchNetwork'],
-                args['CustomVariables']
+                args['CustomVariables'],
+                is_channel=args['IsChannel'],
             )
             try:
                 async for data in chat_gen:

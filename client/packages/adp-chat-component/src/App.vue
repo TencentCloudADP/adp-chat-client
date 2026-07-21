@@ -121,7 +121,12 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
     (e: 'selectApplication', app: Application): void;
-    (e: 'selectConversation', conversation: ChatConversation): void;
+    /**
+     * 选中会话（普通 / 渠道）
+     * 第二参 fromChannel：true 表示是渠道（访客）会话，外层应据此使用不同 URL 变体
+     * （例如 /:appId/channel/:convId），保证刷新后仍能还原为渠道会话选中态。
+     */
+    (e: 'selectConversation', conversation: ChatConversation, fromChannel: boolean): void;
     (e: 'createConversation'): void;
     (e: 'toggleTheme'): void;
     (e: 'changeLanguage', key: string): void;
@@ -307,7 +312,7 @@ const actualAutoLoad = computed(() => props.autoLoad);
                 :apiConfig="actualApiConfig"
                 :autoLoad="actualAutoLoad"
                 @selectApplication="(app: Application) => emit('selectApplication', app)"
-                @selectConversation="(conversation: ChatConversation) => emit('selectConversation', conversation)"
+                @selectConversation="(conversation: ChatConversation, fromChannel: boolean) => emit('selectConversation', conversation, fromChannel)"
                 @createConversation="emit('createConversation')"
                 @toggleTheme="handleToggleTheme"
                 @changeLanguage="handleChangeLanguage"

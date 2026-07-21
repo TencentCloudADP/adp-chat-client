@@ -622,10 +622,9 @@ export const describeConversationList = async (
 }> => {
     const path = apiPath || defaultApiDetailConfig.describeConversationListApi!;
     // 组装 Payload：
-    // Type 默认 1（CONVERSATION_TYPE_VISITOR，访客端体验）——对齐 adp-b2c capi.go conversationType()：
-    // 虽然 proto 注释说 Type=0(UNSPECIFIED) 表示全部，但线上 CAPI SDK 实际行为并非"全部"，
-    // 传 0 常常拿到空列表；adp-b2c 亲测强制把 0→1 才能返回渠道产生的访客会话。
-    const payload: { [key: string]: unknown } = { Type: params.Type || 1 };
+    // Type 默认 5（CONVERSATION_TYPE_API，API 会话）——渠道会话以 API 类型入库，
+    // 实测传 5 才能查到渠道产生的会话（传 0 常返空列表；传 1 访客类型也查不到）。
+    const payload: { [key: string]: unknown } = { Type: params.Type || 5 };
     if (params.AppId) payload.AppId = params.AppId;
     if (params.AgentId) payload.AgentId = params.AgentId;
     // 渠道过滤：UserId 是核心，值来自 channel.spec.UserAgent.UserId（对齐 adp-b2c）。

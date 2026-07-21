@@ -36,7 +36,7 @@ import {
     describeConversationList,
 } from '../../service/api';
 import type { SystemConfig } from '../../service/api';
-import { describeChannel } from '../../service/channelApi';
+import { describeChannel, describeChannelList, ClawChannelStatus, type ChannelItem } from '../../service/channelApi';
 import { MessageCode } from '../../model/messages';
 import { fetchSSE } from '../../model/sseRequest-reasoning';
 import { applySseEventToRecord } from '../../utils/mergeRecord-v2';
@@ -106,6 +106,16 @@ export interface Props extends ThemeProps, OverlayProps {
     currentConversation?: ChatConversation;
     /** 当前选中的会话 ID（优先级高于 currentConversation） */
     currentConversationId?: string;
+    /**
+     * 当前选中的会话是否为渠道（访客）会话。
+     * 由外层根据 URL 语义传入（如 `/:appId/channel/:convId` → true）。
+     *
+     * 用途：渠道会话不落地本地 chat_conversation 表，权威源在 CAPI DescribeConversationList。
+     *   - 刷新场景：置 true 时组件会直接触发「渠道恢复」流程（DescribeChannelList + DescribeConversationList
+     *     反查所属渠道并建立选中态 + 主动拉首屏），跳过普通 /chat/messages（避免 404）
+     *   - 置 false / 未传：按普通会话流程（本地 /chat/conversations 命中 + InfiniteLoading /chat/messages）
+     */
+    currentConversationChannel?: boolean;
     /** 聊天消息列表 */
     chatList?: Record[];
     /** 是否正在聊天中 */
@@ -198,7 +208,12 @@ const { getAgentIdByAppId, watchApplicationId, agentIdMap } = useAgentStore();
 
 const emit = defineEmits<{
     (e: 'selectApplication', app: Application): void;
-    (e: 'selectConversation', conversation: ChatConversation): void;
+    /**
+     * 选中会话（普通 / 渠道）
+     * 第二参 fromChannel：true 表示是渠道（访客）会话，外层应据此使用不同的 URL 变体
+     * （例如 /:appId/channel/:convId），保证刷新后仍能还原为渠道会话选中态。
+     */
+    (e: 'selectConversation', conversation: ChatConversation, fromChannel: boolean): void;
     /** 删除会话（用户在侧栏确认删除后触发；API 模式下删除已完成再 emit，非 API 模式仅透传） */
     (e: 'deleteConversation', conversation: ChatConversation): void;
     (e: 'createConversation'): void;
@@ -384,11 +399,23 @@ const conversationRuntimeStates = ref<ConversationRuntimeStateMap>({});
 const currentConversationStateKey = ref('');
 /**
  * 渠道会话 → 渠道 UserId 映射
- * 渠道（访客）会话的历史消息必须走 CAPI DescribeConversationMessageList 且携带该渠道的 UserId + Type=1
- * （对齐 adp-b2c DescribeConversationMessages）。普通会话不在此表中，仍走标准 /chat/messages。
+ * 渠道会话的历史消息必须走 CAPI DescribeConversationMessageList 且携带该渠道的 UserId + Type=5
+ * （与 DescribeConversationList 保持一致，Type=5 = CONVERSATION_TYPE_CHANNEL）。
+ * 普通会话不在此表中，仍走标准 /chat/messages。
  * key = ConversationId，value = 该渠道绑定的 UserAgent.UserId
  */
 const channelConversationUserId = ref<{ [conversationId: string]: string }>({});
+
+/**
+ * 【URL 刷新恢复】当前正在进行中的渠道会话恢复 Promise 缓存。
+ * key = conversationId，value = restoreChannelConversationById 的 Promise（resolve 为 true 表示命中并已建立映射）。
+ *
+ * 用途：Chat 组件的 InfiniteLoading 在挂载时会 emit('loadMore')，此时 URL 触发的 restore 可能尚未完成，
+ * `channelConversationUserId` 里还没有 convId → handleInternalLoadMore 会错误地走 `/chat/messages`（404）。
+ * 通过此 Map，handleInternalLoadMore 可以先 await 正在进行的 restore，命中即跳过 /chat/messages。
+ */
+const channelRestorePending = new Map<string, Promise<boolean>>();
+
 let pendingConversationSeq = 0;
 
 const createPendingConversationKey = () => `pending-conversation:${Date.now()}:${pendingConversationSeq++}`;
@@ -970,6 +997,9 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
                     ConversationId: conversationId || undefined,
                     ApplicationId: applicationId,
                     FileInfos: fileList,
+                    // 渠道会话：告知后端本次会话来自渠道，不在本地 chat_conversation 表落地
+                    // （对齐 webim：渠道会话权威数据源在 vendor 侧 CAPI，不应污染 /chat/conversations 侧栏列表）
+                    IsChannel: isChannelConversation.value,
                 },
                 { signal: streamState.abortController?.signal },
                 mergedApiDetailConfig.value.sendMessageApi
@@ -1131,6 +1161,39 @@ const handleInternalLoadMore = async (conversationId: string, lastRecordId: stri
         return;
     }
 
+    // 【URL 刷新场景】URL 语义明示该 conv 是渠道会话（props.currentConversationChannel=true）：
+    //   Chat 组件 InfiniteLoading 挂载即触发 loadMore，此时渠道恢复流程可能还没跑完
+    //   （channelConversationUserId 映射未建立）→ 如果直接走下方 /chat/messages 会 404。
+    //   处理：先等待正在进行的 restore（若还没启动则主动触发），
+    //     - 命中 → channelConversationUserId 建立 → 走渠道分支 notifyComplete
+    //     - 未命中/失败 → 该 conv 本身不存在或不属于任何渠道，也不应走 /chat/messages，直接 notifyComplete 结束
+    //   核心：URL 已标记渠道，绝不回退到普通 /chat/messages 分支。
+    if (
+        useApiMode.value
+        && props.currentConversationChannel
+        && props.currentConversationId === conversationId
+    ) {
+        let pendingRestore = channelRestorePending.get(conversationId);
+        if (!pendingRestore) {
+            const appId = props.currentApplicationId
+                || internalCurrentApplication.value?.ApplicationId
+                || '';
+            if (appId) {
+                pendingRestore = restoreChannelConversationById(conversationId, appId);
+            }
+        }
+        if (pendingRestore) {
+            try {
+                await pendingRestore;
+            } catch (err) {
+                console.warn('[handleInternalLoadMore] 等待渠道恢复出错:', err);
+            }
+        }
+        // 无论 restore 结果如何，URL 标记为渠道的 conv 都不应触发 /chat/messages
+        mainLayoutRef.value?.notifyComplete();
+        return;
+    }
+
     try {
         const response = await fetchConversationDetail(
             { ConversationId: conversationId, LastRecordId: lastRecordId },
@@ -1223,8 +1286,10 @@ const loadChannelHistory = async (conversationId: string, userId: string, applic
             {
                 ConversationId: conversationId,
                 Limit: 50,
-                // Type=1（CONVERSATION_TYPE_VISITOR）：渠道会话即访客会话
-                Type: 1,
+                // Type=5（CONVERSATION_TYPE_CHANNEL）：与 DescribeConversationList 一致，
+                // 渠道会话列表接口用 Type=5 才能拉到列表；对应的历史消息也必须用 Type=5，
+                // 否则 CAPI 会因 Type 不一致找不到该 Channel 下的消息（400/空返回）。
+                Type: 5,
                 // 携带渠道 UserId（对齐 adp-b2c loadConversationHistory 的 UserId 参数）
                 UserId: userId,
                 // 1=向前（从最新往更早取）
@@ -1374,7 +1439,7 @@ const handleSelectConversation = async (conversation: ChatConversation, fromChan
     if (isMobile.value) {
         sidebarVisible.value = false;
     }
-    emit('selectConversation', conversation);
+    emit('selectConversation', conversation, fromChannel);
 };
 
 const handleCreateConversation = () => {
@@ -1489,6 +1554,16 @@ const clearConversationSelection = () => {
 };
 /** 渠道模式下无对话时禁用输入（对齐 webim：渠道下只能继续已有对话，不可新建） */
 const channelInputDisabled = computed(() => !!remoteTerminalActiveId.value && !currentConversationStateKey.value);
+
+/**
+ * 当前是否处于"渠道会话继续对话"状态（对齐 webim）
+ * 语义：渠道选中 + 已选中一条渠道会话（ConversationId 来自 CAPI 拉取到的 vendor 侧渠道会话）。
+ * 用途：透传给 /chat/message 的 IsChannel 字段 → 后端不把该会话落地到本地 chat_conversation 表，
+ *      避免 /chat/conversations 侧栏出现由渠道会话延伸出的"新对话"脏数据。
+ */
+const isChannelConversation = computed(
+    () => !!remoteTerminalActiveId.value && !!currentConversationStateKey.value,
+);
 
 /** 渠道对话提示文本（对齐 webim ChannelDivider） */
 const channelDividerText = computed(() => {
@@ -1609,7 +1684,10 @@ const handleSelectRemoteTerminal = async (item: { id: string; label?: string; ra
                 } as ChatConversation;
                 // 登记该会话属于当前渠道，历史消息走 CAPI（带渠道 UserId + Type=1）
                 channelConversationUserId.value[first.ConversationId] = remoteTerminalActiveUserId.value;
-                await handleSelectConversation(stub);
+                // fromChannel=true：保留渠道选中态（remoteTerminalActive* / channelDrawer），
+                // 否则默认走 clearChannelSelection() 会把 channelId / userId / drawer 全清掉，
+                // 导致 ChannelConversationPanel 的 watch 触发面板清空 + 列表跳走。
+                await handleSelectConversation(stub, true);
                 // 主动加载首屏历史（对齐 adp-b2c selectConversation → loadConversationHistory）
                 await loadChannelHistory(first.ConversationId, remoteTerminalActiveUserId.value, applicationId);
             }
@@ -1622,6 +1700,146 @@ const handleSelectRemoteTerminal = async (item: { id: string; label?: string; ra
         console.error('[handleSelectRemoteTerminal] failed:', err);
     }
 };
+
+/**
+ * 从 CAPI ChannelItem 中提取该渠道用于会话过滤的三元组（ChannelId / UserId / AgentId）。
+ * spec 摘要可能缺 UserAgent，此时通过 describeChannel 拉详情补齐（对齐 handleSelectRemoteTerminal 的兜底逻辑）。
+ */
+const resolveChannelFilter = async (
+    ch: ChannelItem,
+    applicationId: string,
+): Promise<{ channelId: string; userId: string; agentId: string; label: string } | null> => {
+    if (!ch?.channelId) return null;
+    let spec: { [key: string]: any } = (ch.spec || {}) as any;
+    let userAgent: { [key: string]: any } = (spec.UserAgent || {}) as any;
+    let userId = String(userAgent.UserId || '');
+    let agentId = String(userAgent.AgentId || '');
+    if (!userId && applicationId) {
+        try {
+            const detail = await describeChannel({ applicationId, channelId: Number(ch.channelId) });
+            spec = (detail?.spec || {}) as any;
+            userAgent = (spec.UserAgent || {}) as any;
+            userId = String(userAgent.UserId || '');
+            agentId = String(userAgent.AgentId || agentId);
+        } catch (e) {
+            console.warn('[resolveChannelFilter] describeChannel 补齐失败:', ch.channelId, e);
+        }
+    }
+    return {
+        channelId: String(ch.channelId),
+        userId,
+        agentId,
+        label: ch.channelName || '',
+    };
+};
+
+/**
+ * 【URL 刷新恢复】按 ConversationId 反查所属渠道并恢复渠道会话选中态。
+ *
+ * 触发时机：URL 中带 conversationId，但该 Id 不在 /chat/conversations（本地库）里，
+ *           说明它可能是渠道会话（渠道会话不落地本地表，权威源在 CAPI）。
+ *
+ * 流程（对齐 handleSelectRemoteTerminal → describeConversationList → handleSelectConversation → loadChannelHistory）：
+ *   1) DescribeChannelList 拉出应用下所有 SUCCESS 状态的渠道
+ *   2) 遍历渠道，用其 UserAgent(UserId/AgentId) + ChannelId 调 DescribeConversationList
+ *   3) 命中目标 conversationId 的即为所属渠道 → 建立渠道选中态
+ *      （remoteTerminalActive* + channelConversationUserId 映射）
+ *   4) handleSelectConversation(stub, fromChannel=true) 切换到该会话
+ *   5) loadChannelHistory 主动拉首屏（渠道历史必须走 CAPI，不能走 /chat/messages）
+ *
+ * 未命中：不动，保持"欢迎页"状态（避免误标记非渠道会话）。
+ */
+const restoreChannelConversationById = (
+    conversationId: string,
+    applicationId: string,
+): Promise<boolean> => {
+    if (!useApiMode.value || !conversationId || !applicationId) return Promise.resolve(false);
+    // 已建立映射 → 无需重复恢复（点渠道时已登记）
+    if (channelConversationUserId.value[conversationId]) return Promise.resolve(true);
+    // 已有正在进行的 restore → 复用同一 Promise，避免并发重复扫描
+    const inflight = channelRestorePending.get(conversationId);
+    if (inflight) return inflight;
+
+    const task = (async (): Promise<boolean> => {
+        let channelList: ChannelItem[] = [];
+        try {
+            const res = await describeChannelList({ applicationId, pageSize: 100 });
+            channelList = (res.channelList || []).filter(
+                (ch) => ch.connectStatus === ClawChannelStatus.SUCCESS,
+            );
+        } catch (err) {
+            console.warn('[restoreChannelConversationById] describeChannelList 失败:', err);
+            return false;
+        }
+        if (channelList.length === 0) return false;
+
+        for (const ch of channelList) {
+            const filter = await resolveChannelFilter(ch, applicationId);
+            if (!filter || !filter.channelId) continue;
+            try {
+                const { conversations: capiList } = await describeConversationList(
+                    {
+                        AppId: applicationId,
+                        UserId: filter.userId || undefined,
+                        AgentId: filter.agentId || undefined,
+                        ChannelId: filter.channelId,
+                        Offset: 0,
+                        Limit: 50,
+                    },
+                    applicationId,
+                    mergedApiDetailConfig.value.describeConversationListApi,
+                );
+                const matched = capiList.find((c: any) => c.ConversationId === conversationId);
+                if (!matched) continue;
+
+                // 命中：建立渠道选中态（对齐 handleSelectRemoteTerminal 内部命中分支）
+                remoteTerminalActiveId.value = filter.channelId;
+                remoteTerminalActiveLabel.value = filter.label;
+                remoteTerminalActiveChannelId.value = filter.channelId;
+                remoteTerminalActiveUserId.value = filter.userId;
+                remoteTerminalActiveAgentId.value = filter.agentId;
+
+                const stub: ChatConversation = {
+                    Id: conversationId,
+                    AccountId: '',
+                    ApplicationId: applicationId,
+                    Title: (matched.Title as string) || '',
+                    LastActiveAt: Number((matched as any).UpdateTime || (matched as any).CreateTime || 0),
+                    CreatedAt: Number((matched as any).CreateTime || 0),
+                } as ChatConversation;
+                // 关键：先登记 channelConversationUserId，再切换会话。这样 handleInternalLoadMore
+                // 后续如果被触发（例如切换过程中的 chatId 变化），会立即走「渠道分支」直接 notifyComplete，
+                // 不会误发 /chat/messages。
+                channelConversationUserId.value[conversationId] = filter.userId;
+
+                // fromChannel=true：保留渠道选中态，不清空 remoteTerminalActive*
+                await handleSelectConversation(stub, true);
+                await loadChannelHistory(conversationId, filter.userId, applicationId);
+                console.debug('[restoreChannelConversationById] restored', {
+                    conversationId,
+                    channelId: filter.channelId,
+                    userId: filter.userId,
+                });
+                return true;
+            } catch (err) {
+                console.warn(
+                    '[restoreChannelConversationById] describeConversationList 失败，尝试下一个渠道:',
+                    filter.channelId,
+                    err,
+                );
+            }
+        }
+        return false;
+    })();
+
+    channelRestorePending.set(conversationId, task);
+    // 任务结束后清理缓存（无论成功/失败），避免长期驻留
+    task.finally(() => {
+        channelRestorePending.delete(conversationId);
+    });
+    return task;
+};
+
 
 /**
  * 侧栏删除会话
@@ -1784,6 +2002,8 @@ const sendWidgetActionSSE = async (conversationId: string, applicationId: string
                 Contents: contents,
                 ConversationId: conversationId || undefined,
                 ApplicationId: applicationId,
+                // 渠道会话：透传 IsChannel，行为对齐 handleInternalSend
+                IsChannel: isChannelConversation.value,
             },
             { signal: streamState.abortController?.signal },
             mergedApiDetailConfig.value.sendMessageApi
@@ -2022,16 +2242,24 @@ const handleInternalUploadFile = async (files: File[]) => {
 
 // 记录上一次的 ID 值，用于判断变化
 let prevConvId: string | undefined = undefined;
+/**
+ * 已尝试过「渠道会话恢复」的 conversationId 集合。
+ * 防止 watch 反复触发同一个 convId 的 DescribeChannelList/DescribeConversationList 全表扫描。
+ * 场景：一次 restore 成功后，channelConversationUserId 会被填充，restoreChannelConversationById
+ * 自己也会跳过；但失败时若不做防抖，watch 后续依赖（apps / conversations）任何变化都会重放。
+ */
+const channelRestoreAttempted = new Set<string>();
 
 // 监听外部传入的 currentApplicationId 和 currentConversationId 变化
 watch(
     [
         () => props.currentApplicationId,
         () => props.currentConversationId,
+        () => props.currentConversationChannel,
         () => actualApplications.value,
         () => actualConversations.value
     ],
-    async ([appId, convId, apps, conversations]) => {
+    async ([appId, convId, isChannel, apps, conversations]) => {
         // 处理应用 ID 变化
         if (appId && apps.length > 0) {
             const foundApp = apps.find(app => app.ApplicationId === appId);
@@ -2040,8 +2268,9 @@ watch(
             }
         }
 
-        // 处理会话 ID 变化
-        if (convId && conversations.length > 0) {
+        // 处理会话 ID 变化（普通会话：本地 /chat/conversations 列表命中即可切换）
+        // 渠道会话跳过本地匹配（不在本地列表里），交由下面的 restoreChannelConversationById 处理
+        if (!isChannel && convId && conversations.length > 0) {
             const foundConv = conversations.find(conv => conv.Id === convId);
             if (foundConv && (
                 foundConv.Id !== internalCurrentConversation.value?.Id ||
@@ -2062,6 +2291,31 @@ watch(
             // ID 从有值变为空时，清空当前会话
             internalCurrentConversation.value = undefined;
             currentConversationStateKey.value = '';
+        }
+
+        // 【URL 刷新场景】渠道会话恢复：
+        //   URL 语义已明确该 conv 是渠道会话（外层通过 currentConversationChannel prop 传入 true，
+        //   来源于 `/:appId/channel/:convId` 路由）→ 直接触发渠道恢复流程：
+        //     1) DescribeChannelList 拉出应用下所有 SUCCESS 状态渠道
+        //     2) 逐个 DescribeConversationList 找到属于哪个渠道
+        //     3) 建立 remoteTerminalActive* + channelConversationUserId 映射
+        //     4) handleSelectConversation(stub, fromChannel=true) 切换到该会话
+        //     5) loadChannelHistory 主动拉首屏历史
+        //   条件：
+        //     - useApiMode（API 模式才有渠道概念）
+        //     - convId + appId 都有
+        //     - 内部尚未选中该 conv（防重复）
+        //     - 该 convId 未曾尝试过恢复（防抖，避免 watch 频繁重放）
+        if (
+            useApiMode.value
+            && isChannel
+            && convId
+            && appId
+            && currentConversationStateKey.value !== convId
+            && !channelRestoreAttempted.has(convId)
+        ) {
+            channelRestoreAttempted.add(convId);
+            void restoreChannelConversationById(convId, appId);
         }
 
         // 更新上一次的值

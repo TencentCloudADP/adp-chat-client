@@ -32,8 +32,8 @@
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
         "headers.X-TC-Region": "ap-guangzhou",
-        "headers.X-TC-Canary": "toe-test-4070",
-        "headers.X-Qbot-EnvSet": "toe-test-4070"
+        "headers.X-Qbot-EnvSet": "toe-test-4070-channelid",
+        "payload.AppKey": "{{APP_KEY}}"
     },
     "DescribeConversationMessageList": {
         "service": "adp",
