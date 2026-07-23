@@ -70,9 +70,16 @@ export default defineConfig(async ({ mode }) => {
       serveWidgetPlugin(),
     ].filter(Boolean),
     resolve: {
-      alias: {
-        '@': fileURLToPath(new URL('./src', import.meta.url)),
-      },
+      alias: [
+        { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
+        // 将 @wangeditor-next/editor 的运行时实现指向自建 bundle
+        // 用精确匹配（正则末尾 $），避免同时命中 '@wangeditor-next/editor/dist/css/style.css' 等子路径
+        // 类型继续走 node_modules/@wangeditor-next/editor 的 .d.ts（import type 会被编译擦除）
+        {
+          find: /^@wangeditor\/editor$/,
+          replacement: path.resolve(__dirname, 'public/wangeditor.esm.js'),
+        },
+      ],
       // 确保依赖去重，避免多个 Vue/TDesign 实例
       dedupe: ['vue', 'tdesign-vue-next'],
     },
@@ -88,7 +95,8 @@ export default defineConfig(async ({ mode }) => {
         'vue-i18n',
       ],
       // 排除 workspace 包，让其使用源码
-      exclude: ['adp-chat-component', 'adp-widget'],
+      // 排除 @wangeditor-next/editor，避免 Vite 预构建它（会去 node_modules 里找而绕过 alias）
+      exclude: ['adp-chat-component', 'adp-widget', '@wangeditor/editor'],
     },
     server: {
       host: '0.0.0.0',
