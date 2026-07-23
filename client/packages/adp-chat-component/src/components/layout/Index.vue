@@ -204,7 +204,12 @@ const props = withDefaults(defineProps<Props>(), {
     enableCronTask: true,
 });
 
-const { getAgentIdByAppId, watchApplicationId, agentIdMap } = useAgentStore();
+const {
+    getAgentIdByAppId,
+    watchApplicationId,
+    agentIdMap,
+    setApplicationModes,
+} = useAgentStore();
 
 const emit = defineEmits<{
     (e: 'selectApplication', app: Application): void;
@@ -677,8 +682,49 @@ const chattingConversationIds = computed(() =>
 
 // 计算属性
 const currentApplicationId = computed(() => actualCurrentApplication.value?.ApplicationId || '');
-// 在最外层监听 currentApplicationId 变化，自动触发 Agent 拉取
-watchApplicationId(currentApplicationId);
+
+/**
+ * 应用列表变化时把每个应用的 Pattern 登记到 useAgentStore，
+ * 让 store 内的 fetchAndSetAgentId / fetchAgentDetail / getAgentIdByAppId 等
+ * 能够按 applicationId 精确判定：仅 mode === 'claw'（即 Pattern === 'ClawAgent'）的应用才走 Agent 扩展流程。
+ * 入参保留 { ApplicationId, Pattern } 原字段，store 内部会通过 patternToMode() 归一化为 ChatMode 存储。
+ */
+watch(
+    actualApplications,
+    (list) => {
+        if (Array.isArray(list) && list.length > 0) {
+            setApplicationModes(list);
+        }
+    },
+    { immediate: true, deep: false },
+);
+
+/**
+ * 聊天模式：优先使用 props.mode 手动配置，否则从当前应用的 Pattern 自动推导
+ * Pattern='ClawAgent' → mode='claw'，其他值或 null → mode='standard'
+ * 提前声明，供下方 watchApplicationId / 各种 v-if 门槛统一使用，避免各处重复判断 Pattern。
+ */
+const chatMode = computed<ChatMode>(() => {
+    if (props.mode !== 'standard') {
+        return props.mode;
+    }
+    const pattern = actualCurrentApplication.value?.Pattern as AppPattern | null | undefined;
+    if (pattern === 'ClawAgent') {
+        return 'claw';
+    }
+    return 'standard';
+});
+
+/**
+ * 在最外层监听 currentApplicationId 变化，仅在 claw 模式（Pattern='ClawAgent' 或 props.mode='claw'）时触发 Agent 拉取。
+ * 非 claw（standard 模式）以及 pattern 尚未就绪的场景一律跳过。
+ * 使用 chatMode 而非直接判断 Pattern，可同时兼容"外部强制 claw 模式"与"按 Pattern 自动推导"两种场景。
+ */
+watchApplicationId(() => {
+    const app = actualCurrentApplication.value;
+    if (!app?.ApplicationId) return '';
+    return chatMode.value === 'claw' ? app.ApplicationId : '';
+});
 const currentApplicationAvatar = computed(() => actualCurrentApplication.value?.Avatar || '');
 
 /** 当前用户 ID（来自 /account/info 返回的 Id） */
@@ -693,21 +739,6 @@ const resolvedSpaceId = computed(() => actualCurrentApplication.value?.SpaceId |
 const currentApplicationGreeting = computed(() => actualCurrentApplication.value?.Greeting || '');
 const currentApplicationOpeningQuestions = computed(() => actualCurrentApplication.value?.OpeningQuestions || []);
 const currentConversationId = computed(() => props.currentConversationId || actualCurrentConversation.value?.Id || '');
-
-/**
- * 聊天模式：优先使用 props.mode 手动配置，否则从当前应用的 Pattern 自动推导
- * Pattern='ClawAgent' → mode='claw'，其他值或 null → mode='standard'
- */
-const chatMode = computed<ChatMode>(() => {
-    if (props.mode !== 'standard') {
-        return props.mode;
-    }
-    const pattern = actualCurrentApplication.value?.Pattern as AppPattern | null | undefined;
-    if (pattern === 'ClawAgent') {
-        return 'claw';
-    }
-    return 'standard';
-});
 
 // API 数据加载方法
 const loadApplications = async () => {
@@ -2426,6 +2457,7 @@ defineExpose({
                 :sideActionActiveKey="cronTaskVisible ? 'cron-task' : ''"
                 :channelSettingUserId="currentUserId"
                 :channelSettingAgentId="currentAgentId"
+                :chatMode="chatMode"
                 @toggleSidebar="handleToggleSidebar"
                 @selectApplication="handleSelectApplication"
                 @selectConversation="handleSelectConversation"
@@ -2530,7 +2562,7 @@ defineExpose({
                 </template>
             </MainLayout>
             <CronTask
-                v-if="enableCronTask"
+                v-if="enableCronTask && chatMode === 'claw'"
                 v-show="cronTaskVisible"
                 class="cron-task-overlay"
                 :application-id="currentApplicationId"

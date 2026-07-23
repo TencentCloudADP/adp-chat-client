@@ -11,7 +11,7 @@
     task-group 用法与 fetchChannelList / handleChannelSetting 行为
 -->
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from 'vue';
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import ChannelSettingsDialog from '../Channel/ChannelSettingsDialog.vue';
 import type { ThemeProps } from '../../model/type';
@@ -186,9 +186,36 @@ const fetchList = async () => {
     }
 };
 
+/**
+ * 绑定成功后的延迟刷新：
+ * 后端"新增/更新渠道"接口返回成功时，数据尚未完全同步到查询接口
+ * （典型征兆：立即拉 DescribeChannelList 会返回带重复条目的脏数据）。
+ * 因此这里加 1s 延迟兜底；同时用 refreshTimer 做防抖，避免用户快速连续绑定 /
+ * ChannelSettingsDialog 多次 emit('refreshed') 时产生并发拉取。
+ */
+const REFRESH_DELAY_AFTER_BIND = 1000;
+let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+const refreshAfterBind = () => {
+    if (refreshTimer) {
+        clearTimeout(refreshTimer);
+    }
+    refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        fetchList();
+    }, REFRESH_DELAY_AFTER_BIND);
+};
+
 // 首次挂载 + channelSettingAppId 变化时自动拉取
 onMounted(() => {
     if (props.useInternalFetch && props.channelSettingAppId) fetchList();
+});
+
+onBeforeUnmount(() => {
+    if (refreshTimer) {
+        clearTimeout(refreshTimer);
+        refreshTimer = null;
+    }
 });
 watch(
     () => [props.useInternalFetch, props.channelSettingAppId],
@@ -321,7 +348,7 @@ defineExpose({
         :api-config="channelApiConfig"
         :i18n="channelSettingsI18n"
         :theme="theme"
-        @refreshed="fetchList"
+        @refreshed="refreshAfterBind"
     />
 </template>
 

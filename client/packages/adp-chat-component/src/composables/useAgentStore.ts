@@ -24,6 +24,17 @@ import {
     type CopyAgentFromAppPayload,
 } from '../service/api';
 import { fetchGlobalAgent, modifyAgent as modifyAgentApi, modifyAgentSkillList as modifyAgentSkillListApi, type AgentModelInfo } from '../service/skillsApi';
+import type { ChatMode } from '../model/type';
+
+/**
+ * 将后端返回的原始 Pattern 值归一化为业务侧统一使用的 ChatMode。
+ *  - 'ClawAgent' → 'claw'
+ *  - 其它（包括 '' / null / 'agent' / 未来新增值）→ 'standard'
+ * 保持与 Index.vue 内的 chatMode computed 完全一致的收敛规则。
+ */
+const patternToMode = (pattern: string | null | undefined): ChatMode => {
+    return pattern === 'ClawAgent' ? 'claw' : 'standard';
+};
 
 // ------------------------------ 模块作用域单例 state ------------------------------
 /** 按 applicationId 绑定的 agent_id 映射：{ [applicationId]: agentId }（存储 CopyAgentFromApp 返回的 ParentAgentId） */
@@ -32,6 +43,22 @@ const agentIdMap = ref<Record<string, string>>({});
 const loadingMap = ref<Record<string, boolean>>({});
 /** 按 applicationId 维度的 inflight Promise，避免并发重复请求 */
 const inflightMap = new Map<string, Promise<string>>();
+
+/**
+ * 按 applicationId 缓存的应用 Pattern（来自 ApplicationList 接口）。
+ *
+ * 仅 Pattern === 'ClawAgent' 的应用才需要走 CopyAgentFromApp / DescribeAgentDetail
+ * 一系列 Agent 拓展流程；其它应用（agent / standard 等）都不应触发这些请求，
+ * 以避免无谓的接口调用与后端错误。
+ *
+ * 存储的是归一化后的 ChatMode（'claw' / 'standard'），语义与 Index.vue 的 chatMode computed 一致；
+ * 原始 Pattern 字符串在写入时通过 patternToMode() 归一化，避免下游再自己 if === 'ClawAgent'。
+ *
+ * 判定策略：
+ *  - 已注册（曾经 setApplicationModes / setApplicationMode 写入过）且 !== 'claw' → 视为"非 Claw"，跳过
+ *  - 未注册（尚未拉到列表 / 外部直接透传） → 保守放行，避免注册滞后导致漏调用
+ */
+const applicationModeMap = ref<Record<string, ChatMode>>({});
 
 /** Agent 配置详情（DescribeAgentDetail 返回） */
 export interface AgentDetail {
@@ -64,6 +91,84 @@ export interface FetchAgentIdOptions {
  */
 export function useAgentStore() {
     /**
+     * 批量登记应用列表的 Pattern。通常在 ApplicationList 接口返回后调用一次即可。
+     * 允许多次调用（增量合并）。
+     */
+    const setApplicationModes = (
+        list: Array<{ ApplicationId?: string; Pattern?: string | null }>,
+    ) => {
+        if (!Array.isArray(list) || list.length === 0) return;
+        const next = { ...applicationModeMap.value };
+        for (const item of list) {
+            const appId = item?.ApplicationId;
+            if (!appId) continue;
+            // Pattern 允许为 null / '' / 未知值，统一归一化为 ChatMode 后登记
+            // （非 'ClawAgent' → 'standard'，视为"已知且非 Claw"）
+            next[appId] = patternToMode(item?.Pattern);
+        }
+        applicationModeMap.value = next;
+    };
+
+    /**
+     * 单条设置 / 覆盖某个应用的模式。
+     * 入参兼容原始 Pattern 字符串（'ClawAgent' / 'agent' / null / ...）与已归一化的 ChatMode（'claw' / 'standard'），
+     * 内部统一走 patternToMode 收敛，因此传任意一种都是安全的。
+     */
+    const setApplicationMode = (
+        applicationId: string,
+        patternOrMode: string | ChatMode | null | undefined,
+    ) => {
+        if (!applicationId) return;
+        // 'claw' 直接命中；'ClawAgent' 也命中；其它一律 'standard'
+        const mode: ChatMode = patternOrMode === 'claw' ? 'claw' : patternToMode(patternOrMode);
+        applicationModeMap.value = {
+            ...applicationModeMap.value,
+            [applicationId]: mode,
+        };
+    };
+
+    /**
+     * 查询指定 applicationId 的 ChatMode。
+     *
+     * 用于业务层想直接拿到某个应用的模式、又不方便从 Index.vue 透传 prop 的场景
+     * （例如某些非 Layout 直连子组件、独立弹窗、hooks 内部判断等）。
+     *
+     * - 已登记：返回登记时归一化后的 ChatMode
+     * - 未登记：返回 'standard'（区别于 isClawAgent 的"保守放行"语义 —— getter 层面
+     *   面向业务查询，应给出确定值；网络请求门槛才需要保守放行）
+     */
+    const getModeByAppId = (applicationId: string): ChatMode => {
+        if (!applicationId) return 'standard';
+        return applicationModeMap.value[applicationId] ?? 'standard';
+    };
+
+    /**
+     * 响应式版本：返回一个 ComputedRef<ChatMode>，applicationId 变化 / map 变化时自动更新。
+     * 适合在 setup / 模板里持续追踪指定应用的模式。
+     */
+    const useModeRef = (applicationId: string | Ref<string>): ComputedRef<ChatMode> => {
+        return computed(() => {
+            const appId = typeof applicationId === 'string' ? applicationId : applicationId.value;
+            return getModeByAppId(appId);
+        });
+    };
+
+    /**
+     * 判定指定应用是否需要走 Agent 扩展流程（CopyAgentFromApp / DescribeAgentDetail）。
+     *
+     * - 已登记：仅 mode === 'claw' 放行
+     * - 未登记：保守放行（避免注册滞后导致业务漏请求）
+     *
+     * 注意此处的"未登记保守放行"与 getModeByAppId 的"未登记返回 standard"故意不一致：
+     * 本方法是网络请求门槛，宁可多请求也不能漏；getter 面向业务查询，需要确定值。
+     */
+    const isClawAgent = (applicationId: string): boolean => {
+        if (!applicationId) return false;
+        if (!(applicationId in applicationModeMap.value)) return true;
+        return applicationModeMap.value[applicationId] === 'claw';
+    };
+
+    /**
      * 调用 CopyAgentFromApp 创建用户 Agent，把返回的 ParentAgentId 绑定写入该 applicationId 的槽位。
      * @returns 创建后得到的 ParentAgentId（失败或为空时返回 ''）
      */
@@ -77,6 +182,11 @@ export function useAgentStore() {
 
         if (!applicationId) {
             console.warn('[useAgentStore] applicationId 为空，跳过 CopyAgentFromApp');
+            return '';
+        }
+
+        // 非 ClawAgent 应用不走 CopyAgentFromApp 流程
+        if (!isClawAgent(applicationId)) {
             return '';
         }
 
@@ -173,6 +283,8 @@ export function useAgentStore() {
         if (agentIdMap.value[applicationId]) {
             return agentIdMap.value[applicationId];
         }
+        // 非 ClawAgent 不触发外部请求
+        if (!isClawAgent(applicationId)) return '';
         // 缓存未命中，触发请求并等待结果
         return fetchAndSetAgentId({ applicationId });
     };
@@ -235,6 +347,11 @@ export function useAgentStore() {
             return null;
         }
 
+        // 非 ClawAgent 应用没有 Agent 详情，跳过
+        if (!isClawAgent(applicationId)) {
+            return null;
+        }
+
         const force = options?.force ?? false;
 
         // 命中缓存
@@ -284,6 +401,9 @@ export function useAgentStore() {
         if (!applicationId) return null;
         const cached = agentDetailMap.value[applicationId];
         if (cached) return cached;
+
+        // 非 ClawAgent 应用不走详情请求
+        if (!isClawAgent(applicationId)) return null;
 
         // 如果该 applicationId 已有正在进行中的请求，直接复用其 Promise
         const inflight = detailInflightMap.get(applicationId);
@@ -576,15 +696,28 @@ export function useAgentStore() {
         return watch(
             source,
             (newVal) => {
-                if (newVal) {
-                    fetchAndSetAgentId({ applicationId: newVal });
-                }
+                if (!newVal) return;
+                // 非 ClawAgent 应用不触发 CopyAgentFromApp
+                if (!isClawAgent(newVal)) return;
+                fetchAndSetAgentId({ applicationId: newVal });
             },
             { immediate: true },
         );
     };
 
     return {
+        /** 全量 applicationId -> ChatMode 映射（只读响应式引用），值已归一化为 'claw' / 'standard' */
+        applicationModeMap: readonly(applicationModeMap) as Readonly<Ref<Record<string, ChatMode>>>,
+        /** 批量登记应用列表的模式（建议在 ApplicationList 返回后调用；入参保持后端 Pattern 原字段兼容） */
+        setApplicationModes,
+        /** 单条登记某个应用的模式（兼容传原始 Pattern 或已归一化的 ChatMode） */
+        setApplicationMode,
+        /** 同步查询某个 applicationId 的 ChatMode；未登记返回 'standard' */
+        getModeByAppId,
+        /** 响应式版本：返回 ComputedRef<ChatMode>，applicationId 或 map 变化时自动更新 */
+        useModeRef,
+        /** 是否为需要走 Agent 扩展流程的应用（mode === 'claw'；未登记时保守放行） */
+        isClawAgent,
         /** 全量 applicationId -> agentId（CopyAgentFromApp 返回的 ParentAgentId）映射（只读响应式引用） */
         agentIdMap: readonly(agentIdMap) as Readonly<Ref<Record<string, string>>>,
         /** 全量 applicationId -> 加载状态 映射（只读响应式引用） */

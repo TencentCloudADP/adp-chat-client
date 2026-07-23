@@ -17,7 +17,7 @@ import { Drawer as TDrawer, Avatar as TAvatar, Tooltip as TTooltip } from 'tdesi
 import { httpService } from '../../service/httpService';
 
 // TDrawer, TAvatar, TTooltip 已导入，模板中使用相应组件
-import type { LanguageOption, SideI18n, CommonLayoutProps } from '../../model/type';
+import type { LanguageOption, SideI18n, CommonLayoutProps, ChatMode } from '../../model/type';
 import { defaultLanguageOptions, defaultSideI18n, commonLayoutPropsDefaults } from '../../model/type';
 
 interface Props extends CommonLayoutProps {
@@ -110,6 +110,13 @@ interface Props extends CommonLayoutProps {
     channelSettingUserId?: string;
     /** 渠道设置弹窗：C 端 claw agent 运行态 ID */
     channelSettingAgentId?: string;
+    /**
+     * 聊天模式（由父层 Index.vue 统一推导后透传）：
+     * - 'claw'：显示 SideActions（新建任务/定时任务入口）、RemoteTerminalList、SideGroupList（定时任务分组）
+     * - 'standard' 或未传：隐藏上述三块
+     * 语义与 Index.vue 内的 `chatMode` 计算属性一致，避免子组件再自己按 Pattern 推导。
+     */
+    chatMode?: ChatMode;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -149,6 +156,7 @@ const props = withDefaults(defineProps<Props>(), {
     channelSettingAppId: '',
     channelSettingUserId: '',
     channelSettingAgentId: '',
+    chatMode: 'standard',
 });
 
 // 合并默认值和传入值
@@ -237,6 +245,15 @@ const displayCurrentApplication = computed<Application | undefined>(() => {
     if (!props.currentApplicationId) return undefined;
     return props.applications.find(a => a.ApplicationId === props.currentApplicationId);
 });
+
+/**
+ * 当前是否为 Claw 模式。
+ * 直接采用父层 Index.vue 透传的 chatMode（其已按 props.mode / 当前应用 Pattern 综合推导），
+ * 保持全局一致；子组件不再独立推导 Pattern，避免"Index 内一套、SideLayout 内另一套"的分裂。
+ * 仅 claw 模式下才展示：SideActions（新建任务/定时任务入口）、
+ * RemoteTerminalList（远程终端分组）、SideGroupList（定时任务分组）。
+ */
+const isClawApplication = computed<boolean>(() => props.chatMode === 'claw');
 
 /**
  * 内部会话列表（权威源）：
@@ -519,7 +536,7 @@ defineExpose({
                         </div>
                         <!-- 快捷入口：新建任务 / 定时任务，参考 smart-webim/conversation-list 顶部两个 new-task-btn -->
                         <SideActions
-                            v-if="showSideActions"
+                            v-if="showSideActions && isClawApplication"
                             :items="sideActionItems"
                             :active-key="sideActionActiveKey"
                             :show-cron-task="showCronTaskAction"
@@ -537,7 +554,7 @@ defineExpose({
                         -->
                         <!-- 远程终端：独立封装组件，自带折叠 / 右侧设置按钮 / 空态占位 / 可选内部拉取 -->
                         <RemoteTerminalList
-                            v-if="showRemoteTerminalList"
+                            v-if="showRemoteTerminalList && isClawApplication"
                             ref="remoteTerminalRef"
                             :title="i18n.remoteTerminal || '远程终端'"
                             :items="remoteTerminalItems"
@@ -558,7 +575,7 @@ defineExpose({
                             @loaded="handleRemoteTerminalLoaded"
                         />
                         <SideGroupList
-                            v-if="showCronTaskList"
+                            v-if="showCronTaskList && isClawApplication"
                             :title="i18n.cronTask || '定时任务'"
                             :items="cronTaskItems"
                             :active-id="currentCronTaskId"
