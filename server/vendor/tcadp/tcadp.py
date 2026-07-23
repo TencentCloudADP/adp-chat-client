@@ -1331,15 +1331,40 @@ class TCADP(BaseVendor):
 
         logging.info(f"upload: file size {len(file_data)} bytes")
 
+        # 归一化用户上传的 MIME，作为 COS 对象的 Content-Type 落库依据。
+        # - 浏览器通常给出 'image/png' / 'text/plain; charset=utf-8' 之类；这里保留主类型+子类型，
+        #   丢弃 charset 等参数，避免奇异值污染对象元数据。
+        # - 缺失或明显不合规时回退到通用二进制，交由下游按扩展名兜底识别。
+        cos_content_type = (mime_type or '').split(';', 1)[0].strip().lower()
+        if '/' not in cos_content_type:
+            cos_content_type = 'application/octet-stream'
+
         # 使用 DescribeStorageCredential 返回的 UploadUrl（已签名）直接 PUT 上传
         upload_url = resp.get('UploadUrl')
-        if upload_url:
+        if upload_url:            
+            from urllib.parse import urlparse, parse_qs
+            try:
+                signed_headers = parse_qs(urlparse(upload_url).query).get('q-signed-headers', [''])[0].lower()
+                signed_set = {h.strip() for h in signed_headers.split(';') if h.strip()}
+            except Exception:
+                signed_set = set()
+
+            put_headers = {'Content-Length': str(len(file_data))}
+            if 'content-type' not in signed_set:
+                put_headers['Content-Type'] = cos_content_type
+            else:
+                # 签发端已锁定 content-type：无法覆盖，仅日志提示，便于排查前端渲染问题。
+                logging.info(
+                    f"upload: presigned url has content-type in signed headers, "
+                    f"skip client-side override (user_mime={cos_content_type})"
+                )
+
             import aiohttp
             async with aiohttp.ClientSession() as session:
                 async with session.put(
                     upload_url,
                     data=bytes(file_data),
-                    headers={'Content-Length': str(len(file_data))}
+                    headers=put_headers,
                 ) as put_resp:
                     if put_resp.status not in (200, 201, 204):
                         text = await put_resp.text()
@@ -1355,7 +1380,8 @@ class TCADP(BaseVendor):
                 bucket=resp['Bucket'],
                 config=self.tc_config()['cos'],
             )
-            await cos.put(resp['UploadPath'], bytes(file_data))
+            # S3 SDK 路径：ContentType 是 PutObject API 的显式参数，不涉及签名冲突。
+            await cos.put(resp['UploadPath'], bytes(file_data), content_type=cos_content_type)
 
         # 优先使用 DescribeStorageCredential 返回的 FileUrl（LKE 平台可识别的地址）
         url = resp.get('FileUrl') or resp.get('file_url') or (
