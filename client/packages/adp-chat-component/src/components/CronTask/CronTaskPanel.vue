@@ -126,10 +126,10 @@ import {
 } from '../../service/cronTaskApi';
 import { getTimerId } from '../../utils/cronTask';
 
-interface FolderOption { label: string; value: string }
-interface ModelOption { label: string; value: string }
+export interface FolderOption { label: string; value: string }
+export interface ModelOption { label: string; value: string }
 
-interface Props extends ThemeProps {
+export interface Props extends ThemeProps {
     /** 应用 ID（/adp 代理必需） */
     applicationId: string;
     /** 空间 ID */

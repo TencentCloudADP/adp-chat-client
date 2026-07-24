@@ -40,7 +40,7 @@ export interface RemoteTerminalItem {
     disabled?: boolean;
 }
 
-interface Props extends ThemeProps {
+export interface Props extends ThemeProps {
     /** 分组标题，默认「远程终端」 */
     title?: string;
     /**

@@ -46,9 +46,9 @@ import type {
     TimerTaskSummary,
 } from '../../model/cronTask';
 
-interface Option { label: string; value: string }
+export interface Option { label: string; value: string }
 
-interface Props extends ThemeProps {
+export interface Props extends ThemeProps {
     /** 应用 ID（/adp 代理必需） */
     applicationId: string;
     /** 空间 ID */

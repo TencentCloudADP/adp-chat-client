@@ -20,7 +20,7 @@ import { httpService } from '../../service/httpService';
 import type { LanguageOption, SideI18n, CommonLayoutProps, ChatMode } from '../../model/type';
 import { defaultLanguageOptions, defaultSideI18n, commonLayoutPropsDefaults } from '../../model/type';
 
-interface Props extends CommonLayoutProps {
+export interface Props extends CommonLayoutProps {
     /** 是否显示侧边栏，默认值：isSidePanelOverlay 为 true 时为 false，否则为 true */
     visible?: boolean;
     /** 侧边栏是否使用overlay模式（覆盖内容区域） */

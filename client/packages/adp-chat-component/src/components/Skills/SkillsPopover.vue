@@ -98,7 +98,7 @@ import { defaultSkillsI18n, defaultSkillsI18nEn } from '../../model/skills';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
 
-interface Props extends ThemeProps {
+export interface Props extends ThemeProps {
     installedSkills?: NormalizedSkill[];
     loading?: boolean;
     i18n?: Partial<SkillsI18n>;

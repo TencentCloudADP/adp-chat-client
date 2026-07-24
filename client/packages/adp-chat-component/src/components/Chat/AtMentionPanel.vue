@@ -53,7 +53,7 @@ interface Category {
     items: NormalizedSkill[];
 }
 
-interface Props {
+export interface Props {
     installedSkills?: NormalizedSkill[];
     installedConnectors?: NormalizedSkill[];
     installedTools?: NormalizedSkill[];

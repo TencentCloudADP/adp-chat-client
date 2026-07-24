@@ -105,19 +105,11 @@ import {
     describeTimerTask,
 } from '../../../service/cronTaskApi';
 import { getTimerId } from '../../../utils/cronTask';
-
-interface Option { label: string; value: string }
-
-interface Props {
-    visible: boolean;
-    editingTask?: TimerTaskSummary | TimerTask | null;
-    applicationId: string;
-    spaceId?: string;
-    language?: string;
-    i18n?: Partial<CronTaskI18n>;
-    modelOptions?: Option[];
-    folderOptions?: Option[];
-}
+// Props / Option 抽到独立 .ts 文件里定义，避免 vite-plugin-dts 在处理
+// SFC 时对多个 `export interface` 误报 TS4082「private name」。
+// 此处 re-export 以便消费方仍能 `import { Props, Option } from '.../CreateTaskDialog.vue'`。
+import type { Props, Option } from './types';
+export type { Props, Option };
 
 const props = withDefaults(defineProps<Props>(), {
     visible: false,

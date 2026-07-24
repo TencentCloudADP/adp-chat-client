@@ -137,13 +137,13 @@ function initEditor() {
             ...editorConfig,
             placeholder: props.placeholder,
             readOnly: props.readOnly || props.disabled,
-            onCreated(ed) {
+            onCreated(ed: IDomEditor) {
                 editor.value = ed
                 nextTick(() => {
                     bindSafariPasteFallback()
                 })
             },
-            onChange(ed) {
+            onChange(ed: IDomEditor) {
                 let html = ed.getHtml()
                 if (html === '<p><br></p>') html = ''
                 // 处理编辑器残留空白字符的情况
@@ -165,7 +165,7 @@ function initEditor() {
             onBlur() {
                 emit('blur')
             },
-            customPaste(ed, event) {
+            customPaste(ed: IDomEditor, event: ClipboardEvent) {
                 return handleCustomPaste(ed, event)
             }
         },

@@ -24,6 +24,36 @@
  * <CustomizedIcon name="arrow_down_small_line" remote :rotate="-90" />
  */
 <script lang="ts">
+import type { ThemeProps } from '../model/type';
+
+/**
+ * 组件属性接口
+ *
+ * 放在普通 <script lang="ts"> 而非下方 <script setup> 中导出：
+ *  1. 消费方可通过 `import type { Props } from '.../CustomizedIcon.vue'` 拿到类型，
+ *     同时 vite-plugin-dts 生成的 .d.ts 中此 Props 是显式命名导出，
+ *     避免 TS4082（Default export using private name 'Props'）。
+ *  2. 双 script 结构下（本文件同时存在 <script> + <script setup>），
+ *     部分 IDE 的 ts-plugin 对 <script setup> 里的 `export interface` 会误报 1184/1233，
+ *     放在普通 <script> 里最兼容。
+ */
+export interface Props extends ThemeProps {
+    /** SVG图标的名称，对应 src/assets/icons 目录下的文件名（不含扩展名） */
+    name: string;
+    /** 图标尺寸，可选值：'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl' */
+    size?: 'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl';
+    /** 是否使用原生图标样式（不应用主题滤镜），适用于彩色图标 */
+    nativeIcon?: boolean;
+    /** hover是否显示背景色 */
+    showHoverBg?: boolean;
+    /** 自定义颜色 */
+    color?: string;
+    /** 是否使用远程图标库（加载本地 SVG sprite，渲染为 <use href="#prefix-name"/>） */
+    remote?: boolean;
+    /** 远程图标前缀，默认 'v-'，与 v-icon 一致 */
+    remotePrefix?: string;
+}
+
 // 模块级单例：确保 SVG sprite 资源只被加载和注入一次，不随组件实例重复创建
 const injectedSprites = new Set<string>();
 const pendingSprites = new Map<string, Promise<void>>();
@@ -58,7 +88,7 @@ function injectSvgSprite(url: string): Promise<void> {
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import type { ThemeProps } from '../model/type';
+// Props 已在上方 <script lang="ts"> 里声明并导出；此处仅需运行时依赖
 import { themePropsDefaults } from '../model/type';
 
 // 静态导入所有图标（仅保留项目中实际使用的图标）
@@ -106,25 +136,6 @@ const svgMap: Record<string, string> = {
 // 用于生成唯一 id 的计数器
 let idCounter = 0;
 
-/**
- * 组件属性接口
- */
-interface Props extends ThemeProps {
-    /** SVG图标的名称，对应 src/assets/icons 目录下的文件名（不含扩展名） */
-    name: string;
-    /** 图标尺寸，可选值：'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl' */
-    size?: 'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl';
-    /** 是否使用原生图标样式（不应用主题滤镜），适用于彩色图标 */
-    nativeIcon?: boolean;
-    /** hover是否显示背景色 */
-    showHoverBg?: boolean;
-    /** 自定义颜色 */
-    color?: string;
-    /** 是否使用远程图标库（加载本地 SVG sprite，渲染为 <use href="#prefix-name"/>） */
-    remote?: boolean;
-    /** 远程图标前缀，默认 'v-'，与 v-icon 一致 */
-    remotePrefix?: string;
-}
 
 const props = withDefaults(defineProps<Props>(), {
   size: 'm',
