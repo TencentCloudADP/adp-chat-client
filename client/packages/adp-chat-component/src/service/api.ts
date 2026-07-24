@@ -45,6 +45,8 @@ export interface ApiDetailConfig {
     fetchFileApi?: string;
     /** 会话消息列表接口路径（claw 模式） */
     describeConversationMessageListApi?: string;
+    /** CAPI 渠道会话列表接口路径（/adp/DescribeConversationList，按 ChannelId 精准过滤） */
+    describeConversationListApi?: string;
     /** 模型列表接口路径 */
     listModelApi?: string;
     /** Agent 摘要列表接口路径 */
@@ -88,6 +90,7 @@ export const defaultApiDetailConfig: ApiDetailConfig = {
     listDirApi: '/adp/ListDir',
     fetchFileApi: '/adp/FetchFile',
     describeConversationMessageListApi: '/adp/DescribeConversationMessageList',
+    describeConversationListApi: '/adp/DescribeConversationList',
     listModelApi: '/adp/ListModel',
     describeAgentSummaryListApi: '/adp/DescribeAgentSummaryList',
     copyAgentFromAppApi: '/adp/CopyAgentFromApp',
@@ -182,6 +185,12 @@ export interface DescribeConversationMessageListParams {
     Limit?: number;
     /** 会话类型：1-访客 2-评测 5-API 10-工作流 20-分享 */
     Type: number;
+    /**
+     * 用户 ID：渠道（访客）会话历史必须携带该渠道绑定的 UserAgent.UserId
+     * 才能拉到属于该渠道用户的消息（对齐 adp-b2c DescribeConversationMessages）。
+     * 后端 action_version 仅在缺省时才注入 {{ACCOUNT_ID}}，前端显式传入即以此为准。
+     */
+    UserId?: string;
     /** 查询方向：1-向前（更早） */
     RecordQueryDirection?: number;
 }
@@ -189,6 +198,9 @@ export interface DescribeConversationMessageListParams {
 /** DescribeConversationMessageList 响应 */
 export interface DescribeConversationMessageListResponse {
     Response: {
+        /** 后端已按 RecordId 分组的 V2 Record 列表（describe_conversation_message_list 方法返回） */
+        Records?: Record[];
+        /** 未分组的扁平消息列表（forward_request 直连时返回） */
         Messages?: Record[];
         HasMoreBefore?: boolean;
         HasMoreAfter?: boolean;
@@ -286,11 +298,11 @@ export const createShare = async (params: object, apiPath?: string): Promise<any
  * 获取用户信息
  * @param apiPath API 路径
  */
-export const fetchUserInfo = async (apiPath?: string): Promise<{ Name: string; Avatar: string }> => {
+export const fetchUserInfo = async (apiPath?: string): Promise<{ Id: string; Name: string; Avatar: string }> => {
     if (!apiPath) throw new Error('apiPath is required');
     try {
-        const response: { Info: { Name: string; Avatar: string } } = await httpService.get(apiPath);
-        return response.Info || { Name: '', Avatar: '' };
+        const response: { Info: { Id: string; Name: string; Avatar: string } } = await httpService.get(apiPath);
+        return response.Info || { Id: '', Name: '', Avatar: '' };
     } catch (error) {
         console.error('获取用户信息失败:', error);
         throw error;
@@ -533,6 +545,110 @@ export const describeConversation = async (
         console.error('获取会话详情失败:', error);
         throw error;
     }
+};
+
+// ============================================================
+// DescribeConversationList（CAPI 渠道会话列表）
+// ============================================================
+
+/**
+ * DescribeConversationList 请求参数
+ * 对齐 proto chat/chat_manage/v2 DescribeConversationListReq，字段命名与 adp-b2c
+ * DescribeConversationListReq 保持一致（UserId/AgentId/AppId/AppKey/Keyword/Limit/Offset）。
+ * - Type：CONVERSATION_TYPE_UNSPECIFIED(0) 表示全部；渠道场景通常传 0 即可
+ * - UserId：**渠道过滤的核心字段**。ADP 里每个渠道绑定一个 UserAgent（{UserId, AgentId}），
+ *          传该 UserId 后 CAPI 只返回属于这个渠道用户的会话（webim 通过 UserAgent.UserId 建立
+ *          会话 → 拿 UserId 反查就能得到"该渠道的会话列表"）。
+ * - AgentId：可选，进一步限定到某个 Agent
+ * - ChannelId：proto v2 已定义，但线上 CAPI SDK 尚未开放；启用后可替代 UserId 过滤
+ * - AppKey：后端 action_version 会以 {{APP_KEY}} 兜底注入（前端不传即可）
+ */
+export interface DescribeConversationListParams {
+    /** 会话类型，默认 0（全部） */
+    Type?: number;
+    /** 应用 ID */
+    AppId?: string;
+    /** Agent ID（可选，配合 UserId 精准过滤某个 Agent 下的会话） */
+    AgentId?: string;
+    /**
+     * 用户 ID（渠道过滤核心）。传该字段后，action_version 里的 {{ACCOUNT_ID}} 默认注入
+     * 不会覆盖此值（inject_action_payload 只在 payload 无该字段时才注入）。
+     */
+    UserId?: string;
+    /** 渠道 ID（proto v2 已定义，线上 CAPI SDK 未开放，先保留字段） */
+    ChannelId?: string;
+    /** 关键词 */
+    Keyword?: string;
+    /** 偏移量 */
+    Offset?: number;
+    /** 限制数目 */
+    Limit?: number;
+}
+
+/** DescribeConversationList 返回的单条会话 */
+export interface CapiConversationItem {
+    ConversationId: string;
+    AppId?: string;
+    Type?: number;
+    Title?: string;
+    AgentId?: string;
+    CreateTime?: string;
+    UpdateTime?: string;
+    [key: string]: unknown;
+}
+
+/** DescribeConversationList 响应 */
+export interface DescribeConversationListResponse {
+    Response: {
+        Conversations?: CapiConversationItem[];
+        ConversationList?: CapiConversationItem[];
+        TotalCount?: string | number;
+        RequestId?: string;
+        Error?: { Code?: string; Message?: string };
+    };
+}
+
+/**
+ * 通过 CAPI DescribeConversationList 拉取渠道会话列表
+ * 走 /adp/DescribeConversationList 转发，可携带 ChannelId 精准过滤（对齐 webim/adp-b2c 但去掉 corp 语义）
+ */
+export const describeConversationList = async (
+    params: DescribeConversationListParams,
+    applicationId: string,
+    apiPath?: string,
+): Promise<{
+    conversations: CapiConversationItem[];
+    totalCount: number;
+}> => {
+    const path = apiPath || defaultApiDetailConfig.describeConversationListApi!;
+    // 组装 Payload：
+    // Type 默认 5（CONVERSATION_TYPE_API，API 会话）——渠道会话以 API 类型入库，
+    // 实测传 5 才能查到渠道产生的会话（传 0 常返空列表；传 1 访客类型也查不到）。
+    const payload: { [key: string]: unknown } = { Type: params.Type || 5 };
+    if (params.AppId) payload.AppId = params.AppId;
+    if (params.AgentId) payload.AgentId = params.AgentId;
+    // 渠道过滤：UserId 是核心，值来自 channel.spec.UserAgent.UserId（对齐 adp-b2c）。
+    // 传值后 action_version 中的 {{ACCOUNT_ID}} 默认注入会被跳过。
+    if (params.UserId) payload.UserId = params.UserId;
+    // ChannelId：proto v2 已定义的按渠道过滤维度。企微渠道会话存于独立映射表，
+    // 无法用 UserId/bot_id 从 DescribeConversationList 查到，只能靠 ChannelId。
+    // 若线上 CAPI SDK 不认，会返回 UnknownParameter（据此判断是否需后端/SDK 升级）。
+    if (params.ChannelId) payload.ChannelId = params.ChannelId;
+    if (params.Keyword) payload.Keyword = params.Keyword;
+    if (typeof params.Offset === 'number') payload.Offset = params.Offset;
+    if (typeof params.Limit === 'number') payload.Limit = params.Limit;
+
+    const response: DescribeConversationListResponse = await httpService.post(path, {
+        ApplicationId: applicationId,
+        Payload: payload,
+    });
+    const data = response?.Response || ({} as DescribeConversationListResponse['Response']);
+    if (data?.Error?.Code) {
+        throw new Error(data.Error.Message || String(data.Error.Code));
+    }
+    const list = (data.Conversations || data.ConversationList || []) as CapiConversationItem[];
+    const total = Number(data.TotalCount ?? list.length) || list.length;
+    return { conversations: list, totalCount: total };
 };
 
 /** ListDir 请求参数 */

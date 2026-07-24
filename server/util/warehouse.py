@@ -29,12 +29,21 @@ class AsyncWareHouseS3():
             lst = [objects.key async for objects in bucket.objects.filter(Prefix=prefix)]
         return lst
 
-    async def put(self, path, body):
+    async def put(self, path, body, content_type: str | None = None):
+        """上传对象到 COS。
+
+        content_type: 显式指定对象的 Content-Type 元数据；None 时保持 boto3 默认行为
+        （不传该字段，COS 按对象 Key 后缀等策略推断）。传入例如 'image/png' 可以确保
+        浏览器/CDN GET 时按图片渲染，而不是 application/octet-stream 触发下载。
+        """
         path = self.pure_path(path)
         cos_config = Config(s3={'addressing_style': self.dict['addressing_style']})
+        put_kwargs = {'Body': body}
+        if content_type:
+            put_kwargs['ContentType'] = content_type
         async with self.session.resource('s3', endpoint_url=self.dict['s3ep'], config=cos_config) as s3:
             obj = await s3.Object(self.dict['s3bucket'], path)
-            await obj.put(Body=body)
+            await obj.put(**put_kwargs)
 
     def get_full_url(self, path):
         return self.dict['s3ep_full'] + path

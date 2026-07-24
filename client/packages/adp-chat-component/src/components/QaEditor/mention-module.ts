@@ -182,12 +182,12 @@ function withMention<T extends IDomEditor>(editor: T): T {
     const { isInline, isVoid } = editor
     const e = editor
 
-    e.isInline = (elem) => {
+    e.isInline = (elem: SlateElement) => {
         if ((elem as unknown as MentionElement).type === 'mention') return true
         return isInline(elem)
     }
 
-    e.isVoid = (elem) => {
+    e.isVoid = (elem: SlateElement) => {
         if ((elem as unknown as MentionElement).type === 'mention') return true
         return isVoid(elem)
     }

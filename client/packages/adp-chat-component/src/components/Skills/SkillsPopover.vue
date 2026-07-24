@@ -98,7 +98,7 @@ import { defaultSkillsI18n, defaultSkillsI18nEn } from '../../model/skills';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
 
-interface Props extends ThemeProps {
+export interface Props extends ThemeProps {
     installedSkills?: NormalizedSkill[];
     loading?: boolean;
     i18n?: Partial<SkillsI18n>;
@@ -243,7 +243,7 @@ defineExpose({ show, hide });
 .skills-popover-trigger {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--td-size-2);
     padding: 0 var(--td-size-4);
     height: var(--td-comp-size-m);
     border-radius: var(--td-radius-default);
@@ -287,13 +287,13 @@ defineExpose({ show, hide });
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
-    gap: 4px;
+    gap: var(--td-size-2);
     max-height: 312px;
     position: absolute;
 
     &__search {
         flex-shrink: 0;
-        padding: 4px;
+        padding: var(--td-size-2);
         box-sizing: border-box;
 
         :deep(.t-input) {
@@ -321,18 +321,18 @@ defineExpose({ show, hide });
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 24px 0;
+        padding: var(--td-size-8) 0;
     }
 
     &__item {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: var(--td-size-4);
         padding: 4px 8px;
         height: 28px;
         font-size: 13px;
-        line-height: 20px;
-        border-radius: 4px;
+        line-height: var(--td-line-height-body-small);
+        border-radius: var(--td-radius-small);
         cursor: pointer;
         transition: background 0.15s;
 
@@ -345,7 +345,7 @@ defineExpose({ show, hide });
         flex-shrink: 0;
         width: 20px;
         height: 20px;
-        border-radius: 50%;
+        border-radius: var(--td-radius-circle);
         object-fit: cover;
     }
 
@@ -353,7 +353,7 @@ defineExpose({ show, hide });
         flex-shrink: 0;
         width: 20px;
         height: 20px;
-        border-radius: 50%;
+        border-radius: var(--td-radius-circle);
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -366,22 +366,22 @@ defineExpose({ show, hide });
         min-width: 0;
         font-size: 13px;
         color: var(--td-text-color-primary);
-        line-height: 20px;
+        line-height: var(--td-line-height-body-small);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
 
     &__empty {
-        padding: 24px 0;
+        padding: var(--td-size-8) 0;
         text-align: center;
-        font-size: 12px;
+        font-size: var(--td-font-size-body-small);
         color: var(--td-text-color-placeholder);
     }
 
     &__divider {
         flex-shrink: 0;
-        margin: 4px 12px;
+        margin: var(--td-size-2) var(--td-size-5);
         height: 1px;
         background: var(--td-component-border);
     }
@@ -390,12 +390,12 @@ defineExpose({ show, hide });
         flex-shrink: 0;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: var(--td-size-4);
         padding: 4px 8px;
         height: 28px;
         font-size: 13px;
-        line-height: 20px;
-        border-radius: 4px;
+        line-height: var(--td-line-height-body-small);
+        border-radius: var(--td-radius-small);
         cursor: pointer;
         transition: background 0.15s;
         color: var(--td-text-color-secondary);

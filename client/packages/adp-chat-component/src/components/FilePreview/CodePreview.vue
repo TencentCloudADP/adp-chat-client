@@ -235,7 +235,7 @@ onUnmounted(() => {
     color: rgba(1, 11, 50, 0.41);
     word-break: break-all;
     text-align: center;
-    padding: 0 24px;
+    padding: 0 var(--td-size-8);
     margin: 0;
 }
 </style>

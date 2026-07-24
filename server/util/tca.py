@@ -286,9 +286,12 @@ async def tc_request(
     headers, url = tc_request_prepare(config, action, payload, service, version, action_overrides)
     full_url = f'{url}/'
     logging.info(
-        '[tc_request] POST %s action=%s service=%s version=%s host=%s payload=%s',
+        '[tc_request] POST %s action=%s service=%s version=%s host=%s '
+        'x-qbot-envset=%s x-tc-canary=%s payload=%s',
         full_url, action, service,
-        headers.get('X-TC-Version'), headers.get('Host'), payload,
+        headers.get('X-TC-Version'), headers.get('Host'),
+        headers.get('X-Qbot-EnvSet'), headers.get('X-TC-Canary'),
+        payload,
     )
     async with aiohttp.ClientSession() as session:
         async with session.post(full_url, headers=headers, data=payload) as resp:

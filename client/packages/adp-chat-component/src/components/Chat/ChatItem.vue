@@ -352,6 +352,35 @@ const isFinal = computed(() => {
 });
 
 /**
+ * assistant 消息是否有可展示内容。
+ * 判定维度：正文文本 / 工具调用分组 / 图片·文件附件 / 深度思考 / 引用 / 选项卡 / 错误态。
+ * 用户消息不受此限制（恒为 true）。
+ */
+const hasAssistantContent = computed(() => {
+    if (isFromSelf.value) return true;
+    if (isError.value) return true;
+    if (useClawRender.value) return renderItems.value.length > 0;
+    return !!displayText.value
+        || reasoningContents.value.length > 0
+        || imageAttachments.value.length > 0
+        || docAttachments.value.length > 0
+        || optionCards.value.length > 0
+        || references.value.length > 0;
+});
+
+/**
+ * 是否渲染整条消息气泡（含操作按钮）。
+ * - 用户消息：始终渲染；
+ * - assistant 流式生成中的最后一条：渲染（可能正在产出，需展示 loading / 逐步内容）；
+ * - 其余 assistant：仅在「有可展示内容」时渲染，避免出现空的 md-content-container 与孤立操作按钮。
+ */
+const shouldRenderItem = computed(() => {
+    if (isFromSelf.value) return true;
+    if (props.isStreamLoad && props.isLastMsg) return true;
+    return hasAssistantContent.value;
+});
+
+/**
  * 回复时间（从 ExtraInfo.StartTime 提取）
  * - 今天：显示 hh:mm:ss
  * - 今年过去日期：显示 M月D日
@@ -569,7 +598,7 @@ const referenceDialogTitle = computed(() => {
         <WidgetActionTag :text="i18n.actionPerformed" />
     </div>
     <!-- 聊天项组件 -->
-    <TChatItem v-else animation="skeleton" :role="isFromSelf ? 'user' : 'assistant'" :text-loading="false"
+    <TChatItem v-else-if="shouldRenderItem" animation="skeleton" :role="isFromSelf ? 'user' : 'assistant'" :text-loading="false"
         :reasoning="renderReasoning()" >
         <!-- 内容插槽 -->
         <template #content>
@@ -658,7 +687,7 @@ const referenceDialogTitle = computed(() => {
                     </template>
                 </div>
                 <MdContent 
-                    v-else 
+                    v-else-if="displayText" 
                     :content="displayText" 
                     role="assistant" 
                     :theme="theme" 
@@ -806,9 +835,9 @@ const referenceDialogTitle = computed(() => {
 /* ── 错误消息 ── */
 .chat-item--error {
     border: 1px solid var(--td-error-color-2, #ffd8d4);
-    padding: 0 12px;
+    padding: 0 var(--td-size-5);
     background-color: var(--td-error-color-1, #fff0ed);
-    border-radius: 8px;
+    border-radius: var(--td-radius-medium);
 }
 
 .chat-item--error :deep(.md-content-container) {
@@ -830,7 +859,7 @@ const referenceDialogTitle = computed(() => {
 .claw-render {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--td-size-3);
     width: 100%;
 }
 
@@ -884,7 +913,7 @@ const referenceDialogTitle = computed(() => {
     display: flex;
     align-items: center;
     list-style: none;
-    padding: 4px 0;
+    padding: var(--td-size-2) 0;
     overflow: hidden;
     position: relative;
     gap: 0;
@@ -894,7 +923,7 @@ const referenceDialogTitle = computed(() => {
     width: 1px;
     height: 14px;
     background: var(--td-component-stroke);
-    margin: 0 6px;
+    margin: 0 var(--td-size-3);
     flex-shrink: 0;
 }
 
@@ -902,7 +931,7 @@ const referenceDialogTitle = computed(() => {
     font-size: 11px;
     color: var(--td-text-color-placeholder);
     line-height: var(--td-line-height-body-small);
-    margin-left: 4px;
+    margin-left: var(--td-size-2);
     white-space: nowrap;
     opacity: 0.65;
 }
@@ -912,13 +941,13 @@ const referenceDialogTitle = computed(() => {
     color: var(--td-text-color-placeholder);
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--td-size-2);
     width: 100%;
-    padding: 3px 8px;
+    padding: 3px var(--td-size-4);
     border-radius: var(--td-radius-default);
     cursor: pointer;
     font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
-    font-size: 12px;
+    font-size: var(--td-font-size-body-small);
     font-weight: 400;
     line-height: 18px;
     transition: background 0.15s ease;
@@ -953,8 +982,8 @@ const referenceDialogTitle = computed(() => {
 
 .thinking-text {
     color: var(--td-text-color-secondary);
-    font-size: 14px;
-    margin-left: 4px;
+    font-size: var(--td-font-size-body-medium);
+    margin-left: var(--td-size-2);
 }
 
 .thinking-icon {
@@ -966,17 +995,17 @@ const referenceDialogTitle = computed(() => {
 
 /* ── 引用来源 ── */
 .references-container {
-    margin: 8px 16px 16px 16px;
+    margin: var(--td-size-4) var(--td-size-6) var(--td-size-6) var(--td-size-6);
     padding: 12px 14px;
     background: var(--td-bg-color-container-hover);
-    border-radius: 8px;
+    border-radius: var(--td-radius-medium);
 }
 
 .references-container .title {
     color: var(--td-text-color-placeholder);
     display: inline-block;
-    margin-bottom: 6px;
-    font-size: 12px;
+    margin-bottom: var(--td-size-3);
+    font-size: var(--td-font-size-body-small);
     font-weight: 500;
 }
 
@@ -986,16 +1015,16 @@ const referenceDialogTitle = computed(() => {
 }
 
 .reference-list__item + .reference-list__item {
-    margin-top: 6px;
+    margin-top: var(--td-size-3);
 }
 
 .reference-slice__trigger {
     width: 100%;
     display: block;
     text-align: left;
-    padding: 8px 12px;
+    padding: var(--td-size-4) var(--td-size-5);
     border: 1px solid var(--td-component-stroke);
-    border-radius: 8px;
+    border-radius: var(--td-radius-medium);
     background: var(--td-bg-color-container);
     cursor: pointer;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -1010,7 +1039,7 @@ const referenceDialogTitle = computed(() => {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: var(--td-size-4);
 }
 
 .reference-slice__name {
@@ -1023,13 +1052,13 @@ const referenceDialogTitle = computed(() => {
 .reference-link__meta {
     color: var(--td-text-color-placeholder);
     font-size: 11px;
-    margin-top: 2px;
+    margin-top: var(--td-size-1);
 }
 
 .reference-slice__preview {
     color: var(--td-text-color-secondary);
-    font-size: 12px;
-    margin-top: 4px;
+    font-size: var(--td-font-size-body-small);
+    margin-top: var(--td-size-2);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -1056,7 +1085,7 @@ const referenceDialogTitle = computed(() => {
 
 .reference-dialog::-webkit-scrollbar-thumb {
     background: var(--td-scrollbar-color, rgba(0,0,0,.12));
-    border-radius: 4px;
+    border-radius: var(--td-radius-small);
 }
 
 .reference-dialog::-webkit-scrollbar-track {
@@ -1107,14 +1136,14 @@ const referenceDialogTitle = computed(() => {
 .file-attachments {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--td-size-4);
     margin: 8px 0;
 }
 
 .image-attachments {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: var(--td-size-4);
     margin: 8px 0;
 }
 

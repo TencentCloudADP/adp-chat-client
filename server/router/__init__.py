@@ -1,4 +1,5 @@
 import logging
+import uuid
 from functools import wraps
 
 from sanic.request.types import Request
@@ -50,9 +51,11 @@ async def auto_login(request: Request):
         need_register = True
 
     if need_register:
+        # AUTO_CREATE_ACCOUNT 场景：给每个自动创建的账号一个可区分的 Name
+        auto_suffix = uuid.uuid4().hex[:8]
         account = await CoreAccount.register(
             request.ctx.db,
-            name='User',
+            name=f'User-{auto_suffix}',
         )
         token = await CoreAccount.login(request.ctx.db, account, get_remote_ip(request))
 

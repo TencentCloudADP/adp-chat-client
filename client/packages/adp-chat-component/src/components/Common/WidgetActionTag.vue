@@ -20,7 +20,7 @@ withDefaults(defineProps<{
   display: inline-flex;
   flex-direction: row;
   align-items: center;
-  gap: 4px;
+  gap: var(--td-size-2);
   padding: 0 12px;
   background: var(--td-bg-color-container-hover, #F7F8FA);
   border-radius: 20px;

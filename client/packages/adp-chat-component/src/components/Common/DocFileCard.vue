@@ -199,7 +199,7 @@ const fileSizeDisplay = computed(() => {
 .doc-file-card {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--td-size-3);
     padding: 0 4px;
     border: 1px solid rgba(16, 32, 69, 0.10);
     border-radius: 3px;
@@ -214,7 +214,7 @@ const fileSizeDisplay = computed(() => {
 
 /* standard 模式高 card（与 MessageFileCard 一致） */
 .doc-file-card.standard-file-card {
-    gap: 8px;
+    gap: var(--td-size-4);
     padding: 8px 12px;
     border-radius: var(--td-radius-large);
     border-color: rgba(16, 32, 69, 0.08);
@@ -225,7 +225,7 @@ const fileSizeDisplay = computed(() => {
 .doc-file-card.standard-file-card .doc-icon-cont {
     width: 32px;
     height: 32px;
-    border-radius: 4px;
+    border-radius: var(--td-radius-small);
 }
 
 .doc-file-card.standard-file-card .doc-file-info {
@@ -293,7 +293,7 @@ const fileSizeDisplay = computed(() => {
     color: rgba(0, 1, 10, 0.93);
     font-size: var(--td-font-size-body-small);
     font-weight: 400;
-    line-height: 20px;
+    line-height: var(--td-line-height-body-small);
     max-width: 160px;
 }
 
@@ -312,7 +312,7 @@ const fileSizeDisplay = computed(() => {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    border-radius: 50%;
+    border-radius: var(--td-radius-circle);
     color: rgba(1, 11, 50, 0.41);
     background: rgba(255, 255, 255, 0.9);
     opacity: 0;
@@ -332,7 +332,7 @@ const fileSizeDisplay = computed(() => {
     visibility: visible;
     background: transparent;
     flex-shrink: 0;
-    margin-left: 2px;
+    margin-left: var(--td-size-1);
 }
 
 /* claw 模式下图片卡片可点击 */
@@ -373,7 +373,7 @@ const fileSizeDisplay = computed(() => {
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000;
-    padding: 4px;
+    padding: var(--td-size-2);
     background: #fff;
     border-radius: var(--td-radius-large);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);

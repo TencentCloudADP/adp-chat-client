@@ -50,6 +50,8 @@ export interface Props extends ChatRelatedProps {
     enableVoiceInput?: boolean;
     /** 是否正在上传/解析文件（禁止发送和继续上传） */
     isUploading?: boolean;
+    /** 渠道模式下无对话时禁用输入 */
+    channelInputDisabled?: boolean;
     /** 当前应用 ID（用于初始化时创建用户 Agent） */
     currentApplicationId?: string;
 
@@ -94,6 +96,7 @@ const props = withDefaults(defineProps<Props>(), {
     asrUrlApi: '',
     enableVoiceInput: true,
     isUploading: false,
+    channelInputDisabled: false,
     currentApplicationId: '',
 
     selectedModel: () => ({} as SelectedModel),
@@ -131,7 +134,7 @@ const i18n = computed(() => {
 /**
  * 是否禁止发送和上传（上传/解析中或流式加载中）
  */
-const sendDisabled = computed(() => props.isUploading || props.isStreamLoad);
+const sendDisabled = computed(() => props.isUploading || props.isStreamLoad || props.channelInputDisabled);
 
 /**
  * 是否有可发送内容
@@ -834,6 +837,7 @@ const imageAccept = ALLOWED_IMAGE_TYPES.map(t => {
 const fileAccept = '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.md,.csv,.json';
 
 const placeholder = computed(() => {
+    if (props.channelInputDisabled) return '请先选择渠道会话';
     return props.isMobile ? (i18n.value.placeholderMobile || '') : (i18n.value.placeholder || '');
 });
 
@@ -1262,8 +1266,8 @@ defineExpose({
                 ref="qaEditorRef"
                 :value="editorHtml"
                 :placeholder="placeholder"
-                :readOnly="isUploading"
-                :disabled="false"
+                :readOnly="isUploading || channelInputDisabled"
+                :disabled="channelInputDisabled"
                 :hideToolBar="true"
                 :allowPasteImage="true"
                 :theme="theme"
@@ -1553,7 +1557,7 @@ defineExpose({
 
 .sender-editor-area::-webkit-scrollbar-thumb {
     background: var(--td-scrollbar-color, rgba(0,0,0,.12));
-    border-radius: 4px;
+    border-radius: var(--td-radius-small);
 }
 
 .sender-editor-area::-webkit-scrollbar-track {
@@ -1565,9 +1569,9 @@ defineExpose({
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 2px 10px 8px;
+    padding: var(--td-size-1) 10px var(--td-size-4);
     cursor: default;
-    gap: 4px;
+    gap: var(--td-size-2);
 }
 
 .sender-toolbar__primary {
@@ -1578,7 +1582,7 @@ defineExpose({
 .sender-toolbar__extras {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: var(--td-size-1);
 }
 
 .sender-toolbar__right {
@@ -1596,7 +1600,7 @@ defineExpose({
 .sender-toolbar.is-mobile .sender-toolbar__extras {
     order: 3;
     width: 100%;
-    margin-top: 6px;
+    margin-top: var(--td-size-3);
     gap: 4px;
 }
 
@@ -1651,7 +1655,7 @@ defineExpose({
     left: 0;
     min-width: 148px;
     padding: 5px;
-    border-radius: 12px;
+    border-radius: var(--td-radius-large);
     background: var(--td-bg-color-container);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 8px 32px rgba(0, 0, 0, 0.06);
     border: 1px solid var(--td-component-stroke);
@@ -1661,11 +1665,11 @@ defineExpose({
 .plus-menu-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--td-size-4);
     padding: 7px 10px;
-    border-radius: 8px;
+    border-radius: var(--td-radius-medium);
     font-size: 13px;
-    line-height: 20px;
+    line-height: var(--td-line-height-body-small);
     color: var(--td-text-color-primary);
     cursor: pointer;
     transition: background 0.12s ease;
@@ -1702,7 +1706,7 @@ defineExpose({
     height: 32px;
     display: inline-flex;
     align-items: center;
-    margin-right: 2px;
+    margin-right: var(--td-size-1);
     cursor: pointer;
     border-radius: var(--td-radius-medium);
     transition: color 0.15s ease, background 0.15s ease;
@@ -1751,14 +1755,14 @@ defineExpose({
     display: inline-flex;
     align-items: center;
     cursor: pointer;
-    margin-left: 2px;
+    margin-left: var(--td-size-1);
 }
 
 /* ── 工具栏 pill 按钮（尺寸/字号/hover 行为与 SkillsPopover 触发按钮对齐） ── */
 .toolbar-pill-btn {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--td-size-2);
     padding: 0 var(--td-size-4);
     height: var(--td-comp-size-m);
     border-radius: var(--td-radius-default);
@@ -1810,8 +1814,8 @@ defineExpose({
     margin: 0 2px;
     background: var(--td-brand-color-light, #F1F6FF);
     border: 1px solid var(--td-brand-color-light-hover, #DBE8FF);
-    border-radius: 4px;
-    font-size: 12px;
+    border-radius: var(--td-radius-small);
+    font-size: var(--td-font-size-body-small);
     line-height: 16px;
     color: var(--td-brand-color, #4A70FF);
     cursor: default;
@@ -1866,9 +1870,9 @@ defineExpose({
     flex-shrink: 0;
     width: 14px;
     height: 14px;
-    margin-left: 2px;
+    margin-left: var(--td-size-1);
     cursor: pointer;
-    border-radius: 50%;
+    border-radius: var(--td-radius-circle);
     transition: background 0.12s ease;
     background-size: 10px 10px;
     background-repeat: no-repeat;

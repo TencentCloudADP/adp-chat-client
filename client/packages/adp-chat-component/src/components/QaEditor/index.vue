@@ -137,13 +137,13 @@ function initEditor() {
             ...editorConfig,
             placeholder: props.placeholder,
             readOnly: props.readOnly || props.disabled,
-            onCreated(ed) {
+            onCreated(ed: IDomEditor) {
                 editor.value = ed
                 nextTick(() => {
                     bindSafariPasteFallback()
                 })
             },
-            onChange(ed) {
+            onChange(ed: IDomEditor) {
                 let html = ed.getHtml()
                 if (html === '<p><br></p>') html = ''
                 // 处理编辑器残留空白字符的情况
@@ -165,7 +165,7 @@ function initEditor() {
             onBlur() {
                 emit('blur')
             },
-            customPaste(ed, event) {
+            customPaste(ed: IDomEditor, event: ClipboardEvent) {
                 return handleCustomPaste(ed, event)
             }
         },
@@ -462,7 +462,7 @@ defineExpose({
 
 :deep(.w-e-text-container [data-slate-editor]) {
     min-height: 20px;
-    padding: 8px 12px;
+    padding: var(--td-size-4) var(--td-size-5);
 }
 
 :deep(.w-e-text-container [data-slate-editor] p) {

@@ -107,7 +107,7 @@ const handleDeleteClick = (event: Event, detail: ChatConversation) => {
     <!-- 会话列表容器 -->
     <div class="history-list">
         <div class="history-header">
-            <span class="history-header__title">对话列表</span>
+            <span class="history-header__title">任务列表</span>
         </div>
         <!-- 会话项列表 -->
         <div
@@ -149,7 +149,7 @@ const handleDeleteClick = (event: Event, detail: ChatConversation) => {
 <style scoped>
 .history-list {
     width: 100%;
-    padding: 0 4px;
+    padding: 0 var(--td-size-2);
 }
 
 .history-header {
@@ -175,9 +175,9 @@ const handleDeleteClick = (event: Event, detail: ChatConversation) => {
 
 .history-item {
     min-height: 36px;
-    line-height: 20px;
+    line-height: var(--td-line-height-body-small);
     cursor: pointer;
-    padding: 8px 10px;
+    padding: var(--td-size-4) 10px;
     border-radius: var(--td-radius-medium);
     transition: background 0.15s ease, color 0.15s ease;
     color: var(--td-text-color-primary);
@@ -185,7 +185,7 @@ const handleDeleteClick = (event: Event, detail: ChatConversation) => {
     justify-content: space-between;
     align-items: center;
     font-size: var(--td-font-size-body-medium);
-    margin-bottom: 2px;
+    margin-bottom: var(--td-size-1);
 }
 
 .history-item.active {
@@ -207,11 +207,9 @@ const handleDeleteClick = (event: Event, detail: ChatConversation) => {
 
 .history-time {
     flex-shrink: 0;
-    margin-left: 8px;
+    margin-left: var(--td-size-4);
     font-size: 11px;
     color: var(--td-text-color-placeholder);
-    opacity: 0;
-    transition: opacity 0.15s ease;
 }
 
 /* 默认展示时间；hover/active 时让位给删除按钮，避免右侧同时显示两个元素造成拥挤 */
@@ -223,7 +221,7 @@ const handleDeleteClick = (event: Event, detail: ChatConversation) => {
 /* 进行中的转圈：始终可见，颜色与主色一致，位置与 history-time 对齐 */
 .history-loading {
     flex-shrink: 0;
-    margin-left: 8px;
+    margin-left: var(--td-size-4);
     display: inline-flex;
     align-items: center;
     color: var(--td-brand-color);
@@ -232,7 +230,7 @@ const handleDeleteClick = (event: Event, detail: ChatConversation) => {
 /* 删除按钮：默认隐藏，hover/active 时展示 */
 .history-delete {
     flex-shrink: 0;
-    margin-left: 8px;
+    margin-left: var(--td-size-4);
     display: none;
     align-items: center;
     justify-content: center;

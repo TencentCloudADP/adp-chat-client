@@ -137,6 +137,6 @@ function onCancel() { emit('cancel'); visible.value = false; }
 
 <style scoped>
 .mcp-field-dialog { max-height: 400px; overflow-y: auto; }
-.mcp-field-dialog__section-title { font-size: 12px; font-weight: 500; color: var(--td-text-color-secondary); margin-bottom: 8px; margin-top: 4px; }
-.mcp-field-dialog__footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--td-component-border); }
+.mcp-field-dialog__section-title { font-size: var(--td-font-size-body-small); font-weight: 500; color: var(--td-text-color-secondary); margin-bottom: var(--td-size-4); margin-top: 4px; }
+.mcp-field-dialog__footer { display: flex; gap: var(--td-size-4); justify-content: flex-end; margin-top: var(--td-size-6); padding-top: 12px; border-top: 1px solid var(--td-component-border); }
 </style>

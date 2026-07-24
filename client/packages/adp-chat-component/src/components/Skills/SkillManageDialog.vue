@@ -203,29 +203,29 @@ defineExpose({ resetDeleting });
 </script>
 
 <style scoped>
-.skills-manage { display: flex; flex-direction: column; gap: 12px; height: 480px; overflow: hidden; }
-.skills-manage__action-bar { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.skills-manage { display: flex; flex-direction: column; gap: var(--td-size-5); height: 480px; overflow: hidden; }
+.skills-manage__action-bar { display: flex; align-items: center; gap: var(--td-size-4); flex-shrink: 0; }
 .skills-manage__action-bar .customeized-icon{
-    margin-right: 4px;
+    margin-right: var(--td-size-2);
 }
 .skills-manage__import-btn { display: inline-flex; cursor: pointer; }
 .skills-manage__search { width: 200px; margin-left: auto; }
 .skills-manage__loading { display: flex; align-items: center; justify-content: center; flex: 1; }
-.skills-manage__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; color: var(--td-text-color-placeholder); font-size: 13px; gap: 8px; }
+.skills-manage__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; color: var(--td-text-color-placeholder); font-size: 13px; gap: var(--td-size-4); }
 .skills-manage__list { flex: 1; overflow-y: auto; min-height: 0; display: flex; flex-direction: column; padding-right: 10px; }
 .skills-manage__list::-webkit-scrollbar { width: 4px; }
 .skills-manage__list::-webkit-scrollbar-thumb { border-radius: 2px; background: rgba(17, 32, 70, 0.13); }
 
-.skills-manage__item { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-bottom: 1px solid rgba(0, 44, 85, 0.08); transition: background 0.15s; }
+.skills-manage__item { display: flex; align-items: center; gap: var(--td-size-6); padding: 14px 0; border-bottom: 1px solid rgba(0, 44, 85, 0.08); transition: background 0.15s; }
 .skills-manage__item:last-child { border-bottom: none; }
 .skills-manage__item-icon { flex-shrink: 0; width: 40px; }
-.skills-manage__item-icon img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
-.skills-manage__item-icon-fb { width: 40px; height: 40px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: var(--td-bg-color-secondarycontainer); color: var(--td-text-color-placeholder); border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
+.skills-manage__item-icon img { width: 40px; height: 40px; border-radius: var(--td-radius-medium); object-fit: cover; border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
+.skills-manage__item-icon-fb { width: 40px; height: 40px; border-radius: var(--td-radius-medium); display: inline-flex; align-items: center; justify-content: center; background: var(--td-bg-color-secondarycontainer); color: var(--td-text-color-placeholder); border: 1px solid rgba(0, 44, 85, 0.08); box-sizing: border-box; }
 .skills-manage__item-info { flex: 1; min-width: 0; overflow: hidden; }
-.skills-manage__item-title { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; overflow: hidden; }
-.skills-manage__item-name { font-size: 15px; font-weight: 500; color: var(--td-text-color-primary); line-height: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
-.skills-manage__item-desc { font-size: 13px; color: var(--td-text-color-placeholder); line-height: 20px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.skills-manage__item-actions { flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+.skills-manage__item-title { display: flex; align-items: center; gap: var(--td-size-3); flex-wrap: nowrap; overflow: hidden; }
+.skills-manage__item-name { font-size: 15px; font-weight: 500; color: var(--td-text-color-primary); line-height: var(--td-line-height-body-large); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 400px; }
+.skills-manage__item-desc { font-size: 13px; color: var(--td-text-color-placeholder); line-height: var(--td-line-height-body-small); margin-top: var(--td-size-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.skills-manage__item-actions { flex-shrink: 0; display: flex; align-items: center; gap: var(--td-size-2); }
 /* 禁用状态删除按钮 */
 .skills-manage__item-actions :deep(.t-button.t-is-disabled) { opacity: 0.35; cursor: not-allowed; }
 </style>

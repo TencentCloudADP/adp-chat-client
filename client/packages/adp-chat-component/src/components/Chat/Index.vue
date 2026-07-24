@@ -44,35 +44,49 @@
                             <div></div>
                         </template>
                     </InfiniteLoading>
-                    <div class="chat-item__content" v-for="(item, index) in chatList" :key="item.RecordId">
-                        <Checkbox class="share-checkbox" :checked="selectedIds?.includes(item.RecordId)"
-                            v-if="isSelecting" @change="(e) => onSelectIds(item.RecordId, e)" />
-                        <div style="width: 100%">
-                            <ChatItem 
-                                :isLastMsg="index === (chatList.length - 1)" 
-                                :item="item" 
-                                :index="index"
-                                :loading="loading" 
-                                :isStreamLoad="isChatting" 
-                                :isMobile="isMobile"
-                                :theme="theme"
-                                :mode="props.mode"
-                                :language="props.language"
-                                :i18n="chatItemI18n"
-                                :chat-i18n="i18n"
-                                :mentionSkills="mentionSkills"
-                                :mentionKnowledge="mentionKnowledge"
-                                :mentionTools="mentionTools"
-                                :mentionConnectors="mentionConnectors"
-                                @resend="onResend"
-                                @share="onShare"
-                                @rate="onRate"
-                                @copy="onCopy"
-                                @sendMessage="inputEnter"
-                                @widgetEvent="onWidgetEvent"
-                            />
+                    <template v-for="(item, index) in chatList" :key="item.RecordId">
+                        <div class="chat-item__content">
+                            <Checkbox class="share-checkbox" :checked="selectedIds?.includes(item.RecordId)"
+                                v-if="isSelecting" @change="(e) => onSelectIds(item.RecordId, e)" />
+                            <div style="width: 100%">
+                                <ChatItem 
+                                    :isLastMsg="index === (chatList.length - 1)" 
+                                    :item="item" 
+                                    :index="index"
+                                    :loading="loading" 
+                                    :isStreamLoad="isChatting" 
+                                    :isMobile="isMobile"
+                                    :theme="theme"
+                                    :mode="props.mode"
+                                    :language="props.language"
+                                    :i18n="chatItemI18n"
+                                    :chat-i18n="i18n"
+                                    :mentionSkills="mentionSkills"
+                                    :mentionKnowledge="mentionKnowledge"
+                                    :mentionTools="mentionTools"
+                                    :mentionConnectors="mentionConnectors"
+                                    @resend="onResend"
+                                    @share="onShare"
+                                    @rate="onRate"
+                                    @copy="onCopy"
+                                    @sendMessage="inputEnter"
+                                    @widgetEvent="onWidgetEvent"
+                                />
+                            </div>
                         </div>
-                    </div>
+                        <!-- 渠道对话分割线（对齐 webim ChannelDivider）：
+                             作为独立整行插入在"最后一条历史消息"之后（= 第一条新消息之前），
+                             不放在 .chat-item__content（flex 行）内，避免挤压消息气泡。
+                             仅当同时存在历史与新消息时显示（见 channelDividerIndex computed）。 -->
+                        <div
+                            v-if="channelDividerText && channelDividerIndex >= 0 && index === channelDividerIndex"
+                            class="channel-divider"
+                        >
+                            <div class="channel-divider__line"></div>
+                            <div class="channel-divider__text">{{ channelDividerText }}</div>
+                            <div class="channel-divider__line"></div>
+                        </div>
+                    </template>
                 </div>
             </template>
             <!-- 底部发送区域 -->
@@ -117,6 +131,7 @@
                     :asrUrlApi="asrUrlApi"
                     :enableVoiceInput="props.enableVoiceInput"
                     :isUploading="props.isUploading"
+                    :channelInputDisabled="props.channelInputDisabled"
                     :currentApplicationId="props.currentApplicationId"
                     :enableSkills="props.enableSkills && agentDetailAvailable"
                     :enableModelSelector="props.enableModelSelector && agentDetailAvailable"
@@ -201,6 +216,10 @@ export interface Props extends ChatRelatedProps {
     enableVoiceInput?: boolean;
     /** 是否正在上传文件 */
     isUploading?: boolean;
+    /** 渠道模式下无对话时禁用输入 */
+    channelInputDisabled?: boolean;
+    /** 渠道模式下显示的提示文本 */
+    channelDividerText?: string;
     /** 是否显示遮罩层 */
     isOverlay?: boolean;
     /** 是否启用 Skills 功能 */
@@ -238,6 +257,8 @@ const props = withDefaults(defineProps<Props>(), {
     asrUrlApi: '',
     enableVoiceInput: true,
     isUploading: false,
+    channelInputDisabled: false,
+    channelDividerText: '',
     isOverlay: false,
     enableSkills: false,
     enableModelSelector: false,
@@ -861,6 +882,31 @@ watch(
 )
 
 /**
+ * 渠道对话分割线索引（严格对齐 webim assist-chat.vue channelDividerIndex）
+ * 语义：分割线插入在"最后一条历史消息"之后（即第一条新消息之前）。
+ * 规则：
+ *   - 历史消息由 loadChannelHistory 标记 _isChannelHistory=true；用户新发送的消息无此标记。
+ *   - 仅当「同时存在历史消息与新消息」时才返回分割线位置；否则返回 -1（不显示）。
+ *     → 刚加载完历史（全是历史）时不显示；用户发送新消息后才在新消息前显示（时机对齐 webim）。
+ */
+const channelDividerIndex = computed(() => {
+    if (!props.channelDividerText) return -1;
+    const list = props.chatList || [];
+    if (!list.length) return -1;
+    let lastHistoryIdx = -1;
+    let hasNonHistory = false;
+    for (let i = 0; i < list.length; i++) {
+        if ((list[i] as any)?._isChannelHistory) {
+            lastHistoryIdx = i;
+        } else {
+            hasNonHistory = true;
+        }
+    }
+    if (lastHistoryIdx < 0 || !hasNonHistory) return -1;
+    return lastHistoryIdx;
+});
+
+/**
  * 暴露给父组件的方法
  */
 defineExpose({
@@ -908,19 +954,19 @@ defineExpose({
     justify-content: center;
     align-items: center;
     font-size: 13px;
-    gap: 4px;
+    gap: var(--td-size-2);
 }
 
 .icon__share-copy {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: var(--td-size-2);
     background: var(--td-bg-color-container-hover);
     border-radius: var(--td-radius-medium);
     padding: 5px 14px;
     margin-left: 10px;
-    margin-right: 4px;
+    margin-right: var(--td-size-2);
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease;
 }
@@ -946,7 +992,7 @@ defineExpose({
 }
 
 .icon__share-copy span:nth-child(1) {
-    margin-right: 4px;
+    margin-right: var(--td-size-2);
 }
 
 .icon__share-close {
@@ -966,8 +1012,8 @@ defineExpose({
 /* ── 加载状态 ── */
 .thinking-text {
     color: var(--td-text-color-secondary);
-    font-size: 14px;
-    margin-left: 4px;
+    font-size: var(--td-font-size-body-medium);
+    margin-left: var(--td-size-2);
 }
 
 .thinking-icon {
@@ -995,22 +1041,22 @@ defineExpose({
 :deep(.t-chat__footer) {
     display: flex;
     justify-content: center;
-    padding: 0 16px;
+    padding: 0 var(--td-size-6);
 }
 
 /* ── 消息列表间距 ── */
 :deep(.content .chat-item__content) {
-    padding-bottom: 16px;
+    padding-bottom: var(--td-size-6);
     margin-left: var(--td-size-4);
 }
 
 :deep(.content .chat-item__content:last-child) {
-    padding-bottom: 24px;
+    padding-bottom: var(--td-size-8);
 }
 
 /* ── 聊天列表容器 ── */
 :deep(.t-chat__list) {
-    padding: 20px 20px 0 20px;
+    padding: var(--td-size-7) var(--td-size-7) 0 var(--td-size-7);
     overflow-y: scroll;
     scrollbar-width: thin;
     scrollbar-color: var(--td-scrollbar-color, rgba(0,0,0,.12)) transparent;
@@ -1022,7 +1068,7 @@ defineExpose({
 
 :deep(.t-chat__list::-webkit-scrollbar-thumb) {
     background: var(--td-scrollbar-color, rgba(0,0,0,.12));
-    border-radius: 4px;
+    border-radius: var(--td-radius-small);
 }
 
 :deep(.t-chat__list::-webkit-scrollbar-track) {
@@ -1042,27 +1088,27 @@ defineExpose({
 
 /* ── 分享卡片覆盖 ── */
 :deep(.share-setting-content .t-card__body) {
-    padding: 10px 20px 10px 16px;
+    padding: 10px var(--td-size-7) 10px var(--td-size-6);
 }
 
 :deep(.share-setting-card) {
     box-sizing: border-box;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 8px 32px rgba(0, 0, 0, 0.06);
-    border-radius: 12px;
+    border-radius: var(--td-radius-large);
     border: 1px solid var(--td-component-stroke);
-    padding: 8px 20px 8px 16px !important;
+    padding: var(--td-size-4) var(--td-size-7) var(--td-size-4) var(--td-size-6) !important;
 }
 
 :deep(.share-setting-container) {
     border: none;
     box-sizing: border-box;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 8px 32px rgba(0, 0, 0, 0.06);
-    border-radius: 12px;
+    border-radius: var(--td-radius-large);
 }
 
 /* ── 移动端分享面板 ── */
 .share-setting-content.isMobile {
-    font-size: 12px;
+    font-size: var(--td-font-size-body-small);
 }
 
 .share-setting-content.isMobile .icon__share-copy {
@@ -1077,12 +1123,12 @@ defineExpose({
 }
 
 .share-setting-content.isMobile .icon__share-close {
-    margin-left: 8px;
+    margin-left: var(--td-size-4);
     padding-left: 0;
 }
 
 :deep(.share-setting-container.isMobile .share-setting-card) {
-    padding: 6px 10px;
+    padding: var(--td-size-3) 10px;
 }
 
 :deep(.share-setting-container.isMobile) {
@@ -1093,5 +1139,28 @@ defineExpose({
     .thinking-icon {
         animation: none;
     }
+}
+
+/* ---- 渠道对话提示（对齐 webim ChannelDivider） ---- */
+.channel-divider {
+    display: flex;
+    align-items: center;
+    padding: var(--td-size-4) 0;
+    user-select: none;
+}
+
+.channel-divider__line {
+    width: 73px;
+    height: 0;
+    flex-shrink: 0;
+    border-top: 1px solid var(--td-component-stroke);
+}
+
+.channel-divider__text {
+    flex: 1;
+    text-align: center;
+    font-size: var(--td-font-size-body-medium);
+    line-height: var(--td-line-height-body-medium);
+    color: var(--td-text-color-placeholder);
 }
 </style>

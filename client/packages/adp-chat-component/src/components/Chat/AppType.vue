@@ -107,14 +107,14 @@ const handleChooseQuestion = (value: string) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 24px;
+  padding: 0 var(--td-size-8);
 }
 
 .welcome-header-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 36px;
+  margin-bottom: var(--td-size-11);
 }
 
 .welcome-title-row {
@@ -131,16 +131,16 @@ const handleChooseQuestion = (value: string) => {
 }
 
 .welcome-title {
-  font-size: 24px;
+  font-size: var(--td-font-size-headline-small);
   font-weight: 700;
   color: var(--td-text-color-primary, rgba(0, 0, 0, 0.9));
-  line-height: 32px;
+  line-height: var(--td-line-height-headline-small);
   letter-spacing: -0.02em;
 }
 
 .welcome-description {
-  font-size: 14px;
-  line-height: 22px;
+  font-size: var(--td-font-size-body-medium);
+  line-height: var(--td-line-height-body-medium);
   color: var(--td-text-color-placeholder);
   text-align: center;
   max-width: 460px;
@@ -151,27 +151,27 @@ const handleChooseQuestion = (value: string) => {
 .greet-desc {
   color: var(--td-text-color-secondary);
   background-color: var(--td-bg-color-container-hover);
-  font-size: 14px;
+  font-size: var(--td-font-size-body-medium);
   word-break: break-word;
-  margin-top: 20px;
+  margin-top: var(--td-size-7);
   padding: 10px 16px;
   border-radius: 10px;
-  line-height: 22px;
+  line-height: var(--td-line-height-body-medium);
 }
 
 .isMobile .greet-desc {
   background: var(--td-bg-color-container-hover, #F3F3F3);
   color: var(--td-text-color-secondary, #00000099);
-  padding: 10px 16px;
+  padding: 10px var(--td-size-6);
 }
 
 /* ── 推荐问题 ── */
 .recommend-question-container {
-  margin-top: 16px;
+  margin-top: var(--td-size-6);
 }
 
 .greet-tag {
-  padding: 8px 16px;
+  padding: var(--td-size-4) var(--td-size-6);
   height: auto;
   min-height: 36px;
   font-weight: 500;
@@ -198,7 +198,7 @@ const handleChooseQuestion = (value: string) => {
   color: var(--td-brand-color);
   align-items: center;
   font-weight: 500;
-  line-height: 20px;
+  line-height: var(--td-line-height-body-small);
 }
 
 .greet-tag-text .star-icon {

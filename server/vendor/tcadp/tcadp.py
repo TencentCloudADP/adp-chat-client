@@ -760,6 +760,58 @@ class TCADP(BaseVendor):
             'LastRecordId': response.get('LastRecordId', ''),
         }
 
+    async def describe_conversation_message_list(
+        self,
+        ConversationId: str,
+        UserId: str = None,
+        Type: int = 1,
+        Limit: int = 50,
+        RecordId: str = None,
+        RecordQueryDirection: int = 1,
+        **kwargs,
+    ) -> dict:
+        """渠道（访客）会话历史消息拉取，供 /adp/DescribeConversationMessageList 转发端点直接调度。
+
+        与 get_messages_v2 的区别：
+        - get_messages_v2 面向登录账号自己的会话，硬编码 Type=5(API) + UserId=account_id；
+        - 本方法面向渠道会话，Type 默认 1(CONVERSATION_TYPE_VISITOR)，并允许调用方显式传入
+          渠道绑定的 UserId（对齐 adp-b2c capiService.DescribeConversationMessages）。
+          渠道会话不属于登录账号、也不在本地库，因此不能走 /chat/messages。
+
+        参数使用 PascalCase 以匹配 ForwardApi 直接透传的 Payload 键。
+        返回值按 RecordId 分组为前端 V2 Record 格式。
+        """
+        action = "DescribeConversationMessageList"
+        payload = {
+            "ConversationId": ConversationId,
+            # Type=0 时下游 SDK 常返回空，兜底成 1(VISITOR)，对齐 adp-b2c conversationType()
+            "Type": Type or 1,
+            "Limit": Limit or 50,
+            "AppKey": self.config['AppKey'],
+            "RecordQueryDirection": RecordQueryDirection or 1,
+        }
+        # 显式携带渠道 UserId：action_version 仅在缺省时才注入 {{ACCOUNT_ID}}，此处传入即以渠道 UserId 为准
+        if UserId:
+            payload["UserId"] = UserId
+        if RecordId:
+            payload["RecordId"] = RecordId
+
+        resp = await tc_request(self.tc_config(), action, payload, action_overrides=self._action_overrides)
+        response = resp.get('Response', resp)
+        if 'Error' in response:
+            raise Exception(response['Error'])
+
+        raw_messages = response.get('Messages', [])
+        records = self._convert_messages_to_records(raw_messages, ConversationId)
+
+        return {
+            'Records': records,
+            'HasMoreBefore': response.get('HasMoreBefore', False),
+            'HasMoreAfter': response.get('HasMoreAfter', False),
+            'FirstRecordId': response.get('FirstRecordId', ''),
+            'LastRecordId': response.get('LastRecordId', ''),
+        }
+
     @staticmethod
     def _convert_messages_to_records(messages: list, conversation_id: str) -> list:
         """将 DescribeConversationMessageList 返回的消息列表转换为 V2 Record 格式
@@ -1279,15 +1331,40 @@ class TCADP(BaseVendor):
 
         logging.info(f"upload: file size {len(file_data)} bytes")
 
+        # 归一化用户上传的 MIME，作为 COS 对象的 Content-Type 落库依据。
+        # - 浏览器通常给出 'image/png' / 'text/plain; charset=utf-8' 之类；这里保留主类型+子类型，
+        #   丢弃 charset 等参数，避免奇异值污染对象元数据。
+        # - 缺失或明显不合规时回退到通用二进制，交由下游按扩展名兜底识别。
+        cos_content_type = (mime_type or '').split(';', 1)[0].strip().lower()
+        if '/' not in cos_content_type:
+            cos_content_type = 'application/octet-stream'
+
         # 使用 DescribeStorageCredential 返回的 UploadUrl（已签名）直接 PUT 上传
         upload_url = resp.get('UploadUrl')
-        if upload_url:
+        if upload_url:            
+            from urllib.parse import urlparse, parse_qs
+            try:
+                signed_headers = parse_qs(urlparse(upload_url).query).get('q-signed-headers', [''])[0].lower()
+                signed_set = {h.strip() for h in signed_headers.split(';') if h.strip()}
+            except Exception:
+                signed_set = set()
+
+            put_headers = {'Content-Length': str(len(file_data))}
+            if 'content-type' not in signed_set:
+                put_headers['Content-Type'] = cos_content_type
+            else:
+                # 签发端已锁定 content-type：无法覆盖，仅日志提示，便于排查前端渲染问题。
+                logging.info(
+                    f"upload: presigned url has content-type in signed headers, "
+                    f"skip client-side override (user_mime={cos_content_type})"
+                )
+
             import aiohttp
             async with aiohttp.ClientSession() as session:
                 async with session.put(
                     upload_url,
                     data=bytes(file_data),
-                    headers={'Content-Length': str(len(file_data))}
+                    headers=put_headers,
                 ) as put_resp:
                     if put_resp.status not in (200, 201, 204):
                         text = await put_resp.text()
@@ -1303,7 +1380,8 @@ class TCADP(BaseVendor):
                 bucket=resp['Bucket'],
                 config=self.tc_config()['cos'],
             )
-            await cos.put(resp['UploadPath'], bytes(file_data))
+            # S3 SDK 路径：ContentType 是 PutObject API 的显式参数，不涉及签名冲突。
+            await cos.put(resp['UploadPath'], bytes(file_data), content_type=cos_content_type)
 
         # 优先使用 DescribeStorageCredential 返回的 FileUrl（LKE 平台可识别的地址）
         url = resp.get('FileUrl') or resp.get('file_url') or (

@@ -54,6 +54,10 @@ export interface Props extends ChatRelatedProps {
     enableVoiceInput?: boolean;
     /** 是否正在上传文件 */
     isUploading?: boolean;
+    /** 渠道模式下无对话时禁用输入（对齐 webim：渠道下只能继续已有对话） */
+    channelInputDisabled?: boolean;
+    /** 渠道对话提示文本（对齐 webim ChannelDivider，显示在历史消息与新消息之间） */
+    channelDividerText?: string;
     /** 是否显示遮罩层 */
     isOverlay?: boolean;
     /** 是否启用 Skills 功能 */
@@ -88,6 +92,8 @@ const props = withDefaults(defineProps<Props>(), {
     showSidebarToggle: true,
     aiWarningText: '内容由AI生成，仅供参考',
     isUploading: false,
+    channelInputDisabled: false,
+    channelDividerText: '',
     enableVoiceInput: true,
     isOverlay: false,
     enableSkills: true,
@@ -245,6 +251,8 @@ defineExpose({
                 :asrUrlApi="asrUrlApi"
                 :enableVoiceInput="enableVoiceInput"
                 :isUploading="isUploading"
+                :channelInputDisabled="channelInputDisabled"
+                :channelDividerText="channelDividerText"
                 :isOverlay="isOverlay"
                 :enableSkills="enableSkills"
                 :enableModelSelector="enableModelSelector"
@@ -292,12 +300,12 @@ defineExpose({
     overflow: hidden;
 }
 .isMobile .layout-header{
-    padding: 10px 16px;
+    padding: 10px var(--td-size-6);
 }
 .layout-header {
     flex-shrink: 0;
     display: flex;
-    padding: 12px 20px;
+    padding: var(--td-size-5) var(--td-size-7);
     justify-content: space-between;
     align-items: center;
     height: 56px;
@@ -306,7 +314,7 @@ defineExpose({
 .header-app-settings{
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--td-size-2);
 }
 
 .layout-header .header-app-settings svg {
@@ -321,7 +329,7 @@ defineExpose({
 
 .layout-header .header-app__avatar{
     border-radius: var(--td-radius-medium);
-    margin-left: 8px;
+    margin-left: var(--td-size-4);
 }
 .layout-header .header-app__title {
     color: var(--td-text-color-primary);
@@ -338,7 +346,7 @@ defineExpose({
 
 .layout-footer {
     flex-shrink: 0;
-    padding: 6px 16px 10px;
+    padding: var(--td-size-3) var(--td-size-6) 10px;
 }
 .header-app-driver{
     margin: 0 var(--td-size-6) 0 var(--td-size-4);

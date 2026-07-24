@@ -16,6 +16,7 @@ export {
     parseFile,
     getFileDownloadUrl,
     describeConversation,
+    describeConversationList,
     listDir,
     fetchFile,
     fetchModelList,
@@ -35,4 +36,34 @@ export type {
     SuggestionItem,
     SuggestionGroup,
     SuggestionListResponse,
+    DescribeConversationListParams,
+    DescribeConversationListResponse,
+    CapiConversationItem,
 } from './api';
+
+// ============================================================
+// Channel API
+// ============================================================
+export {
+    defaultChannelApiConfig,
+    describeChannelList,
+    describeChannel,
+    createChannel,
+    modifyChannel,
+    deleteChannel,
+    ChannelScene,
+    ClawChannelStatus,
+    ChannelType,
+} from './channelApi';
+export type {
+    ChannelApiConfig,
+    ChannelRawItem,
+    ChannelSpecRaw,
+    ChannelItem,
+    DescribeChannelListParams,
+    DescribeChannelListResponse,
+    CreateChannelParams,
+    DescribeChannelParams,
+    DeleteChannelParams,
+    ModifyChannelParams,
+} from './channelApi';

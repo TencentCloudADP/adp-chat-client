@@ -336,23 +336,23 @@ watch(() => props.modelValue, (val) => {
 </script>
 
 <style scoped>
-.connector-connect { display: flex; flex-direction: column; gap: 16px; padding: 4px 0; }
-.connector-connect__auth { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 6px; background: var(--td-bg-color-secondarycontainer); }
+.connector-connect { display: flex; flex-direction: column; gap: var(--td-size-6); padding: 4px 0; }
+.connector-connect__auth { display: flex; flex-direction: column; gap: var(--td-size-3); padding: 12px 14px; border-radius: var(--td-radius-default); background: var(--td-bg-color-secondarycontainer); }
 .connector-connect__auth-label { font-size: 13px; font-weight: 500; color: var(--td-text-color-primary); }
-.connector-connect__auth-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
-.connector-connect__auth-dot { width: 6px; height: 6px; border-radius: 50%; }
+.connector-connect__auth-row { display: flex; align-items: center; gap: var(--td-size-4); font-size: 13px; }
+.connector-connect__auth-dot { width: 6px; height: 6px; border-radius: var(--td-radius-circle); }
 .connector-connect__auth-dot.is-success { background: var(--td-success-color, #00a870); }
 .connector-connect__auth-dot.is-warning { background: var(--td-warning-color, #ed7b2f); }
 .connector-connect__auth-status { color: var(--td-text-color-secondary); }
 .connector-connect__auth-link { color: var(--td-brand-color); cursor: pointer; }
 .connector-connect__auth-link:hover { opacity: 0.8; }
-.connector-connect__auth-tip { font-size: 12px; color: var(--td-text-color-placeholder); }
+.connector-connect__auth-tip { font-size: var(--td-font-size-body-small); color: var(--td-text-color-placeholder); }
 
-.connector-connect__form { display: flex; flex-direction: column; gap: 12px; }
-.connector-connect__item { display: flex; flex-direction: column; gap: 6px; }
-.connector-connect__label { font-size: 13px; color: var(--td-text-color-primary); display: flex; align-items: center; gap: 6px; }
-.connector-connect__loc-tag { display: inline-block; padding: 0 6px; font-size: 11px; line-height: 18px; color: var(--td-text-color-secondary); background: var(--td-bg-color-secondarycontainer); border-radius: 3px; }
+.connector-connect__form { display: flex; flex-direction: column; gap: var(--td-size-5); }
+.connector-connect__item { display: flex; flex-direction: column; gap: var(--td-size-3); }
+.connector-connect__label { font-size: 13px; color: var(--td-text-color-primary); display: flex; align-items: center; gap: var(--td-size-3); }
+.connector-connect__loc-tag { display: inline-block; padding: 0 var(--td-size-3); font-size: 11px; line-height: 18px; color: var(--td-text-color-secondary); background: var(--td-bg-color-secondarycontainer); border-radius: 3px; }
 .connector-connect__required { color: var(--td-error-color, #d54941); }
 
-.connector-connect__empty { padding: 12px; font-size: 13px; color: var(--td-text-color-placeholder); text-align: center; }
+.connector-connect__empty { padding: var(--td-size-5); font-size: 13px; color: var(--td-text-color-placeholder); text-align: center; }
 </style>

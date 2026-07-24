@@ -53,7 +53,7 @@ interface Category {
     items: NormalizedSkill[];
 }
 
-interface Props {
+export interface Props {
     installedSkills?: NormalizedSkill[];
     installedConnectors?: NormalizedSkill[];
     installedTools?: NormalizedSkill[];
@@ -202,7 +202,7 @@ defineExpose({ handleKeydown, resetNavigation });
 .at-mention-panel {
     display: flex;
     background: var(--td-bg-color-container);
-    border-radius: 12px;
+    border-radius: var(--td-radius-large);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 8px 32px rgba(0, 0, 0, 0.06);
     border: 1px solid var(--td-component-stroke);
     overflow: hidden;
@@ -215,7 +215,7 @@ defineExpose({ handleKeydown, resetNavigation });
     width: 130px;
     border-right: 1px solid var(--td-component-border);
     overflow-y: auto;
-    padding: 4px 0;
+    padding: var(--td-size-2) 0;
     flex-shrink: 0;
     scrollbar-width: thin;
     scrollbar-color: var(--td-scrollbar-color, rgba(0,0,0,.12)) transparent;
@@ -241,7 +241,7 @@ defineExpose({ handleKeydown, resetNavigation });
 .at-mention-panel__category-inner {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--td-size-3);
     padding: 7px 10px;
     height: 36px;
     font-size: 13px;
@@ -267,7 +267,7 @@ defineExpose({ handleKeydown, resetNavigation });
 .at-mention-panel__submenu {
     flex: 1;
     overflow-y: auto;
-    padding: 4px 0;
+    padding: var(--td-size-2) 0;
     min-width: 0;
     scrollbar-width: thin;
     scrollbar-color: var(--td-scrollbar-color, rgba(0,0,0,.12)) transparent;
@@ -279,7 +279,7 @@ defineExpose({ handleKeydown, resetNavigation });
 
 .at-mention-panel__submenu::-webkit-scrollbar-thumb {
     background: var(--td-scrollbar-color, rgba(0,0,0,.12));
-    border-radius: 4px;
+    border-radius: var(--td-radius-small);
 }
 
 .at-mention-panel__submenu::-webkit-scrollbar-track {
@@ -289,7 +289,7 @@ defineExpose({ handleKeydown, resetNavigation });
 .at-mention-panel__subitem {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--td-size-4);
     padding: 7px 10px;
     height: 36px;
     cursor: pointer;
@@ -307,7 +307,7 @@ defineExpose({ handleKeydown, resetNavigation });
 .at-mention-panel__subitem-icon {
     width: 20px;
     height: 20px;
-    border-radius: 50%;
+    border-radius: var(--td-radius-circle);
     object-fit: cover;
     flex-shrink: 0;
     color: var(--td-text-color-secondary);
@@ -329,9 +329,9 @@ defineExpose({ handleKeydown, resetNavigation });
 }
 
 .at-mention-panel__empty {
-    padding: 24px 8px;
+    padding: var(--td-size-8) var(--td-size-4);
     color: var(--td-text-color-placeholder);
-    font-size: 12px;
+    font-size: var(--td-font-size-body-small);
     text-align: center;
 }
 </style>

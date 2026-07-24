@@ -863,7 +863,7 @@ watch(() => props.modelValue, (val) => {
 .plugin-card__info { display: flex; flex-direction: column; gap: var(--td-size-2); }
 .plugin-card__title-row { gap: var(--td-size-3); }
 .plugin-card__error-dot { font-size: var(--td-font-size-body-small); color: var(--td-error-color); padding-left: var(--td-comp-paddingTB-m); position: relative; }
-.plugin-card__error-dot::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: var(--td-size-4); height: var(--td-size-4); border-radius: 50%; background: var(--td-error-color); }
+.plugin-card__error-dot::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: var(--td-size-4); height: var(--td-size-4); border-radius: var(--td-radius-circle); background: var(--td-error-color); }
 .plugin-card__sep { color: var(--td-component-border); }
 .plugin-card__fav { display: inline-flex; align-items: center; gap: var(--td-size-1); }
 .plugin-card__refresh { cursor: pointer; display: inline-flex; align-items: center; gap: var(--td-size-1); transition: color 0.15s; }

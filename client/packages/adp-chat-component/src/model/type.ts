@@ -20,6 +20,7 @@ export interface LanguageOption {
 
 /** 用户信息 */
 export interface UserInfo {
+  id?: string
   avatarUrl?: string
   avatarName?: string
   name?: string
@@ -56,6 +57,24 @@ export interface SideI18n {
   switchTheme?: string
   selectLanguage?: string
   logout?: string
+  /** 新建任务按钮文案 */
+  newTask?: string
+  /** 新建对话按钮文案 */
+  newConversation?: string
+  /** 定时任务按钮文案 */
+  cronTask?: string
+  /** 远程终端按钮文案 */
+  remoteTerminal?: string
+  /** 定时任务分组空态文案 */
+  cronTaskEmpty?: string
+  /** 远程终端分组空态文案 */
+  remoteTerminalEmpty?: string
+  /** 远程终端「设置」按钮 tooltip 文案 */
+  remoteTerminalSetting?: string
+  /** 切换应用按钮文案（tooltip） */
+  switchApplication?: string
+  /** 渠道展开列表按钮文案 */
+  channelList?: string
 }
 
 /** 聊天国际化文本 */
@@ -266,6 +285,15 @@ export const defaultSideI18n: Required<SideI18n> = {
   switchTheme: '切换主题',
   selectLanguage: '选择语言',
   logout: '退出登录',
+  newTask: '新建任务',
+  newConversation: '新建对话',
+  cronTask: '定时任务',
+  remoteTerminal: '远程终端',
+  cronTaskEmpty: '暂无定时任务',
+  remoteTerminalEmpty: '暂无远程终端',
+  remoteTerminalSetting: '渠道设置',
+  switchApplication: '切换应用',
+  channelList: '展开列表',
 }
 
 /** 聊天 i18n 默认值 */
@@ -383,6 +411,15 @@ export const defaultSideI18nEn: Required<SideI18n> = {
   switchTheme: 'Switch Theme',
   selectLanguage: 'Select Language',
   logout: 'Logout',
+  newTask: 'New Task',
+  newConversation: 'New Chat',
+  cronTask: 'Scheduled Tasks',
+  remoteTerminal: 'Remote Terminal',
+  cronTaskEmpty: 'No scheduled tasks',
+  remoteTerminalEmpty: 'No remote terminals',
+  remoteTerminalSetting: 'Channel settings',
+  switchApplication: 'Switch Application',
+  channelList: 'Expand list',
 }
 
 /** 聊天 i18n 英文默认值 */
