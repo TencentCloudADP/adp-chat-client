@@ -2535,7 +2535,7 @@ defineExpose({
                         </span>
                     </Tooltip>
                     <!-- 非渠道模式：定时任务 -->
-                    <Tooltip v-if="!remoteTerminalActiveId && enableCronTask" :content="mergedSideI18n.cronTask" destroyOnClose showArrow theme="default">
+                    <!-- <Tooltip v-if="!remoteTerminalActiveId && enableCronTask" :content="mergedSideI18n.cronTask" destroyOnClose showArrow theme="default">
                         <span
                             class="header-action-btn"
                             :class="{ 'header-action-btn--active': cronTaskVisible }"
@@ -2543,7 +2543,7 @@ defineExpose({
                         >
                             <CustomizedIcon remote name="basic_time_line" :theme="theme" />
                         </span>
-                    </Tooltip>
+                    </Tooltip> -->
                     <Tooltip v-if="!isMobile && chatMode !== 'standard'" :content="mergedFilePreviewI18n.openFileList" destroyOnClose showArrow theme="default">
                         <span class="open-file-list-btn" @click="toggleFilePreview">
                             <CustomizedIcon name="open_file_list" :theme="theme" />

@@ -86,15 +86,15 @@ const displayItems = computed<SideActionItem[]>(() => {
             iconSize: 'xs',
         },
     ];
-    if (props.showCronTask) {
-        list.push({
-            key: 'cron-task',
-            label: mergedI18n.value.cronTask,
-            icon: 'basic_time_line',
-            remote: true,
-            iconSize: 'xs',
-        });
-    }
+    // if (props.showCronTask) {
+    //     list.push({
+    //         key: 'cron-task',
+    //         label: mergedI18n.value.cronTask,
+    //         icon: 'basic_time_line',
+    //         remote: true,
+    //         iconSize: 'xs',
+    //     });
+    // }
     if (props.showChannelList) {
         list.push({
             key: 'channel-list',

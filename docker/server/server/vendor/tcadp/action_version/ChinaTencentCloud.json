@@ -133,8 +133,7 @@
     },
     "CreateChannel": {
         "service": "adp",
-        "headers.X-TC-Version": "2026-05-20",
-         "headers.X-TC-Canary": "toe-test-4070"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "DescribeChannel": {
         "service": "adp",
@@ -143,8 +142,7 @@
     },
     "DescribeChannelList": {
         "service": "adp",
-        "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4070"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "ModifyChannel": {
         "service": "adp",

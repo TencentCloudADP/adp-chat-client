@@ -343,10 +343,10 @@ function getLogStatusClass(status: number): string {
     const map: Record<number, string> = {
         [TimerRunStatus.PENDING]: 'pending',
         [TimerRunStatus.RUNNING]: 'running',
+        [TimerRunStatus.RETRY_WAIT]: 'pending',
         [TimerRunStatus.SUCCESS]: 'success',
-        [TimerRunStatus.FAILED]: 'failed',
-        [TimerRunStatus.CANCELED]: 'pending',
-        [TimerRunStatus.TIMEOUT]: 'failed',
+        [TimerRunStatus.DEAD]: 'failed',
+        [TimerRunStatus.CANCELLED]: 'pending',
     };
     return map[status] || 'pending';
 }
@@ -355,10 +355,10 @@ function getLogStatusText(status: number): string {
     const map: Record<number, string> = {
         [TimerRunStatus.PENDING]: props.language?.startsWith('en') ? 'Pending' : '等待执行',
         [TimerRunStatus.RUNNING]: props.language?.startsWith('en') ? 'Running' : '正在执行',
+        [TimerRunStatus.RETRY_WAIT]: props.language?.startsWith('en') ? 'Retrying' : '等待重试',
         [TimerRunStatus.SUCCESS]: props.language?.startsWith('en') ? 'Success' : '执行成功',
-        [TimerRunStatus.FAILED]: props.language?.startsWith('en') ? 'Failed' : '执行失败',
-        [TimerRunStatus.CANCELED]: props.language?.startsWith('en') ? 'Canceled' : '已取消',
-        [TimerRunStatus.TIMEOUT]: props.language?.startsWith('en') ? 'Timeout' : '超时',
+        [TimerRunStatus.DEAD]: props.language?.startsWith('en') ? 'Failed' : '执行失败',
+        [TimerRunStatus.CANCELLED]: props.language?.startsWith('en') ? 'Canceled' : '已取消',
     };
     return map[status] || '';
 }

@@ -111,31 +111,26 @@
     "CreateChannel": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4070",
         "payload.UserId": "{{ACCOUNT_ID}}"
     },
     "DescribeChannel": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4070",
         "payload.UserId": "{{ACCOUNT_ID}}"
     },
     "DescribeChannelList": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4070",
         "payload.UserId": "{{ACCOUNT_ID}}"
     },
     "ModifyChannel": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4070",
         "payload.UserId": "{{ACCOUNT_ID}}"
     },
     "DeleteChannel": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4070",
         "payload.UserId": "{{ACCOUNT_ID}}"
     }
 }

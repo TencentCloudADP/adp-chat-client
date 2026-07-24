@@ -24,7 +24,6 @@
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
         "headers.X-TC-Region": "ap-guangzhou",
-        "headers.X-TC-Canary": "toe-test-4070",
         "payload.AppKey": "{{APP_KEY}}",
         "payload.UserId": "{{ACCOUNT_ID}}"
     },
@@ -32,14 +31,12 @@
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
         "headers.X-TC-Region": "ap-guangzhou",
-        "headers.X-Qbot-EnvSet": "toe-test-4070-channelid",
         "payload.AppKey": "{{APP_KEY}}"
     },
     "DescribeConversationMessageList": {
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
         "headers.X-TC-Region": "ap-guangzhou",
-        "headers.X-TC-Canary": "toe-test-4070",
         "payload.AppKey": "{{APP_KEY}}",
         "payload.UserId": "{{ACCOUNT_ID}}"
     },
@@ -72,7 +69,6 @@
         "service": "adp",
         "headers.X-TC-Version": "2026-05-20",
         "headers.X-TC-Region": "ap-guangzhou",
-        "headers.X-TC-Canary": "toe-test-4070",
         "payload.AppKey": "{{APP_KEY}}",
         "payload.UserId": "{{ACCOUNT_ID}}"
     },
@@ -136,28 +132,23 @@
     },
     "CreateChannel": {
         "service": "adp",
-        "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4070"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "DescribeChannel": {
         "service": "adp",
-        "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4070"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "DescribeChannelList": {
         "service": "adp",
-        "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4070"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "ModifyChannel": {
         "service": "adp",
-        "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4070"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "DeleteChannel": {
         "service": "adp",
-        "headers.X-TC-Version": "2026-05-20",
-        "headers.X-TC-Canary": "toe-test-4070"
+        "headers.X-TC-Version": "2026-05-20"
     },
     "DescribeTimerTaskSummaryList": {
         "service": "adp",

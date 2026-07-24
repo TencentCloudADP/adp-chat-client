@@ -225,10 +225,10 @@ const rules: FormRules = {
                 <div class="wbc-tip">
                     <span class="wbc-tip__dot" />
                     <div class="wbc-tip__text">
-                        <span>获取凭证：</span>
+                        <!-- <span>获取凭证：</span>
                         <a class="wbc-tip__link" href="javascript:void(0)">点击链接</a>
                         <span>用企微扫码快速获取。</span>
-                        <br />
+                        <br /> -->
                         <span>重要提示：一个企微机器人只能绑定一个空间的智能工作台。</span>
                     </div>
                 </div>

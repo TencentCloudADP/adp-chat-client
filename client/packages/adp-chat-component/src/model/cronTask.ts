@@ -26,14 +26,14 @@ export const TimerRunStatus = {
     PENDING: 1,
     /** 运行中 */
     RUNNING: 2,
+    /** 等待重试 */
+    RETRY_WAIT: 3,
     /** 成功 */
-    SUCCESS: 3,
-    /** 失败 */
-    FAILED: 4,
+    SUCCESS: 4,
+    /** 已死亡（失败终态） */
+    DEAD: 5,
     /** 已取消 */
-    CANCELED: 5,
-    /** 超时 */
-    TIMEOUT: 6,
+    CANCELLED: 6,
 } as const;
 export type TimerRunStatusValue = typeof TimerRunStatus[keyof typeof TimerRunStatus];
 
@@ -254,6 +254,12 @@ export interface CronTaskI18n {
     noRunLog?: string;
     viewSession?: string;
     unread?: string;
+    /** 执行记录标题 */
+    executionRecordTitle?: string;
+    /** 全部标记已读 */
+    markAllRead?: string;
+    /** 没有更多了 */
+    noMore?: string;
 
     /* 创建/编辑对话框 */
     dialogTitleCreate?: string;
@@ -347,6 +353,9 @@ export const defaultCronTaskI18n: Required<CronTaskI18n> = {
     noRunLog: '暂无执行记录',
     viewSession: '查看会话',
     unread: '未读',
+    executionRecordTitle: '执行记录',
+    markAllRead: '全部标记已读',
+    noMore: '没有更多了',
 
     dialogTitleCreate: '新建定时任务',
     dialogTitleEdit: '编辑定时任务',
@@ -435,6 +444,9 @@ export const defaultCronTaskI18nEn: Required<CronTaskI18n> = {
     noRunLog: 'No run logs yet',
     viewSession: 'View session',
     unread: 'Unread',
+    executionRecordTitle: 'Execution Records',
+    markAllRead: 'Mark all as read',
+    noMore: 'No more',
 
     dialogTitleCreate: 'New Scheduled Task',
     dialogTitleEdit: 'Edit Scheduled Task',
